@@ -1,6 +1,3 @@
-# Edit this configuration file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
 {
   config,
   pkgs,
@@ -27,13 +24,6 @@
   nix.package = pkgs.nixFlakes;
   nix.settings.experimental-features = ["nix-command" "flakes"];
 
-  networking.hostName = "jimbo"; # Define your hostname.
-  # networking.wireless.enable = true;  # FROM ME: Don't enable this and network-manager at the same time. Doesn't like it.
-
-  # Configure network proxy if necessary
-  # networking.proxy.default = "http://user:password@proxy:port/";
-  # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
-
   # Allow for certain insecure packages
   nixpkgs.config.permittedInsecurePackages = [
     "electron-25.9.0"
@@ -41,6 +31,7 @@
 
   # Enable networking
   networking.networkmanager.enable = true;
+  networking.hostName = "jimbo";
 
   # Set your time zone.
   time.timeZone = "Australia/Melbourne";
@@ -150,14 +141,8 @@
 
   programs.zsh = {
     enable = true;
-
-    ohMyZsh = {
-      enable = true;
-      theme = "robbyrussell";
-      plugins = [
-        "sudo"
-      ];
-    };
+    syntaxHighlighting.enable = true;
+    autosuggestions.enable = true;
   };
 
   # This value determines the NixOS release from which the default
