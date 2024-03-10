@@ -15,6 +15,9 @@
 
     # Environment info, system packages, environment variables
     ./system/environment.nix
+    
+    # Desktop environment
+    ./system/desktop.nix
 
     # Configuration for system programs
     ./programs
@@ -56,19 +59,6 @@
     LC_PAPER = "en_AU.UTF-8";
     LC_TELEPHONE = "en_AU.UTF-8";
     LC_TIME = "en_AU.UTF-8";
-  };
-
-  # Enable the X11 windowing system.
-  services.xserver.enable = true;
-
-  # Enable the KDE Plasma Desktop Environment.
-  services.xserver.displayManager.sddm.enable = true;
-  services.xserver.desktopManager.plasma5.enable = true;
-
-  # Configure keymap in X11
-  services.xserver.xkb = {
-    layout = "au";
-    variant = "";
   };
 
   # Enable CUPS to print documents.
