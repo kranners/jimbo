@@ -15,8 +15,6 @@
     # # parentheses. Maybe you want to install Nerd Fonts with a limited number of
     # # fonts?
     # (pkgs.nerdfonts.override { fonts = [ "FantasqueSansMono" ]; })
-    vim
-    neovim
     ungoogled-chromium
     discord
     spotify
@@ -24,7 +22,6 @@
     lutris
     wine
     obsidian
-    zsh
     vscode
   ];
 
@@ -38,7 +35,7 @@
   };
 
   home.sessionVariables = {
-    EDITOR = "vim";
+    EDITOR = "nvim";
   };
 
   # Let Home Manager install and manage itself.
