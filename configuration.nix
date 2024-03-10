@@ -10,7 +10,6 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
-    # inputs.home-manager.nixosModules.default
   ];
 
   # Bootloader.
@@ -102,20 +101,6 @@
     shell = pkgs.zsh;
 
     extraGroups = ["networkmanager" "wheel"];
-    packages = with pkgs; [
-      vim
-      git
-      ungoogled-chromium
-      discord
-      spotify
-      steam
-      lutris
-      wine
-      obsidian
-      zsh
-      vscode
-      neovim
-    ];
   };
 
   # Allow unfree packages
@@ -127,7 +112,10 @@
     wget
     vim
     home-manager
+
     alejandra
+    statix
+    deadnix
   ];
 
   environment.variables = {

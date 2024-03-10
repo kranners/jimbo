@@ -27,18 +27,19 @@
     nixosConfigurations = {
       jimbo = nixpkgs.lib.nixosSystem {
         specialArgs = {inherit inputs;};
+
         modules = [
           ./configuration.nix
+
           inputs.home-manager.nixosModules.default
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              users.aaron = import ./home.nix;
+            };
+          }
         ];
-      };
-    };
-
-    homeConfigurations = {
-      aaron = home-manager.lib.homeManagerConfiguration {
-        inherit pkgs;
-
-        modules = [./home.nix];
       };
     };
   };
