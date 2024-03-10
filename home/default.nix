@@ -4,25 +4,33 @@
   inputs,
   ...
 }: {
-  imports = [./programs];
+  imports = [./programs ./desktop];
 
   home.username = "aaron";
   home.homeDirectory = "/home/aaron";
 
   home.packages = with pkgs; [
-    # # It is sometimes useful to fine-tune packages, for example, by applying
-    # # overrides. You can do that directly here, just don't forget the
-    # # parentheses. Maybe you want to install Nerd Fonts with a limited number of
-    # # fonts?
-    # (pkgs.nerdfonts.override { fonts = [ "FantasqueSansMono" ]; })
-    ungoogled-chromium
-    discord
+    google-chrome
+
+    # Recommended Discord client alternative?
+    vesktop
     spotify
     steam
     lutris
     wine
     obsidian
     vscode
+
+    # Hyprland extras
+    waybar
+    swww
+    dunst
+    rofi-wayland
+
+    kitty
+
+    pavucontrol
+    xfce.thunar
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
