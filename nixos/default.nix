@@ -15,8 +15,8 @@
 
     # Environment info, system packages, environment variables
     ./system/environment.nix
-    
-    # Desktop environment
+
+    # Desktop environment info
     ./system/desktop.nix
 
     # Configuration for system programs
@@ -61,6 +61,28 @@
     LC_TIME = "en_AU.UTF-8";
   };
 
+  # XDG Portals
+  xdg = {
+    autostart.enable = true;
+    portal = {
+      enable = true;
+      extraPortals = [
+        pkgs.xdg-desktop-portal
+        pkgs.xdg-desktop-portal-gtk
+      ];
+      config.common.default = "*";
+    };
+  };
+
+  # Security
+  security = {
+    pam.services.swaylock = {
+      text = ''
+        auth include login
+      '';
+    };
+  };
+
   # Enable CUPS to print documents.
   services.printing.enable = true;
 
@@ -73,12 +95,6 @@
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
-    # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
-
-    # use the example session manager (no others are packaged yet so this is enabled by default,
-    # no need to redefine it in your config for now)
-    #media-session.enable = true;
   };
 
   # Enable touchpad support (enabled default in most desktopManager).
