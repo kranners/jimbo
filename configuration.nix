@@ -73,9 +73,9 @@
   services.xserver.desktopManager.plasma5.enable = true;
 
   # Configure keymap in X11
-  services.xserver = {
+  services.xserver.xkb = {
     layout = "au";
-    xkbVariant = "";
+    variant = "";
   };
 
   # Enable CUPS to print documents.
