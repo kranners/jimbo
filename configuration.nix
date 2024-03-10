@@ -111,11 +111,13 @@
   environment.systemPackages = with pkgs; [
     wget
     vim
+    gnupg
+    gnumake
+
     home-manager
 
     alejandra
     statix
-    deadnix
   ];
 
   environment.variables = {
@@ -128,10 +130,9 @@
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
   # programs.mtr.enable = true;
-  # programs.gnupg.agent = {
-  #   enable = true;
-  #   enableSSHSupport = true;
-  # };
+  programs.gnupg.agent = {
+    enable = true;
+  };
 
   # List services that you want to enable:
 
