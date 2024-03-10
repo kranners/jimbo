@@ -13,11 +13,15 @@
   ];
 
   # Bootloader.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  # boot.loader.grub.enable = true;
-  # boot.loader.grub.device = "nodev";
-  # boot.loader.grub.useOSProber = true;
+  boot.loader = {
+    efi.canTouchEfiVariables = true;
+    grub = {
+      enable = true;
+      devices = ["nodev"];
+      efiSupport = true;
+      useOSProber = true;
+    };
+  };
 
   # Enable Flakes
   nix.package = pkgs.nixFlakes;
@@ -115,9 +119,8 @@
     gnumake
 
     home-manager
-
+    os-prober
     alejandra
-    statix
   ];
 
   environment.variables = {
