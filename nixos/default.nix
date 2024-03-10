@@ -5,33 +5,40 @@
   ...
 }: {
   imports = [
-    # Include the results of the hardware scan.
-    ./hardware-configuration.nix
-  ];
+    ./system/hardware.nix
 
-  # Bootloader.
-  boot.loader = {
-    efi.canTouchEfiVariables = true;
-    grub = {
-      enable = true;
-      devices = ["nodev"];
-      efiSupport = true;
-      useOSProber = true;
-    };
-  };
+    # Bootloader
+    ./system/boot.nix
+
+    # Basic user info, userspace is configured in home, not nixos
+    ./system/users.nix
+
+    # Environment info, system packages, environment variables
+    ./system/environment.nix
+
+    # Configuration for system programs
+    ./programs
+  ];
 
   # Enable Flakes
   nix.package = pkgs.nixFlakes;
   nix.settings.experimental-features = ["nix-command" "flakes"];
 
-  # Allow for certain insecure packages
-  nixpkgs.config.permittedInsecurePackages = [
-    "electron-25.9.0"
-  ];
+  # Allow unfree packages
+  nixpkgs.config = {
+    allowUnfree = true;
+
+    # Allow for certain insecure packages
+    permittedInsecurePackages = [
+      "electron-25.9.0"
+    ];
+  };
 
   # Enable networking
-  networking.networkmanager.enable = true;
-  networking.hostName = "jimbo";
+  networking = {
+    networkmanager.enable = true;
+    hostName = "jimbo";
+  };
 
   # Set your time zone.
   time.timeZone = "Australia/Melbourne";
@@ -86,64 +93,6 @@
 
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
-
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.aaron = {
-    isNormalUser = true;
-    description = "Aaron";
-
-    # Set the shell to zsh
-    shell = pkgs.zsh;
-
-    extraGroups = ["networkmanager" "wheel"];
-  };
-
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
-
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
-  environment.systemPackages = with pkgs; [
-    wget
-    vim
-    gnupg
-    gnumake
-
-    home-manager
-    os-prober
-    alejandra
-  ];
-
-  environment.variables = {
-    KWIN_X11_REFRESH_RATE = "144000";
-    KWIN_X11_NO_SYNC_TO_VBLANK = "1";
-    KWIN_X11_FORCE_SOFTWARE_VSYNC = "1";
-    EDITOR = "vim";
-  };
-
-  # Some programs need SUID wrappers, can be configured further or are
-  # started in user sessions.
-  # programs.mtr.enable = true;
-  programs.gnupg.agent = {
-    enable = true;
-  };
-
-  # List services that you want to enable:
-
-  # Enable the OpenSSH daemon.
-  services.openssh.enable = true;
-
-  # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
-  # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
-
-  programs.zsh = {
-    enable = true;
-    syntaxHighlighting.enable = true;
-    autosuggestions.enable = true;
-  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
