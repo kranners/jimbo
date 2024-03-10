@@ -1,3 +1,3 @@
-{
-  programs.git = import ./git.nix;
+{pkgs, ...}: {
+  imports = [./git.nix ./neovim.nix];
 }
