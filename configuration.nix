@@ -127,6 +127,7 @@
     wget
     vim
     home-manager
+    alejandra
   ];
 
   environment.variables = {
