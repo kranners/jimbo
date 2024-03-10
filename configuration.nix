@@ -6,7 +6,8 @@
 
 {
   imports =
-    [ # Include the results of the hardware scan.
+    [
+      # Include the results of the hardware scan.
       ./hardware-configuration.nix
       # inputs.home-manager.nixosModules.default
     ];
@@ -28,15 +29,6 @@
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
   # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
-
-# nixpkgs.config.permittedInsecurePackages` in the configuration.nix,
-#          like so:
-#
-#            {
-#              nixpkgs.config.permittedInsecurePackages = [
-#                "electron-25.9.0"
-#              ];
-#            }
 
   # Allow for certain insecure packages
   nixpkgs.config.permittedInsecurePackages = [
@@ -105,7 +97,7 @@
   users.users.aaron = {
     isNormalUser = true;
     description = "Aaron";
-    
+
     # Set the shell to zsh
     shell = pkgs.zsh;
 

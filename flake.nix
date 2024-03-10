@@ -1,5 +1,5 @@
 {
-  description = "Nixos config flake";
+  description = "flake for jimbo";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -16,14 +16,12 @@
       pkgs = nixpkgs.legacyPackages.${system};
     in
     {
-    
       nixosConfigurations.jimbo = nixpkgs.lib.nixosSystem {
-          specialArgs = {inherit inputs;};
-          modules = [ 
-            ./configuration.nix
-            inputs.home-manager.nixosModules.default
-          ];
-        };
-
+        specialArgs = { inherit inputs; };
+        modules = [
+          ./configuration.nix
+          inputs.home-manager.nixosModules.default
+        ];
+      };
     };
 }
