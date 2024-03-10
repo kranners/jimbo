@@ -36,7 +36,7 @@
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;
-              users.aaron = import ./home.nix;
+              users.aaron = import ./home;
             };
           }
         ];

@@ -13,7 +13,15 @@
   ];
 
   boot.initrd.availableKernelModules = ["nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "sd_mod"];
-  boot.initrd.kernelModules = [];
+  
+  # Enable AMD GPU support
+  boot.initrd.kernelModules = ["amdgpu"];
+
+  boot.kernelParams = [
+    "video=DP-1:2560x1440@165"
+    "video=DP-3:1920x1080@144"
+  ];
+
   boot.kernelModules = ["kvm-amd"];
   boot.extraModulePackages = [];
 
