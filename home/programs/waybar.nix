@@ -10,8 +10,8 @@
         layer = "top";
         position = "top";
         tray = {spacing = 0;};
-        modules-center = [];
-        modules-left = [];
+        modules-left = ["hyprland/workspaces"];
+        modules-center = ["hyprland-window"];
         modules-right = [
           "pulseaudio"
           "clock"
