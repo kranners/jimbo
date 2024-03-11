@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  lib,
   inputs,
   ...
 }: {
@@ -29,7 +30,7 @@
     vscode
 
     # Hyprland setup
-    waybar
+    capitaine-cursors
     swww
     dunst
     # Rofi is configured seperately
@@ -38,6 +39,11 @@
     pavucontrol
     xfce.thunar
   ];
+
+  gtk.cursorTheme = {
+    name = "capitaine-cursors";
+    package = pkgs.capitaine-cursors;
+  };
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
