@@ -10,25 +10,31 @@
   home.homeDirectory = "/home/aaron";
 
   home.packages = with pkgs; [
-    google-chrome
-
-    # Recommended Discord client alternative?
-    vesktop
+    # General
     spotify
+    google-chrome
+    kitty
+
+    # Chat clients
+    vesktop
+    slack
+
+    # Gaming
     steam
     lutris
     wine
+
+    # Productivity
     obsidian
     vscode
 
-    # Hyprland extras
+    # Hyprland setup
     waybar
     swww
     dunst
     rofi-wayland
 
-    kitty
-
+    # Utilities
     pavucontrol
     xfce.thunar
   ];
