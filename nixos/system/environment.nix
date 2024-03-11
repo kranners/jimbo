@@ -12,8 +12,10 @@
 
       # Required by waybar and dunst
       libnotify
-      
+
       where-is-my-sddm-theme
+
+      gnome.gnome-keyring
     ];
 
     variables = {
