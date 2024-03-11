@@ -1,3 +1,3 @@
 {pkgs, ...}: {
-  imports = [./git.nix ./neovim.nix];
+  imports = [./git.nix ./neovim.nix ./rofi.nix];
 }

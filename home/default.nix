@@ -4,7 +4,7 @@
   inputs,
   ...
 }: {
-  imports = [./programs ./desktop];
+  imports = [./programs ./desktop ./shell];
 
   home.username = "aaron";
   home.homeDirectory = "/home/aaron";
@@ -32,7 +32,7 @@
     waybar
     swww
     dunst
-    rofi-wayland
+    # Rofi is configured seperately
 
     # Utilities
     pavucontrol
