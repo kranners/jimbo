@@ -30,14 +30,19 @@
     vscode
 
     # Hyprland setup
-    capitaine-cursors
-    swww
-    dunst
-    # Rofi is configured seperately
+    capitaine-cursors # Cursor theme
+    swww # Wallpaper
+    dunst # Notifications
+    # Rofi configured seperately
+    # Waybar configured seperately
 
     # Utilities
-    pavucontrol
-    xfce.thunar
+    pavucontrol # Audio control
+    xfce.thunar # File manager
+    grimblast # Screen capture
+    wf-recorder # Screen recording
+    vlc # Media playback
+    cliphist # Clipboard manager
   ];
 
   gtk.cursorTheme = {

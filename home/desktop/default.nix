@@ -45,6 +45,12 @@
       "$fileManager" = "thunar";
       "$menu" = "rofi -show drun";
 
+      "$screenshotRegion" = "grimblast copy area && notify-send 'Region copied to clipboard'";
+      "$screenshotWindow" = "grimblast copy active && notify-send 'Window copied to clipboard'";
+
+      "$recordScreen" = "wf-recorder -f \"~/Videos/$(date).mkv\" && notify-send \"Recording saved to ~/Videos/$(date).mkv\"";
+      "$recordRegion" = "wf-recorder -g \"$(slurp)\" -f \"~/Videos/$(date).mkv\" && notify-send \"Recording saved to ~/Videos/$(date).mkv\"";
+
       # Some default env vars.
       env = [
         "XCURSOR_SIZE,24"
@@ -161,7 +167,6 @@
         "$mainMod, C, killactive,"
         "$mainMod, M, exit,"
         "$mainMod, E, exec, $fileManager"
-        "$mainMod, V, togglefloating,"
         "$mainMod, SPACE, exec, $menu"
         "$mainMod, P, pseudo," # dwindle
         "$mainMod, J, togglesplit," # dwindle
@@ -185,20 +190,29 @@
         "$mainMod, 0, workspace, 10"
 
         # Move active window to a workspace with mainMod + SHIFT + [0-9]
-        "$mainMod SHIFT, 1, movetoworkspace, 1"
-        "$mainMod SHIFT, 2, movetoworkspace, 2"
-        "$mainMod SHIFT, 3, movetoworkspace, 3"
-        "$mainMod SHIFT, 4, movetoworkspace, 4"
-        "$mainMod SHIFT, 5, movetoworkspace, 5"
-        "$mainMod SHIFT, 6, movetoworkspace, 6"
-        "$mainMod SHIFT, 7, movetoworkspace, 7"
-        "$mainMod SHIFT, 8, movetoworkspace, 8"
-        "$mainMod SHIFT, 9, movetoworkspace, 9"
-        "$mainMod SHIFT, 0, movetoworkspace, 10"
+        "$mainMod CTRL, 1, movetoworkspace, 1"
+        "$mainMod CTRL, 2, movetoworkspace, 2"
+        "$mainMod CTRL, 3, movetoworkspace, 3"
+        "$mainMod CTRL, 4, movetoworkspace, 4"
+        "$mainMod CTRL, 5, movetoworkspace, 5"
+        "$mainMod CTRL, 6, movetoworkspace, 6"
+        "$mainMod CTRL, 7, movetoworkspace, 7"
+        "$mainMod CTRL, 8, movetoworkspace, 8"
+        "$mainMod CTRL, 9, movetoworkspace, 9"
+        "$mainMod CTRL, 0, movetoworkspace, 10"
 
-        # Example special workspace (scratchpad)
-        "$mainMod, S, togglespecialworkspace, magic"
-        "$mainMod SHIFT, S, movetoworkspace, special:magic"
+        # Screenshot utility bindings
+        "$mainMod SHIFT, S, exec, $screenshotRegion"
+        "$mainMod SHIFT, 4, exec, $screenshotRegion"
+        "$mainMod SHIFT, 3, exec, $screenshotWindow"
+
+        # Screen record bindings
+        "$mainMod ALT, S, exec, $recordRegion"
+        "$mainMod ALT, 4, exec, $recordRegion"
+        "$mainMod ALT, 3, exec, $recordScreen"
+
+        # Manage clipboard history
+        "SUPER, V, exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy"
 
         # Scroll through existing workspaces with mainMod + scroll
         "$mainMod, mouse_down, workspace, e+1"

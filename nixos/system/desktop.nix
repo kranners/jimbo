@@ -17,6 +17,8 @@
     enable = true;
     settings = rec {
       initial_session = {
+        # TODO: This currently just lets you straight through to the main window. That's no bueno.
+        # Let's add an actual login screen here.
         command = "${pkgs.hyprland}/bin/Hyprland";
         user = "aaron";
       };
