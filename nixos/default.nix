@@ -20,7 +20,7 @@
     ./system/desktop.nix
 
     # Configuration for system programs
-    ./programs
+    ./packages
   ];
 
   # Enable Flakes

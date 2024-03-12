@@ -2,7 +2,10 @@
   programs.nixvim = {
     enable = true;
 
-    colorschemes.catppuccin.enable = true;
+    colorschemes.catppuccin = {
+      enable = true;
+      flavour = "latte";
+    };
 
     plugins = {
       nix.enable = true;
