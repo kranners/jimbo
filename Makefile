@@ -14,6 +14,3 @@ rollback:
 
 check:
 	nix flake check
-	
-cram:
-	git add . ; git commit --amend --no-edit
