@@ -1,14 +1,16 @@
 {pkgs, ...}: {
   environment = {
     systemPackages = with pkgs; [
-      wget
-      vim
-      gnupg
-      gnumake
-
       home-manager
+      
+      # For GRUB autodetection
       os-prober
+      
+      # Nix development tools
       alejandra
+      nixd
+      gnumake
+      gnupg
 
       # Required by waybar and dunst
       libnotify

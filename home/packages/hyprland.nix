@@ -164,6 +164,10 @@
 
       # Example binds, see https://wiki.hyprland.org/Configuring/Binds/ for more
       bind = [
+        # Normal human bindings
+        "ALT, 4, killactive,"
+        "ALT SHIFT, Tab, cyclenext, prev"
+
         "$mainMod, Q, exec, $terminal"
         "$mainMod, C, killactive,"
         "$mainMod, M, exit,"
