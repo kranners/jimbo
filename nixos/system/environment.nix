@@ -12,8 +12,6 @@
 
       # Required by waybar and dunst
       libnotify
-
-      gnome.gnome-keyring
     ];
 
     variables = {

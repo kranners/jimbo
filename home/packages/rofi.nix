@@ -4,13 +4,13 @@
 
     location = "center";
 
-    theme = ./rofi-theme.rasi;
+    theme = ../configs/rofi/theme.rasi;
 
     extraConfig = {
       modi = "run,drun,window";
       icon-theme = "Oranchelo";
       show-icons = true;
-      terminal = "alacritty";
+      terminal = "kitty";
       drun-display-format = "{icon} {name}";
       location = 0;
       disable-history = false;

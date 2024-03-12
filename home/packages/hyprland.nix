@@ -33,7 +33,7 @@
         "swww init"
 
         # Credit: Pablo Saldaña https://unsplash.com/@pagsa_
-        "swww img ${./space.jpg}"
+        "swww img ${../assets/swww/space.jpg}"
         "dunst"
       ];
 
