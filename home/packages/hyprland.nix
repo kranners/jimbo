@@ -43,7 +43,7 @@
 
       # Set programs that you use
       "$terminal" = "kitty";
-      "$fileManager" = "thunar";
+      "$fileManager" = "nemo";
       "$menu" = "rofi -show drun";
 
       "$screenshotRegion" = "grimblast copy area && notify-send 'Region copied to clipboard'";

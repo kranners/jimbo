@@ -33,11 +33,12 @@ in {
     steam
     lutris
     wine
+    gamemode
+    mangohud
 
     # Productivity
     obsidian
     vscode
-    _1password-gui
 
     # Hyprland setup
     capitaine-cursors # Cursor theme
@@ -49,7 +50,7 @@ in {
     # Utilities
     polkit-kde-agent # Login screen
     pavucontrol # Audio control
-    xfce.thunar # File manager
+    cinnamon.nemo # File manager
     grimblast # Screen capture
     wf-recorder # Screen recording
     vlc # Media playback

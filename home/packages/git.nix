@@ -7,7 +7,7 @@
 
     extraConfig = {
       push = {autoSetupRemote = true;};
-      user = {signingkey = "6650E24854DEFD53";};
+      user = {signingkey = "53EAEA9DA697D60B";};
       commit = {gpgsign = true;};
     };
   };
