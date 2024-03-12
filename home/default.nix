@@ -5,7 +5,7 @@
   inputs,
   ...
 }: {
-  imports = [./programs ./desktop ./shell];
+  imports = [./packages];
 
   home.username = "aaron";
   home.homeDirectory = "/home/aaron";
@@ -28,6 +28,7 @@
     # Productivity
     obsidian
     vscode
+    _1password-gui
 
     # Hyprland setup
     capitaine-cursors # Cursor theme

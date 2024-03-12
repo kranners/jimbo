@@ -2,7 +2,7 @@
   programs.waybar = {
     enable = true;
 
-    style = builtins.readFile ./waybar-theme.css;
+    style = builtins.readFile ../configs/waybar/theme.css;
 
     settings = [
       {
@@ -11,7 +11,7 @@
         position = "top";
         tray = {spacing = 0;};
         modules-left = ["hyprland/workspaces"];
-        modules-center = ["hyprland-window"];
+        modules-center = ["hyprland/window"];
         modules-right = [
           "pulseaudio"
           "clock"
