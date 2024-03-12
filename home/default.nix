@@ -38,6 +38,7 @@
     # Waybar configured seperately
 
     # Utilities
+    polkit-kde-agent # Login screen
     pavucontrol # Audio control
     xfce.thunar # File manager
     grimblast # Screen capture
