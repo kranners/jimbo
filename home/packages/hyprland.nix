@@ -28,6 +28,7 @@
 
       # Execute your favorite apps at launch
       "exec-once" = [
+        pkgs.polkit-kde-agent
         "xrandr --output DP-3 --primary"
         "waybar"
         "swww init"
