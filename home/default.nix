@@ -4,7 +4,15 @@
   lib,
   inputs,
   ...
-}: {
+}: let
+  git-cram = pkgs.writeShellApplication {
+    name = "git-cram";
+
+    text = ''
+      git add . ; git commit --amend --no-edit
+    '';
+  };
+in {
   imports = [./packages];
 
   home.username = "aaron";
@@ -45,6 +53,9 @@
     wf-recorder # Screen recording
     vlc # Media playback
     cliphist # Clipboard manager
+
+    # Scripts
+    git-cram
   ];
 
   gtk.cursorTheme = {
