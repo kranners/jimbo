@@ -22,6 +22,7 @@ in {
     # General
     spotify
     google-chrome
+    firefox
     kitty
 
     # Chat clients

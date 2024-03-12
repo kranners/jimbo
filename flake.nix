@@ -18,12 +18,19 @@
       url = "github:hyprwm/Hyprland";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    nixvim = {
+      url = "github:nix-community/nixvim";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
     home-manager,
+    hyprland,
+    nixvim,
     ...
   } @ inputs: let
     system = "x86_64-linux";
@@ -36,6 +43,7 @@
         modules = [
           ./nixos
 
+          inputs.nixvim.nixosModules.nixvim
           inputs.home-manager.nixosModules.default
           {
             home-manager = {

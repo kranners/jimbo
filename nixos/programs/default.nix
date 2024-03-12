@@ -1,3 +1,3 @@
 {
-  imports = [./gnupg.nix ./zsh.nix];
+  imports = [./gnupg.nix ./zsh.nix ./nixvim.nix];
 }
