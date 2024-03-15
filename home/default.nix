@@ -30,18 +30,17 @@ in {
     slack
 
     # Gaming
-    steam
     lutris
     wine
     gamemode
     mangohud
+    protonup-qt
 
     # Productivity
     obsidian
     vscode
 
     # Hyprland setup
-    capitaine-cursors # Cursor theme
     swww # Wallpaper
     dunst # Notifications
     # Rofi configured seperately
@@ -60,11 +59,6 @@ in {
     git-cram
   ];
 
-  gtk.cursorTheme = {
-    name = "capitaine-cursors";
-    package = pkgs.capitaine-cursors;
-  };
-
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
   home.file = {
@@ -80,6 +74,9 @@ in {
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
+
+  # Give Home Manager the power to stop and start systemd services
+  systemd.user.startServices = "sd-switch";
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release

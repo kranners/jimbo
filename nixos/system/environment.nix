@@ -2,15 +2,16 @@
   environment = {
     systemPackages = with pkgs; [
       home-manager
-      
+
       # For GRUB autodetection
       os-prober
-      
+
       # Nix development tools
       alejandra
       nixd
       gnumake
       gnupg
+      manix
 
       # Required by waybar and dunst
       libnotify
