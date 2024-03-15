@@ -11,18 +11,16 @@
       layout = "au";
       variant = "";
     };
-  };
 
-  services.greetd = {
-    enable = true;
-    settings = rec {
-      initial_session = {
-        # TODO: This currently just lets you straight through to the main window. That's no bueno.
-        # Let's add an actual login screen here.
-        command = "${pkgs.hyprland}/bin/Hyprland";
-        user = "aaron";
+    displayManager = {
+      sddm = {
+        enable = true;
+        wayland.enable = true;
       };
-      default_session = initial_session;
+
+      sessionPackages = [
+        pkgs.hyprland
+      ];
     };
   };
 
