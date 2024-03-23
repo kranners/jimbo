@@ -19,6 +19,9 @@
     # Desktop environment info
     ./system/desktop.nix
 
+    # Overlays and patches
+    ./system/overlays.nix
+
     # Configuration for system programs
     ./packages
   ];
