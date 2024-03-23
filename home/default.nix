@@ -12,6 +12,14 @@
       git add . ; git commit --amend --no-edit
     '';
   };
+
+  show-pkg = pkgs.writeShellApplication {
+    name = "show-pkg";
+
+    text = ''
+      ${pkgs.eza}/bin/eza "$(nix build "nixpkgs#$1" --print-out-paths --no-link)" --tree --level "''${2:=5}"
+    '';
+  };
 in {
   imports = [./packages];
 
@@ -57,6 +65,7 @@ in {
 
     # Scripts
     git-cram
+    show-pkg
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
@@ -70,6 +79,9 @@ in {
 
   home.sessionVariables = {
     EDITOR = "nvim";
+
+    # Force Qt applications to run through the Wayland platform plugin
+    QT_QPA_PLATFORM = "wayland";
   };
 
   # Let Home Manager install and manage itself.

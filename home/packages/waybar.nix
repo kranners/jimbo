@@ -2,8 +2,6 @@
   programs.waybar = {
     enable = true;
 
-    style = builtins.readFile ../configs/waybar/theme.css;
-
     settings = [
       {
         height = 20;
