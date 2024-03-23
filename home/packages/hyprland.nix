@@ -52,13 +52,6 @@
       "$recordScreen" = "wf-recorder -f \"~/Videos/$(date).mkv\" && notify-send \"Recording saved to ~/Videos/$(date).mkv\"";
       "$recordRegion" = "wf-recorder -g \"$(slurp)\" -f \"~/Videos/$(date).mkv\" && notify-send \"Recording saved to ~/Videos/$(date).mkv\"";
 
-      # Some default env vars.
-      env = [
-        "XCURSOR_SIZE,24"
-        # change to qt6ct if you have that
-        "QT_QPA_PLATFORMTHEME,qt5ct"
-      ];
-
       # For all categories, see https://wiki.hyprland.org/Configuring/Variables/
       input = {
         kb_layout = "us";

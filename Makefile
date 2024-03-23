@@ -3,7 +3,7 @@ NIXNAME ?= jimbo
 switch:
 	sudo nixos-rebuild switch --flake ".#${NIXNAME}"
 	
-build:
+boot:
 	sudo nixos-rebuild boot --flake ".#${NIXNAME}"
 	
 test:
