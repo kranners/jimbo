@@ -17,7 +17,7 @@
     name = "show-pkg";
 
     text = ''
-      ${pkgs.eza}/bin/eza "$(nix build "nixpkgs#$1" --print-out-paths --no-link)" --tree --level "''${2:=5}"
+      ${pkgs.eza}/bin/eza "$(nix build "nixpkgs#$1" --print-out-paths --no-link)" --tree --level "''${2:-5}"
     '';
   };
 in {
@@ -55,7 +55,6 @@ in {
     # Waybar configured seperately
 
     # Utilities
-    polkit-kde-agent # Login screen
     pavucontrol # Audio control
     cinnamon.nemo # File manager
     grimblast # Screen capture

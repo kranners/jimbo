@@ -4,8 +4,6 @@
 
     location = "center";
 
-    theme = ../configs/rofi/theme.rasi;
-
     extraConfig = {
       modi = "run,drun,window";
       icon-theme = "Oranchelo";
