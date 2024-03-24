@@ -21,7 +21,7 @@
       };
 
       sessionPackages = [
-        pkgs.hyprland
+        pkgs.sway
       ];
     };
   };
