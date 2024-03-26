@@ -13,6 +13,16 @@
       menu = "${pkgs.rofi}/bin/rofi -show drun";
       terminal = "${pkgs.foot}/bin/foot";
 
+      startup = [
+        {
+          command = "systemctl --user restart waybar";
+          always = true;
+        }
+      ];
+
+      # Don't start waybar twice
+      bars = [];
+
       # SUPER
       modifier = "Mod4";
 
@@ -28,12 +38,10 @@
         };
       };
 
-      # Configure to start waybar
-      bars = [
-        {
-          command = "${pkgs.waybar}/bin/waybar";
-        }
-      ];
+      gaps = {
+        inner = 3;
+        outer = 5;
+      };
 
       keybindings = let
         cfg = config.wayland.windowManager.sway.config;
