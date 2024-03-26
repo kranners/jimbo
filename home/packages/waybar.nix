@@ -7,14 +7,11 @@
         height = 20;
         layer = "top";
         position = "top";
-        tray = {spacing = 0;};
-        modules-left = ["hyprland/workspaces"];
-        modules-center = ["hyprland/window"];
-        modules-right = [
-          "pulseaudio"
-          "clock"
-          "tray"
-        ];
+
+        modules-left = ["pulseaudio" "clock"];
+        modules-center = ["sway/workspaces"];
+        modules-right = ["tray"];
+
         clock = {
           format-alt = "{:%Y-%m-%d}";
           tooltip-format = "{:%Y-%m-%d | %H:%M}";
