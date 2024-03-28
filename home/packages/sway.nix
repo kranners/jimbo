@@ -13,9 +13,15 @@
       menu = "${pkgs.rofi}/bin/rofi -show drun";
       terminal = "${pkgs.foot}/bin/foot";
 
+      # Auto start
       startup = [
         {
           command = "systemctl --user restart waybar";
+          always = true;
+        }
+
+        {
+          command = "${pkgs.stylish}/bin/styli.sh -y -s nature,space,architecture --width 2560 --height 1440";
           always = true;
         }
       ];
