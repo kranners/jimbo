@@ -26,6 +26,11 @@ in {
   home.username = "aaron";
   home.homeDirectory = "/home/aaron";
 
+  xdg.userDirs = {
+    createDirectories = true;
+    enable = true;
+  };
+
   home.packages = with pkgs; [
     # General
     spotify
@@ -47,12 +52,6 @@ in {
     # Productivity
     obsidian
     vscode
-
-    # Hyprland setup
-    swww # Wallpaper
-    dunst # Notifications
-    # Rofi configured seperately
-    # Waybar configured seperately
 
     # Utilities
     pavucontrol # Audio control
