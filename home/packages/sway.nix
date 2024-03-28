@@ -49,6 +49,57 @@
         outer = 5;
       };
 
+      # Define when windows should float
+      floating.criteria = [
+        {class = "Pavucontrol";}
+
+        {window_role = "pop-up";}
+        {window_role = "bubble";}
+        {window_role = "task_dialog";}
+        {window_role = "dialog";}
+
+        {
+          class = "^Steam$";
+          title = "^Friends$";
+        }
+        {
+          class = "^Steam$";
+          title = "Friends List";
+        }
+        {
+          class = "^Steam$";
+          title = "Steam - News";
+        }
+        {
+          class = "^Steam$";
+          title = ".* - Chat";
+        }
+        {
+          class = "^Steam$";
+          title = "^Settings$";
+        }
+        {
+          class = "^Steam$";
+          title = ".* - event started";
+        }
+        {
+          class = "^Steam$";
+          title = ".* CD key";
+        }
+        {
+          class = "^Steam$";
+          title = "^Steam - Self Updater$";
+        }
+        {
+          class = "^Steam$";
+          title = "^Screenshot Uploader$";
+        }
+        {
+          class = "^Steam$";
+          title = "^Steam Guard - Computer Authorization Required$";
+        }
+      ];
+
       keybindings = let
         cfg = config.wayland.windowManager.sway.config;
 
