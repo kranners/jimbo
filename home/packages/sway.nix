@@ -4,7 +4,38 @@
   inputs,
   lib,
   ...
-}: {
+}: let
+  screenshot-region = pkgs.writeShellApplication {
+    name = "screenshot-region";
+
+    runtimeInputs = [pkgs.grim pkgs.slurp pkgs.wl-clipboard];
+
+    text = ''
+      grim -g "$(slurp -d)" - | wl-copy && notify-send "Copied region to clipboard"
+    '';
+  };
+
+  exit-if-all-closed = pkgs.writeShellApplication {
+    name = "exit-if-all-closed";
+
+    runtimeInputs = [pkgs.sway pkgs.jq];
+
+    text = ''
+      FOCUSED_NODE="$(swaymsg -t get_tree | jq 'recurse(.nodes[]) | select (.nodes[].focused == true).nodes[0]')"
+      FOCUSED_NODE_NAME="$(echo "$FOCUSED_NODE" | jq '.name')"
+
+      if [[ "$FOCUSED_NODE_NAME" =~ ^\"[0-9]+\"$ ]]; then
+        swaynag -t warning -m 'Shutdown?' -b 'Yes' 'shutdown now';
+        return 0
+      fi
+
+      FOCUSED_NODE_PID="$(echo "$FOCUSED_NODE" | jq '.pid')"
+      kill "$FOCUSED_NODE_PID"
+    '';
+  };
+in {
+  home.packages = [screenshot-region exit-if-all-closed];
+
   wayland.windowManager.sway = {
     enable = true;
     xwayland = true;
@@ -51,52 +82,17 @@
 
       # Define when windows should float
       floating.criteria = [
-        {class = "Pavucontrol";}
+        {app_id = "pavucontrol";}
 
         {window_role = "pop-up";}
         {window_role = "bubble";}
         {window_role = "task_dialog";}
         {window_role = "dialog";}
 
+        # Float all Steam windows except for Steam itself
         {
-          class = "^Steam$";
-          title = "^Friends$";
-        }
-        {
-          class = "^Steam$";
-          title = "Friends List";
-        }
-        {
-          class = "^Steam$";
-          title = "Steam - News";
-        }
-        {
-          class = "^Steam$";
-          title = ".* - Chat";
-        }
-        {
-          class = "^Steam$";
-          title = "^Settings$";
-        }
-        {
-          class = "^Steam$";
-          title = ".* - event started";
-        }
-        {
-          class = "^Steam$";
-          title = ".* CD key";
-        }
-        {
-          class = "^Steam$";
-          title = "^Steam - Self Updater$";
-        }
-        {
-          class = "^Steam$";
-          title = "^Screenshot Uploader$";
-        }
-        {
-          class = "^Steam$";
-          title = "^Steam Guard - Computer Authorization Required$";
+          class = "steam";
+          title = "^(?!.*Steam).*$";
         }
       ];
 
@@ -105,9 +101,12 @@
 
         modifier = cfg.modifier;
       in {
+        # Mimicking Windows behaviour to either kill individual windows or to shutdown the whole system
+        "${modifier}+Shift+q" = "exec exit-if-all-closed";
         "${modifier}+Return" = "exec ${cfg.terminal}";
-        "${modifier}+Shift+q" = "kill";
         "${modifier}+space" = "exec ${cfg.menu}";
+
+        "${modifier}+Shift+s" = "exec screenshot-region";
 
         "${modifier}+${cfg.left}" = "focus left";
         "${modifier}+${cfg.down}" = "focus down";

@@ -1,5 +1,8 @@
 NIXNAME ?= jimbo
 
+add-switch:
+	git add . ; make switch
+
 switch:
 	sudo nixos-rebuild switch --flake ".#${NIXNAME}"
 	
