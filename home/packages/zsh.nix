@@ -13,9 +13,9 @@
         src = pkgs.zsh-fast-syntax-highlighting;
       }
       {
-        name = "powerlevel10k-config";
-        src = ../configs/zsh;
-        file = "p10k.zsh";
+        name = "powerlevel10k-lean-config";
+        src = pkgs.zsh-powerlevel10k;
+        file = "share/zsh-powerlevel10k/config/p10k-lean.zsh";
       }
     ];
   };
