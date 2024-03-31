@@ -16,8 +16,14 @@
   show-pkg = pkgs.writeShellApplication {
     name = "show-pkg";
 
+    runtimeInputs = [pkgs.nix pkgs.eza];
+
     text = ''
-      ${pkgs.eza}/bin/eza "$(nix build "nixpkgs#$1" --print-out-paths --no-link)" --tree --level "''${2:-3}"
+      PATHS="$(nix build "nixpkgs#$1" --print-out-paths --no-link)"
+
+      for path in $PATHS; do
+        eza "$path" --tree --level "''${2:-3}"
+      done
     '';
   };
 in {
