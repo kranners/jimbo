@@ -121,8 +121,8 @@ in {
         "${modifier}+f" = "fullscreen toggle";
         "${modifier}+Shift+f" = "floating toggle";
 
-        "${modifier}+w" = "layout tabbed";
-        "${modifier}+e" = "layout toggle split";
+        "${modifier}+t" = "layout tabbed";
+        "${modifier}+Shift+t" = "layout toggle split";
 
         "${modifier}+1" = "workspace number 1";
         "${modifier}+2" = "workspace number 2";
@@ -147,7 +147,6 @@ in {
         "${modifier}+Shift+0" = "move container to workspace number 10";
 
         "${modifier}+Shift+c" = "reload";
-        "${modifier}+Shift+e" = "exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -b 'Yes, exit sway' 'swaymsg exit'";
 
         "${modifier}+r" = "mode resize";
       };
