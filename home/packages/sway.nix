@@ -21,16 +21,14 @@
     runtimeInputs = [pkgs.sway pkgs.jq];
 
     text = ''
-      FOCUSED_NODE="$(swaymsg -t get_tree | jq 'recurse(.nodes[]) | select (.nodes[].focused == true).nodes[0]')"
-      FOCUSED_NODE_NAME="$(echo "$FOCUSED_NODE" | jq '.name')"
+      FOCUSED_NODE_NAME="$(swaymsg -t get_tree | jq 'recurse(.nodes[]) | select (.focused == true).name')"
 
       if [[ "$FOCUSED_NODE_NAME" =~ ^\"[0-9]+\"$ ]]; then
         swaynag -t warning -m 'Shutdown?' -b 'Yes' 'shutdown now';
         return 0
       fi
 
-      FOCUSED_NODE_PID="$(echo "$FOCUSED_NODE" | jq '.pid')"
-      kill "$FOCUSED_NODE_PID"
+      swaymsg kill
     '';
   };
 in {
