@@ -1,4 +1,9 @@
-{pkgs, ...}: {
+{
+  config,
+  pkgs,
+  inputs,
+  ...
+}: {
   users.defaultUserShell = pkgs.zsh;
 
   users.users.aaron = {
