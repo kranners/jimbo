@@ -4,27 +4,7 @@
   inputs,
   ...
 }: {
-  imports = [
-    ./system/hardware.nix
-
-    # Bootloader
-    ./system/boot.nix
-
-    # Basic user info, userspace is configured in home, not nixos
-    ./system/users.nix
-
-    # Environment info, system packages, environment variables
-    ./system/environment.nix
-
-    # Desktop environment info
-    ./system/desktop.nix
-
-    # Overlays and patches
-    ./system/overlays.nix
-
-    # Configuration for system programs
-    ./packages
-  ];
+  imports = [./system ./packages];
 
   # Enable Flakes
   nix.package = pkgs.nixFlakes;

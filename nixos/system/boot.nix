@@ -1,4 +1,12 @@
 {
+  config,
+  pkgs,
+  inputs,
+  ...
+}: {
+  # For GRUB autodetection
+  environment.systemPackages = [pkgs.os-prober];
+
   boot.loader = {
     efi.canTouchEfiVariables = true;
     grub = {
