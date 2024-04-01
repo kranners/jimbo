@@ -39,7 +39,7 @@ in {
     xwayland = true;
 
     config = {
-      menu = "${pkgs.rofi}/bin/rofi -show drun";
+      menu = "rofi -show drun";
       terminal = "${pkgs.foot}/bin/foot";
 
       # Auto start
