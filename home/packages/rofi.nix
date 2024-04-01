@@ -1,14 +1,22 @@
 {
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}: {
   programs.rofi = {
     enable = true;
+    
+    plugins = [pkgs.rofi-emoji pkgs.rofi-calc];
 
     location = "center";
 
     extraConfig = {
-      modi = "run,drun,window";
+      modi = "window,run,drun,emoji,calc";
       icon-theme = "Oranchelo";
       show-icons = true;
-      terminal = "kitty";
+      terminal = "${pkgs.foot}/bin/foot";
       drun-display-format = "{icon} {name}";
       location = 0;
       disable-history = false;
