@@ -50,6 +50,11 @@ in {
         }
 
         {
+          command = "systemctl --user restart workstyle";
+          always = true;
+        }
+
+        {
           command = "${pkgs.stylish}/bin/styli.sh -y -s nature,space,architecture --width 2560 --height 1440";
           always = true;
         }
@@ -105,6 +110,8 @@ in {
         "${modifier}+space" = "exec ${cfg.menu}";
 
         "${modifier}+Shift+s" = "exec screenshot-region";
+
+        "${modifier}+e" = "exec ${pkgs.cinnamon.nemo}/bin/nemo";
 
         "${modifier}+${cfg.left}" = "focus left";
         "${modifier}+${cfg.down}" = "focus down";

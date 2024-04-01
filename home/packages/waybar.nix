@@ -17,7 +17,7 @@
     };
   };
 
-  xdg.configFile."workstyle/config.toml" = {
+  xdg.configFile.workstyle = {
     target = "./workstyle/config.toml";
 
     text = ''
@@ -32,27 +32,17 @@
       # Note if multiple patterns are present in the same application name,
       # precedence is given in order of apparition in this file.
 
-      "alacritty" = ""
-      "github" = ""
-      "rust" = ""
-      "google" = ""
-      "private browsing" = ""
+      # Glyphs can be found at the Nerd Font cheat sheet:
+      # https://www.nerdfonts.com/cheat-sheet
+
+      "foot" = ""
       "firefox" = ""
-      "chrome" = ""
-      "file manager" = ""
-      "nvim" = ""
-      "github" = ""
-      "menu" = ""
-      "calculator" = ""
-      "transmission" = ""
-      "videostream" = ""
-      "mpv" = ""
-      "music" = ""
-      "disk usage" = ""
-      ".pdf" = ""
+      "nemo" = ""
+      "spotify" = "󰓇"
       "discord" = "󰙯"
-      "code" = ""
+      "code" = "󰨞"
       "steam" = "󰓓"
+      "obsidian" = ""
 
       [other]
       fallback_icon = "🤨"
@@ -68,11 +58,11 @@
 
     settings = [
       {
-        height = 20;
+        height = 30;
         layer = "top";
         position = "top";
 
-        modules-left = ["wireplumber" "clock"];
+        modules-left = ["pulseaudio" "clock"];
         modules-center = ["sway/workspaces"];
         modules-right = ["tray"];
 
@@ -81,7 +71,7 @@
           tooltip-format = "{:%Y-%m-%d | %H:%M}";
         };
 
-        wireplumber = {
+        pulseaudio = {
           format = "{icon} {volume}%";
           format-muted = "";
           on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
