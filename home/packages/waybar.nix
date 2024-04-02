@@ -43,6 +43,10 @@
       "code" = "󰨞"
       "steam" = "󰓓"
       "obsidian" = ""
+      "wine" = "🍷"
+
+      "lutris" = ""
+      "hearthstone" = ""
 
       [other]
       fallback_icon = "🤨"

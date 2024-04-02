@@ -14,5 +14,6 @@
     ./theme.nix
     ./dunst.nix
     ./vesktop.nix
+    ./lutris.nix
   ];
 }
