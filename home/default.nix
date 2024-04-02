@@ -47,9 +47,6 @@ in {
     slack
 
     # Gaming
-    lutris
-    wine
-    gamemode
     mangohud
     protonup-qt
 
