@@ -13,5 +13,6 @@
     ./zsh.nix
     ./theme.nix
     ./dunst.nix
+    ./vesktop.nix
   ];
 }

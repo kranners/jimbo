@@ -44,8 +44,6 @@ in {
     firefox
     kitty
 
-    # Chat clients
-    vesktop
     slack
 
     # Gaming
