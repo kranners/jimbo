@@ -24,5 +24,8 @@
 
     # Required by waybar and dunst
     pkgs.libnotify
+
+    # Required for screensharing
+    pkgs.pipewire
   ];
 }
