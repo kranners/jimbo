@@ -7,26 +7,27 @@
 }: {
   programs.rofi = {
     enable = true;
-    
+
     plugins = [pkgs.rofi-emoji pkgs.rofi-calc];
 
     location = "center";
 
     extraConfig = {
-      modi = "window,run,drun,emoji,calc";
+      modi = "window,drun,emoji,calc";
+
       icon-theme = "Oranchelo";
       show-icons = true;
+
       terminal = "${pkgs.foot}/bin/foot";
-      drun-display-format = "{icon} {name}";
+
       location = 0;
       disable-history = false;
       hide-scrollbar = true;
+      sidebar-mode = true;
 
       display-drun = "Apps";
-      display-run = "Run";
+      drun-display-format = "{icon} {name}";
       display-window = "Window";
-
-      sidebar-mode = true;
     };
   };
 }
