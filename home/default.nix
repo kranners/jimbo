@@ -44,7 +44,6 @@ in {
     # General
     google-chrome
     firefox
-    kitty
     spotify
 
     slack
@@ -55,16 +54,14 @@ in {
 
     # Productivity
     obsidian
-    vscode
     virtualbox
+    jq
 
     # Utilities
     pavucontrol # Audio control
     cinnamon.nemo # File manager
     grimblast # Screen capture
-    wf-recorder # Screen recording
     mpv # Media playback
-    cliphist # Clipboard manager
     davinci-resolve
 
     # Scripts
