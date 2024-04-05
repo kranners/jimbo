@@ -44,18 +44,9 @@ in {
 
       # Auto start
       startup = [
-        {
-          command = "systemctl --user restart waybar";
-          always = true;
-        }
-
+        # Random wallpapers
         {
           command = "${pkgs.stylish}/bin/styli.sh -y -s nature,space,architecture --width 2560 --height 1440";
-          always = true;
-        }
-
-        {
-          command = "systemctl --user restart workstyle";
           always = true;
         }
       ];
