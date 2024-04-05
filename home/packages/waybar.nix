@@ -17,6 +17,18 @@
     };
   };
 
+  wayland.windowManager.sway.config.startup = [
+    {
+      command = "systemctl --user restart waybar";
+      always = true;
+    }
+
+    {
+      command = "systemctl --user restart workstyle";
+      always = true;
+    }
+  ];
+
   xdg.configFile.workstyle = {
     target = "./workstyle/config.toml";
 
