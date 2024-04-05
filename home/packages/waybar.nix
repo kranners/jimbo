@@ -66,7 +66,7 @@
         layer = "top";
         position = "top";
 
-        modules-left = ["wireplumber" "clock"];
+        modules-left = ["pulseaudio" "clock"];
         modules-center = ["sway/workspaces"];
         modules-right = ["tray"];
 
@@ -75,7 +75,7 @@
           tooltip-format = "{:%Y-%m-%d | %H:%M}";
         };
 
-        wireplumber = {
+        pulseaudio = {
           format = "{icon} {volume}%";
           format-muted = "";
           on-click = "${pkgs.pavucontrol}/bin/pavucontrol";

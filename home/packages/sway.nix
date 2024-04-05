@@ -50,12 +50,12 @@ in {
         }
 
         {
-          command = "systemctl --user restart workstyle";
+          command = "${pkgs.stylish}/bin/styli.sh -y -s nature,space,architecture --width 2560 --height 1440";
           always = true;
         }
 
         {
-          command = "${pkgs.stylish}/bin/styli.sh -y -s nature,space,architecture --width 2560 --height 1440";
+          command = "systemctl --user restart workstyle";
           always = true;
         }
       ];
