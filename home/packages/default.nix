@@ -15,5 +15,6 @@
     ./dunst.nix
     ./vesktop.nix
     ./lutris.nix
+    ./obs-studio.nix
   ];
 }

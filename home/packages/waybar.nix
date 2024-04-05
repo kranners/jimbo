@@ -58,6 +58,7 @@
       "steam" = "󰓓"
       "obsidian" = ""
       "wine" = "🍷"
+      "obs" = "󰕧"
 
       "lutris" = ""
       "hearthstone" = ""
