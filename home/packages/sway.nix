@@ -101,7 +101,6 @@ in {
         "${modifier}+space" = "exec ${cfg.menu}";
 
         "${modifier}+Shift+s" = "exec screenshot-region";
-
         "${modifier}+e" = "exec ${pkgs.cinnamon.nemo}/bin/nemo";
 
         "${modifier}+${cfg.left}" = "focus left";
@@ -143,8 +142,6 @@ in {
         "${modifier}+Shift+0" = "move container to workspace number 10";
 
         "${modifier}+Shift+c" = "reload";
-
-        "${modifier}+r" = "mode resize";
       };
     };
   };
