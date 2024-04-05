@@ -10,10 +10,12 @@
       Description = "Auto rename workspaces based on what's in them";
     };
     Install = {
-      WantedBy = ["default.target"];
+      WantedBy = ["sway-session.target"];
     };
     Service = {
       ExecStart = "${pkgs.workstyle}/bin/workstyle";
+      Restart = "always";
+      RestartSec = "3";
     };
   };
 
