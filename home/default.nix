@@ -39,7 +39,6 @@ in {
 
   home.packages = with pkgs; [
     # General
-    spotify
     google-chrome
     firefox
     kitty
