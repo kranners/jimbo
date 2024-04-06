@@ -10,6 +10,9 @@
   nix.package = pkgs.nixFlakes;
   nix.settings.experimental-features = ["nix-command" "flakes"];
 
+  # Allow root users access to the Nix store
+  nix.settings.trusted-users = ["root" "@wheel"];
+
   # Allow unfree packages
   nixpkgs.config = {
     allowUnfree = true;
