@@ -49,19 +49,21 @@
       # Glyphs can be found at the Nerd Font cheat sheet:
       # https://www.nerdfonts.com/cheat-sheet
 
+      "code" = "󰨞"
       "foot" = ""
       "firefox" = ""
       "nemo" = ""
       "spotify" = "󰓇"
       "discord" = "󰙯"
-      "code" = "󰨞"
       "steam" = "󰓓"
       "obsidian" = ""
       "wine" = "🍷"
       "obs" = "󰕧"
 
       "lutris" = ""
-      "hearthstone" = ""
+      "battle.net" = ""
+      "hearthstone" = "󱢡"
+      "google chrome" = ""
 
       [other]
       fallback_icon = "🤨"
