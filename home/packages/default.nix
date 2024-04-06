@@ -16,6 +16,7 @@
     ./vesktop.nix
     ./lutris.nix
     ./obs-studio.nix
+    ./avizo.nix
     ./spotify.nix
   ];
 }
