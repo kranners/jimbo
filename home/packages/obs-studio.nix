@@ -28,7 +28,7 @@ in {
       WantedBy = ["sway-session.target"];
     };
     Service = {
-      ExecStart = "${pkgs.obs-studio}/bin/obs --startreplaybuffer --minimize-to-tray";
+      ExecStart = "${pkgs.obs-studio}/bin/obs --startreplaybuffer --minimize-to-tray --disable-shutdown-check";
       Restart = "always";
       RestartSec = "3";
     };
