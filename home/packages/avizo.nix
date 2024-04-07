@@ -49,6 +49,9 @@
       [default]
       # Show the notification for only 1s, instead of 5s
       time = 1.0
+
+      # Make the notification appear in the middle of the screen, instead of slightly down
+      y-offset = 0.5
     '';
   };
 }
