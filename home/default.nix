@@ -32,9 +32,12 @@ in {
   home.username = "aaron";
   home.homeDirectory = "/home/aaron";
 
-  xdg.userDirs = {
-    createDirectories = true;
+  xdg = {
     enable = true;
+    userDirs = {
+      createDirectories = true;
+      enable = true;
+    };
   };
 
   home.packages = with pkgs; [
@@ -42,6 +45,7 @@ in {
     google-chrome
     firefox
     kitty
+    spotify
 
     slack
 
