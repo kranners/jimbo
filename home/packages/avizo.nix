@@ -4,8 +4,27 @@
   lib,
   inputs,
   ...
-}: {
-  home.packages = [pkgs.avizo];
+}: let
+  spotify-play-pause = pkgs.writeShellApplication {
+    name = "spotify-play-pause";
+
+    runtimeInputs = [pkgs.avizo pkgs.playerctl];
+
+    text = ''
+      STATUS="$(playerctl -p spotify status)"
+
+      if [ "$STATUS" = Playing ]; then
+        playerctl -p spotify pause
+        avizo-client --image-path=${../../assets/media-pause.png}
+        exit 0
+      fi
+
+      playerctl -p spotify play
+      avizo-client --image-path=${../../assets/media-play.png}
+    '';
+  };
+in {
+  home.packages = [pkgs.avizo pkgs.playerctl spotify-play-pause];
 
   systemd.user.services.avizo = {
     Unit = {
@@ -34,6 +53,8 @@
       "XF86AudioLowerVolume" = "exec volumectl -u down";
       "XF86AudioMute" = "exec volumectl toggle-mute";
       "XF86AudioMicMute" = "exec volumectl -m toggle-mute";
+
+      "XF86AudioPlay" = "exec spotify-play-pause";
 
       "XF86MonBrightnessUp" = "exec lightctl up";
       "XF86MonBrightnessDown" = "exec lightctl down";
