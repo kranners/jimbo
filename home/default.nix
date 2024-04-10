@@ -56,14 +56,16 @@ in {
     # Productivity
     obsidian
     vscode
+    virtualbox
 
     # Utilities
     pavucontrol # Audio control
     cinnamon.nemo # File manager
     grimblast # Screen capture
     wf-recorder # Screen recording
-    vlc # Media playback
+    mpv # Media playback
     cliphist # Clipboard manager
+    davinci-resolve
 
     # Scripts
     git-cram
