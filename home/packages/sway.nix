@@ -31,8 +31,28 @@
       swaymsg kill
     '';
   };
+
+  swayrst = pkgs.python311Packages.buildPythonApplication rec {
+    name = "swayrst";
+    version = "1.1";
+
+    src = pkgs.fetchFromGitHub {
+      owner = "Nama";
+      repo = "swayrst";
+      rev = "refs/tags/${version}";
+      hash = "sha256-MJRu7sFCTpL/pYdTxPJL7jOiE3vRBQcUC29WyzJtAmQ=";
+    };
+
+    nativeBuildInputs = [pkgs.python311Packages.i3ipc];
+    propagatedBuildInputs = [pkgs.python311Packages.i3ipc];
+  };
+
+  sway_workspaces = pkgs.writeShellApplication {
+    name = "sway_workspaces";
+    text = "${swayrst}/bin/sway_workspaces.py";
+  };
 in {
-  home.packages = [screenshot-region exit-if-all-closed];
+  home.packages = [screenshot-region exit-if-all-closed sway_workspaces];
 
   wayland.windowManager.sway = {
     enable = true;
