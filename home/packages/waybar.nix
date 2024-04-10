@@ -59,7 +59,7 @@
       "obsidian" = ""
       "wine" = "🍷"
       "obs" = "󰕧"
-      "vlc" = "󰕼"
+      "mpv" = ""
 
       "lutris" = ""
       "battle.net" = ""
