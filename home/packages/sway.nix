@@ -58,8 +58,25 @@ in {
     enable = true;
     xwayland = true;
 
+    # Effects and eye candy
+    package = pkgs.swayfx;
+    extraConfigEarly = ''
+      layer_effects "waybar" "blur enable; shadows enable"
+
+      blur enable
+      blur_passes 3
+      blur_radius 5
+
+      shadows enable
+      corner_radius 6
+    '';
+
+    config.gaps = {
+      inner = 4;
+      outer = 5;
+    };
+
     config = {
-      menu = "rofi -show drun";
       terminal = "${pkgs.foot}/bin/foot";
 
       # Auto start
@@ -87,11 +104,6 @@ in {
           mode = "1920x1080@144.001Hz";
           pos = "2560 0";
         };
-      };
-
-      gaps = {
-        inner = 3;
-        outer = 5;
       };
 
       # Define when windows should float

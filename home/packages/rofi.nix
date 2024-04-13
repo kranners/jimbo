@@ -5,15 +5,18 @@
   inputs,
   ...
 }: {
+  wayland.windowManager.sway.config.menu = "rofi -show drun -monitor -1";
+
   programs.rofi = {
     enable = true;
+    package = pkgs.rofi-wayland;
 
     plugins = [pkgs.rofi-emoji pkgs.rofi-calc];
 
     location = "center";
 
     extraConfig = {
-      modi = "window,drun,emoji,calc";
+      modi = "window,drun";
 
       icon-theme = "Oranchelo";
       show-icons = true;
