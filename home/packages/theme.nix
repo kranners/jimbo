@@ -24,7 +24,6 @@
   # Try to force Qt to behave like GTK so we can just theme that instead
   qt = {
     enable = true;
-    platformTheme = "gtk";
   };
 
   home.pointerCursor = {

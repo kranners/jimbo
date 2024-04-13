@@ -9,6 +9,7 @@
     ./zsh.nix
     ./nixvim.nix
     ./steam.nix
+    ./opengl.nix
   ];
 
   environment.systemPackages = [
