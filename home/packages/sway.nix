@@ -64,8 +64,6 @@ in {
       layer_effects "waybar" "blur enable; shadows enable"
 
       blur enable
-      blur_passes 3
-      blur_radius 5
 
       shadows enable
       corner_radius 6
@@ -77,8 +75,6 @@ in {
     };
 
     config = {
-      terminal = "${pkgs.foot}/bin/foot";
-
       # Auto start
       startup = [
         # Random wallpapers
