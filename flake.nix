@@ -3,21 +3,9 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    alejandra = {
-      url = "github:kamadorueda/alejandra/3.0.0";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    nixvim = {
-      url = "github:nix-community/nixvim";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    home-manager.url = "github:nix-community/home-manager";
+    nixvim.url = "github:nix-community/nixvim";
+    nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
   };
 
   outputs = {
@@ -25,9 +13,11 @@
     nixpkgs,
     home-manager,
     nixvim,
+    nix-vscode-extensions,
     ...
   } @ inputs: let
     system = "x86_64-linux";
+
     pkgs = nixpkgs.legacyPackages.${system};
   in {
     nixosConfigurations = {
@@ -43,6 +33,7 @@
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;
+              extraSpecialArgs = {inherit inputs;};
               users.aaron = import ./home;
             };
           }

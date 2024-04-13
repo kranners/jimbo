@@ -17,4 +17,4 @@ rollback:
 	sudo nixos-rebuild switch --rollback --max-jobs ${MAX_JOBS}
 
 check:
-	nix flake check --max-jobs ${MAX_JOBS}
+	nix flake check --show-trace --max-jobs ${MAX_JOBS}
