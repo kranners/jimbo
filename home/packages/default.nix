@@ -19,5 +19,6 @@
     ./avizo.nix
     ./easyeffects.nix
     ./foot.nix
+    ./vscode.nix
   ];
 }
