@@ -18,5 +18,6 @@
     ./obs-studio.nix
     ./avizo.nix
     ./easyeffects.nix
+    ./foot.nix
   ];
 }
