@@ -10,7 +10,7 @@
     pkgs.libsForQt5.qt5.qtquickcontrols2
   ];
 
-  services.xserver.displayManager = {
+  services.displayManager = {
     sddm = {
       enable = true;
       wayland.enable = true;
