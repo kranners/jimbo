@@ -17,5 +17,6 @@
     ./lutris.nix
     ./obs-studio.nix
     ./avizo.nix
+    ./easyeffects.nix
   ];
 }
