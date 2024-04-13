@@ -16,7 +16,7 @@
     location = "center";
 
     extraConfig = {
-      modi = "window,drun";
+      modi = "window,drun,emoji,calc";
 
       icon-theme = "Oranchelo";
       show-icons = true;
