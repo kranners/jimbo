@@ -16,6 +16,13 @@
     sha256 = "+STw416hjpxz/gL0JTpmItueqUmMWkYZM7I1XCisLPc=";
   };
 in {
+  wayland.windowManager.sway.config.window.commands = [
+    {
+      criteria = {class = "Code";};
+      command = "opacity 0.85";
+    }
+  ];
+
   programs.vscode = {
     enable = true;
 
