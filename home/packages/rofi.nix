@@ -15,10 +15,13 @@
 
     location = "center";
 
+    theme = "material";
+
     extraConfig = {
       modi = "window,drun,emoji,calc";
 
       icon-theme = "Oranchelo";
+
       show-icons = true;
 
       terminal = "${pkgs.foot}/bin/foot";
@@ -28,8 +31,9 @@
       hide-scrollbar = true;
       sidebar-mode = true;
 
-      display-drun = "Apps";
       drun-display-format = "{icon} {name}";
+
+      display-drun = "Apps";
       display-window = "Window";
     };
   };
