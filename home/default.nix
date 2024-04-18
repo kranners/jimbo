@@ -51,6 +51,7 @@ in {
     # Gaming
     mangohud
     protonup-qt
+    r2modman
 
     # Productivity
     obsidian
