@@ -11,14 +11,14 @@
     enable = true;
     package = pkgs.rofi-wayland;
 
-    plugins = [pkgs.rofi-emoji pkgs.rofi-calc];
+    plugins = [pkgs.rofi-emoji pkgs.rofi-calc (pkgs.callPackage ../packages/rofi-games {})];
 
     location = "center";
 
     theme = "material";
 
     extraConfig = {
-      modi = "window,drun,emoji,calc";
+      modi = "window,drun,emoji,calc,games";
 
       icon-theme = "Oranchelo";
 
@@ -35,6 +35,7 @@
 
       display-drun = "Apps";
       display-window = "Window";
+      display-games = "Games";
     };
   };
 }
