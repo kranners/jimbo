@@ -27,7 +27,7 @@
     '';
   };
 in {
-  imports = [./packages];
+  imports = [./options];
 
   home.username = "aaron";
   home.homeDirectory = "/home/aaron";
