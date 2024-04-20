@@ -20,5 +20,6 @@
     ./easyeffects.nix
     ./foot.nix
     ./vscode.nix
+    ./firefox.nix
   ];
 }
