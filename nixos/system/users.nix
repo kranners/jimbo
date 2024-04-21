@@ -1,9 +1,4 @@
-{
-  config,
-  pkgs,
-  inputs,
-  ...
-}: {
+{ config, pkgs, inputs, ... }: {
   users.defaultUserShell = pkgs.zsh;
 
   users.users.aaron = {
@@ -12,6 +7,6 @@
 
     shell = pkgs.zsh;
 
-    extraGroups = ["networkmanager" "wheel"];
+    extraGroups = [ "networkmanager" "wheel" ];
   };
 }

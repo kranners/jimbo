@@ -1,9 +1,4 @@
-{
-  config,
-  pkgs,
-  inputs,
-  ...
-}: {
+{ config, pkgs, inputs, ... }: {
   imports = [
     ./boot.nix
     ./environment.nix

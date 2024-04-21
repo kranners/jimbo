@@ -1,14 +1,9 @@
-{
-  config,
-  pkgs,
-  lib,
-  inputs,
-  ...
-}: let
+{ config, pkgs, lib, inputs, ... }:
+let
   vesktop-with-flags = pkgs.writeShellApplication {
     name = "vesktop";
 
-    runtimeInputs = [pkgs.vesktop];
+    runtimeInputs = [ pkgs.vesktop ];
 
     # Run Vesktop with forced Wayland flags
     text = ''
@@ -21,7 +16,7 @@
     '';
   };
 in {
-  home.packages = [vesktop-with-flags];
+  home.packages = [ vesktop-with-flags ];
 
   xdg.desktopEntries.vesktop = {
     name = "Vesktop";
@@ -29,6 +24,6 @@ in {
     exec = "vesktop %U";
     terminal = false;
     icon = "Vesktop";
-    categories = ["Network"];
+    categories = [ "Network" ];
   };
 }

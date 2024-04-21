@@ -1,17 +1,7 @@
-{
-  config,
-  pkgs,
-  lib,
-  inputs,
-  ...
-}: {
+{ config, pkgs, lib, inputs, ... }: {
   systemd.user.services.workstyle = {
-    Unit = {
-      Description = "Auto rename workspaces based on what's in them";
-    };
-    Install = {
-      WantedBy = ["sway-session.target"];
-    };
+    Unit = { Description = "Auto rename workspaces based on what's in them"; };
+    Install = { WantedBy = [ "sway-session.target" ]; };
     Service = {
       ExecStart = "${pkgs.workstyle}/bin/workstyle";
       Restart = "always";
@@ -78,28 +68,26 @@
 
     systemd.enable = true;
 
-    settings = [
-      {
-        height = 30;
-        layer = "top";
-        position = "top";
+    settings = [{
+      height = 30;
+      layer = "top";
+      position = "top";
 
-        modules-left = ["pulseaudio" "clock"];
-        modules-center = ["sway/workspaces"];
-        modules-right = ["tray"];
+      modules-left = [ "pulseaudio" "clock" ];
+      modules-center = [ "sway/workspaces" ];
+      modules-right = [ "tray" ];
 
-        clock = {
-          format-alt = "{:%Y-%m-%d}";
-          tooltip-format = "{:%Y-%m-%d | %H:%M}";
-        };
+      clock = {
+        format-alt = "{:%Y-%m-%d}";
+        tooltip-format = "{:%Y-%m-%d | %H:%M}";
+      };
 
-        pulseaudio = {
-          format = "{icon} {volume}%";
-          format-muted = "";
-          on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
-          format-icons = ["" "" ""];
-        };
-      }
-    ];
+      pulseaudio = {
+        format = "{icon} {volume}%";
+        format-muted = "";
+        on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
+        format-icons = [ "" "" "" ];
+      };
+    }];
   };
 }

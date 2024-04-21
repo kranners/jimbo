@@ -1,9 +1,4 @@
-{
-  config,
-  pkgs,
-  inputs,
-  ...
-}: {
+{ config, pkgs, inputs, ... }: {
   # Required by the Chili SDDM theme
   environment.systemPackages = [
     pkgs.libsForQt5.qt5.qtgraphicaleffects
@@ -18,8 +13,6 @@
       theme = "${pkgs.sddm-chili-theme}/share/sddm/themes/chili";
     };
 
-    sessionPackages = [
-      pkgs.sway
-    ];
+    sessionPackages = [ pkgs.sway ];
   };
 }

@@ -1,20 +1,9 @@
-{
-  config,
-  pkgs,
-  inputs,
-  ...
-}: {
-  imports = [
-    ./gnupg.nix
-    ./zsh.nix
-    ./nixvim.nix
-    ./steam.nix
-    ./opengl.nix
-  ];
+{ config, pkgs, inputs, ... }: {
+  imports = [ ./gnupg.nix ./zsh.nix ./nixvim.nix ./steam.nix ./opengl.nix ];
 
   environment.systemPackages = [
     # Nix development tools
-    pkgs.alejandra
+    pkgs.nixfmt-rfc-style
     pkgs.nixd
     pkgs.gnumake
     pkgs.gnupg
