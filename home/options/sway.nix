@@ -1,14 +1,9 @@
-{
-  config,
-  pkgs,
-  inputs,
-  lib,
-  ...
-}: let
+{ config, pkgs, inputs, lib, ... }:
+let
   screenshot-region = pkgs.writeShellApplication {
     name = "screenshot-region";
 
-    runtimeInputs = [pkgs.grim pkgs.slurp pkgs.wl-clipboard];
+    runtimeInputs = [ pkgs.grim pkgs.slurp pkgs.wl-clipboard ];
 
     text = ''
       grim -g "$(slurp -d)" - | wl-copy && notify-send "Copied region to clipboard"
@@ -18,7 +13,7 @@
   exit-if-all-closed = pkgs.writeShellApplication {
     name = "exit-if-all-closed";
 
-    runtimeInputs = [pkgs.sway pkgs.jq];
+    runtimeInputs = [ pkgs.sway pkgs.jq ];
 
     text = ''
       FOCUSED_NODE_NAME="$(swaymsg -t get_tree | jq 'recurse(.nodes[]) | select (.focused == true).name')"
@@ -43,8 +38,8 @@
       hash = "sha256-MJRu7sFCTpL/pYdTxPJL7jOiE3vRBQcUC29WyzJtAmQ=";
     };
 
-    nativeBuildInputs = [pkgs.python311Packages.i3ipc];
-    propagatedBuildInputs = [pkgs.python311Packages.i3ipc];
+    nativeBuildInputs = [ pkgs.python311Packages.i3ipc ];
+    propagatedBuildInputs = [ pkgs.python311Packages.i3ipc ];
   };
 
   sway_workspaces = pkgs.writeShellApplication {
@@ -52,7 +47,7 @@
     text = "${swayrst}/bin/sway_workspaces.py";
   };
 in {
-  home.packages = [screenshot-region exit-if-all-closed sway_workspaces];
+  home.packages = [ screenshot-region exit-if-all-closed sway_workspaces ];
 
   wayland.windowManager.sway = {
     enable = true;
@@ -79,13 +74,14 @@ in {
       startup = [
         # Random wallpapers
         {
-          command = "${pkgs.stylish}/bin/styli.sh -y -s nature,space,architecture --width 2560 --height 1440";
+          command =
+            "${pkgs.stylish}/bin/styli.sh -y -s nature,space,architecture --width 2560 --height 1440";
           always = true;
         }
       ];
 
       # Don't start waybar twice
-      bars = [];
+      bars = [ ];
 
       # SUPER
       modifier = "Mod4";
@@ -104,12 +100,14 @@ in {
 
       # Define when windows should float
       floating.criteria = [
-        {app_id = "pavucontrol";}
+        { app_id = "pavucontrol"; }
 
-        {window_role = "pop-up";}
-        {window_role = "bubble";}
-        {window_role = "task_dialog";}
-        {window_role = "dialog";}
+        { window_role = "pop-up"; }
+        { window_role = "bubble"; }
+        { window_role = "task_dialog"; }
+        {
+          window_role = "dialog";
+        }
 
         # Float all Steam windows except for Steam itself
         {

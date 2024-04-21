@@ -1,10 +1,5 @@
-{
-  config,
-  pkgs,
-  lib,
-  inputs,
-  ...
-}: let
+{ config, pkgs, lib, inputs, ... }:
+let
   git-cram = pkgs.writeShellApplication {
     name = "git-cram";
 
@@ -16,7 +11,7 @@
   show-pkg = pkgs.writeShellApplication {
     name = "show-pkg";
 
-    runtimeInputs = [pkgs.nix pkgs.eza];
+    runtimeInputs = [ pkgs.nix pkgs.eza ];
 
     text = ''
       PATHS="$(nix build "nixpkgs#$1" --print-out-paths --no-link)"
@@ -27,7 +22,7 @@
     '';
   };
 in {
-  imports = [./options];
+  imports = [ ./options ];
 
   home.username = "aaron";
   home.homeDirectory = "/home/aaron";

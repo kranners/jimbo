@@ -1,10 +1,4 @@
-{
-  config,
-  pkgs,
-  lib,
-  inputs,
-  ...
-}: {
+{ config, pkgs, lib, inputs, ... }: {
   imports = [
     ./git.nix
     ./sway.nix
