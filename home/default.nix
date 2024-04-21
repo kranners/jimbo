@@ -43,7 +43,6 @@ in {
   home.packages = with pkgs; [
     # General
     google-chrome
-    firefox
     spotify
 
     slack
