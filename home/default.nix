@@ -21,6 +21,14 @@ let
       done
     '';
   };
+  
+  find-pkg = pkgs.writeShellApplication {
+    name = "find-pkg";
+
+    text = ''
+      nix-store --query --requisites /run/current-system | cut -d- -f2- | sort -u | grep $2
+    '';
+  };
 in {
   imports = [ ./options ];
 
