@@ -46,6 +46,9 @@ let
     name = "sway_workspaces";
     text = "${swayrst}/bin/sway_workspaces.py";
   };
+  
+  left-monitor = "LG Electronics LG ULTRAGEAR 112NTWGG8937";
+  right-monitor = "AOC G2770 0x000001F2";
 in {
   home.packages = [ screenshot-region exit-if-all-closed sway_workspaces ];
 
@@ -88,32 +91,42 @@ in {
 
       # Configure monitors
       output = {
-        "LG Electronics LG ULTRAGEAR 112NTWGG8937" = {
+        ${left-monitor} = {
           mode = "2560x1440@164.956Hz";
           pos = "0 0";
         };
-        "AOC G2770 0x000001F2" = {
+        ${right-monitor} = {
           mode = "1920x1080@144.001Hz";
           pos = "2560 0";
         };
       };
+      
+      # WARNING: These output assignments are total nonsense. They make sense in my head, somehow
+      workspaceOutputAssign = [
+        { workspace = "1"; output = left-monitor; }
+        { workspace = "2"; output = left-monitor; }
+        { workspace = "3"; output = left-monitor; }
+        { workspace = "4"; output = right-monitor; }
+        { workspace = "5"; output = left-monitor; }
+        { workspace = "6"; output = right-monitor; }
+        { workspace = "7"; output = left-monitor; }
+        { workspace = "8"; output = right-monitor; }
+        { workspace = "9"; output = right-monitor; }
+        { workspace = "10"; output = right-monitor; }
+      ];
 
       # Define when windows should float
       floating.criteria = [
         { app_id = "pavucontrol"; }
+        { app_id = "nemo"; }
 
         { window_role = "pop-up"; }
         { window_role = "bubble"; }
         { window_role = "task_dialog"; }
-        {
-          window_role = "dialog";
-        }
+        { window_role = "dialog"; }
 
         # Float all Steam windows except for Steam itself
-        {
-          class = "steam";
-          title = "^(?!.*Steam).*$";
-        }
+        { class = "steam"; title = "^(?!.*Steam).*$"; }
       ];
 
       keybindings = let
@@ -168,6 +181,13 @@ in {
         "${modifier}+Shift+0" = "move container to workspace number 10";
 
         "${modifier}+Shift+c" = "reload";
+        
+        "${modifier}+Ctrl+1" = "assign [class=\"Code\"] workspace number 1 ; exec code";
+        "${modifier}+Ctrl+2" = "assign [class=\"obsidian\"] workspace number 2 ; exec obsidian";
+        "${modifier}+Ctrl+3" = "assign [class=\"steam\"] workspace number 3 ; exec steam";
+        "${modifier}+Ctrl+4" = "assign [app_id=\"vesktop\"] workspace number 4 ; exec vesktop";
+        "${modifier}+Ctrl+5" = "assign [class=\"Spotify\"] workspace number 5 ; exec spotify";
+        "${modifier}+Ctrl+0" = "assign [app_id=\"firefox\"] workspace number 10 ; exec firefox";
       };
     };
   };

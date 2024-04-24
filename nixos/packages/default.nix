@@ -4,7 +4,7 @@
   environment.systemPackages = [
     # Nix development tools
     pkgs.nixfmt-rfc-style
-    pkgs.nixd
+    pkgs.nil
     pkgs.gnumake
     pkgs.gnupg
     pkgs.manix

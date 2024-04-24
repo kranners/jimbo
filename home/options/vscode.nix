@@ -93,23 +93,21 @@ in {
         "editor.formatOnType" = false;
       };
 
-      # Settings for nixd and NixIDE
+      # Settings for nil and NixIDE
       "nix.enableLanguageServer" = true;
-      "nix.serverPath" = "nixd";
+      "nix.serverPath" = "nil";
       "nix.serverSettings" = {
-        "nixd" = {
+        "nil" = {
           "eval" = { };
-          "formatting" = { "command" = "nixpkgs-fmt"; };
+          # "formatting" = { "command" = "nixpkgs-fmt"; };
           "options" = {
             "enable" = true;
             "target" = {
               # tweak arguments here
               "args" = [ ];
               # NixOS options
-              "installable" = "<flakeref>#nixosConfigurations.<name>.options";
-
               # Home-manager options
-              # "installable" = "<flakeref>#homeConfigurations.<name>.options";
+              "installable" = ["<flakeref>#nixosConfigurations.<name>.options" "<flakeref>#homeConfigurations.<name>.options"];
             };
           };
         };
@@ -177,7 +175,6 @@ in {
         "flakeref"
         "kamadorueda"
         "neovim"
-        "nixd"
         "nixos"
         "nixpkgs"
         "nvim"
