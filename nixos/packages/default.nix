@@ -1,5 +1,5 @@
 { config, pkgs, inputs, ... }: {
-  imports = [ ./gnupg.nix ./zsh.nix ./nixvim.nix ./steam.nix ./opengl.nix ];
+  imports = [ ./gnupg.nix ./zsh.nix ./steam.nix ./opengl.nix ];
 
   environment.systemPackages = [
     # Nix development tools

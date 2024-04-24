@@ -30,7 +30,8 @@ let
     '';
   };
 in {
-  imports = [ ./options ];
+  # Don't need to import packages, as they will be imported by options as needed
+  imports = [ ./options ./neovim ];
 
   home.username = "aaron";
   home.homeDirectory = "/home/aaron";
