@@ -26,7 +26,7 @@ let
     name = "find-pkg";
 
     text = ''
-      nix-store --query --requisites /run/current-system | cut -d- -f2- | sort -u | grep $2
+      nix-store --query --requisites /run/current-system | cut -d- -f2- | sort -u | grep "$1"
     '';
   };
 in {
@@ -71,6 +71,7 @@ in {
     # Scripts
     git-cram
     show-pkg
+    find-pkg
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
