@@ -1,17 +1,24 @@
 {
   description = "flake for jimbo";
-  # hi
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    home-manager.url = "github:nix-community/home-manager";
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nur.url = "github:nix-community/NUR";
+
+    firefox-addons.url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+    awesome-neovim-plugins.url = "github:m15a/flake-awesome-neovim-plugins";
     nixvim.url = "github:nix-community/nixvim";
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
-    nur.url = "github:nix-community/NUR";
-    firefox-addons.url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
 
-    # https://github.com/m15a/flake-awesome-neovim-plugins
-    awesome-neovim-plugins.url = "github:m15a/flake-awesome-neovim-plugins";
+    nix-darwin = {
+      url = "github:LnL7/nix-darwin";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -23,34 +30,61 @@
     , nur
     , firefox-addons
     , awesome-neovim-plugins
+    , nix-darwin
     , ...
-    }@inputs:
-    let
-      system = "x86_64-linux";
+    }@inputs: {
 
-      pkgs = nixpkgs.legacyPackages.${system};
-    in
-    {
-      nixosConfigurations = {
-        jimbo = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs; };
+      darwinConfigurations =
+        let
+          system = "aarch64-darwin";
+        in
+        {
+          cassandra = nix-darwin.lib.darwinSystem {
+            specialArgs = { inherit inputs; };
+            inherit system;
 
-          modules = [
-            home-manager.nixosModules.default
-            nur.nixosModules.nur
+            modules = [
+              home-manager.darwinModules.home-manager
 
-            ./nixos
+              ./darwin/system
 
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
-                users.aaron = import ./home;
-              };
-            }
-          ];
+              {
+                home-manager = {
+                  useGlobalPkgs = true;
+                  useUserPackages = true;
+                  extraSpecialArgs = { inherit inputs; };
+                  users.aaronpierce = import ./darwin/home;
+                };
+              }
+            ];
+          };
         };
-      };
+
+      nixosConfigurations =
+        let
+          system = "x86_64-linux";
+        in
+        {
+          jimbo = nixpkgs.lib.nixosSystem {
+            specialArgs = { inherit inputs; };
+            inherit system;
+
+            modules = [
+              home-manager.nixosModules.default
+              nur.nixosModules.nur
+
+              ./nixos
+
+              {
+                home-manager = {
+                  useGlobalPkgs = true;
+                  useUserPackages = true;
+                  extraSpecialArgs = { inherit inputs; };
+                  users.aaron = import ./home;
+                };
+              }
+            ];
+          };
+        };
     };
 }

@@ -1,6 +1,9 @@
 NIXNAME ?= jimbo
 MAX_JOBS := $(shell nproc)
 
+darwin:
+	git add . ; nix run nix-darwin -- switch --flake .#cassandra
+
 add-switch:
 	git add . ; make switch
 
