@@ -32,190 +32,93 @@ let
         action = "<cmd>lua require('oil').open()<cr>";
         key = "-";
         mode = "n";
-        options = {
-          desc = "View files";
-        };
+        options = { desc = "View files"; };
       }
 
       {
         action = "<cmd>ToggleTerm direction=float<cr>";
         key = "=";
-        mode = [
-          "n"
-          "t"
-        ];
-        options = {
-          desc = "Toggle terminal";
-        };
+        mode = "n";
+        options = { desc = "Toggle terminal"; };
       }
 
-      {
-        key = "<Leader>h";
-        action = "<CMD>wincmd h <CR>";
-        options = {
-          desc = "Focus window left";
-        };
-        mode = [ "t" "n" ];
-      }
+      { key = "<C-h>"; action = "<CMD>wincmd h <CR>"; options = { desc = "Focus window left"; }; mode = [ "t" "n" ]; }
+      { key = "<C-j>"; action = "<CMD>wincmd j <CR>"; options = { desc = "Focus window down"; }; mode = [ "t" "n" ]; }
+      { key = "<C-k>"; action = "<CMD>wincmd k <CR>"; options = { desc = "Focus window up"; }; mode = [ "t" "n" ]; }
+      { key = "<C-l>"; action = "<CMD>wincmd l <CR>"; options = { desc = "Focus window right"; }; mode = [ "t" "n" ]; }
 
-      {
-        key = "<Leader>j";
-        action = "<CMD>wincmd j <CR>";
-        options = {
-          desc = "Focus window down";
-        };
-        mode = [ "t" "n" ];
-      }
-
-      {
-        key = "<Leader>k";
-        action = "<CMD>wincmd k <CR>";
-        options = {
-          desc = "Focus window up";
-        };
-        mode = [ "t" "n" ];
-      }
-
-      {
-        key = "<Leader>l";
-
-        action = "<CMD>wincmd l <CR>";
-        options = {
-          desc = "Focus window right";
-        };
-        mode = [ "t" "n" ];
-      }
-
-      {
-        key = "<Left>";
-        action = "<CMD>vertical resize +1<CR>";
-        options = {
-          desc = "Grow window left";
-        };
-        mode = [ "t" "n" ];
-      }
-
-      {
-        key = "<Down>";
-        action = "<CMD>resize +1<CR>";
-        options = {
-          desc = "Grow window down";
-        };
-        mode = [ "t" "n" ];
-      }
-      {
-        key = "<Up>";
-        action = "<CMD>resize -1<CR>";
-        options = {
-          desc = "Shrink window up";
-        };
-        mode = [ "t" "n" ];
-      }
-      {
-        key = "<Right>";
-        action = "<CMD>vertical resize -1<CR>";
-        options = {
-          desc = "Shrink window left";
-        };
-        mode = [ "t" "n" ];
-      }
+      { key = "<Left>"; action = "<CMD>vertical resize +1<CR>"; options = { desc = "Grow window left"; }; mode = "n"; }
+      { key = "<Down>"; action = "<CMD>resize +1<CR>"; options = { desc = "Grow window down"; }; mode = "n"; }
+      { key = "<Up>"; action = "<CMD>resize -1<CR>"; options = { desc = "Shrink window up"; }; mode = "n"; }
+      { key = "<Right>"; action = "<CMD>vertical resize -1<CR>"; options = { desc = "Shrink window left"; }; mode = "n"; }
 
       {
         key = "<ESC>";
         action = "<CMD>nohlsearch<Bar>:echo<CR>";
-        options = {
-          desc = "Cancel search";
-        };
+        options = { desc = "Cancel search"; };
         mode = "n";
       }
 
       {
         key = "<C-t>";
         action = "<CMD>tabnew<CR>";
-        options = {
-          desc = "New tab";
-        };
+        options = { desc = "New tab"; };
         mode = "n";
       }
 
       {
         key = "<C-tab>";
         action = "<CMD>tabnext<CR>";
-        options = {
-          desc = "Next tab";
-        };
+        options = { desc = "Next tab"; };
         mode = "n";
       }
 
       {
         key = "<C-s-tab>";
         action = "<CMD>tabprevious<CR>";
-        options = {
-          desc = "Previous tab";
-        };
+        options = { desc = "Previous tab"; };
         mode = "n";
       }
 
       {
         key = "<BS>";
         action = "<CMD>OverseerRun<CR>";
-        options = {
-          desc = "Run task";
-        };
-        mode = "n";
-      }
-
-      {
-        key = "<C-BS>";
-        action = "<CMD>OverseerToggle<CR>";
-        options = {
-          desc = "Toggle task view";
-        };
+        options = { desc = "Run task"; };
         mode = "n";
       }
 
       {
         key = "<Leader><BS>";
-        action = "<CMD>OverseerRunCmd<CR>";
-        options = {
-          desc = "Run command";
-        };
+        action = "<CMD>OverseerToggle<CR>";
+        options = { desc = "Toggle task view"; };
         mode = "n";
       }
 
       {
         key = "<Leader>n";
         action = "<CMD>FocusSplitNicely<CR>";
-        options = {
-          desc = "Make a new split";
-        };
+        options = { desc = "Make a new split"; };
         mode = "n";
       }
 
       {
         key = "<ESC>";
         action = "<C-\\><C-n>";
-        options = {
-          desc = "Let me move";
-        };
+        options = { desc = "Let me move"; };
         mode = "t";
       }
 
       {
         key = "<C-f>";
         action = "<CMD>Telescope live_grep<CR>";
-        options = {
-          desc = "Fuzzy find file contents";
-        };
+        options = { desc = "Fuzzy find file contents"; };
         mode = "n";
       }
 
       {
         key = "<C-o>";
         action = "<CMD>Telescope find_files<CR>";
-        options = {
-          desc = "Find files by name";
-        };
+        options = { desc = "Find files by name"; };
         mode = "n";
       }
     ];
@@ -224,20 +127,19 @@ let
       lualine.enable = true;
       telescope.enable = true;
       notify.enable = true;
-      oil.enable = true;
       surround.enable = true;
       toggleterm.enable = true;
       nvim-autopairs.enable = true;
       rainbow-delimiters.enable = true;
       comment.enable = true;
-      startup.enable = true;
     };
 
-    extraPlugins = [ pkgs.vimPlugins.overseer-nvim pkgs.vimPlugins.dressing-nvim inputs.awesome-neovim-plugins.packages.x86_64-linux.focus-nvim ];
+    extraPlugins = with inputs.awesome-neovim-plugins.packages.${pkgs.system}; [ overseer-nvim dressing-nvim focus-nvim ];
     extraConfigLua = ''
       require('overseer').setup({
       strategy = {
       "toggleterm",
+      use_shell = true,
       quit_on_exit = "always",
       open_on_start = false,
       hidden = true,
@@ -247,7 +149,6 @@ let
       require('dressing').setup()
 
       require('focus').setup()
-      require('startup').setup()
     '';
 
     plugins.treesitter = {
@@ -283,6 +184,17 @@ let
             }
           ];
         };
+      };
+    };
+
+    plugins.oil = {
+      enable = true;
+
+      settings.keymaps = {
+        "<C-l>" = false;
+        "<C-h>" = false;
+        "<C-c>" = false;
+        "<C-r>" = "actions.refresh";
       };
     };
 
