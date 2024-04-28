@@ -21,7 +21,7 @@ let
       done
     '';
   };
-  
+
   find-pkg = pkgs.writeShellApplication {
     name = "find-pkg";
 
@@ -29,9 +29,27 @@ let
       nix-store --query --requisites /run/current-system | cut -d- -f2- | sort -u | grep "$1"
     '';
   };
-in {
-  # Don't need to import packages, as they will be imported by options as needed
-  imports = [ ./options ../shared/neovim ];
+in
+{
+  imports = [
+    ../../shared/home/neovim
+
+    ./git.nix
+    ./sway.nix
+    ./rofi.nix
+    ./waybar.nix
+    ./zsh.nix
+    ./theme.nix
+    ./dunst.nix
+    ./vesktop.nix
+    ./lutris.nix
+    ./obs-studio.nix
+    ./avizo.nix
+    ./easyeffects.nix
+    ./foot.nix
+    ./vscode.nix
+    ./firefox.nix
+  ];
 
   home.username = "aaron";
   home.homeDirectory = "/home/aaron";
@@ -49,8 +67,6 @@ in {
     google-chrome
     spotify
 
-    slack
-
     # Gaming
     mangohud
     protonup-qt
@@ -58,7 +74,6 @@ in {
 
     # Productivity
     obsidian
-    virtualbox
     jq
 
     # Utilities
@@ -73,15 +88,6 @@ in {
     show-pkg
     find-pkg
   ];
-
-  # Home Manager is pretty good at managing dotfiles. The primary way to manage
-  # plain files is through 'home.file'.
-  home.file = {
-    # # Building this configuration will create a copy of 'dotfiles/screenrc' in
-    # # the Nix store. Activating the configuration will then make '~/.screenrc' a
-    # # symlink to the Nix store copy.
-    # ".screenrc".source = dotfiles/screenrc;
-  };
 
   home.sessionVariables = {
     EDITOR = "nvim";
