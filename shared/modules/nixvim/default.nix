@@ -4,8 +4,6 @@
 , inputs
 , ...
 }: {
-  # home.packages = [ pkgs.ripgrep ];
-
   imports = [
     ./options
     ./plugins
