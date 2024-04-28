@@ -2,6 +2,10 @@
   programs.zsh = {
     enable = true;
 
+    syntaxHighlighting.enable = true;
+    historySubstringSearch.enable = true;
+    autosuggestion.enable = true;
+
     plugins = [
       {
         name = "powerlevel10k";
