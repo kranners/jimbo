@@ -32,8 +32,6 @@ let
 in
 {
   imports = [
-    ../../shared/home/neovim
-
     ./git.nix
     ./sway.nix
     ./rofi.nix
@@ -74,6 +72,7 @@ in
 
     # Productivity
     obsidian
+    ripgrep
     jq
 
     # Utilities
