@@ -4,7 +4,7 @@ MAX_JOBS := $(shell nproc)
 add-switch:
 	git add . ; make switch
 
-darwin:
+darwin-switch:
 	git add . ; nix run nix-darwin -- switch --flake .#cassandra
 
 switch:

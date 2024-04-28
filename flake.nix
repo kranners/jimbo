@@ -45,7 +45,7 @@
 
             modules = [
               home-manager.darwinModules.home-manager
-              nixvim.darwinModules.nixvim
+              nixvim.nixDarwinModules.nixvim
 
               ./darwin/system
               ./shared/modules/nixvim
@@ -84,7 +84,7 @@
                   useGlobalPkgs = true;
                   useUserPackages = true;
                   extraSpecialArgs = { inherit inputs; };
-                  sharedModules = [];
+                  sharedModules = [ ];
                   users.aaron = import ./nixos/home;
                 };
               }
