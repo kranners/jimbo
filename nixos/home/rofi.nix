@@ -8,7 +8,7 @@
     plugins = [
       pkgs.rofi-emoji
       pkgs.rofi-calc
-      (pkgs.callPackage ../packages/rofi-games { })
+      (pkgs.callPackage ../../shared/packages/rofi-games { })
     ];
 
     location = "center";

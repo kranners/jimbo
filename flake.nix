@@ -73,14 +73,14 @@
               home-manager.nixosModules.default
               nur.nixosModules.nur
 
-              ./nixos
+              ./nixos/system
 
               {
                 home-manager = {
                   useGlobalPkgs = true;
                   useUserPackages = true;
                   extraSpecialArgs = { inherit inputs; };
-                  users.aaron = import ./home;
+                  users.aaron = import ./nixos/home;
                 };
               }
             ];
