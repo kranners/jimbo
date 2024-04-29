@@ -23,14 +23,11 @@
 
     extraConfigLua = ''
       require('overseer').setup({
-      -- Commenting out as currently leaves tasks in running state
-      -- strategy = {
-      -- "toggleterm",
-      -- use_shell = true,
-      -- quit_on_exit = "always",
-      -- open_on_start = false,
-      -- hidden = true,
-      -- }
+      strategy = {
+      "toggleterm",
+      use_shell = true,
+      open_on_start = false,
+      }
       })
 
       require('dressing').setup()
