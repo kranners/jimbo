@@ -27,6 +27,7 @@
       "toggleterm",
       use_shell = true,
       open_on_start = false,
+      hidden = true,
       }
       })
 

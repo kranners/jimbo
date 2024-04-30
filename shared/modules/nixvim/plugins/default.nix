@@ -9,6 +9,9 @@
     ./telescope.nix
     ./focus.nix
     ./lualine.nix
+    ./comment.nix
+    ./persistence.nix
+    ./startify.nix
   ];
 
   programs.nixvim.plugins = {
@@ -16,8 +19,8 @@
     surround.enable = true;
     nvim-autopairs.enable = true;
     rainbow-delimiters.enable = true;
-    comment.enable = true;
     treesitter.enable = true;
-    auto-save.enable = true;
+    nvim-lightbulb.enable = true;
+    lspsaga.enable = true;
   };
 }
