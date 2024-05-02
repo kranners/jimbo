@@ -18,5 +18,14 @@
       enable = true;
       settings.formatting.command = "nixpkgs-fmt";
     };
+
+    keymaps = [
+      {
+        key = "<Leader><Leader>";
+        action = "<CMD>EslintFixAll<CR>";
+        options = { desc = "Fix all available"; };
+        mode = "n";
+      }
+    ];
   };
 }
