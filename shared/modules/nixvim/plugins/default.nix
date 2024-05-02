@@ -12,6 +12,7 @@
     ./comment.nix
     ./persistence.nix
     ./startify.nix
+    ./luasnip.nix
   ];
 
   programs.nixvim.plugins = {
