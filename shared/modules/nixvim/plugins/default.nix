@@ -22,6 +22,6 @@
     rainbow-delimiters.enable = true;
     treesitter.enable = true;
     nvim-lightbulb.enable = true;
-    lspsaga.enable = true;
+    which-key.enable = true;
   };
 }

@@ -18,8 +18,6 @@
       { key = "<ESC>"; action = "<C-\\><C-n>"; options = { desc = "Let me move"; }; mode = "t"; }
       { key = "<Leader>s"; action = "<CMD>wa<CR>"; options = { desc = "Save all"; }; mode = "n"; }
 
-      { key = "<Leader><CR>"; action = "<CMD>lua vim.lsp.buf.code_action()<CR>"; options = { desc = "Show code actions"; }; mode = "n"; }
-
       { key = "<C-h>"; action = "<CMD>wincmd h <CR>"; options = { desc = "Focus window left"; }; mode = [ "t" "n" "i" ]; }
       { key = "<C-j>"; action = "<CMD>wincmd j <CR>"; options = { desc = "Focus window down"; }; mode = [ "t" "n" "i" ]; }
       { key = "<C-k>"; action = "<CMD>wincmd k <CR>"; options = { desc = "Focus window up"; }; mode = [ "t" "n" "i" ]; }

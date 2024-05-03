@@ -12,6 +12,7 @@
         pyright.enable = true;
         yamlls.enable = true;
       };
+
     };
 
     plugins.lsp.servers.nixd = {
@@ -19,11 +20,27 @@
       settings.formatting.command = "nixpkgs-fmt";
     };
 
+    plugins.lspsaga.enable = true;
+
     keymaps = [
       {
         key = "<Leader><Leader>";
         action = "<CMD>EslintFixAll<CR>";
         options = { desc = "Fix all available"; };
+        mode = "n";
+      }
+
+      {
+        key = "<Leader><CR>";
+        action = "<CMD>Lspsaga code_action<CR>";
+        options = { desc = "Show code actions"; };
+        mode = "n";
+      }
+
+      {
+        key = "<Leader>r";
+        action = "<CMD>Lspsaga rename<CR>";
+        options = { desc = "Rename symbol"; };
         mode = "n";
       }
     ];
