@@ -1,5 +1,10 @@
-{ config, pkgs, lib, inputs, ... }:
-let
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}: let
   inherit (pkgs.vscode-utils) extensionFromVscodeMarketplace;
 
   aaron-pierce-nodash = extensionFromVscodeMarketplace {
@@ -16,34 +21,33 @@ in {
     enableUpdateCheck = false;
     enableExtensionUpdateCheck = false;
 
-    extensions =
-      with inputs.nix-vscode-extensions.extensions.${pkgs.system}.vscode-marketplace; [
-        astro-build.astro-vscode
-        asvetliakov.vscode-neovim
-        bbenoist.nix
-        bradlc.vscode-tailwindcss
-        brennondenny.vsc-jetbrains-icons-enhanced
-        catppuccin.catppuccin-vsc
-        catppuccin.catppuccin-vsc-icons
-        chadalen.vscode-jetbrains-icon-theme
-        codezombiech.gitignore
-        dbaeumer.vscode-eslint
-        esbenp.prettier-vscode
-        firsttris.vscode-jest-runner
-        isudox.vscode-jetbrains-keybindings
-        jnoortheen.nix-ide
-        brettm12345.nixfmt-vscode
-        mgmcdermott.vscode-language-babel
-        ms-python.debugpy
-        ms-python.python
-        ms-python.vscode-pylance
-        ms-vscode.vscode-typescript-next
-        ms-vsliveshare.vsliveshare
-        streetsidesoftware.code-spell-checker
-        usernamehw.errorlens
-        wayou.vscode-todo-highlight
-        yoavbls.pretty-ts-errors
-      ];
+    extensions = with inputs.nix-vscode-extensions.extensions.${pkgs.system}.vscode-marketplace; [
+      astro-build.astro-vscode
+      asvetliakov.vscode-neovim
+      bbenoist.nix
+      bradlc.vscode-tailwindcss
+      brennondenny.vsc-jetbrains-icons-enhanced
+      catppuccin.catppuccin-vsc
+      catppuccin.catppuccin-vsc-icons
+      chadalen.vscode-jetbrains-icon-theme
+      codezombiech.gitignore
+      dbaeumer.vscode-eslint
+      esbenp.prettier-vscode
+      firsttris.vscode-jest-runner
+      isudox.vscode-jetbrains-keybindings
+      jnoortheen.nix-ide
+      brettm12345.nixfmt-vscode
+      mgmcdermott.vscode-language-babel
+      ms-python.debugpy
+      ms-python.python
+      ms-python.vscode-pylance
+      ms-vscode.vscode-typescript-next
+      ms-vsliveshare.vsliveshare
+      streetsidesoftware.code-spell-checker
+      usernamehw.errorlens
+      wayou.vscode-todo-highlight
+      yoavbls.pretty-ts-errors
+    ];
 
     languageSnippets = {
       nix = {
@@ -63,7 +67,7 @@ in {
         };
         multiline-string = {
           prefix = "ms";
-          body = [ "''" "  $0" "'';" ];
+          body = ["''" "  $0" "'';"];
         };
       };
     };
@@ -84,7 +88,7 @@ in {
         "editor.defaultFormatter" = "esbenp.prettier-vscode";
       };
 
-      "[css]" = { "editor.defaultFormatter" = "vscode.css-language-features"; };
+      "[css]" = {"editor.defaultFormatter" = "vscode.css-language-features";};
 
       "[nix]" = {
         "editor.defaultFormatter" = "brettm12345.nixfmt-vscode";
@@ -98,13 +102,13 @@ in {
       "nix.serverPath" = "nil";
       "nix.serverSettings" = {
         "nil" = {
-          "eval" = { };
+          "eval" = {};
           # "formatting" = { "command" = "nixpkgs-fmt"; };
           "options" = {
             "enable" = true;
             "target" = {
               # tweak arguments here
-              "args" = [ ];
+              "args" = [];
               # NixOS options
               # Home-manager options
               "installable" = ["<flakeref>#nixosConfigurations.<name>.options" "<flakeref>#homeConfigurations.<name>.options"];
@@ -122,7 +126,7 @@ in {
         "source.fixAll.eslint" = "explicit";
         "eslint.applyAllFixes" = "explicit";
       };
-      "eslint.workingDirectories" = [{ "mode" = "auto"; }];
+      "eslint.workingDirectories" = [{"mode" = "auto";}];
 
       # Use Vim, can't ever hide line numbers
       "zenMode.hideLineNumbers" = false;
@@ -140,8 +144,7 @@ in {
       "editor.stickyScroll.enabled" = true;
 
       # Fonts (JetBrains font)
-      "editor.fontFamily" =
-        "'JetBrainsMono Nerd Font Mono', 'Font Awesome 6 Brands', 'Font Awesome 6 Free', 'Font Awesome 6 Free Solid', monospace";
+      "editor.fontFamily" = "'JetBrainsMono Nerd Font Mono', 'Font Awesome 6 Brands', 'Font Awesome 6 Free', 'Font Awesome 6 Free Solid', monospace";
       "editor.fontLigatures" = false;
       "editor.fontSize" = 14;
       "editor.fontWeight" = "350";
@@ -161,10 +164,9 @@ in {
       "workbench.startupEditor" = "none";
 
       "vscode-neovim.neovimExecutablePaths.darwin" = "/opt/homebrew/bin/nvim";
-      "vscode-neovim.neovimExecutablePaths.linux" =
-        "/run/current-system/sw/bin/nvim";
+      "vscode-neovim.neovimExecutablePaths.linux" = "/run/current-system/sw/bin/nvim";
 
-      "extensions.experimental.affinity" = { "asvetliakov.vscode-neovim" = 1; };
+      "extensions.experimental.affinity" = {"asvetliakov.vscode-neovim" = 1;};
 
       # Spell checker custom words
       "cSpell.userWords" = [
@@ -198,7 +200,7 @@ in {
       # Give me more lines in my terminal
       "terminal.integrated.scrollback" = 10000;
       "editor.minimap.enabled" = false;
-      "[json]" = { "editor.defaultFormatter" = "esbenp.prettier-vscode"; };
+      "[json]" = {"editor.defaultFormatter" = "esbenp.prettier-vscode";};
     };
   };
 }

@@ -1,4 +1,10 @@
-{ config, pkgs, lib, inputs, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}: {
   wayland.windowManager.sway.config.menu = "rofi -show drun -monitor -1";
 
   programs.rofi = {
@@ -8,7 +14,7 @@
     plugins = [
       pkgs.rofi-emoji
       pkgs.rofi-calc
-      (pkgs.callPackage ../../shared/packages/rofi-games { })
+      (pkgs.callPackage ../../shared/packages/rofi-games {})
     ];
 
     location = "center";

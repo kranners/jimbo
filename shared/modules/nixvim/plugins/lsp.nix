@@ -1,5 +1,7 @@
 {
   programs.nixvim = {
+    plugins.typescript-tools.enable = true;
+
     plugins.lsp = {
       enable = true;
       servers = {
@@ -11,36 +13,33 @@
         eslint.enable = true;
         pyright.enable = true;
         yamlls.enable = true;
+
+        nixd = {
+          enable = true;
+          settings.formatting.command = "alejandra";
+        };
       };
-
     };
-
-    plugins.lsp.servers.nixd = {
-      enable = true;
-      settings.formatting.command = "nixpkgs-fmt";
-    };
-
-    plugins.lspsaga.enable = true;
 
     keymaps = [
       {
         key = "<Leader><Leader>";
         action = "<CMD>EslintFixAll<CR>";
-        options = { desc = "Fix all available"; };
+        options = {desc = "Fix all available";};
         mode = "n";
       }
 
       {
         key = "<Leader><CR>";
-        action = "<CMD>Lspsaga code_action<CR>";
-        options = { desc = "Show code actions"; };
+        action = "<CMD>lua vim.lsp.buf.code_action()<CR>";
+        options = {desc = "Show code actions";};
         mode = "n";
       }
 
       {
         key = "<Leader>r";
-        action = "<CMD>Lspsaga rename<CR>";
-        options = { desc = "Rename symbol"; };
+        action = "<CMD>lua vim.lsp.buf.rename()<CR>";
+        options = {desc = "Rename symbol";};
         mode = "n";
       }
     ];

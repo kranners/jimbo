@@ -1,9 +1,14 @@
-{ config, pkgs, lib, inputs, ... }:
-let
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}: let
   spotify-play-pause = pkgs.writeShellApplication {
     name = "spotify-play-pause";
 
-    runtimeInputs = [ pkgs.avizo pkgs.playerctl ];
+    runtimeInputs = [pkgs.avizo pkgs.playerctl];
 
     text = ''
       STATUS="$(playerctl -p spotify status)"
@@ -19,13 +24,13 @@ let
     '';
   };
 in {
-  home.packages = [ pkgs.avizo pkgs.playerctl spotify-play-pause ];
+  home.packages = [pkgs.avizo pkgs.playerctl spotify-play-pause];
 
   systemd.user.services.avizo = {
     Unit = {
       Description = "MacOS-like volume control hotkeys and notifications";
     };
-    Install = { WantedBy = [ "sway-session.target" ]; };
+    Install = {WantedBy = ["sway-session.target"];};
     Service = {
       ExecStart = "${pkgs.avizo}/bin/avizo-service";
       Restart = "always";
@@ -34,10 +39,12 @@ in {
   };
 
   wayland.windowManager.sway.config = {
-    startup = [{
-      command = "systemctl --user restart avizo";
-      always = true;
-    }];
+    startup = [
+      {
+        command = "systemctl --user restart avizo";
+        always = true;
+      }
+    ];
 
     keybindings = {
       "XF86AudioRaiseVolume" = "exec volumectl -u up";

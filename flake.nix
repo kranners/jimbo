@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+
     nur.url = "github:nix-community/NUR";
 
     firefox-addons.url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
@@ -15,81 +16,77 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nh-darwin = {
+      url = "github:ToyVo/nh";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs =
-    { self
-    , nixpkgs
-    , home-manager
-    , nixvim
-    , nix-vscode-extensions
-    , nur
-    , firefox-addons
-    , awesome-neovim-plugins
-    , nix-darwin
-    , ...
-    }@inputs: {
+  outputs = {
+    nixpkgs,
+    home-manager,
+    nixvim,
+    nur,
+    nix-darwin,
+    ...
+  } @ inputs: {
+    darwinConfigurations = let
+      system = "aarch64-darwin";
+    in {
+      cassandra = nix-darwin.lib.darwinSystem {
+        specialArgs = {inherit inputs;};
+        inherit system;
 
-      darwinConfigurations =
-        let
-          system = "aarch64-darwin";
-        in
-        {
-          cassandra = nix-darwin.lib.darwinSystem {
-            specialArgs = { inherit inputs; };
-            inherit system;
+        modules = [
+          home-manager.darwinModules.home-manager
+          nixvim.nixDarwinModules.nixvim
 
-            modules = [
-              home-manager.darwinModules.home-manager
-              nixvim.nixDarwinModules.nixvim
+          ./darwin/system
+          ./shared/modules/nixvim
 
-              ./darwin/system
-              ./shared/modules/nixvim
-
-              {
-                home-manager = {
-                  useGlobalPkgs = true;
-                  useUserPackages = true;
-                  extraSpecialArgs = { inherit inputs; };
-                  users.aaronpierce = import ./darwin/home;
-                };
-              }
-            ];
-          };
-        };
-
-      nixosConfigurations =
-        let
-          system = "x86_64-linux";
-        in
-        {
-          jimbo = nixpkgs.lib.nixosSystem {
-            specialArgs = { inherit inputs; };
-            inherit system;
-
-            modules = [
-              home-manager.nixosModules.default
-              nixvim.nixosModules.nixvim
-              nur.nixosModules.nur
-
-              ./nixos/system
-              ./shared/modules/nixvim
-
-              {
-                home-manager = {
-                  useGlobalPkgs = true;
-                  useUserPackages = true;
-                  extraSpecialArgs = { inherit inputs; };
-                  sharedModules = [ ];
-                  users.aaron = import ./nixos/home;
-                };
-              }
-            ];
-          };
-        };
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              extraSpecialArgs = {inherit inputs;};
+              users.aaronpierce = import ./darwin/home;
+            };
+          }
+        ];
+      };
     };
+
+    nixosConfigurations = let
+      system = "x86_64-linux";
+    in {
+      jimbo = nixpkgs.lib.nixosSystem {
+        specialArgs = {inherit inputs;};
+        inherit system;
+
+        modules = [
+          home-manager.nixosModules.default
+          nixvim.nixosModules.nixvim
+          nur.nixosModules.nur
+
+          ./nixos/system
+          ./shared/modules/nixvim
+
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              extraSpecialArgs = {inherit inputs;};
+              sharedModules = [];
+              users.aaron = import ./nixos/home;
+            };
+          }
+        ];
+      };
+    };
+  };
 }

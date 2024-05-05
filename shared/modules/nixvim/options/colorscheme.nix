@@ -1,11 +1,10 @@
-{
-  programs.nixvim.colorschemes.catppuccin = {
-    enable = true;
+{pkgs, ...}: {
+  programs.nixvim = {
+    extraPlugins = with pkgs.vimPlugins; [
+      onedarkpro-nvim
+    ];
 
-    settings = {
-      flavour = "latte"; # UK English
-      term_colors = true; # US English
-      # Pick one, Catppuccin!!
-    };
+    colorscheme = "onedark_vivid";
+    opts.termguicolors = true;
   };
 }
