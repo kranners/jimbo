@@ -296,6 +296,26 @@
         "type": "github"
       }
     },
+    "nh-darwin": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1714701251,
+        "narHash": "sha256-i806bSjFSlqIA5h9eFNRWvUc58m1En5J+uEaMR6HY+w=",
+        "owner": "ToyVo",
+        "repo": "nh",
+        "rev": "d03bf05fd9cb944c1314e6df15da795592111b6c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ToyVo",
+        "repo": "nh",
+        "type": "github"
+      }
+    },
     "nix-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -509,6 +529,7 @@
         "awesome-neovim-plugins": "awesome-neovim-plugins",
         "firefox-addons": "firefox-addons",
         "home-manager": "home-manager",
+        "nh-darwin": "nh-darwin",
         "nix-darwin": "nix-darwin",
         "nix-vscode-extensions": "nix-vscode-extensions",
         "nixpkgs": "nixpkgs_4",

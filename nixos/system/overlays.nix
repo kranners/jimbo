@@ -1,4 +1,9 @@
-{ config, pkgs, inputs, ... }: {
+{
+  config,
+  pkgs,
+  inputs,
+  ...
+}: {
   nixpkgs.overlays = [
     (final: prev: {
       # Patches the rofi plugins to work using rofi-wayland
@@ -15,10 +20,11 @@
       # Patches the Davinci Resolve package to allow for OpenCL support
       # https://discourse.nixos.org/t/davinci-resolve-studio-install-issues/37699/44
       davinci-resolve = prev.davinci-resolve.override (old: {
-        buildFHSEnv = a:
-          (old.buildFHSEnv (a // {
-            extraBwrapArgs = a.extraBwrapArgs
-              ++ [ "--bind /run/opengl-driver/etc/OpenCL /etc/OpenCL" ];
+        buildFHSEnv = a: (old.buildFHSEnv (a
+          // {
+            extraBwrapArgs =
+              a.extraBwrapArgs
+              ++ ["--bind /run/opengl-driver/etc/OpenCL /etc/OpenCL"];
           }));
       });
     })

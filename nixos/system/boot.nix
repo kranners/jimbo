@@ -1,12 +1,17 @@
-{ config, pkgs, inputs, ... }: {
+{
+  config,
+  pkgs,
+  inputs,
+  ...
+}: {
   # For GRUB autodetection
-  environment.systemPackages = [ pkgs.os-prober ];
+  environment.systemPackages = [pkgs.os-prober];
 
   boot.loader = {
     efi.canTouchEfiVariables = true;
     grub = {
       enable = true;
-      devices = [ "nodev" ];
+      devices = ["nodev"];
       efiSupport = true;
       useOSProber = true;
     };

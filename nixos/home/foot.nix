@@ -1,10 +1,13 @@
-{ config, pkgs, lib, inputs, ... }:
-let
-  nerd-fonts =
-    "Font Awesome 6 Brands:size=10, Font Awesome 6 Free:size=10, Font Awesome 6 Free Solid:size=10";
-  jetbrains-mono = "JetBrainsMono Nerd Font Mono:size=10";
-in
 {
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}: let
+  nerd-fonts = "Font Awesome 6 Brands:size=10, Font Awesome 6 Free:size=10, Font Awesome 6 Free Solid:size=10";
+  jetbrains-mono = "JetBrainsMono Nerd Font Mono:size=10";
+in {
   wayland.windowManager.sway.config = {
     terminal = "foot";
 
