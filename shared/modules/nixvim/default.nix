@@ -1,9 +1,8 @@
-{
-  config,
-  pkgs,
-  lib,
-  inputs,
-  ...
+{ config
+, pkgs
+, lib
+, inputs
+, ...
 }: {
   imports = [
     ./options
@@ -20,27 +19,27 @@
       {
         key = "<ESC>";
         action = "<C-\\><C-n>";
-        options = {desc = "Let me move";};
+        options = { desc = "Let me move"; };
         mode = "t";
       }
       {
         key = "<ESC>";
         action = "<CMD>nohlsearch<Bar>:echo<CR><CMD>lua require('goto-preview').close_all_win({ skip_curr_window = true })<CR>";
-        options = {desc = "Cancel search";};
+        options = { desc = "Cancel search"; };
         mode = "n";
       }
 
       {
         key = "<Leader>s";
         action = "<CMD>wa<CR>";
-        options = {desc = "Save all";};
+        options = { desc = "Save all"; };
         mode = "n";
       }
 
       {
         key = "<C-[>";
         action = "<C-o>";
-        options = {desc = "Jump back to last entry in jumplist";};
+        options = { desc = "Jump back to last entry in jumplist"; };
         mode = "n";
       }
     ];

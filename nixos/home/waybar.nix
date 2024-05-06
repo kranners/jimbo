@@ -1,13 +1,12 @@
-{
-  config,
-  pkgs,
-  lib,
-  inputs,
-  ...
+{ config
+, pkgs
+, lib
+, inputs
+, ...
 }: {
   systemd.user.services.workstyle = {
-    Unit = {Description = "Auto rename workspaces based on what's in them";};
-    Install = {WantedBy = ["sway-session.target"];};
+    Unit = { Description = "Auto rename workspaces based on what's in them"; };
+    Install = { WantedBy = [ "sway-session.target" ]; };
     Service = {
       ExecStart = "${pkgs.workstyle}/bin/workstyle";
       Restart = "always";
@@ -80,9 +79,9 @@
         layer = "top";
         position = "top";
 
-        modules-left = ["pulseaudio" "clock"];
-        modules-center = ["sway/workspaces"];
-        modules-right = ["tray"];
+        modules-left = [ "pulseaudio" "clock" ];
+        modules-center = [ "sway/workspaces" ];
+        modules-right = [ "tray" ];
 
         clock = {
           format-alt = "{:%Y-%m-%d}";
@@ -93,7 +92,7 @@
           format = "{icon} {volume}%";
           format-muted = "";
           on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
-          format-icons = ["" "" ""];
+          format-icons = [ "" "" "" ];
         };
       }
     ];

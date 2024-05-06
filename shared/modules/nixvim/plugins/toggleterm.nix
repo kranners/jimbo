@@ -1,4 +1,5 @@
-{pkgs, ...}: let
+{ pkgs, ... }:
+let
   toggleterm-manager = pkgs.vimUtils.buildVimPlugin {
     pname = "toggleterm-manager";
     version = "2024-05-04";
@@ -10,33 +11,34 @@
     };
     meta.homepage = "https://github.com/ryanmsnyder/toggleterm-manager.nvim";
   };
-in {
+in
+{
   programs.nixvim = {
     plugins.toggleterm = {
       enable = true;
       settings = {
         direction = "vertical";
-	size = 60;
+        size = 60;
       };
 
       extraOptions.hide_numbers = false;
     };
 
-    extraPlugins = [toggleterm-manager];
+    extraPlugins = [ toggleterm-manager ];
 
     keymaps = [
       {
         action = "<cmd>ToggleTerm<cr>";
         key = "=";
         mode = "n";
-        options = {desc = "Toggle terminal";};
+        options = { desc = "Toggle terminal"; };
       }
 
       {
         action = "<cmd>Telescope toggleterm_manager<cr>";
         key = "<Leader>=";
         mode = "n";
-        options = {desc = "Manage terminals";};
+        options = { desc = "Manage terminals"; };
       }
     ];
   };

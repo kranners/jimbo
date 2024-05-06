@@ -1,10 +1,10 @@
-{
-  config,
-  pkgs,
-  lib,
-  inputs,
-  ...
-}: let
+{ config
+, pkgs
+, lib
+, inputs
+, ...
+}:
+let
   git-cram = pkgs.writeShellApplication {
     name = "git-cram";
 
@@ -16,7 +16,7 @@
   show-pkg = pkgs.writeShellApplication {
     name = "show-pkg";
 
-    runtimeInputs = [pkgs.nix pkgs.eza];
+    runtimeInputs = [ pkgs.nix pkgs.eza ];
 
     text = ''
       PATHS="$(nix build "nixpkgs#$1" --print-out-paths --no-link)"
@@ -34,7 +34,8 @@
       nix-store --query --requisites /run/current-system | cut -d- -f2- | sort -u | grep "$1"
     '';
   };
-in {
+in
+{
   imports = [
     ./git.nix
     ./sway.nix
@@ -78,6 +79,7 @@ in {
     obsidian
     ripgrep
     jq
+    nh
 
     # Utilities
     pavucontrol # Audio control

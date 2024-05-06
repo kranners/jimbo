@@ -1,8 +1,7 @@
-{
-  config,
-  pkgs,
-  inputs,
-  ...
+{ config
+, pkgs
+, inputs
+, ...
 }: {
   imports = [
     ./boot.nix
@@ -25,17 +24,17 @@
 
   # Enable Flakes
   nix.package = pkgs.nixFlakes;
-  nix.settings.experimental-features = ["nix-command" "flakes"];
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   # Allow root users access to the Nix store
-  nix.settings.trusted-users = ["root" "@wheel"];
+  nix.settings.trusted-users = [ "root" "@wheel" ];
 
   # Allow unfree packages
   nixpkgs.config = {
     allowUnfree = true;
 
     # Allow for certain insecure packages
-    permittedInsecurePackages = ["electron-25.9.0" "nix-2.16.2"];
+    permittedInsecurePackages = [ "electron-25.9.0" "nix-2.16.2" ];
   };
 
   # Enable networking

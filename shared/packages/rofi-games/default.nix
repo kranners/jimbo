@@ -1,15 +1,15 @@
-{
-  lib,
-  stdenv,
-  fetchFromGitHub,
-  rustPlatform,
-  cargo,
-  just,
-  rofi-wayland,
-  pkg-config,
-  glib,
-  cairo,
-  pango,
+{ lib
+, stdenv
+, fetchFromGitHub
+, rustPlatform
+, cargo
+, just
+, rofi-wayland
+, pkg-config
+, glib
+, cairo
+, pango
+,
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "rofi-games";
@@ -35,14 +35,14 @@ stdenv.mkDerivation (finalAttrs: {
 
   env.PKGDIR = placeholder "out";
 
-  nativeBuildInputs = [rustPlatform.cargoSetupHook cargo just rofi-wayland pkg-config];
+  nativeBuildInputs = [ rustPlatform.cargoSetupHook cargo just rofi-wayland pkg-config ];
 
-  buildInputs = [glib cairo pango];
+  buildInputs = [ glib cairo pango ];
 
   meta = {
     description = "A rofi plugin which adds a mode that will list available games for launch along with their box art";
     homepage = "https://github.com/Rolv-Apneseth/rofi-games";
     license = lib.licenses.gpl2Only;
-    maintainers = with lib.maintainers; [tomasajt];
+    maintainers = with lib.maintainers; [ tomasajt ];
   };
 })

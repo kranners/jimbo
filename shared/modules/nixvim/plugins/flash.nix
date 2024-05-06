@@ -9,7 +9,7 @@
       {
         key = "<Leader>v";
         action = "<CMD>lua require('flash').treesitter()<CR>";
-        options = {desc = "Select by treesitter node";};
+        options = { desc = "Select by treesitter node"; };
         mode = "n";
       }
     ];

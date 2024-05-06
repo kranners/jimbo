@@ -1,14 +1,14 @@
-{
-  config,
-  pkgs,
-  lib,
-  inputs,
-  ...
-}: let
+{ config
+, pkgs
+, lib
+, inputs
+, ...
+}:
+let
   spotify-play-pause = pkgs.writeShellApplication {
     name = "spotify-play-pause";
 
-    runtimeInputs = [pkgs.avizo pkgs.playerctl];
+    runtimeInputs = [ pkgs.avizo pkgs.playerctl ];
 
     text = ''
       STATUS="$(playerctl -p spotify status)"
@@ -23,14 +23,15 @@
       avizo-client --image-path=${../../assets/media-play.png}
     '';
   };
-in {
-  home.packages = [pkgs.avizo pkgs.playerctl spotify-play-pause];
+in
+{
+  home.packages = [ pkgs.avizo pkgs.playerctl spotify-play-pause ];
 
   systemd.user.services.avizo = {
     Unit = {
       Description = "MacOS-like volume control hotkeys and notifications";
     };
-    Install = {WantedBy = ["sway-session.target"];};
+    Install = { WantedBy = [ "sway-session.target" ]; };
     Service = {
       ExecStart = "${pkgs.avizo}/bin/avizo-service";
       Restart = "always";

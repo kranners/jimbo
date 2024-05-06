@@ -6,7 +6,7 @@
       {
         key = "<Leader>w";
         action = "<CMD>BufferCloseAllButVisible<CR>";
-        options = {desc = "Clean invisible buffers";};
+        options = { desc = "Clean invisible buffers"; };
         mode = "n";
       }
     ];

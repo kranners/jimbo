@@ -5,10 +5,11 @@ let
       path = 1;
     };
   };
-in {
+in
+{
   programs.nixvim.plugins.lualine = {
     enable = true;
-    winbar.lualine_a = [filename-segment];
-    inactiveWinbar.lualine_a = [filename-segment];
+    winbar.lualine_a = [ filename-segment ];
+    inactiveWinbar.lualine_a = [ filename-segment ];
   };
 }

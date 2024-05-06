@@ -1,7 +1,6 @@
-{
-  inputs,
-  pkgs,
-  ...
+{ inputs
+, pkgs
+, ...
 }: {
   programs.nixvim = {
     extraPlugins = [
@@ -21,21 +20,21 @@
       {
         key = "<Leader>j";
         action = "<CMD>TSJJoin<CR>";
-        options = {desc = "Join object together";};
+        options = { desc = "Join object together"; };
         mode = "n";
       }
 
       {
         key = "<Leader>k";
         action = "<CMD>TSJSplit<CR>";
-        options = {desc = "Split object apart";};
+        options = { desc = "Split object apart"; };
         mode = "n";
       }
 
       {
         key = "<Leader>m";
         action = "<CMD>TSJToggle<CR>";
-        options = {desc = "Toggle single vs multiline";};
+        options = { desc = "Toggle single vs multiline"; };
         mode = "n";
       }
     ];

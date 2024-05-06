@@ -1,8 +1,7 @@
-{
-  config,
-  pkgs,
-  inputs,
-  ...
+{ config
+, pkgs
+, inputs
+, ...
 }: {
   # Required by the Chili SDDM theme
   environment.systemPackages = [
@@ -18,6 +17,6 @@
       theme = "${pkgs.sddm-chili-theme}/share/sddm/themes/chili";
     };
 
-    sessionPackages = [pkgs.sway];
+    sessionPackages = [ pkgs.sway ];
   };
 }
