@@ -4,9 +4,9 @@
 
     keymaps = [
       {
-        key = "<Leader>t";
+        key = "<Leader>q";
         action = "<CMD>TroubleToggle<CR>";
-        options = {desc = "Toggle view all issues";};
+        options = { desc = "Toggle view all issues"; };
         mode = "n";
       }
     ];

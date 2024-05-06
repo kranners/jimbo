@@ -15,9 +15,11 @@ in {
     plugins.toggleterm = {
       enable = true;
       settings = {
-        direction = "float";
-        hide_numbers = false;
+        direction = "vertical";
+	size = 60;
       };
+
+      extraOptions.hide_numbers = false;
     };
 
     extraPlugins = [toggleterm-manager];

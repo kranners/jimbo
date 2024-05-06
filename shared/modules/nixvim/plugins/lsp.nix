@@ -16,7 +16,7 @@
 
         nixd = {
           enable = true;
-          settings.formatting.command = "alejandra";
+          settings.formatting.command = "nixpkgs-fmt";
         };
       };
     };
