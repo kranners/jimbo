@@ -21,6 +21,8 @@
     ./portal.nix
     ./trouble.nix
     ./goto-preview.nix
+    ./neotest.nix
+    ./flash.nix
   ];
 
   programs.nixvim.plugins = {
@@ -35,13 +37,11 @@
 
   programs.nixvim = {
     extraPlugins = with inputs.awesome-neovim-plugins.packages.${pkgs.system}; [
-      goto-preview
       colorful-winsep-nvim
     ];
 
     extraConfigLua = ''
       require('colorful-winsep').setup()
-      require('goto-preview').setup()
     '';
   };
 }

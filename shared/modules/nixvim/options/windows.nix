@@ -8,10 +8,10 @@ let
     mode = ["t" "n" "i"];
   };
 
-  mkRearrange = key: wincmd: direction: {
+  mkRearrange = wincmd: key: {
     key = "<Leader><${key}>";
     action = "<CMD>wincmd ${wincmd}<CR>";
-    options = {desc = "Rotate windows ${direction}";};
+    options = {desc = "Send window to ${key}";};
     mode = "n";
   };
 
@@ -52,10 +52,10 @@ in {
     (mkMovement "l" "right")
 
     # Window relative rearranging
-    (mkRearrange "Left" "R" "upwards/leftwards")
-    (mkRearrange "Down" "r" "downwards/rightwards")
-    (mkRearrange "Up" "R" "upwards/leftwards")
-    (mkRearrange "Right" "r" "downwards/rightwards")
+    (mkRearrange "H" "Left")
+    (mkRearrange "J" "Down")
+    (mkRearrange "K" "Up")
+    (mkRearrange "L" "Right")
 
     # Window resizing
     (mkResize "Left" true true)
