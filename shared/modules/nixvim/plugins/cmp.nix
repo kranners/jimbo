@@ -8,11 +8,11 @@
       enable = true;
 
       settings.sources = [
-        {name = "nvim_lsp";}
-        {name = "luasnip";}
+        { name = "nvim_lsp"; }
+        { name = "luasnip"; }
 
-        {name = "buffer";}
-        {name = "path";}
+        { name = "buffer"; }
+        { name = "path"; }
       ];
 
       settings.mapping = {
@@ -30,7 +30,7 @@
           mapping = {
             __raw = "cmp.mapping.preset.cmdline()";
           };
-          sources = [{name = "buffer";}];
+          sources = [{ name = "buffer"; }];
         };
 
         ":" = {
@@ -38,7 +38,7 @@
             __raw = "cmp.mapping.preset.cmdline()";
           };
           sources = [
-            {name = "path";}
+            { name = "path"; }
             {
               name = "cmdline";
               option = {

@@ -1,8 +1,7 @@
-{
-  config,
-  pkgs,
-  inputs,
-  ...
+{ config
+, pkgs
+, inputs
+, ...
 }: {
-  environment = {variables = {EDITOR = "vim";};};
+  environment = { variables = { EDITOR = "vim"; }; };
 }

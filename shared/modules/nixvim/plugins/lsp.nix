@@ -25,21 +25,21 @@
       {
         key = "<Leader><Leader>";
         action = "<CMD>EslintFixAll<CR>";
-        options = {desc = "Fix all available";};
+        options = { desc = "Fix all available"; };
         mode = "n";
       }
 
       {
         key = "<Leader><CR>";
         action = "<CMD>lua vim.lsp.buf.code_action()<CR>";
-        options = {desc = "Show code actions";};
+        options = { desc = "Show code actions"; };
         mode = "n";
       }
 
       {
         key = "<Leader>r";
         action = "<CMD>lua vim.lsp.buf.rename()<CR>";
-        options = {desc = "Rename symbol";};
+        options = { desc = "Rename symbol"; };
         mode = "n";
       }
     ];

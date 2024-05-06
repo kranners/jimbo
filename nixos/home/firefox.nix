@@ -1,9 +1,8 @@
-{
-  config,
-  pkgs,
-  lib,
-  inputs,
-  ...
+{ config
+, pkgs
+, lib
+, inputs
+, ...
 }: {
   programs.firefox = {
     enable = true;
@@ -32,80 +31,82 @@
         force = true;
         default = "Kagi";
 
-        engines = let
-          query-param = {
-            name = "query";
-            value = "{searchTerms}";
-          };
+        engines =
+          let
+            query-param = {
+              name = "query";
+              value = "{searchTerms}";
+            };
 
-          nix-search-params = [
-            {
-              name = "type";
-              value = "packages";
-            }
-            {
-              name = "channel";
-              value = "unstable";
-            }
-            query-param
-          ];
-        in {
-          "Kagi" = {
-            urls = [
+            nix-search-params = [
               {
-                template = "https://kagi.com/search";
-                params = [
-                  {
-                    name = "q";
-                    value = "{searchTerms}";
-                  }
-                ];
+                name = "type";
+                value = "packages";
               }
-            ];
-          };
-
-          "Nix Packages" = {
-            urls = [
               {
-                template = "https://search.nixos.org/packages";
-                params = nix-search-params;
+                name = "channel";
+                value = "unstable";
               }
+              query-param
             ];
+          in
+          {
+            "Kagi" = {
+              urls = [
+                {
+                  template = "https://kagi.com/search";
+                  params = [
+                    {
+                      name = "q";
+                      value = "{searchTerms}";
+                    }
+                  ];
+                }
+              ];
+            };
 
-            icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
-            definedAliases = ["np"];
+            "Nix Packages" = {
+              urls = [
+                {
+                  template = "https://search.nixos.org/packages";
+                  params = nix-search-params;
+                }
+              ];
+
+              icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+              definedAliases = [ "np" ];
+            };
+
+            "Nix Options" = {
+              urls = [
+                {
+                  template = "https://search.nixos.org/options";
+                  params = nix-search-params;
+                }
+              ];
+
+              icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+              definedAliases = [ "no" ];
+            };
+
+            "Home Manager Options" = {
+              urls = [
+                {
+                  template = "https://home-manager-options.extranix.com";
+                  params = [
+                    {
+                      name = "release";
+                      value = "master";
+                    }
+                    query-param
+                  ];
+                }
+              ];
+
+              icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+              definedAliases = [ "nh" ];
+            };
           };
-
-          "Nix Options" = {
-            urls = [
-              {
-                template = "https://search.nixos.org/options";
-                params = nix-search-params;
-              }
-            ];
-
-            icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
-            definedAliases = ["no"];
-          };
-
-          "Home Manager Options" = {
-            urls = [
-              {
-                template = "https://home-manager-options.extranix.com";
-                params = [
-                  {
-                    name = "release";
-                    value = "master";
-                  }
-                  query-param
-                ];
-              }
-            ];
-
-            icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
-            definedAliases = ["nh"];
-          };
-        };
       };
     };
   };

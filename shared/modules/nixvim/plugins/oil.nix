@@ -5,7 +5,7 @@
         action = "<cmd>lua require('oil').open()<cr>";
         key = "-";
         mode = "n";
-        options = {desc = "View files";};
+        options = { desc = "View files"; };
       }
     ];
 

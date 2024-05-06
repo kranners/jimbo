@@ -1,8 +1,7 @@
-{
-  config,
-  pkgs,
-  inputs,
-  ...
+{ config
+, pkgs
+, inputs
+, ...
 }: {
   users.defaultUserShell = pkgs.zsh;
   programs.zsh.enable = true;
@@ -13,7 +12,7 @@
 
     shell = pkgs.zsh;
 
-    extraGroups = ["networkmanager" "wheel"];
+    extraGroups = [ "networkmanager" "wheel" ];
   };
 
   security.sudo.wheelNeedsPassword = false;

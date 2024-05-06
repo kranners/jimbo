@@ -4,9 +4,9 @@
       enable = true;
 
       adapters = {
-	jest.enable = true;
-	# vitest.enable = true;
-	# playwright.enable = true;
+        jest.enable = true;
+        # vitest.enable = true;
+        # playwright.enable = true;
       };
     };
 
@@ -15,14 +15,14 @@
         action = "<cmd>lua require('neotest').run.run(vim.fn.expand('%'))<cr>";
         key = "<Leader>tf";
         mode = "n";
-        options = {desc = "Run current test file";};
+        options = { desc = "Run current test file"; };
       }
 
       {
         action = "<cmd>lua require('neotest').run.run()<cr>";
         key = "<Leader>ts";
         mode = "n";
-        options = {desc = "Run current test";};
+        options = { desc = "Run current test"; };
       }
     ];
   };

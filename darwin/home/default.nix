@@ -1,11 +1,12 @@
-{
-  pkgs,
-  inputs,
-  ...
-}: let
+{ pkgs
+, inputs
+, ...
+}:
+let
   nh-darwin = inputs.nh-darwin.packages.${pkgs.system}.nh;
-in {
-  home.packages = [nh-darwin pkgs.nixpkgs-fmt pkgs.discord];
+in
+{
+  home.packages = [ nh-darwin pkgs.nixpkgs-fmt pkgs.discord ];
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release

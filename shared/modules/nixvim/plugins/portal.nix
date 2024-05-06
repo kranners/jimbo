@@ -1,4 +1,5 @@
-{pkgs, ...}: let
+{ pkgs, ... }:
+let
   portal = pkgs.vimUtils.buildVimPlugin {
     pname = "portal";
     version = "2024-05-04";
@@ -10,23 +11,24 @@
     };
     meta.homepage = "https://github.com/cbochs/portal.nvim";
   };
-in {
+in
+{
   programs.nixvim = {
-    extraPlugins = [portal];
+    extraPlugins = [ portal ];
 
     keymaps = [
       {
         action = "<cmd>Portal jumplist backward<cr>";
         key = "<Leader>[";
         mode = "n";
-        options = {desc = "Jump backward through jumps";};
+        options = { desc = "Jump backward through jumps"; };
       }
 
       {
         action = "<cmd>Portal jumplist forward<cr>";
         key = "<Leader>]";
         mode = "n";
-        options = {desc = "Jump forward through jumps";};
+        options = { desc = "Jump forward through jumps"; };
       }
     ];
   };

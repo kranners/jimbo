@@ -1,10 +1,10 @@
-{
-  config,
-  pkgs,
-  lib,
-  inputs,
-  ...
-}: let
+{ config
+, pkgs
+, lib
+, inputs
+, ...
+}:
+let
   inherit (pkgs.vscode-utils) extensionFromVscodeMarketplace;
 
   aaron-pierce-nodash = extensionFromVscodeMarketplace {
@@ -13,7 +13,8 @@
     version = "1.2.0";
     sha256 = "+STw416hjpxz/gL0JTpmItueqUmMWkYZM7I1XCisLPc=";
   };
-in {
+in
+{
   programs.vscode = {
     enable = true;
 
@@ -67,7 +68,7 @@ in {
         };
         multiline-string = {
           prefix = "ms";
-          body = ["''" "  $0" "'';"];
+          body = [ "''" "  $0" "'';" ];
         };
       };
     };
@@ -88,7 +89,7 @@ in {
         "editor.defaultFormatter" = "esbenp.prettier-vscode";
       };
 
-      "[css]" = {"editor.defaultFormatter" = "vscode.css-language-features";};
+      "[css]" = { "editor.defaultFormatter" = "vscode.css-language-features"; };
 
       "[nix]" = {
         "editor.defaultFormatter" = "brettm12345.nixfmt-vscode";
@@ -102,16 +103,16 @@ in {
       "nix.serverPath" = "nil";
       "nix.serverSettings" = {
         "nil" = {
-          "eval" = {};
+          "eval" = { };
           # "formatting" = { "command" = "nixpkgs-fmt"; };
           "options" = {
             "enable" = true;
             "target" = {
               # tweak arguments here
-              "args" = [];
+              "args" = [ ];
               # NixOS options
               # Home-manager options
-              "installable" = ["<flakeref>#nixosConfigurations.<name>.options" "<flakeref>#homeConfigurations.<name>.options"];
+              "installable" = [ "<flakeref>#nixosConfigurations.<name>.options" "<flakeref>#homeConfigurations.<name>.options" ];
             };
           };
         };
@@ -126,7 +127,7 @@ in {
         "source.fixAll.eslint" = "explicit";
         "eslint.applyAllFixes" = "explicit";
       };
-      "eslint.workingDirectories" = [{"mode" = "auto";}];
+      "eslint.workingDirectories" = [{ "mode" = "auto"; }];
 
       # Use Vim, can't ever hide line numbers
       "zenMode.hideLineNumbers" = false;
@@ -166,7 +167,7 @@ in {
       "vscode-neovim.neovimExecutablePaths.darwin" = "/opt/homebrew/bin/nvim";
       "vscode-neovim.neovimExecutablePaths.linux" = "/run/current-system/sw/bin/nvim";
 
-      "extensions.experimental.affinity" = {"asvetliakov.vscode-neovim" = 1;};
+      "extensions.experimental.affinity" = { "asvetliakov.vscode-neovim" = 1; };
 
       # Spell checker custom words
       "cSpell.userWords" = [
@@ -200,7 +201,7 @@ in {
       # Give me more lines in my terminal
       "terminal.integrated.scrollback" = 10000;
       "editor.minimap.enabled" = false;
-      "[json]" = {"editor.defaultFormatter" = "esbenp.prettier-vscode";};
+      "[json]" = { "editor.defaultFormatter" = "esbenp.prettier-vscode"; };
     };
   };
 }
