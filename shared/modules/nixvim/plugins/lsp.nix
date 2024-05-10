@@ -1,7 +1,5 @@
 {
   programs.nixvim = {
-    plugins.typescript-tools.enable = true;
-
     plugins.lsp = {
       enable = true;
       servers = {

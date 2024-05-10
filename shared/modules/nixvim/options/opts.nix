@@ -3,6 +3,9 @@
     number = true;
     relativenumber = true;
 
-    shiftwidth = 2;
+    expandtab = true;
+    tabstop = 2;
+
+    shiftwidth = 0;
   };
 }
