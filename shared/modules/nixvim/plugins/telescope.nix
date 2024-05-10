@@ -1,9 +1,28 @@
+{ pkgs, ... }:
+let
+  telescope-themes = pkgs.vimUtils.buildVimPlugin {
+    name = "my-plugin";
+    src = pkgs.fetchFromGitHub {
+      owner = "andrew-george";
+      repo = "telescope-themes";
+      rev = "d64842356524794d6f5615ab97627a3d832be21d";
+      hash = "sha256-o8/cWLR4ZI84mxzrCZo0ZsVZickAJwjIQ/i2Tsbbnyk=";
+    };
+  };
+in
 {
   programs.nixvim = {
+    extraPlugins = [ telescope-themes ];
+    extraConfigLua = ''
+      require('telescope').load_extension('themes')
+    '';
+
     plugins.telescope = {
       enable = true;
       extensions = {
         fzf-native.enable = true;
+        frecency.enable = true;
+        media-files.enable = true;
       };
       settings = {
         pickers.find_files = {
@@ -20,7 +39,6 @@
           layout_strategy = "horizontal";
           layout_config = {
             horizontal = {
-              prompt_position = "top";
               preview_width = 0.55;
               results_width = 0.8;
             };
