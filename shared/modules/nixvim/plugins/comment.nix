@@ -12,7 +12,7 @@
   programs.nixvim.keymaps = [
     {
       key = "<C-/>";
-      action = "<CMD>lua require('Comment.api').toggle.linewise.current<CR>";
+      action = "<CMD>lua require('Comment.api').toggle.linewise.current()<CR>";
       options = { desc = "Toggle comment on current line (insert mode) "; };
       mode = "i";
     }
