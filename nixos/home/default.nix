@@ -60,6 +60,7 @@ in
     ./foot.nix
     ./vscode.nix
     ./firefox.nix
+    ./hearthstone.nix
   ];
 
   home.username = "aaron";
