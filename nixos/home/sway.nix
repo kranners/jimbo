@@ -180,7 +180,7 @@ in
           "${modifier}+space" = "exec ${cfg.menu}";
 
           "${modifier}+Shift+s" = "exec screenshot-region";
-          "${modifier}+e" = "exec ${pkgs.cinnamon.nemo}/bin/nemo";
+          "${modifier}+e" = "exec nemo";
 
           "${modifier}+${cfg.left}" = "focus left";
           "${modifier}+${cfg.down}" = "focus down";

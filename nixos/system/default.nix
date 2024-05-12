@@ -20,6 +20,8 @@
     ./security.nix
     ./xdg.nix
     ./locale.nix
+    ./services.nix
+    ./vial.nix
   ];
 
   # Enable Flakes
@@ -46,10 +48,10 @@
   environment.systemPackages = [
     # Nix development tools
     pkgs.nixfmt-rfc-style
-    pkgs.alejandra
     pkgs.gnumake
     pkgs.gnupg
     pkgs.manix
+    pkgs.nurl
 
     # It's just really neat
     pkgs.eza
