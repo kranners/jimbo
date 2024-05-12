@@ -45,22 +45,22 @@
     hostName = "jimbo";
   };
 
-  environment.systemPackages = [
+  environment.systemPackages = with pkgs; [
     # Nix development tools
-    pkgs.nixfmt-rfc-style
-    pkgs.gnumake
-    pkgs.gnupg
-    pkgs.manix
-    pkgs.nurl
-
-    # It's just really neat
-    pkgs.eza
+    nixfmt-rfc-style
+    gnumake
+    gnupg
+    manix
+    nurl
+    eza
+    btop
+    htop
 
     # Required by waybar and dunst
-    pkgs.libnotify
+    libnotify
 
     # Required for screensharing
-    pkgs.pipewire
+    pipewire
   ];
 
   # This value determines the NixOS release from which the default

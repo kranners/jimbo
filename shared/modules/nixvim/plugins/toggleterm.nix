@@ -19,9 +19,8 @@ in
       settings = {
         direction = "vertical";
         size = 60;
+        hide_numbers = false;
       };
-
-      extraOptions.hide_numbers = false;
     };
 
     extraPlugins = [ toggleterm-manager ];
