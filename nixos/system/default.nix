@@ -22,6 +22,7 @@
     ./locale.nix
     ./services.nix
     ./vial.nix
+    ./nix-index.nix
   ];
 
   # Enable Flakes
