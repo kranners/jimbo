@@ -34,6 +34,14 @@ let
       nix-store --query --requisites /run/current-system | cut -d- -f2- | sort -u | grep "$1"
     '';
   };
+
+  wine-local = pkgs.writeShellApplication {
+    name = "wine-local";
+
+    text = ''
+      WINEPREFIX="$PWD" wine "$@"
+    '';
+  };
 in
 {
   imports = [
@@ -92,6 +100,7 @@ in
     git-cram
     show-pkg
     find-pkg
+    wine-local
   ];
 
   home.sessionVariables = {
