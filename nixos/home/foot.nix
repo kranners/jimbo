@@ -5,8 +5,8 @@
 , ...
 }:
 let
-  nerd-fonts = "Font Awesome 6 Brands:size=10, Font Awesome 6 Free:size=10, Font Awesome 6 Free Solid:size=10";
-  jetbrains-mono = "JetBrainsMono Nerd Font Mono:size=10";
+  nerd-fonts = "Font Awesome 6 Brands:size=14, Font Awesome 6 Free:size=14, Font Awesome 6 Free Solid:size=14";
+  jetbrains-mono = "JetBrainsMono Nerd Font Mono:size=14";
 in
 {
   wayland.windowManager.sway.config = {
