@@ -91,10 +91,12 @@ in
 
     # Utilities
     pavucontrol # Audio control
-    cinnamon.nemo # File manager
+    cinnamon.nemo-with-extensions # File manager
     grimblast # Screen capture
     mpv # Media playback
     davinci-resolve
+    blueberry # Bluetooth manager
+    wl-clipboard # Clipboard manager
 
     # Scripts
     git-cram
