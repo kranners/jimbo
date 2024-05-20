@@ -73,6 +73,13 @@ in
         options = { desc = "Find files by name"; };
         mode = "n";
       }
+
+      {
+        key = "<Leader>]";
+        action = "<CMD>Telescope lsp_references<CR>";
+        options = { desc = "Find references of token"; };
+        mode = "n";
+      }
     ];
   };
 }
