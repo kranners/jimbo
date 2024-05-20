@@ -2,7 +2,10 @@
   programs.nixvim = {
     plugins.flash = {
       enable = true;
-      modes.char.jumpLabels = true;
+      modes.char = {
+        jumpLabels = true;
+        multiLine = false;
+      };
     };
 
     keymaps = [
