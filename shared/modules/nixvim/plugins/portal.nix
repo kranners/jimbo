@@ -23,13 +23,6 @@ in
         mode = "n";
         options = { desc = "Jump backward through jumps"; };
       }
-
-      {
-        action = "<cmd>Portal jumplist forward<cr>";
-        key = "<Leader>]";
-        mode = "n";
-        options = { desc = "Jump forward through jumps"; };
-      }
     ];
   };
 }
