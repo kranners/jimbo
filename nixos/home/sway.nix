@@ -155,6 +155,8 @@ in
         { app_id = "pavucontrol"; }
         { app_id = "nemo"; }
 
+        { app_id = "blueberry.py"; }
+
         { window_role = "pop-up"; }
         { window_role = "bubble"; }
         { window_role = "task_dialog"; }
