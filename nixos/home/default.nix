@@ -76,7 +76,10 @@ in
   home.packages = with pkgs; [
     # General
     google-chrome
+
+    # Media
     spotify
+    plexamp
 
     # Gaming
     mangohud
