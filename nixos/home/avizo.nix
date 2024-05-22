@@ -5,27 +5,40 @@
 , ...
 }:
 let
-  spotify-play-pause = pkgs.writeShellApplication {
-    name = "spotify-play-pause";
+  play-pause = pkgs.writeShellApplication {
+    name = "play-pause";
 
     runtimeInputs = [ pkgs.avizo pkgs.playerctl ];
 
     text = ''
-      STATUS="$(playerctl -p spotify status)"
+      FALLBACK_PLAYER="spotify"
+      PLAYER_COUNT="$(playerctl --list-all | grep -cE 'spotify|Plexamp')"
+
+      if [ "$PLAYER_COUNT" -gt 1 ]; then
+        notify-send "Both Spotify and Plexamp open! Unsure which to pick, falling back to $FALLBACK_PLAYER"
+        PLAYER="$FALLBACK_PLAYER"
+      elif [ "$PLAYER_COUNT" -eq 1 ]; then
+        PLAYER="$(playerctl --list-all | grep -E 'spotify|Plexamp')"
+      else
+        notify-send "Not currently playing anything 🙃"
+        exit 0
+      fi
+
+      STATUS="$(playerctl -p "$PLAYER" status)"
 
       if [ "$STATUS" = Playing ]; then
-        playerctl -p spotify pause
+        playerctl -p "$PLAYER" pause
         avizo-client --image-path=${../../assets/media-pause.png}
         exit 0
       fi
 
-      playerctl -p spotify play
+      playerctl -p "$PLAYER" play
       avizo-client --image-path=${../../assets/media-play.png}
     '';
   };
 in
 {
-  home.packages = [ pkgs.avizo pkgs.playerctl spotify-play-pause ];
+  home.packages = [ pkgs.avizo pkgs.playerctl play-pause ];
 
   systemd.user.services.avizo = {
     Unit = {
@@ -53,7 +66,7 @@ in
       "XF86AudioMute" = "exec volumectl toggle-mute";
       "XF86AudioMicMute" = "exec volumectl -m toggle-mute";
 
-      "XF86AudioPlay" = "exec spotify-play-pause";
+      "XF86AudioPlay" = "exec play-pause";
 
       "XF86MonBrightnessUp" = "exec lightctl up";
       "XF86MonBrightnessDown" = "exec lightctl down";
