@@ -60,6 +60,7 @@
       "battle.net" = ""
       "hearthstone" = "󱢡"
       "google chrome" = ""
+      "plexamp" = "󰚺"
 
       [other]
       fallback_icon = "🤨"
@@ -73,28 +74,26 @@
 
     systemd.enable = true;
 
-    settings = [
-      {
-        height = 30;
-        layer = "top";
-        position = "top";
+    settings.main = {
+      height = 30;
+      layer = "top";
+      position = "top";
 
-        modules-left = [ "pulseaudio" "clock" ];
-        modules-center = [ "sway/workspaces" ];
-        modules-right = [ "tray" ];
+      modules-left = [ "pulseaudio" "clock" ];
+      modules-center = [ "sway/workspaces" ];
+      modules-right = [ "tray" ];
 
-        clock = {
-          format-alt = "{:%Y-%m-%d}";
-          tooltip-format = "{:%Y-%m-%d | %H:%M}";
-        };
+      clock = {
+        format-alt = "{:%Y-%m-%d}";
+        tooltip-format = "{:%Y-%m-%d | %H:%M}";
+      };
 
-        pulseaudio = {
-          format = "{icon} {volume}%";
-          format-muted = "";
-          on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
-          format-icons = [ "" "" "" ];
-        };
-      }
-    ];
+      pulseaudio = {
+        format = "{icon} {volume}%";
+        format-muted = "";
+        on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
+        format-icons = [ "" "" "" ];
+      };
+    };
   };
 }
