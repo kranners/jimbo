@@ -12,14 +12,14 @@ in
   wayland.windowManager.sway.config = {
     terminal = "foot";
 
-    # You may get your day in the sun yet, floating foot
+    # You may not float, but that's ok
     # floating = { criteria = [{ app_id = "foot"; }]; };
 
-    # Also not you, opacity :(
-    # window.commands = [{
-    #   criteria = { app_id = "foot"; };
-    #   command = "opacity 0.65";
-    # }];
+    # You made it, opacity
+    window.commands = [{
+      criteria = { app_id = "foot"; };
+      command = "opacity 0.75";
+    }];
   };
 
   programs.foot = {
