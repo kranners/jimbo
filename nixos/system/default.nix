@@ -37,7 +37,7 @@
     allowUnfree = true;
 
     # Allow for certain insecure packages
-    permittedInsecurePackages = [ "electron-25.9.0" "nix-2.16.2" ];
+    permittedInsecurePackages = [ "electron-25.9.0" "nix-2.16.2" "python-2.7.18.8" ];
   };
 
   # Enable networking
