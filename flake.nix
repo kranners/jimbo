@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-
     nur.url = "github:nix-community/NUR";
 
     firefox-addons.url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
@@ -25,6 +24,11 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    stylix = {
+      url = "github:danth/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -33,6 +37,7 @@
     , nixvim
     , nur
     , nix-darwin
+    , stylix
     , ...
     } @ inputs: {
       darwinConfigurations =
@@ -47,6 +52,7 @@
             modules = [
               home-manager.darwinModules.home-manager
               nixvim.nixDarwinModules.nixvim
+              # stylix.darwinModules.stylix
 
               ./darwin/system
               ./shared/modules/nixvim
@@ -85,7 +91,7 @@
                   useGlobalPkgs = true;
                   useUserPackages = true;
                   extraSpecialArgs = { inherit inputs; };
-                  sharedModules = [ ];
+                  sharedModules = [ stylix.homeManagerModules.stylix ];
                   users.aaron = import ./nixos/home;
                 };
               }
