@@ -18,8 +18,6 @@
 
     location = "center";
 
-    theme = "material";
-
     extraConfig = {
       modi = "window,drun,emoji,calc,games";
 

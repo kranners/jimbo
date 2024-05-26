@@ -50,7 +50,6 @@ in
     ./rofi.nix
     ./waybar.nix
     ./zsh.nix
-    ./theme.nix
     ./dunst.nix
     ./vesktop.nix
     ./lutris.nix
@@ -58,9 +57,9 @@ in
     ./avizo.nix
     ./easyeffects.nix
     ./foot.nix
-    ./vscode.nix
     ./firefox.nix
     ./plexamp.nix
+    ./stylix.nix
   ];
 
   home.username = "aaron";
@@ -94,6 +93,7 @@ in
     nh
 
     # Utilities
+    stylish
     pavucontrol # Audio control
     cinnamon.nemo-with-extensions # File manager
     grimblast # Screen capture
