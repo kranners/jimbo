@@ -58,7 +58,6 @@ in
     ./avizo.nix
     ./easyeffects.nix
     ./foot.nix
-    ./vscode.nix
     ./firefox.nix
     ./plexamp.nix
   ];
