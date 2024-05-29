@@ -22,6 +22,7 @@
     ./goto-preview.nix
     ./neotest.nix
     ./flash.nix
+    ./pywal.nix
   ];
 
   programs.nixvim.plugins = {
