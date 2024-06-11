@@ -13,6 +13,7 @@
       "spotify"
       "google-chrome"
       "firefox"
+      "plexamp"
     ];
 
     brews = [

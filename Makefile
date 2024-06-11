@@ -2,7 +2,11 @@ CURRENT_PLATFORM := $(shell uname)
 MAX_JOBS := $(shell nproc)
 
 switch:
-	[[ "${CURRENT_PLATFORM}" = "Darwin" ]] && make darwin-switch || make nixos-switch
+ifeq ($(CURRENT_PLATFORM), Darwin)
+	make darwin-switch
+else
+	make nixos-switch
+endif
 
 darwin-switch:
 	git add . ; nh os switch . --hostname cassandra

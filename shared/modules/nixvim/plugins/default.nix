@@ -22,6 +22,7 @@
     ./goto-preview.nix
     ./neotest.nix
     ./flash.nix
+    ./treesitter.nix
   ];
 
   programs.nixvim.plugins = {
@@ -29,7 +30,6 @@
     surround.enable = true;
     nvim-autopairs.enable = true;
     rainbow-delimiters.enable = true;
-    treesitter.enable = true;
     nvim-lightbulb.enable = true;
     which-key.enable = true;
   };
