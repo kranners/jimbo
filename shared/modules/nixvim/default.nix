@@ -15,13 +15,13 @@
     globals.mapleader = " ";
 
     keymaps = [
-      # Escape bindings (to escape)
       {
-        key = "<ESC>";
+        key = "<ESC><ESC>";
         action = "<C-\\><C-n>";
-        options = { desc = "Let me move"; };
+        options = { desc = "Move into normal mode in a terminal buffer"; };
         mode = "t";
       }
+
       {
         key = "<ESC>";
         action = "<CMD>nohlsearch<Bar>:echo<CR><CMD>lua require('goto-preview').close_all_win({ skip_curr_window = true })<CR>";
