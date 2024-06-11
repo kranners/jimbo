@@ -19,3 +19,4 @@ check:
 
 repl:
 	NIX_DEBUG=7 nix repl -f '<nixos>'
+
