@@ -1,8 +1,4 @@
-{ config
-, pkgs
-, inputs
-, ...
-}: {
+{ pkgs, ... }: {
   # For GRUB autodetection
   environment.systemPackages = [ pkgs.os-prober ];
 
