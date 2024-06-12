@@ -21,11 +21,18 @@ let
     runtimeInputs = [ pkgs.sway pkgs.jq ];
 
     text = ''
+      SWAYNAG_MAX_COUNT="3"
       FOCUSED_NODE_NAME="$(swaymsg -t get_tree | jq 'recurse(.nodes[]) | select (.focused == true).name')"
+
+      if [[ "$(pgrep swaynag --count)" -ge "$SWAYNAG_MAX_COUNT" ]]; then
+        notify-send "SHUTTING DOWN NOW!"
+        shutdown now
+        exit 0
+      fi
 
       if [[ "$FOCUSED_NODE_NAME" =~ ^\"[0-9]+\"$ ]]; then
         swaynag -t warning -m 'Shutdown?' -b 'Yes' 'shutdown now';
-        return 0
+        exit 0
       fi
 
       swaymsg kill
