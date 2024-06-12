@@ -46,7 +46,7 @@ let
   };
 in
 {
-  imports = [ ./zsh.nix ./managers.nix ./android.nix ./git.nix ];
+  imports = [ ./zsh.nix ./managers.nix ./android.nix ./git.nix ./secrets.nix ];
 
   home.packages = [
     nh-darwin
