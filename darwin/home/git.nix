@@ -42,7 +42,7 @@ let
       git switch "$UPDATE_BRANCH"
       git pull
       git switch "$CURRENT_BRANCH"
-      git merge "$UPDATE_BRANCH"
+      git merge "$UPDATE_BRANCH" --no-edit
     '';
   };
 in
