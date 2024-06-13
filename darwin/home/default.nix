@@ -21,38 +21,14 @@ let
     '';
   };
 
-  kill-port = pkgs.writeShellApplication {
-    name = "kill-port";
-
-    # The first argument here is just the port you want to kill.
-    # If given, a second argument will define the signal to send.
-    text = ''
-      PORT="$1"
-      PID="$(lsof -i ":$PORT" | awk 'NR > 1 {print $2}')"
-
-      if [ -z "$PID" ]; then
-        echo "No process using port $PORT"
-        return 0
-      fi
-
-      if kill -15 "$PID"; then
-        echo "Killed $PID"
-        return 0
-      fi
-
-      echo "Could not kill: $PID"
-      return 1
-    '';
-  };
 in
 {
-  imports = [ ./zsh.nix ./managers.nix ./android.nix ./git.nix ./secrets.nix ];
+  imports = [ ./managers.nix ./android.nix ./secrets.nix ];
 
   home.packages = [
     nh-darwin
 
     nuke-xcode
-    kill-port
 
     pkgs.nixpkgs-fmt
     pkgs.discord
