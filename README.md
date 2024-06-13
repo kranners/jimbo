@@ -13,7 +13,7 @@ Flake for managing all the Nix in my life.
 │  ├── home          Home Manager options for Jimbo
 │  └── system        NixOS options for Jimbo
 └── shared
-   ├── home          Home Manager options shared between installs
+   ├── modules       Shared modules between systems, like Nixvim and shared Home Manager options
    └── packages      Custom packages
 ```
 
