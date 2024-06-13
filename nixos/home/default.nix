@@ -5,36 +5,6 @@
 , ...
 }:
 let
-  git-cram = pkgs.writeShellApplication {
-    name = "git-cram";
-
-    text = ''
-      git add . ; git commit --amend --no-edit
-    '';
-  };
-
-  show-pkg = pkgs.writeShellApplication {
-    name = "show-pkg";
-
-    runtimeInputs = [ pkgs.nix pkgs.eza ];
-
-    text = ''
-      PATHS="$(nix build "nixpkgs#$1" --print-out-paths --no-link)"
-
-      for path in $PATHS; do
-        eza "$path" --tree --level "''${2:-3}"
-      done
-    '';
-  };
-
-  find-pkg = pkgs.writeShellApplication {
-    name = "find-pkg";
-
-    text = ''
-      nix-store --query --requisites /run/current-system | cut -d- -f2- | sort -u | grep "$1"
-    '';
-  };
-
   wine-local = pkgs.writeShellApplication {
     name = "wine-local";
 
@@ -49,7 +19,6 @@ in
     ./sway.nix
     ./rofi.nix
     ./waybar.nix
-    ./zsh.nix
     ./theme.nix
     ./dunst.nix
     ./vesktop.nix
@@ -102,9 +71,6 @@ in
     wl-clipboard # Clipboard manager
 
     # Scripts
-    git-cram
-    show-pkg
-    find-pkg
     wine-local
   ];
 

@@ -56,7 +56,10 @@
                   useGlobalPkgs = true;
                   useUserPackages = true;
                   extraSpecialArgs = { inherit inputs; };
-                  users.aaronpierce = import ./darwin/home;
+
+                  users.aaronpierce = {
+                    imports = [ ./darwin/home ./shared/modules/home ];
+                  };
                 };
               }
             ];
@@ -73,7 +76,7 @@
             inherit system;
 
             modules = [
-              home-manager.nixosModules.default
+              home-manager.nixosModules.home-manager
               nixvim.nixosModules.nixvim
               nur.nixosModules.nur
 
@@ -85,8 +88,10 @@
                   useGlobalPkgs = true;
                   useUserPackages = true;
                   extraSpecialArgs = { inherit inputs; };
-                  sharedModules = [ ];
-                  users.aaron = import ./nixos/home;
+
+                  users.aaron = {
+                    imports = [ ./nixos/home ./shared/modules/home ];
+                  };
                 };
               }
             ];
