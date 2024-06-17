@@ -63,6 +63,10 @@ let
   right-monitor = "AOC G2770 0x000001F2";
 in
 {
+  # See: https://github.com/nix-community/home-manager/issues/5379
+  # TODO: FIXME: Delete this as soon as possible!
+  wayland.windowManager.sway.checkConfig = false;
+
   home.packages = [ screenshot-region exit-if-all-closed sway_workspaces ];
 
   systemd.user.services.inactive-window-transparency = {
