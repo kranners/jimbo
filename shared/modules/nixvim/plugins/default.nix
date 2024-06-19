@@ -23,6 +23,8 @@
     ./neotest.nix
     ./flash.nix
     ./treesitter.nix
+    ./obsidian.nix
+    ./auto-save.nix
   ];
 
   programs.nixvim.plugins = {
