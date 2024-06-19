@@ -9,7 +9,6 @@
 , glib
 , cairo
 , pango
-,
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "rofi-games";
