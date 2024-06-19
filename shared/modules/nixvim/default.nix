@@ -1,9 +1,4 @@
-{ config
-, pkgs
-, lib
-, inputs
-, ...
-}: {
+{
   imports = [
     ./options
     ./plugins
@@ -16,7 +11,7 @@
 
     keymaps = [
       {
-        key = "<ESC><ESC>";
+        key = "<C-ESC>";
         action = "<C-\\><C-n>";
         options = { desc = "Move into normal mode in a terminal buffer"; };
         mode = "t";
