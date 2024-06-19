@@ -42,33 +42,34 @@ in
     };
   };
 
-  home.packages = with pkgs; [
+  home.packages = [
     # General
-    google-chrome
+    pkgs.google-chrome
 
     # Media
-    spotify
-    plexamp
+    pkgs.spotify
+    pkgs.plexamp
 
     # Gaming
-    mangohud
-    protonup-qt
-    r2modman
+    pkgs.mangohud
+    pkgs.protonup-qt
+    pkgs.r2modman
 
     # Productivity
-    obsidian
-    ripgrep
-    jq
-    nh
+    pkgs.obsidian
+    pkgs.ripgrep
+    pkgs.jq
+    pkgs.nh
 
     # Utilities
-    pavucontrol # Audio control
-    cinnamon.nemo-with-extensions # File manager
-    grimblast # Screen capture
-    mpv # Media playback
-    davinci-resolve
-    blueberry # Bluetooth manager
-    wl-clipboard # Clipboard manager
+    pkgs.pavucontrol # Audio control
+    pkgs.cinnamon.nemo-with-extensions # File manager
+    pkgs.grimblast # Screen capture
+    pkgs.mpv # Media playback
+    pkgs.davinci-resolve
+    pkgs.blueberry # Bluetooth manager
+    pkgs.wl-clipboard # Clipboard manager
+    pkgs.helvum # Multi-audio output
 
     # Scripts
     wine-local
