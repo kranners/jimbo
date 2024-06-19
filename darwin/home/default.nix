@@ -3,7 +3,7 @@
 , ...
 }:
 let
-  nh-darwin = inputs.nh-darwin.packages.${pkgs.system}.nh;
+  nh-darwin = inputs.nh-darwin.packages.${pkgs.system}.nh-darwin;
 
   nuke-xcode = pkgs.writeShellApplication {
     name = "nuke-xcode";
