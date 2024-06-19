@@ -9,7 +9,7 @@ else
 endif
 
 darwin-switch:
-	git add . ; nh os switch . --hostname cassandra
+	git add . ; nh-darwin os switch . --hostname cassandra
 
 nixos-switch:
 	git add . ; nh os switch . --hostname jimbo
