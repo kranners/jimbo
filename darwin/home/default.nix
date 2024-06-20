@@ -23,7 +23,11 @@ let
 
 in
 {
-  imports = [ ./managers.nix ./android.nix ./secrets.nix ];
+  imports = [
+    ./managers.nix
+    ./android.nix
+    ./secrets.nix
+  ];
 
   home.packages = [
     nh-darwin
