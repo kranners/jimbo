@@ -5,6 +5,16 @@ let
   });
 in
 {
+  home = {
+    shellAliases = {
+      ns = "nix-shell --command zsh";
+    };
+
+    sessionVariables = {
+      EDITOR = "vi";
+    };
+  };
+
   programs.zsh = {
     enable = true;
 

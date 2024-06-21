@@ -1,15 +1,5 @@
 { pkgs, ... }:
 let
-  git-cram = pkgs.writeShellApplication {
-    name = "git-cram";
-
-    runtimeInputs = [ pkgs.git ];
-
-    text = ''
-      git commit --amend --no-edit --no-verify
-    '';
-  };
-
   git-update = pkgs.writeShellApplication {
     name = "git-update";
 
@@ -47,7 +37,25 @@ let
   };
 in
 {
-  home.packages = [ git-cram git-update git-update-merge ];
+  home = {
+    packages = [
+      git-update
+      git-update-merge
+    ];
+
+    shellAliases = {
+      g = "git";
+    };
+  };
+
+  programs.git = {
+    enable = true;
+
+    aliases = {
+      cram = "commit --amend --no-edit --no-verify";
+      s = "status";
+    };
+  };
 
   # Set TTY for GPG to do hardware signing on commits
   programs.zsh.initExtraBeforeCompInit = ''
