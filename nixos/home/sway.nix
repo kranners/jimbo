@@ -86,6 +86,7 @@ in
   wayland.windowManager.sway = {
     enable = true;
     xwayland = true;
+    systemd.enable = true;
 
     # Effects and eye candy
     package = pkgs.swayfx;
@@ -104,15 +105,6 @@ in
     };
 
     config = {
-      # Auto start
-      startup = [
-        # Random wallpapers
-        {
-          command = "${pkgs.stylish}/bin/styli.sh -y -s nature,space,architecture --width 2560 --height 1440";
-          always = true;
-        }
-      ];
-
       # Don't start waybar twice
       bars = [ ];
 
