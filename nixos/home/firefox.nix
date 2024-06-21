@@ -3,7 +3,16 @@
 , lib
 , inputs
 , ...
-}: {
+}:
+let
+  betterfox = pkgs.fetchFromGitHub {
+    owner = "yokoffing";
+    repo = "Betterfox";
+    rev = "9756922ee951f9c0dd09f1e7037b93089a661963";
+    hash = "sha256-i6fxW6hOOUWjWJ7lhX5qjEh9tyE2JyD6vwPEsfov7fY=";
+  };
+in
+{
   programs.firefox = {
     enable = true;
 
