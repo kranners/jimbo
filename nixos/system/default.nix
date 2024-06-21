@@ -57,6 +57,9 @@
     btop
     htop
 
+    # Basic vim is great as a git EDITOR, etc
+    vim
+
     # Required by waybar and dunst
     libnotify
 
