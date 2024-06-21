@@ -1,3 +1,8 @@
 {
-  imports = [ ./git.nix ./zsh.nix ./scripts.nix ];
+  imports = [
+    ./git.nix
+    ./zsh.nix
+    ./scripts.nix
+    ./zoxide.nix
+  ];
 }
