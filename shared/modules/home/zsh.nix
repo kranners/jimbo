@@ -11,7 +11,7 @@ in
     };
 
     sessionVariables = {
-      EDITOR = "vi";
+      EDITOR = "vim";
     };
   };
 

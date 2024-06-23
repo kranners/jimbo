@@ -76,8 +76,6 @@ in
   ];
 
   home.sessionVariables = {
-    EDITOR = "nvim";
-
     # Force Qt applications to run through the Wayland platform plugin
     QT_QPA_PLATFORM = "wayland";
   };
