@@ -29,6 +29,7 @@ in
     ./foot.nix
     ./firefox.nix
     ./plexamp.nix
+    ./wallpaper.nix
   ];
 
   home.username = "aaron";
