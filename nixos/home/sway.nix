@@ -69,20 +69,6 @@ in
 
   home.packages = [ screenshot-region exit-if-all-closed sway_workspaces ];
 
-  systemd.user.services.inactive-window-transparency = {
-    Install = { WantedBy = [ "sway-session.target" ]; };
-    Unit = {
-      Description = "It makes inactive sway windows transparent";
-      After = [ "graphical-session-pre.target" ];
-      PartOf = [ "graphical-session.target" ];
-    };
-
-    Service = {
-      ExecStart = "${pkgs.sway-contrib.inactive-windows-transparency}/bin/inactive-windows-transparency.py";
-      Restart = "on-failure";
-    };
-  };
-
   wayland.windowManager.sway = {
     enable = true;
     xwayland = true;
