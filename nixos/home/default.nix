@@ -30,6 +30,7 @@ in
     ./firefox.nix
     ./plexamp.nix
     ./wallpaper.nix
+    ./inactive-windows-transparency.nix
   ];
 
   home.username = "aaron";
