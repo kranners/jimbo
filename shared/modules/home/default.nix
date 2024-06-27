@@ -4,5 +4,6 @@
     ./zsh.nix
     ./scripts.nix
     ./zoxide.nix
+    ./alacritty.nix
   ];
 }
