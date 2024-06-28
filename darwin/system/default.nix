@@ -8,8 +8,25 @@
   imports = [
     ./homebrew.nix
     ./users.nix
+    ./sketchybar.nix
+    ./yabai.nix
   ];
 
-  # Zsh config is done under darwin/home, but must be explicitly enabled here also
+  system.defaults = {
+    finder = {
+      AppleShowAllExtensions = true;
+      FXPreferredViewStyle = "clmv";
+    };
+
+    screencapture.location = "~/Pictures";
+  };
+
+  # Zsh config is done under shared/home, but must be explicitly enabled here also
   programs.zsh.enable = true;
+
+  # Reloads system preferences post nix-darwin activation
+  # Stolen from: https://medium.com/@zmre/nix-darwin-quick-tip-activate-your-preferences-f69942a93236
+  system.activationScripts.postUserActivation.text = ''
+    /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+  '';
 }
