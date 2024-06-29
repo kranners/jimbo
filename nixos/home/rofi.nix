@@ -27,7 +27,7 @@
 
       show-icons = true;
 
-      terminal = "${pkgs.foot}/bin/foot";
+      terminal = "alacritty";
 
       location = 0;
       disable-history = false;
