@@ -1,29 +1,11 @@
-{ config
-, pkgs
-, lib
-, inputs
-, ...
-}:
+{ config, lib, ... }:
 let
   nerd-fonts = "Font Awesome 6 Brands:size=14, Font Awesome 6 Free:size=14, Font Awesome 6 Free Solid:size=14";
   jetbrains-mono = "JetBrainsMono Nerd Font Mono:size=14";
 in
 {
-  wayland.windowManager.sway.config = {
-    terminal = "foot";
-
-    # You may get your day in the sun yet, floating foot
-    # floating = { criteria = [{ app_id = "foot"; }]; };
-
-    # Also not you, opacity :(
-    # window.commands = [{
-    #   criteria = { app_id = "foot"; };
-    #   command = "opacity 0.65";
-    # }];
-  };
-
   programs.foot = {
-    enable = true;
+    enable = false;
     settings = {
       main = {
         term = "xterm-256color";
@@ -36,5 +18,9 @@ in
         font-italic = "${jetbrains-mono}:style=Italic, ${nerd-fonts}";
       };
     };
+  };
+
+  wayland.windowManager.sway.config = lib.mkIf config.programs.foot.enable {
+    terminal = "foot";
   };
 }

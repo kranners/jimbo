@@ -1,4 +1,8 @@
-{ pkgs, ... }: {
+{ pkgs, lib, ... }:
+let
+  isLinux = pkgs.hostPlatform.isLinux;
+in
+{
   programs.alacritty = {
     enable = true;
 
@@ -17,9 +21,13 @@
       colors.transparent_background_colors = true;
 
       font = {
-        size = 16.0;
+        size = if isLinux then 12.0 else 16.0;
         normal = { family = "JetBrainsMono Nerd Font Mono"; style = "Regular"; };
       };
     };
+  };
+
+  wayland.windowManager.sway.config = lib.mkIf isLinux {
+    terminal = "alacritty";
   };
 }

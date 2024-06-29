@@ -44,8 +44,8 @@
       # Glyphs can be found at the Nerd Font cheat sheet:
       # https://www.nerdfonts.com/cheat-sheet
 
-      "code" = "󰨞"
       "foot" = ""
+      "alacritty" = ""
       "firefox" = ""
       "nemo" = ""
       "spotify" = "󰓇"
