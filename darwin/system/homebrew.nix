@@ -14,6 +14,7 @@
       "google-chrome"
       "firefox"
       "plexamp"
+      "only-switch" # https://github.com/jacklandrin/OnlySwitch
     ];
 
     brews = [
