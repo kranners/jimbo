@@ -20,6 +20,7 @@
         templates.subdir = "Templates";
 
         daily_notes = {
+          # See: https://www.lua.org/pil/22.1.html
           date_format = "%Y/%m/%d %B, %Y";
           template = "Daily.md";
         };
