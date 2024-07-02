@@ -6,7 +6,6 @@
     ./cmp.nix
     ./conform.nix
     ./lsp.nix
-    ./oil.nix
     ./overseer.nix
     ./toggleterm.nix
     ./telescope.nix
@@ -25,6 +24,7 @@
     ./treesitter.nix
     ./obsidian.nix
     ./auto-save.nix
+    ./neo-tree.nix
   ];
 
   programs.nixvim.plugins = {
