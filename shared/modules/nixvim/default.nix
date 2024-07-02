@@ -11,7 +11,7 @@
 
     keymaps = [
       {
-        key = "<C-ESC>";
+        key = "<ESC>";
         action = "<C-\\><C-n>";
         options = { desc = "Move into normal mode in a terminal buffer"; };
         mode = "t";
