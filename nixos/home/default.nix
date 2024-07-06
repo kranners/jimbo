@@ -51,6 +51,7 @@ in
     # Media
     pkgs.spotify
     pkgs.plexamp
+    pkgs.nicotine-plus
 
     # Gaming
     pkgs.mangohud
