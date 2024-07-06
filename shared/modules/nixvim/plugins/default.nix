@@ -34,6 +34,13 @@
     rainbow-delimiters.enable = true;
     nvim-lightbulb.enable = true;
     which-key.enable = true;
+
+    mini = {
+      enable = true;
+      modules = {
+        animate = { };
+      };
+    };
   };
 
   programs.nixvim = {
