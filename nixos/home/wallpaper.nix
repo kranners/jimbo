@@ -1,38 +1,19 @@
-{ config, pkgs, lib, ... }:
+{ pkgs, ... }:
 let
-  wallpaper-dir = "${config.xdg.cacheHome}/wallpapers";
-
-  mkParams = queries: lib.attrsets.foldlAttrs (acc: name: value: "${acc}&${name}=${value}") "" queries;
-
-  wallhaven-queries = {
-    categories = "100"; # General | !Anime | !People
-    purity = "100"; # SFW | !Sketchy | !NSFW
-
-    atleast = "2560x1440";
-
-    sorting = "hot";
-    topRange = "1d";
-    order = "desc";
-
-    ai_art_filter = "1";
-  };
-
   download-and-set = pkgs.writeShellApplication {
     name = "download-and-set";
 
-    runtimeInputs = [ pkgs.swaybg pkgs.busybox pkgs.gallery-dl ];
+    # This doesn't work with the wget from busybox OR toybox
+    runtimeInputs = [ pkgs.swaybg pkgs.wget pkgs.procps ];
 
     # You need to start a new swaybg instance before killing the old one,
     # or face the dreaded flicker.
     text = ''
       OLD_PIDS="$(pgrep swaybg || true)"
 
-      gallery-dl \
-        --directory="${wallpaper-dir}" \
-        --range 1 \
-        --no-colors \
-        --exec-after 'swaybg -i "{_path}" &' \
-        "https://wallhaven.cc/search?${mkParams wallhaven-queries}"
+      wget -O /tmp/wallpaper.jpg "https://picsum.photos/2560/1440?random"
+
+      swaybg -i /tmp/wallpaper.jpg &
 
       for PID in $OLD_PIDS; do
         [[ -n "$PID" ]] && kill "$PID"

@@ -61,7 +61,7 @@
         [other]
         fallback_icon = "🤨"
         deduplicate_icons = false
-        separator = " = "
+        separator = " "
       '';
     };
   };
