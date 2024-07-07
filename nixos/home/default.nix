@@ -20,7 +20,7 @@ in
     ./rofi.nix
     ./waybar.nix
     ./theme.nix
-    ./dunst.nix
+    ./swaync.nix
     ./vesktop.nix
     ./lutris.nix
     ./obs-studio.nix
