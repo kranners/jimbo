@@ -15,7 +15,7 @@
     ./x11.nix
     ./gpg.nix
     ./steam.nix
-    ./opengl.nix
+    ./graphics.nix
     ./sound.nix
     ./security.nix
     ./xdg.nix

@@ -2,7 +2,7 @@
   programs.nixvim = {
     plugins.flash = {
       enable = true;
-      modes.char = {
+      settings.modes.char = {
         jumpLabels = true;
         multiLine = false;
       };

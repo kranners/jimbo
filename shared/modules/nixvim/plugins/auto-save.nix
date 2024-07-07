@@ -3,7 +3,7 @@
     enable = true;
 
     # Only enable auto-save for Markdown files, this is mainly for Obsidian integration
-    condition = ''
+    settings.condition = ''
       function(buf)
         local modifiable = vim.fn.getbufvar(buf, "&modifiable")
         local filetype = vim.fn.getbufvar(buf, "&filetype")
