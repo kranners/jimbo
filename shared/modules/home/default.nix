@@ -5,5 +5,6 @@
     ./scripts.nix
     ./zoxide.nix
     ./alacritty.nix
+    ./espanso.nix
   ];
 }

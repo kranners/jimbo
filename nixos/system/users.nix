@@ -12,7 +12,7 @@
 
     shell = pkgs.zsh;
 
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "input" ];
   };
 
   security.sudo.wheelNeedsPassword = false;
