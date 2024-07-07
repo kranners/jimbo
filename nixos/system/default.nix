@@ -60,10 +60,8 @@
     # Basic vim is great as a git EDITOR, etc
     vim
 
-    # Required by waybar and dunst
+    # Required libs for background services
     libnotify
-
-    # Required for screensharing
     pipewire
   ];
 
