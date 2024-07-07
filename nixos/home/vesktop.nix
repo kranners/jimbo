@@ -1,9 +1,4 @@
-{ config
-, pkgs
-, lib
-, inputs
-, ...
-}:
+{ pkgs, ... }:
 let
   vesktop-with-flags = pkgs.writeShellApplication {
     name = "vesktop";
