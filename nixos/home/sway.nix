@@ -1,9 +1,4 @@
-{ config
-, pkgs
-, inputs
-, lib
-, ...
-}:
+{ config, pkgs, inputs, ... }:
 let
   screenshot-region = pkgs.writeShellApplication {
     name = "screenshot-region";

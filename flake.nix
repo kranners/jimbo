@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-
     nur.url = "github:nix-community/NUR";
 
     firefox-addons.url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
@@ -24,6 +23,11 @@
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    toggleterm-manager = {
+      url = "github:ryanmsnyder/toggleterm-manager.nvim";
+      flake = false;
     };
   };
 
