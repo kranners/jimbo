@@ -7,5 +7,5 @@
     udisks2.enable = true;
   };
 
-  environment.systemPackages = [ pkgs.gnome.file-roller ];
+  environment.systemPackages = [ pkgs.file-roller ];
 }
