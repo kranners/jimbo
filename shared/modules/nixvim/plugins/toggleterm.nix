@@ -1,14 +1,9 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 let
   toggleterm-manager = pkgs.vimUtils.buildVimPlugin {
     pname = "toggleterm-manager";
     version = "2024-05-04";
-    src = pkgs.fetchFromGitHub {
-      owner = "ryanmsnyder";
-      repo = "toggleterm-manager.nvim";
-      rev = "31318b85a7cc20bf50ce32aedf4e835844133863";
-      sha256 = "sha256-7t61kcqeOS9hPXc9y88Sa8D0ZXIqxCXtxFQzmHKFJ8c=";
-    };
+    src = inputs.toggleterm-manager;
     meta.homepage = "https://github.com/ryanmsnyder/toggleterm-manager.nvim";
   };
 in

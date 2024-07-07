@@ -813,11 +813,11 @@
     },
     "nur": {
       "locked": {
-        "lastModified": 1720333675,
-        "narHash": "sha256-VGywVhDGWxNjykMEiCv1XXk1xT7vYAYHe557L9dIQN0=",
+        "lastModified": 1720340553,
+        "narHash": "sha256-yltkWY9tbcTO1E9lsegEUcqcHdF+F3Yb8O79CjSAHrg=",
         "owner": "nix-community",
         "repo": "NUR",
-        "rev": "25e98a0c8af990fdef4cd1aa951c6a7b93618bdd",
+        "rev": "64eb60afcb54464e61d34fda417e7a5c7a935c21",
         "type": "github"
       },
       "original": {
@@ -870,7 +870,8 @@
         "nix-vscode-extensions": "nix-vscode-extensions",
         "nixpkgs": "nixpkgs_7",
         "nixvim": "nixvim",
-        "nur": "nur"
+        "nur": "nur",
+        "toggleterm-manager": "toggleterm-manager"
       }
     },
     "rust-overlay": {
@@ -1009,6 +1010,22 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "toggleterm-manager": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1701400122,
+        "narHash": "sha256-7t61kcqeOS9hPXc9y88Sa8D0ZXIqxCXtxFQzmHKFJ8c=",
+        "owner": "ryanmsnyder",
+        "repo": "toggleterm-manager.nvim",
+        "rev": "31318b85a7cc20bf50ce32aedf4e835844133863",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ryanmsnyder",
+        "repo": "toggleterm-manager.nvim",
         "type": "github"
       }
     },
