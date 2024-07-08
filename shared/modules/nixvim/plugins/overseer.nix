@@ -20,6 +20,13 @@ in
       }
 
       {
+        key = "<C-BS>";
+        action = "<CMD>OverseerQuickAction open float<CR>";
+        options = { desc = "Open last task"; };
+        mode = "n";
+      }
+
+      {
         key = "<Leader><BS>";
         action = "<CMD>OverseerToggle<CR>";
         options = { desc = "Toggle task view"; };
