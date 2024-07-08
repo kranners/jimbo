@@ -3,8 +3,6 @@
 , ...
 }:
 let
-  nh-darwin = inputs.nh-darwin.packages.${pkgs.system}.nh-darwin;
-
   nuke-xcode = pkgs.writeShellApplication {
     name = "nuke-xcode";
 
@@ -26,14 +24,13 @@ in
   imports = [ ./managers.nix ./android.nix ./secrets.nix ];
 
   home.packages = [
-    nh-darwin
-
     nuke-xcode
 
     pkgs.nixpkgs-fmt
     pkgs.discord
     pkgs.nurl
     pkgs.eslint_d
+    pkgs.nix-output-monitor
   ];
 
   # This value determines the Home Manager release that your configuration is
