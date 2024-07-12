@@ -21,7 +21,7 @@ in
       colors.transparent_background_colors = true;
 
       font = {
-        size = if isLinux then 12.0 else 16.0;
+        size = 12.0;
         normal = { family = "JetBrainsMono Nerd Font Mono"; style = "Regular"; };
       };
     };
