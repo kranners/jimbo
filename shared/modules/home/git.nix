@@ -1,9 +1,10 @@
 { pkgs, ... }:
 let
+  runtimeInputs = [ pkgs.git ];
+
   git-update = pkgs.writeShellApplication {
     name = "git-update";
-
-    runtimeInputs = [ pkgs.git ];
+    inherit runtimeInputs;
 
     text = ''
       CURRENT_BRANCH="$(git symbolic-ref --short -q HEAD)"
@@ -20,8 +21,7 @@ let
 
   git-update-merge = pkgs.writeShellApplication {
     name = "git-update-merge";
-
-    runtimeInputs = [ pkgs.git ];
+    inherit runtimeInputs;
 
     text = ''
       CURRENT_BRANCH="$(git symbolic-ref --short -q HEAD)"
@@ -35,12 +35,24 @@ let
       git merge "$UPDATE_BRANCH" --no-edit
     '';
   };
+
+  git-shove = pkgs.writeShellApplication {
+    name = "git-shove";
+    inherit runtimeInputs;
+
+    text = ''
+      git add .
+      git commit --amend --no-edit --no-verify
+      git push --force
+    '';
+  };
 in
 {
   home = {
     packages = [
       git-update
       git-update-merge
+      git-shove
     ];
 
     shellAliases = {
