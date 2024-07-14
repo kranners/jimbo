@@ -1,13 +1,11 @@
-{ lib
-, inputs
-, pkgs
-, ...
-}:
+{ lib, inputs, pkgs, ... }:
 let
+  isDarwin = pkgs.hostPlatform.isDarwin;
+
   # use_shell attempts to start up the users shell before executing the Overseer job.
   # This is necessary for Darwin, but causes issues with the shell closing properly on NixOS.
   # https://github.com/stevearc/overseer.nvim/blob/master/lua/overseer/strategy/toggleterm.lua#L95
-  toggleterm-use-shell-option = lib.optionalString (pkgs.system != "x86_64-linux") "use_shell = true,";
+  toggleterm-use-shell-option = lib.optionalString isDarwin "use_shell = true,";
 in
 {
   programs.nixvim = {

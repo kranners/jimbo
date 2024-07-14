@@ -75,9 +75,16 @@ in
       }
 
       {
-        key = "<Leader>]";
+        key = "<Leader>}";
         action = "<CMD>Telescope lsp_references<CR>";
         options = { desc = "Find references of token"; };
+        mode = "n";
+      }
+
+      {
+        key = "<Leader>{";
+        action = "<CMD>Telescope lsp_definitions<CR>";
+        options = { desc = "Find definitions of token"; };
         mode = "n";
       }
     ];
