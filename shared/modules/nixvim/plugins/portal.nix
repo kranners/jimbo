@@ -21,7 +21,14 @@ in
         action = "<cmd>Portal jumplist backward<cr>";
         key = "<Leader>[";
         mode = "n";
-        options = { desc = "Jump backward through jumps"; };
+        options = { desc = "Search backward through jumps"; };
+      }
+
+      {
+        action = "<cmd>Portal jumplist forward<cr>";
+        key = "<Leader>]";
+        mode = "n";
+        options = { desc = "Search forward through jumps"; };
       }
     ];
   };

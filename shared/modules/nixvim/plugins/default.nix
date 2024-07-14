@@ -25,6 +25,7 @@
     ./treesitter.nix
     ./obsidian.nix
     ./auto-save.nix
+    ./codesnap.nix
   ];
 
   programs.nixvim.plugins = {
@@ -34,6 +35,7 @@
     rainbow-delimiters.enable = true;
     nvim-lightbulb.enable = true;
     which-key.enable = true;
+    noice.enable = true;
 
     mini = {
       enable = true;

@@ -8,7 +8,7 @@
         lua-ls.enable = true;
         jsonls.enable = true;
         html.enable = true;
-        # eslint.enable = true;
+        eslint.enable = true;
         pyright.enable = true;
         yamlls.enable = true;
 

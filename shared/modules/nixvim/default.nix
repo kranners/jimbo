@@ -1,3 +1,11 @@
+{ lib, ... }:
+let
+  esc-actions = [
+    "<CMD>nohlsearch<Bar>:echo<CR>"
+    "<CMD>lua require('goto-preview').close_all_win({ skip_curr_window = true })<CR>"
+    "<CMD>lua require('notify').dismiss({ silent = true, pending = true })<CR>"
+  ];
+in
 {
   imports = [
     ./options
@@ -19,7 +27,7 @@
 
       {
         key = "<ESC>";
-        action = "<CMD>nohlsearch<Bar>:echo<CR><CMD>lua require('goto-preview').close_all_win({ skip_curr_window = true })<CR>";
+        action = lib.strings.concatStrings esc-actions;
         options = { desc = "Cancel search"; };
         mode = "n";
       }
@@ -35,6 +43,13 @@
         key = "<C-[>";
         action = "<C-o>";
         options = { desc = "Jump back to last entry in jumplist"; };
+        mode = "n";
+      }
+
+      {
+        key = "<C-]>";
+        action = "<C-i>";
+        options = { desc = "Jump forward to next entry in jumplist"; };
         mode = "n";
       }
     ];
