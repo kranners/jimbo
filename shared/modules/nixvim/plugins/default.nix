@@ -1,7 +1,4 @@
-{ inputs
-, pkgs
-, ...
-}: {
+{ inputs, pkgs, ... }: {
   imports = [
     ./cmp.nix
     ./conform.nix
@@ -26,6 +23,7 @@
     ./obsidian.nix
     ./auto-save.nix
     ./codesnap.nix
+    ./spectre.nix
   ];
 
   programs.nixvim.plugins = {
