@@ -36,6 +36,7 @@
     nvim-lightbulb.enable = true;
     which-key.enable = true;
     noice.enable = true;
+    indent-blankline.enable = true;
 
     mini = {
       enable = true;
