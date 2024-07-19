@@ -26,6 +26,7 @@
     ./obsidian.nix
     ./auto-save.nix
     ./codesnap.nix
+    ./zen-mode.nix
   ];
 
   programs.nixvim.plugins = {
