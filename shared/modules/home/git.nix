@@ -9,30 +9,25 @@ let
     text = ''
       CURRENT_BRANCH="$(git symbolic-ref --short -q HEAD)"
 
-      # TODO: Update this to take in an argument
-      UPDATE_BRANCH="master"
+      UPDATE_STRATEGY="$1"
+      UPDATE_BRANCH="''${2:-master}"
+
+      case "$UPDATE_STRATEGY" in
+        merge|rebase)
+          ;;
+        *)
+          echo "Usage: git update <merge|rebase> [update from branch, usually master]"
+          exit 1 ;;
+      esac
 
       git switch "$UPDATE_BRANCH"
       git pull
       git switch "$CURRENT_BRANCH"
-      git rebase "$UPDATE_BRANCH"
-    '';
-  };
 
-  git-update-merge = pkgs.writeShellApplication {
-    name = "git-update-merge";
-    inherit runtimeInputs;
-
-    text = ''
-      CURRENT_BRANCH="$(git symbolic-ref --short -q HEAD)"
-
-      # TODO: Update this to take in an argument
-      UPDATE_BRANCH="master"
-
-      git switch "$UPDATE_BRANCH"
-      git pull
-      git switch "$CURRENT_BRANCH"
-      git merge "$UPDATE_BRANCH" --no-edit
+      case "$UPDATE_STRATEGY" in
+        "rebase") git rebase "$UPDATE_BRANCH" ;;
+        "merge") git merge "$UPDATE_BRANCH" --no-edit ;;
+      esac
     '';
   };
 
@@ -51,7 +46,6 @@ in
   home = {
     packages = [
       git-update
-      git-update-merge
       git-shove
     ];
 
