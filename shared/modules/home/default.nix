@@ -6,4 +6,9 @@
     ./zoxide.nix
     ./alacritty.nix
   ];
+
+  programs.direnv = {
+    enable = true;
+    enableZshIntegration = true;
+  };
 }
