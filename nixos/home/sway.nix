@@ -222,11 +222,11 @@ in
 
           "${modifier}+Shift+c" = "reload";
 
-          "${modifier}+Ctrl+1" = "assign [class=\"Code\"] workspace number 1 ; exec code";
+          "${modifier}+Ctrl+1" = "assign [app_id=\"Alacritty\"] workspace number 1 ; exec alacritty";
           "${modifier}+Ctrl+2" = "assign [class=\"obsidian\"] workspace number 2 ; exec obsidian";
-          "${modifier}+Ctrl+3" = "assign [class=\"steam\"] workspace number 3 ; exec steam";
+          "${modifier}+Ctrl+3" = "assign [class=\"Plexamp\"] workspace number 3 ; exec plexamp";
           "${modifier}+Ctrl+4" = "assign [app_id=\"vesktop\"] workspace number 4 ; exec vesktop";
-          "${modifier}+Ctrl+5" = "assign [class=\"Spotify\"] workspace number 5 ; exec spotify";
+          "${modifier}+Ctrl+5" = "assign [class=\"steam\"] workspace number 5 ; exec steam";
           "${modifier}+Ctrl+0" = "assign [app_id=\"firefox\"] workspace number 10 ; exec firefox";
         };
     };
