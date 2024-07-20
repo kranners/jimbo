@@ -85,10 +85,22 @@
         };
 
         power-options = {
-          shutdown = { icon = ""; action = "systemctl poweroff"; };
-          reboot = { icon = ""; action = "systemctl reboot"; };
-          logout = { icon = ""; action = "sway exit"; };
-          firmware = { icon = ""; action = "systemctl reboot --firmware-setup"; };
+          shutdown = {
+            icon = "";
+            action = "systemctl poweroff";
+          };
+          reboot = {
+            icon = "";
+            action = "systemctl reboot";
+          };
+          logout = {
+            icon = "";
+            action = "sway exit";
+          };
+          firmware = {
+            icon = "";
+            action = "systemctl reboot --firmware-setup";
+          };
         };
 
         mkPowerModule = (key: option: {
