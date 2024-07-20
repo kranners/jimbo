@@ -1,7 +1,22 @@
+{ pkgs, ... }:
+let
+  inlay-hint = pkgs.vimUtils.buildVimPlugin {
+    pname = "inlay-hint";
+    version = "2024-07-19";
+
+    src = pkgs.fetchFromGitHub {
+      owner = "felpafel";
+      repo = "inlay-hint.nvim";
+      rev = "bc6a00b7129218dc1478624bc5cb1c31b191a46b";
+      hash = "sha256-qcUtZBuBqKfXLAb8cXq8WYsEBTdH3XzhHBloULapLiI=";
+    };
+  };
+in
 {
   programs.nixvim = {
     plugins.lsp = {
       enable = true;
+
       servers = {
         astro.enable = true;
         tsserver.enable = true;
@@ -35,5 +50,8 @@
         mode = "n";
       }
     ];
+
+    plugins.lsp.inlayHints = true;
+    extraPlugins = [ inlay-hint ];
   };
 }
