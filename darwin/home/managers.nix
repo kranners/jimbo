@@ -1,9 +1,4 @@
 { pkgs, ... }: {
-  programs.direnv = {
-    enable = true;
-    enableZshIntegration = true;
-  };
-
   programs.pyenv = {
     enable = true;
     enableZshIntegration = true;
