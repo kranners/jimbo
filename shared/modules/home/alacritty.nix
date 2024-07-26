@@ -22,7 +22,8 @@ in
 
       font = {
         size = 12.0;
-        normal = { family = "JetBrainsMono Nerd Font Mono"; style = "Regular"; };
+        normal = { family = "Iosevka Nerd Font Mono"; style = "Regular"; };
+        bold = { family = "Iosevka Nerd Font Mono"; style = "Regular"; };
       };
     };
   };
