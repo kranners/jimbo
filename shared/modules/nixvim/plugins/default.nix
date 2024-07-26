@@ -21,7 +21,6 @@
     ./trouble.nix
     ./goto-preview.nix
     ./neotest.nix
-    ./flash.nix
     ./treesitter.nix
     ./obsidian.nix
     ./auto-save.nix
