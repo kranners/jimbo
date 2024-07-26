@@ -29,6 +29,22 @@ in
   services.espanso = {
     enable = true;
     package = if is-linux then pkgs.espanso-wayland else pkgs.espanso;
+
+    matches = {
+      javascript = {
+        matches = [
+          {
+            trigger = "%jslog";
+            replace = "console.log({ $|$ })";
+          }
+
+          {
+            trigger = "%jspre";
+            replace = "<pre>{JSON.stringify($|$, null, 2)}</pre>";
+          }
+        ];
+      };
+    };
   };
 
   xdg.configFile = builtins.listToAttrs (
