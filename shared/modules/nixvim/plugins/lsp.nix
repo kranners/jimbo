@@ -8,8 +8,7 @@
         lua-ls.enable = true;
         jsonls.enable = true;
         html.enable = true;
-        # FIXME: Remove this when not working with cooked ESLint
-        # eslint.enable = true;
+        eslint.enable = true;
         pyright.enable = true;
         yamlls.enable = true;
 
