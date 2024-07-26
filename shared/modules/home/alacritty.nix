@@ -13,7 +13,7 @@ in
       window = {
         padding = { x = 15; y = 15; };
         decorations = "Buttonless";
-        opacity = 0.80;
+        opacity = 0.90;
         resize_increments = true;
         option_as_alt = "OnlyLeft";
       };
@@ -21,7 +21,7 @@ in
       colors.transparent_background_colors = true;
 
       font = {
-        size = 12.0;
+        size = if isLinux then 12.0 else 16.0;
         normal = { family = "Iosevka Nerd Font Mono"; style = "Regular"; };
         bold = { family = "Iosevka Nerd Font Mono"; style = "Regular"; };
       };
