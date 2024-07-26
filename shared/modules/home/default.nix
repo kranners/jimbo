@@ -6,6 +6,7 @@
     ./zoxide.nix
     ./alacritty.nix
     ./krabby.nix
+    ./espanso.nix
   ];
 
   programs.direnv = {
