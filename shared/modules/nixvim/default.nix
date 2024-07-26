@@ -52,6 +52,13 @@ in
         options = { desc = "Jump forward to next entry in jumplist"; };
         mode = "n";
       }
+
+      {
+        key = "\"\"";
+        action = "<CMD>Telescope registers<CR>";
+        options = { desc = "View the registers"; };
+        mode = "n";
+      }
     ];
   };
 }
