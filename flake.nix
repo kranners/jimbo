@@ -38,7 +38,7 @@
         let
           system = "aarch64-darwin";
         in
-        {
+        rec {
           cassandra = nix-darwin.lib.darwinSystem {
             specialArgs = { inherit inputs; };
             inherit system;
@@ -54,7 +54,10 @@
                 home-manager = {
                   useGlobalPkgs = true;
                   useUserPackages = true;
-                  extraSpecialArgs = { inherit inputs; };
+                  extraSpecialArgs = {
+                    inherit inputs;
+                    darwin = cassandra.config;
+                  };
 
                   users.aaronpierce = {
                     imports = [ ./darwin/home ./shared/modules/home ];
