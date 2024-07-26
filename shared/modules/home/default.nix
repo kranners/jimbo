@@ -5,6 +5,7 @@
     ./scripts.nix
     ./zoxide.nix
     ./alacritty.nix
+    ./krabby.nix
   ];
 
   programs.direnv = {
