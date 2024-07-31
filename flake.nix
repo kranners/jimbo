@@ -91,6 +91,8 @@
                   useUserPackages = true;
                   extraSpecialArgs = { inherit inputs; };
 
+                  backupFileExtension = "backup";
+
                   users.aaron = {
                     imports = [ ./nixos/home ./shared/modules/home ];
                   };
