@@ -1,5 +1,6 @@
 {
-  # Security
+  networking.firewall.enable = false;
+
   security = {
     polkit.enable = true;
 
