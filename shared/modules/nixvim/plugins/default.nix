@@ -41,7 +41,9 @@
     mini = {
       enable = true;
       modules = {
-        animate = { };
+        animate = {
+          resize.enable = false;
+        };
       };
     };
   };
