@@ -33,7 +33,6 @@ in
     pkgs.nixpkgs-fmt
     pkgs.discord
     pkgs.nurl
-    pkgs.eslint_d
     pkgs.nix-output-monitor
   ];
 

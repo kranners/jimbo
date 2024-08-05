@@ -1,4 +1,4 @@
-{
+{ pkgs, ... }: {
   imports = [
     ./git.nix
     ./zsh.nix
@@ -13,4 +13,10 @@
     enable = true;
     enableZshIntegration = true;
   };
+
+  # See nixvim/plugins/conform.nix
+  home.packages = [
+    pkgs.eslint_d
+    pkgs.prettierd
+  ];
 }

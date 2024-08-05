@@ -2,15 +2,35 @@
   programs.nixvim = {
     plugins.lsp = {
       enable = true;
+      inlayHints = true;
+
       servers = {
         astro.enable = true;
-        tsserver.enable = true;
         lua-ls.enable = true;
         jsonls.enable = true;
         html.enable = true;
         eslint.enable = true;
         pyright.enable = true;
         yamlls.enable = true;
+
+        tsserver = {
+          enable = true;
+
+          extraOptions = {
+            init_options = {
+              preferences = {
+                includeInlayParameterNameHints = "all";
+                includeInlayParameterNameHintsWhenArgumentMatchesName = true;
+                includeInlayFunctionParameterTypeHints = true;
+                includeInlayVariableTypeHints = true;
+                includeInlayPropertyDeclarationTypeHints = true;
+                includeInlayFunctionLikeReturnTypeHints = true;
+                includeInlayEnumMemberValueHints = true;
+                importModuleSpecifierPreference = "non-relative";
+              };
+            };
+          };
+        };
 
         nixd = {
           enable = true;
@@ -20,6 +40,13 @@
     };
 
     keymaps = [
+      {
+        key = "<CR>";
+        action = "<CMD>lua vim.lsp.buf.hover()<CR>";
+        options = { desc = "Hover over token"; };
+        mode = "n";
+      }
+
       {
         key = "<Leader><CR>";
         action = "<CMD>lua vim.lsp.buf.code_action()<CR>";
