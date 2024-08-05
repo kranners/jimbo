@@ -26,6 +26,7 @@
     ./auto-save.nix
     ./codesnap.nix
     ./zen-mode.nix
+    ./spectre.nix
   ];
 
   programs.nixvim.plugins = {
