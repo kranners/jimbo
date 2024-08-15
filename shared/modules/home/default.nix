@@ -18,5 +18,7 @@
   home.packages = [
     pkgs.eslint_d
     pkgs.prettierd
+
+    pkgs.devenv
   ];
 }

@@ -8,13 +8,12 @@
       "iterm2"
       "slack"
       "zoom"
-      "displaylink"
-      "postman"
       "spotify"
       "google-chrome"
       "firefox"
       "plexamp"
-      "only-switch" # https://github.com/jacklandrin/OnlySwitch
+      "microsoft-outlook"
+      "aws-vpn-client"
     ];
 
     brews = [
