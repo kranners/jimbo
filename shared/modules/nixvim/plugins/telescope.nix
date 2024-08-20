@@ -2,11 +2,13 @@
   programs.nixvim = {
     plugins.telescope = {
       enable = true;
+
       extensions = {
         fzf-native.enable = true;
         frecency.enable = true;
         media-files.enable = true;
       };
+
       settings = {
         pickers.find_files = {
           hidden = true;
@@ -68,6 +70,27 @@
         key = "<Leader>{";
         action = "<CMD>Telescope lsp_definitions<CR>";
         options = { desc = "Find definitions of token"; };
+        mode = "n";
+      }
+
+      {
+        key = "<Leader>p";
+        action = "<CMD>Telescope keymaps<CR>";
+        options = { desc = "Show keymaps / command prompt"; };
+        mode = "n";
+      }
+
+      {
+        key = "<Leader>gs";
+        action = "<CMD>Telescope git_status<CR>";
+        options = { desc = "Show keymaps / command prompt"; };
+        mode = "n";
+      }
+
+      {
+        key = "<Leader>gb";
+        action = "<CMD>Telescope git_branches<CR>";
+        options = { desc = "Show keymaps / command prompt"; };
         mode = "n";
       }
     ];
