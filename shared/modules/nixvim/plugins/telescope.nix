@@ -1,22 +1,5 @@
-{ pkgs, ... }:
-let
-  telescope-themes = pkgs.vimUtils.buildVimPlugin {
-    name = "my-plugin";
-    src = pkgs.fetchFromGitHub {
-      owner = "andrew-george";
-      repo = "telescope-themes";
-      rev = "d64842356524794d6f5615ab97627a3d832be21d";
-      hash = "sha256-o8/cWLR4ZI84mxzrCZo0ZsVZickAJwjIQ/i2Tsbbnyk=";
-    };
-  };
-in
 {
   programs.nixvim = {
-    extraPlugins = [ telescope-themes ];
-    extraConfigLua = ''
-      require('telescope').load_extension('themes')
-    '';
-
     plugins.telescope = {
       enable = true;
       extensions = {
@@ -49,7 +32,7 @@ in
             height = 0.80;
             preview_cutoff = 120;
           };
-          file_ignore_patterns = [ "node_modules" ];
+          file_ignore_patterns = [ "node_modules" ".git/" ".cache" "dist/" ];
           path_display = [ "truncate" ];
           winblend = 0;
           border = { };
