@@ -24,6 +24,16 @@
       url = "github:ryanmsnyder/toggleterm-manager.nvim";
       flake = false;
     };
+
+    resession = {
+      url = "github:stevearc/resession.nvim";
+      flake = false;
+    };
+
+    telescope-resession = {
+      url = "github:scottmckendry/telescope-resession.nvim";
+      flake = false;
+    };
   };
 
   outputs =
