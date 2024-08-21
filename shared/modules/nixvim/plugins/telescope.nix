@@ -60,6 +60,13 @@
       }
 
       {
+        key = "<Leader>b";
+        action = "<CMD>Telescope buffers<CR>";
+        options = { desc = "Find buffers"; };
+        mode = "n";
+      }
+
+      {
         key = "<Leader>}";
         action = "<CMD>Telescope lsp_references<CR>";
         options = { desc = "Find references of token"; };
@@ -74,7 +81,7 @@
       }
 
       {
-        key = "<Leader>p";
+        key = "<C-p>";
         action = "<CMD>Telescope keymaps<CR>";
         options = { desc = "Show keymaps / command prompt"; };
         mode = "n";

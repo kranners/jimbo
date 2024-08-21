@@ -4,7 +4,7 @@
       enable = true;
 
       findPackage = pkgs.ripgrep;
-      replacePackage = pkgs.gnused;
+      settings.default.replace.cmd = "oxi";
     };
 
     keymaps = [
