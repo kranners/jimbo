@@ -2,7 +2,7 @@
   programs.nixvim = {
     plugins.lsp = {
       enable = true;
-      inlayHints = true;
+      inlayHints = false;
 
       servers = {
         astro.enable = true;

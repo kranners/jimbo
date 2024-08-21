@@ -1,7 +1,4 @@
-{ pkgs
-, inputs
-, ...
-}: {
+{ pkgs, inputs, ... }: {
   programs.nixvim = {
     extraPlugins = with inputs.awesome-neovim-plugins.packages.${pkgs.system}; [
       goto-preview
