@@ -495,6 +495,22 @@
         "type": "github"
       }
     },
+    "resession": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1723846880,
+        "narHash": "sha256-S5mN/1yzUjV76YTYB41aaTL1xuGEfTN2LpEsc28RhDM=",
+        "owner": "stevearc",
+        "repo": "resession.nvim",
+        "rev": "c4d92a57b3936a2d6e1c087dbd6b670da2b1b082",
+        "type": "github"
+      },
+      "original": {
+        "owner": "stevearc",
+        "repo": "resession.nvim",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "awesome-neovim-plugins": "awesome-neovim-plugins",
@@ -505,6 +521,8 @@
         "nixpkgs": "nixpkgs_4",
         "nixvim": "nixvim",
         "nur": "nur",
+        "resession": "resession",
+        "telescope-resession": "telescope-resession",
         "toggleterm-manager": "toggleterm-manager"
       }
     },
@@ -550,6 +568,22 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "telescope-resession": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1719167594,
+        "narHash": "sha256-j5mSvv+NaLLIbIr3h9i+v9bxH9O4dX02QzsRSppMYT4=",
+        "owner": "scottmckendry",
+        "repo": "telescope-resession.nvim",
+        "rev": "a5dd49e7324ecee4ba662032301cc8a4ceb51eaa",
+        "type": "github"
+      },
+      "original": {
+        "owner": "scottmckendry",
+        "repo": "telescope-resession.nvim",
         "type": "github"
       }
     },

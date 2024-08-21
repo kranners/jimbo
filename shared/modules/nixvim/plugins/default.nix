@@ -1,7 +1,4 @@
-{ inputs
-, pkgs
-, ...
-}: {
+{ inputs, pkgs, ... }: {
   imports = [
     ./cmp.nix
     ./conform.nix
@@ -12,8 +9,6 @@
     ./telescope.nix
     ./lualine.nix
     ./comment.nix
-    ./persistence.nix
-    ./startify.nix
     ./luasnip.nix
     ./treesj.nix
     ./barbar.nix
@@ -27,6 +22,7 @@
     ./codesnap.nix
     ./zen-mode.nix
     ./spectre.nix
+    ./resession.nix
   ];
 
   programs.nixvim.plugins = {
