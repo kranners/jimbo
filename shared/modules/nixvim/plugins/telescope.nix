@@ -83,14 +83,14 @@
       {
         key = "<Leader>gs";
         action = "<CMD>Telescope git_status<CR>";
-        options = { desc = "Show keymaps / command prompt"; };
+        options = { desc = "Show git status"; };
         mode = "n";
       }
 
       {
         key = "<Leader>gb";
         action = "<CMD>Telescope git_branches<CR>";
-        options = { desc = "Show keymaps / command prompt"; };
+        options = { desc = "List git branches"; };
         mode = "n";
       }
     ];
