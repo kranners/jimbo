@@ -53,6 +53,13 @@
       }
 
       {
+        key = "<C-b>";
+        action = "<CMD>Telescope buffers<CR>";
+        options = { desc = "Search through current buffers"; };
+        mode = "n";
+      }
+
+      {
         key = "<C-o>";
         action = "<CMD>Telescope find_files<CR>";
         options = { desc = "Find files by name"; };
