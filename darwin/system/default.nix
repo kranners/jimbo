@@ -10,6 +10,7 @@
     ./users.nix
     ./fonts.nix
     ./autoraise.nix
+    ./android.nix
   ];
 
   # Zsh config is done under darwin/home, but must be explicitly enabled here also
