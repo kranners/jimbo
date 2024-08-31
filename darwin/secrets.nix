@@ -15,13 +15,15 @@ let
   };
 in
 {
-  home.packages = [ export-secrets ];
+  home = {
+    home.packages = [ export-secrets ];
 
-  programs.zsh.initExtra = ''
-    [[ ! -f ${gh-token} ]] && export-secrets
-    [[ ! -f ${npm-token} ]] && export-secrets
+    programs.zsh.initExtra = ''
+      [[ ! -f ${gh-token} ]] && export-secrets
+      [[ ! -f ${npm-token} ]] && export-secrets
 
-    export GITHUB_OAUTH_TOKEN="$(cat ${gh-token})"
-    export NPM_TOKEN_INLIGHT="$(cat ${npm-token})"
-  '';
+      export GITHUB_OAUTH_TOKEN="$(cat ${gh-token})"
+      export NPM_TOKEN_INLIGHT="$(cat ${npm-token})"
+    '';
+  };
 }

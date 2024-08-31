@@ -13,17 +13,15 @@
 
   security.accessibilityPrograms = [ "/opt/homebrew/Cellar/autoraise/5.3/bin/AutoRaise" ];
 
-  home-manager.users.aaronpierce = {
-    xdg.configFile.autoraise = {
-      target = "./AutoRaise/config";
+  home.xdg.configFile.autoraise = {
+    target = "./AutoRaise/config";
 
-      text = ''
-        warpX=0.5
-        warpY=0.5
-        scale=1
-        altTaskSwitcher=true
-        ignoreSpaceChanged=true
-      '';
-    };
+    text = ''
+      warpX=0.5
+      warpY=0.5
+      scale=1
+      altTaskSwitcher=true
+      ignoreSpaceChanged=true
+    '';
   };
 }

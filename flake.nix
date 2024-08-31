@@ -53,8 +53,8 @@
             home-manager.darwinModules.home-manager
             nixvim.nixDarwinModules.nixvim
 
-            ./darwin/system
-            ./shared/modules/nixvim
+            ./darwin
+            ./shared
 
             ({ config, lib, ... }: {
               options = {
@@ -67,18 +67,6 @@
                 home-manager.users.aaronpierce = config.home;
               };
             })
-
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
-
-                users.aaronpierce = {
-                  imports = [ ./darwin/home ./shared/modules/home ];
-                };
-              };
-            }
           ];
         };
       };
@@ -93,22 +81,20 @@
             nixvim.nixosModules.nixvim
             nur.nixosModules.nur
 
-            ./nixos/system
-            ./shared/modules/nixvim
+            ./nixos
+            ./shared
 
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
-
-                backupFileExtension = "backup";
-
-                users.aaron = {
-                  imports = [ ./nixos/home ./shared/modules/home ];
+            ({ config, lib, ... }: {
+              options = {
+                home = lib.mkOption {
+                  type = lib.types.attrs;
                 };
               };
-            }
+
+              config = {
+                home-manager.users.aaron = config.home;
+              };
+            })
           ];
         };
       };

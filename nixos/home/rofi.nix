@@ -13,7 +13,6 @@
     plugins = [
       pkgs.rofi-emoji
       pkgs.rofi-calc
-      (pkgs.callPackage ../../shared/packages/rofi-games { })
     ];
 
     location = "center";
