@@ -56,6 +56,18 @@
             ./darwin/system
             ./shared/modules/nixvim
 
+            ({ config, lib, ... }: {
+              options = {
+                home = lib.mkOption {
+                  type = lib.types.attrs;
+                };
+              };
+
+              config = {
+                home-manager.users.aaronpierce = config.home;
+              };
+            })
+
             {
               home-manager = {
                 useGlobalPkgs = true;

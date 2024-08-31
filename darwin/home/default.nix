@@ -20,7 +20,6 @@ in
 {
   imports = [
     ./managers.nix
-    ./android.nix
     ./secrets.nix
   ];
 
