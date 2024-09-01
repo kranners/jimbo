@@ -23,6 +23,7 @@
     ./services.nix
     ./vial.nix
     ./nix-index.nix
+    ./openrazer.nix
   ];
 
   # Enable Flakes
