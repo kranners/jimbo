@@ -79,9 +79,9 @@
           modules = [
             home-manager.nixosModules.home-manager
             nixvim.nixosModules.nixvim
-            nur.nixosModules.nur
 
             ./nixos/system
+            ./nixos
             ./shared
 
             ({ config, lib, ... }: {
@@ -96,16 +96,9 @@
               };
             })
 
-            ({ ... }: {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
-
-                users.aaron = {
-                  imports = [ ./nixos/home ];
-                };
-              };
+            ({ lib, ... }: {
+              # home-manager.users.aaron.home.stateVersion = "23.11";
+              home.home.stateVersion = lib.mkForce "23.11";
             })
           ];
         };
