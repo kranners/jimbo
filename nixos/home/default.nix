@@ -66,7 +66,7 @@ in
 
     # Utilities
     pkgs.pavucontrol # Audio control
-    pkgs.cinnamon.nemo-with-extensions # File manager
+    pkgs.nemo-with-extensions # File manager
     pkgs.grimblast # Screen capture
     pkgs.mpv # Media playback
     pkgs.davinci-resolve

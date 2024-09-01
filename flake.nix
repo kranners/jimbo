@@ -81,7 +81,7 @@
             nixvim.nixosModules.nixvim
             nur.nixosModules.nur
 
-            ./nixos
+            ./nixos/system
             ./shared
 
             ({ config, lib, ... }: {
@@ -93,6 +93,18 @@
 
               config = {
                 home-manager.users.aaron = config.home;
+              };
+            })
+
+            ({ ... }: {
+              home-manager = {
+                useGlobalPkgs = true;
+                useUserPackages = true;
+                extraSpecialArgs = { inherit inputs; };
+
+                users.aaron = {
+                  imports = [ ./nixos/home ];
+                };
               };
             })
           ];

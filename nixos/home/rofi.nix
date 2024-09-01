@@ -1,9 +1,4 @@
-{ config
-, pkgs
-, lib
-, inputs
-, ...
-}: {
+{ pkgs, ... }: {
   wayland.windowManager.sway.config.menu = "rofi -show drun -monitor -1";
 
   programs.rofi = {
@@ -20,7 +15,7 @@
     theme = "material";
 
     extraConfig = {
-      modi = "window,drun,emoji,calc,games";
+      modi = "window,drun,emoji,calc";
 
       icon-theme = "Oranchelo";
 
@@ -37,7 +32,6 @@
 
       display-drun = "Apps";
       display-window = "Window";
-      display-games = "Games";
     };
   };
 }
