@@ -44,72 +44,64 @@
     , nix-darwin
     , ...
     } @ inputs: {
-      darwinConfigurations =
-        let
+      darwinConfigurations = {
+        cassandra = nix-darwin.lib.darwinSystem {
+          specialArgs = { inherit inputs; };
           system = "aarch64-darwin";
-        in
-        rec {
-          cassandra = nix-darwin.lib.darwinSystem {
-            specialArgs = { inherit inputs; };
-            inherit system;
 
-            modules = [
-              home-manager.darwinModules.home-manager
-              nixvim.nixDarwinModules.nixvim
+          modules = [
+            home-manager.darwinModules.home-manager
+            nixvim.nixDarwinModules.nixvim
 
-              ./darwin/system
-              ./shared/modules/nixvim
+            ./darwin
+            ./shared
 
-              {
-                home-manager = {
-                  useGlobalPkgs = true;
-                  useUserPackages = true;
-                  extraSpecialArgs = {
-                    inherit inputs;
-                    darwin = cassandra.config;
-                  };
-
-                  users.aaronpierce = {
-                    imports = [ ./darwin/home ./shared/modules/home ];
-                  };
+            ({ config, lib, ... }: {
+              options = {
+                home = lib.mkOption {
+                  type = lib.types.attrs;
                 };
-              }
-            ];
-          };
-        };
+              };
 
-      nixosConfigurations =
-        let
+              config = {
+                home-manager.users.aaronpierce = config.home;
+              };
+            })
+          ];
+        };
+      };
+
+      nixosConfigurations = {
+        jimbo = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs; };
           system = "x86_64-linux";
-        in
-        {
-          jimbo = nixpkgs.lib.nixosSystem {
-            specialArgs = { inherit inputs; };
-            inherit system;
 
-            modules = [
-              home-manager.nixosModules.home-manager
-              nixvim.nixosModules.nixvim
-              nur.nixosModules.nur
+          modules = [
+            home-manager.nixosModules.home-manager
+            nixvim.nixosModules.nixvim
 
-              ./nixos/system
-              ./shared/modules/nixvim
+            ./nixos/system
+            ./nixos
+            ./shared
 
-              {
-                home-manager = {
-                  useGlobalPkgs = true;
-                  useUserPackages = true;
-                  extraSpecialArgs = { inherit inputs; };
-
-                  backupFileExtension = "backup";
-
-                  users.aaron = {
-                    imports = [ ./nixos/home ./shared/modules/home ];
-                  };
+            ({ config, lib, ... }: {
+              options = {
+                home = lib.mkOption {
+                  type = lib.types.attrs;
                 };
-              }
-            ];
-          };
+              };
+
+              config = {
+                home-manager.users.aaron = config.home;
+              };
+            })
+
+            ({ lib, ... }: {
+              # home-manager.users.aaron.home.stateVersion = "23.11";
+              home.home.stateVersion = lib.mkForce "23.11";
+            })
+          ];
         };
+      };
     };
 }

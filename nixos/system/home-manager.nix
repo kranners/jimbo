@@ -1,8 +1,4 @@
-{ config
-, pkgs
-, inputs
-, ...
-}: {
+{ pkgs, ... }: {
   environment.systemPackages = [ pkgs.home-manager ];
 
   # Required to prevent Home Manager crashing
