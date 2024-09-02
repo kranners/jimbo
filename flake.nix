@@ -34,6 +34,11 @@
       url = "github:scottmckendry/telescope-resession.nvim";
       flake = false;
     };
+
+    codecompanion = {
+      url = "github:olimorris/codecompanion.nvim";
+      flake = false;
+    };
   };
 
   outputs =
