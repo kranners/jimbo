@@ -23,6 +23,7 @@
     ./zen-mode.nix
     ./spectre.nix
     ./resession.nix
+    ./codecompanion.nix
   ];
 
   programs.nixvim.plugins = {

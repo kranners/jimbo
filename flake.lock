@@ -20,6 +20,22 @@
         "type": "github"
       }
     },
+    "codecompanion": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1725111527,
+        "narHash": "sha256-y4XsKFKnTB8uY3PLqUONVdgxfCkZ3eLBndXnbSVafDg=",
+        "owner": "olimorris",
+        "repo": "codecompanion.nvim",
+        "rev": "2f818700c321c6064eba812cef644559465110a4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "olimorris",
+        "repo": "codecompanion.nvim",
+        "type": "github"
+      }
+    },
     "devshell": {
       "inputs": {
         "nixpkgs": [
@@ -514,6 +530,7 @@
     "root": {
       "inputs": {
         "awesome-neovim-plugins": "awesome-neovim-plugins",
+        "codecompanion": "codecompanion",
         "firefox-addons": "firefox-addons",
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
