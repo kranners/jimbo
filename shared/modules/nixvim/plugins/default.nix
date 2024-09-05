@@ -18,7 +18,6 @@
     ./neotest.nix
     ./treesitter.nix
     ./obsidian.nix
-    ./auto-save.nix
     ./codesnap.nix
     ./zen-mode.nix
     ./spectre.nix
