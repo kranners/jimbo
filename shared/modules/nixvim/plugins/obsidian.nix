@@ -24,12 +24,6 @@
           date_format = "%Y/%m/%d %B, %Y";
           template = "Daily.md";
         };
-
-        follow_url_func = ''
-          function(url)
-            vim.fn.jobstart({ "open", url })
-          end
-        '';
       };
     };
 
@@ -87,8 +81,53 @@
 
       {
         key = "<Leader><Tab>";
-        action = "<CMD>ObsidianQuickSwitch<CR>";
-        options = { desc = "Open Obsidian note finder"; };
+        action.__raw = ''
+          function()
+            local pickers = require("telescope.pickers")
+            local finders = require("telescope.finders")
+            local conf = require("telescope.config").values
+
+            local obsidian_client = require("obsidian").get_client()
+            local vault_root = obsidian_client:vault_root().filename
+            local stack_root = vim.fn.resolve(vault_root .. "/Stack")
+
+            local entry_maker = function(line)
+              local note = obsidian_client:resolve_note(line)
+
+              return {
+                display = note.aliases[1],
+                ordinal = line,
+                value   = line,
+              }
+            end
+
+            local note_grepper = function(prompt)
+              if not prompt or prompt == "" then
+                return { "find", stack_root, "-type", "f" }
+              end
+
+              return { "rg", prompt, stack_root, "-l" }
+            end
+
+            local stack_notes = function(opts)
+              opts = opts or {}
+
+              local picker = pickers.new(opts, {
+                prompt_title = "Note Stack",
+                finder = finders.new_job(
+                  note_grepper,
+                  entry_maker
+                ),
+                previewer = conf.file_previewer(opts),
+              })
+
+              picker:find()
+            end
+
+            stack_notes()
+          end
+        '';
+        options = { desc = "Open note stack"; };
         mode = "n";
       }
     ];
