@@ -23,6 +23,7 @@
     ./windline.nix
     ./flatten.nix
     ./noice.nix
+    ./firenvim.nix
   ];
 
   programs.nixvim.plugins = {
@@ -33,7 +34,6 @@
     which-key.enable = true;
     indent-blankline.enable = true;
     gitsigns.enable = true;
-    firenvim.enable = true;
 
     mini = {
       enable = true;
