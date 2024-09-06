@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, inputs, ... }:
 let
   isLinux = pkgs.hostPlatform.isLinux;
 in
@@ -8,7 +8,9 @@ in
 
     # https://alacritty.org/config-alacritty.html
     settings = {
-      import = [ "${pkgs.alacritty-theme}/one_dark.toml" ];
+      import = [
+        "${inputs.cyberdream}/extras/alacritty/cyberdream.toml"
+      ];
 
       window = {
         padding = { x = 15; y = 15; };
