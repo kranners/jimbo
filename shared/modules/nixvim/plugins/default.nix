@@ -22,16 +22,16 @@
     ./resession.nix
     ./windline.nix
     ./flatten.nix
+    ./noice.nix
+    ./firenvim.nix
   ];
 
   programs.nixvim.plugins = {
-    notify.enable = true;
     surround.enable = true;
     nvim-autopairs.enable = true;
     rainbow-delimiters.enable = true;
     nvim-lightbulb.enable = true;
     which-key.enable = true;
-    noice.enable = true;
     indent-blankline.enable = true;
     gitsigns.enable = true;
 
