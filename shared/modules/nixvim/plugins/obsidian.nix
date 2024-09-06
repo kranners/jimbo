@@ -1,3 +1,10 @@
+{ config, ... }:
+let
+  LATTE_ROOT = "${config.home.homeDirectory}/Documents/Latte";
+  FRAPPUCCINO_ROOT = "${config.home.homeDirectory}/workspace/frappuccino/docs";
+
+  STACK_DIR_NAME = "Stack";
+in
 {
   programs.nixvim = {
     plugins.obsidian = {
@@ -7,11 +14,11 @@
         workspaces = [
           {
             name = "Latte";
-            path = "~/Documents/Latte";
+            path = LATTE_ROOT;
           }
           {
             name = "Frappuccino";
-            path = "~/workspace/frappuccino/docs";
+            path = FRAPPUCCINO_ROOT;
           }
         ];
 
@@ -20,7 +27,6 @@
         templates.subdir = "Templates";
 
         daily_notes = {
-          # See: https://www.lua.org/pil/22.1.html
           date_format = "%Y/%m/%d %B, %Y";
           template = "Daily.md";
         };
@@ -71,7 +77,7 @@
               return
             end
 
-            local note = client:create_note({ title = title, no_write = true, dir = "Stack" })
+            local note = client:create_note({ title = title, no_write = true, dir = "${STACK_DIR_NAME}" })
 
             local width = math.ceil(math.min(150, vim.o.columns * 0.8))
             local height = math.ceil(math.min(35, vim.o.lines * 0.5))
@@ -109,10 +115,6 @@
             local action_state = require("telescope.actions.state")
 
             local obsidian_client = require("obsidian").get_client()
-            local vault_root = obsidian_client:vault_root().filename
-            local stack_root = vim.fn.resolve(vault_root .. "/Stack")
-
-            local frappuccino_root = "/Users/aaronpierce/workspace/frappuccino/docs";
 
             local entry_maker = function(line)
               local note = obsidian_client:resolve_note(line)
@@ -126,7 +128,7 @@
 
             local note_grepper = function(prompt)
               if not prompt or prompt == "" then
-                return { "find", stack_root, "-type", "f" }
+                return { "find", "${LATTE_ROOT}/${STACK_DIR_NAME}", "-type", "f" }
               end
 
               local prompt_words = vim.split(prompt, "%s")
@@ -138,7 +140,7 @@
                 "--multiline",
                 "--multiline-dotall",
                 prompt_as_rg_and,
-                stack_root,
+                "${LATTE_ROOT}/${STACK_DIR_NAME}",
                 "--files-with-matches",
               }
             end
@@ -148,38 +150,46 @@
               picker:refresh(nil, { reset_prompt = false })
             end
 
+            local get_selected_filepath = function()
+              return action_state.get_selected_entry().value
+            end
+
             local move_note = function(new_filepath)
-              local filepath = action_state.get_selected_entry().value
-              local command = "mv " .. filepath .. ' "' .. new_filepath .. '"'
+              local filepath = get_selected_filepath()
+              local command = string.format('mv "%s" "%s"', filepath, new_filepath)
+
+              vim.notify("Moved note to " .. new_filepath)
               os.execute(command)
             end
 
             local move_note_to_vault = function(vault)
-              local filepath = action_state.get_selected_entry().value
+              local filepath = get_selected_filepath()
               local note = obsidian_client:resolve_note(filepath)
 
               move_note(vault .. "/" .. note.aliases[1] .. ".md")
             end
 
             local delete_note = function(prompt_bufnr)
-              local filepath = action_state.get_selected_entry().value
+              local filepath = get_selected_filepath()
               os.execute("rm " .. filepath)
-
+              vim.notify("Deleted note " .. filepath)
               refresh_picker(prompt_bufnr)
             end
 
             local archive_note = function(prompt_bufnr)
-              move_note_to_vault(vault_root)
+              move_note_to_vault(${LATTE_ROOT})
               refresh_picker(prompt_bufnr)
             end
 
             local publish_note = function(prompt_bufnr)
-              move_note_to_vault(frappuccino_root)
+              move_note_to_vault(${FRAPPUCCINO_ROOT})
               refresh_picker(prompt_bufnr)
             end
 
             local make_note_daily = function(prompt_bufnr)
-              move_note(os.date("%Y/%m/%d %B, %Y") .. ".md")
+              local daily_note_path = string.format("${LATTE_ROOT}/%s.md", os.date("%Y/%m/%d %B, %Y"))
+
+              move_note(daily_note_path)
               refresh_picker(prompt_bufnr)
             end
 
@@ -198,6 +208,7 @@
                   map({ "i", "n" }, "<C-e>", archive_note)
                   map({ "i", "n" }, "<C-p>", publish_note)
                   map({ "i", "n" }, "<C-m>", make_note_daily)
+                  map({ "i", "n" }, "<C-Space>", actions.delete_buffer)
                   map({ "i", "n" }, "<CR>", actions.file_edit)
                   return true
                 end
