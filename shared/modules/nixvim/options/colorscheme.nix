@@ -1,8 +1,12 @@
-{ pkgs, ... }: {
+{
   programs.nixvim = {
-    extraPlugins = [ pkgs.vimPlugins.onedarkpro-nvim ];
-
-    colorscheme = "onedark_vivid";
+    colorscheme = "cyberdream";
     opts.termguicolors = true;
+
+    colorschemes.cyberdream = {
+      enable = true;
+
+      settings.transparent = true;
+    };
   };
 }

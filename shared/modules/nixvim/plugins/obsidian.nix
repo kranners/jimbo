@@ -210,6 +210,7 @@ in
 
               local picker = pickers.new(opts, {
                 prompt_title = "Note Stack",
+                prompt_prefix = "📚 ",
                 finder = finders.new_job(
                   note_grepper,
                   entry_maker

@@ -20,6 +20,22 @@
         "type": "github"
       }
     },
+    "cyberdream": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1724917245,
+        "narHash": "sha256-mKj3gsZM5YjALZ1jsNOF4Kib+mrcl2GF9OcP44b6FvI=",
+        "owner": "scottmckendry",
+        "repo": "cyberdream.nvim",
+        "rev": "10d79f367abd585626aca5099907df67e4dfd7a6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "scottmckendry",
+        "repo": "cyberdream.nvim",
+        "type": "github"
+      }
+    },
     "devshell": {
       "inputs": {
         "nixpkgs": [
@@ -514,6 +530,7 @@
     "root": {
       "inputs": {
         "awesome-neovim-plugins": "awesome-neovim-plugins",
+        "cyberdream": "cyberdream",
         "firefox-addons": "firefox-addons",
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
