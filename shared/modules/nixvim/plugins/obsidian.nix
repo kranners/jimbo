@@ -86,10 +86,14 @@
             local pickers = require("telescope.pickers")
             local finders = require("telescope.finders")
             local conf = require("telescope.config").values
+            local actions = require("telescope.actions")
+            local action_state = require("telescope.actions.state")
 
             local obsidian_client = require("obsidian").get_client()
             local vault_root = obsidian_client:vault_root().filename
             local stack_root = vim.fn.resolve(vault_root .. "/Stack")
+
+            local frappuccino_root = "/Users/aaronpierce/workspace/frappuccino/docs";
 
             local entry_maker = function(line)
               local note = obsidian_client:resolve_note(line)
@@ -97,7 +101,7 @@
               return {
                 display = note.aliases[1],
                 ordinal = line,
-                value   = line,
+                value = line,
               }
             end
 
@@ -106,7 +110,49 @@
                 return { "find", stack_root, "-type", "f" }
               end
 
-              return { "rg", prompt, stack_root, "-l" }
+              local prompt_words = vim.split(prompt, "%s")
+              local prompt_as_rg_and = table.concat(prompt_words, ".*")
+
+              return {
+                "rg",
+                "--ignore-case",
+                "--multiline",
+                "--multiline-dotall",
+                prompt_as_rg_and,
+                stack_root,
+                "--files-with-matches",
+              }
+            end
+
+            local refresh_picker = function(prompt_bufnr)
+              local picker = action_state.get_current_picker(prompt_bufnr)
+              picker:refresh(nil, { reset_prompt = false })
+            end
+
+            local move_note_to_vault = function(vault)
+              local filepath = action_state.get_selected_entry().value
+              local note = obsidian_client:resolve_note(filepath)
+
+              local new_filepath = vault .. "/" .. note.aliases[1] .. ".md"
+              local command = "mv " .. filepath .. ' "' .. new_filepath .. '"'
+              os.execute(command)
+            end
+
+            local delete_note = function(prompt_bufnr)
+              local filepath = action_state.get_selected_entry().value
+              os.execute("rm " .. filepath)
+
+              refresh_picker(prompt_bufnr)
+            end
+
+            local archive_note = function(prompt_bufnr)
+              move_note_to_vault(vault_root)
+              refresh_picker(prompt_bufnr)
+            end
+
+            local publish_note = function(prompt_bufnr)
+              move_note_to_vault(frappuccino_root)
+              refresh_picker(prompt_bufnr)
             end
 
             local stack_notes = function(opts)
@@ -119,6 +165,13 @@
                   entry_maker
                 ),
                 previewer = conf.file_previewer(opts),
+                attach_mappings = function(_, map)
+                  map({ "i", "n" }, "<C-d>", delete_note)
+                  map({ "i", "n" }, "<C-m>", archive_note)
+                  map({ "i", "n" }, "<C-p>", publish_note)
+                  map({ "i", "n" }, "<CR>", actions.file_edit)
+                  return true
+                end
               })
 
               picker:find()
