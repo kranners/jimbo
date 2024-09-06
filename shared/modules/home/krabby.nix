@@ -2,7 +2,11 @@
   home.packages = [ pkgs.krabby ];
 
   programs.zsh.initExtra = ''
-    krabby random --no-title
+    if [[ "$PWD" == *firenvim* ]]; then
+      echo -e '\033[0;31m🔥 FIRE MODE 🔥\033[0m'
+    else
+      krabby random --no-title
+    fi
   '';
 
   xdg.configFile.krabby = {

@@ -3,7 +3,6 @@ let
   esc-actions = [
     "<CMD>nohlsearch<Bar>:echo<CR>"
     "<CMD>lua require('goto-preview').close_all_win({ skip_curr_window = true })<CR>"
-    "<CMD>lua require('notify').dismiss({ silent = true, pending = true })<CR>"
   ];
 in
 {

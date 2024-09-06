@@ -12,7 +12,8 @@
   home.packages = [ pkgs.fnm ];
 
   programs.zsh.initExtraBeforeCompInit = ''
-    eval "$(pyenv virtualenv-init -)"
+    # firenvim has no access to brew installed stuff
+    eval "$(pyenv virtualenv-init - 2>/dev/null 1>&2)"
     eval "$(fnm env --use-on-cd)"
   '';
 }
