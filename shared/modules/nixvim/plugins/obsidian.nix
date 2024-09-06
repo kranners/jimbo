@@ -1,7 +1,16 @@
-{ config, ... }:
+{ pkgs, ... }:
 let
-  LATTE_ROOT = "${config.home.homeDirectory}/Documents/Latte";
-  FRAPPUCCINO_ROOT = "${config.home.homeDirectory}/workspace/frappuccino/docs";
+  # FIXME: yucky, ew
+  inherit (pkgs.hostPlatform) isDarwin;
+
+  DARWIN_LATTE_ROOT = "/Users/aaronpierce/Documents/Latte";
+  DARWIN_FRAPPUCCINO_ROOT = "/Users/aaronpierce/workspace/frappuccino/docs";
+
+  NIXOS_LATTE_ROOT = "/home/aaron/Documents/Latte";
+  NIXOS_FRAPPUCCINO_ROOT = "/home/aaron/workspace/frappuccino/docs";
+
+  LATTE_ROOT = if isDarwin then DARWIN_LATTE_ROOT else NIXOS_LATTE_ROOT;
+  FRAPPUCCINO_ROOT = if isDarwin then DARWIN_FRAPPUCCINO_ROOT else NIXOS_FRAPPUCCINO_ROOT;
 
   STACK_DIR_NAME = "Stack";
 in
@@ -177,17 +186,20 @@ in
             end
 
             local archive_note = function(prompt_bufnr)
-              move_note_to_vault(${LATTE_ROOT})
+              move_note_to_vault("${LATTE_ROOT}")
               refresh_picker(prompt_bufnr)
             end
 
             local publish_note = function(prompt_bufnr)
-              move_note_to_vault(${FRAPPUCCINO_ROOT})
+              move_note_to_vault("${FRAPPUCCINO_ROOT}")
               refresh_picker(prompt_bufnr)
             end
 
             local make_note_daily = function(prompt_bufnr)
-              local daily_note_path = string.format("${LATTE_ROOT}/%s.md", os.date("%Y/%m/%d %B, %Y"))
+              local daily_note_path = string.format(
+                "${LATTE_ROOT}/%s.md", 
+                os.date("%Y/%m/%d %B, %Y")
+              )
 
               move_note(daily_note_path)
               refresh_picker(prompt_bufnr)
