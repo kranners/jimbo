@@ -3,21 +3,24 @@
     plugins.conform-nvim = {
       enable = true;
 
-      formatOnSave = {
-        timeoutMs = 500;
-        lspFallback = true;
+      settings = {
+        format_on_save = {
+          timeout_ms = 500;
+          lsp_fallback = true;
+        };
+
+        formatters_by_fmt =
+          let
+            js-formatters = [ [ "eslint_d" "prettierd" ] ];
+          in
+          {
+            javascript = js-formatters;
+            javascriptreact = js-formatters;
+            typescript = js-formatters;
+            typescriptreact = js-formatters;
+          };
       };
 
-      formattersByFt =
-        let
-          jsFormatters = [ [ "eslint_d" "prettierd" ] ];
-        in
-        {
-          javascript = jsFormatters;
-          javascriptreact = jsFormatters;
-          typescript = jsFormatters;
-          typescriptreact = jsFormatters;
-        };
     };
 
     keymaps = [
