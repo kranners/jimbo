@@ -34,9 +34,6 @@
     noice.enable = true;
     indent-blankline.enable = true;
 
-    # FIXME: Markview looks pretty wonky at the moment
-    markview.enable = false;
-
     mini = {
       enable = true;
       modules = {
