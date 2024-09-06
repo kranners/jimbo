@@ -31,6 +31,21 @@ in
     package = if is-linux then pkgs.espanso-wayland else pkgs.espanso;
 
     matches = {
+      lua = {
+        matches = [
+          {
+            trigger = "%vimprint";
+            replace = "vim.print(vim.inspect($|$))";
+          }
+
+          {
+            trigger = "%luafunc";
+            replace = "function()\n  $|$\nend";
+          }
+
+        ];
+      };
+
       javascript = {
         matches = [
           {

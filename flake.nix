@@ -39,6 +39,16 @@
       url = "github:scottmckendry/cyberdream.nvim";
       flake = false;
     };
+
+    windline = {
+      url = "github:windwp/windline.nvim";
+      flake = false;
+    };
+
+    flatten = {
+      url = "github:willothy/flatten.nvim";
+      flake = false;
+    };
   };
 
   outputs =
