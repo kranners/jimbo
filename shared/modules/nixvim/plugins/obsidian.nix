@@ -24,6 +24,25 @@
           date_format = "%Y/%m/%d %B, %Y";
           template = "Daily.md";
         };
+
+        ui = {
+          enable = false;
+
+          checkboxes = {
+            " " = {
+              char = " ";
+              hl_group = "ObsidianTodo";
+            };
+            "~" = {
+              char = "~";
+              hl_group = "ObsidianTilde";
+            };
+            x = {
+              char = "x";
+              hl_group = "ObsidianDone";
+            };
+          };
+        };
       };
     };
 
@@ -129,13 +148,17 @@
               picker:refresh(nil, { reset_prompt = false })
             end
 
+            local move_note = function(new_filepath)
+              local filepath = action_state.get_selected_entry().value
+              local command = "mv " .. filepath .. ' "' .. new_filepath .. '"'
+              os.execute(command)
+            end
+
             local move_note_to_vault = function(vault)
               local filepath = action_state.get_selected_entry().value
               local note = obsidian_client:resolve_note(filepath)
 
-              local new_filepath = vault .. "/" .. note.aliases[1] .. ".md"
-              local command = "mv " .. filepath .. ' "' .. new_filepath .. '"'
-              os.execute(command)
+              move_note(vault .. "/" .. note.aliases[1] .. ".md")
             end
 
             local delete_note = function(prompt_bufnr)
@@ -155,6 +178,11 @@
               refresh_picker(prompt_bufnr)
             end
 
+            local make_note_daily = function(prompt_bufnr)
+              move_note(os.date("%Y/%m/%d %B, %Y") .. ".md")
+              refresh_picker(prompt_bufnr)
+            end
+
             local stack_notes = function(opts)
               opts = opts or {}
 
@@ -167,8 +195,9 @@
                 previewer = conf.file_previewer(opts),
                 attach_mappings = function(_, map)
                   map({ "i", "n" }, "<C-d>", delete_note)
-                  map({ "i", "n" }, "<C-m>", archive_note)
+                  map({ "i", "n" }, "<C-e>", archive_note)
                   map({ "i", "n" }, "<C-p>", publish_note)
+                  map({ "i", "n" }, "<C-m>", make_note_daily)
                   map({ "i", "n" }, "<CR>", actions.file_edit)
                   return true
                 end
