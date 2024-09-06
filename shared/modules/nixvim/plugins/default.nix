@@ -7,12 +7,10 @@
     ./overseer.nix
     ./toggleterm.nix
     ./telescope.nix
-    ./lualine.nix
     ./comment.nix
     ./luasnip.nix
     ./treesj.nix
     ./barbar.nix
-    ./portal.nix
     ./trouble.nix
     ./goto-preview.nix
     ./neotest.nix
@@ -22,6 +20,8 @@
     ./zen-mode.nix
     ./spectre.nix
     ./resession.nix
+    ./windline.nix
+    ./flatten.nix
   ];
 
   programs.nixvim.plugins = {
@@ -33,6 +33,7 @@
     which-key.enable = true;
     noice.enable = true;
     indent-blankline.enable = true;
+    gitsigns.enable = true;
 
     mini = {
       enable = true;
