@@ -34,6 +34,11 @@
       url = "github:scottmckendry/telescope-resession.nvim";
       flake = false;
     };
+
+    cyberdream = {
+      url = "github:scottmckendry/cyberdream.nvim";
+      flake = false;
+    };
   };
 
   outputs =
