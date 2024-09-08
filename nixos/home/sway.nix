@@ -25,7 +25,7 @@ let
         exit 0
       fi
 
-      if [[ "$FOCUSED_NODE_NAME" =~ ^"[0-9]+"$ ]]; then
+      if [[ "$FOCUSED_NODE_NAME" =~ ^\"[0-9]+\"$ ]]; then
         swaynag -t warning -m 'Shutdown?' -b 'Yes' 'shutdown now';
         exit 0
       fi
@@ -92,7 +92,6 @@ in
       # SUPER
       modifier = "Mod4";
 
-      # Configure monitors
       output = {
         ${left-monitor} = {
           mode = "2560x1440@164.956Hz";
@@ -125,10 +124,18 @@ in
         "5" = [{ class = "steam"; }];
 
         "6" = [{ app_id = "vesktop"; }];
-        "0" = [{ app_id = "firefox"; }];
+        "10" = [{ app_id = "firefox"; }];
       };
 
-      # Define when windows should float
+      startup = [
+        { command = "alacritty"; }
+        { command = "obsidian"; }
+        { command = "plexamp"; }
+        { command = "steam"; }
+        { command = "vesktop"; }
+        { command = "firefox"; }
+      ];
+
       floating.criteria = [
         { app_id = "pavucontrol"; }
         { app_id = "nemo"; }
