@@ -55,7 +55,7 @@ let
   };
 
   left-monitor = "LG Electronics LG ULTRAGEAR 112NTWGG8937";
-  right-monitor = "AOC G2770 0x000001F2";
+  right-monitor = "AOC G2770 FWJE7HA000498";
 in
 {
   # See: https://github.com/nix-community/home-manager/issues/5379
@@ -104,48 +104,18 @@ in
         };
       };
 
-      # WARNING: These output assignments are total nonsense. They make sense in my head, somehow
       workspaceOutputAssign = [
-        {
-          workspace = "1";
-          output = left-monitor;
-        }
-        {
-          workspace = "2";
-          output = left-monitor;
-        }
-        {
-          workspace = "3";
-          output = left-monitor;
-        }
-        {
-          workspace = "4";
-          output = right-monitor;
-        }
-        {
-          workspace = "5";
-          output = left-monitor;
-        }
-        {
-          workspace = "6";
-          output = right-monitor;
-        }
-        {
-          workspace = "7";
-          output = left-monitor;
-        }
-        {
-          workspace = "8";
-          output = right-monitor;
-        }
-        {
-          workspace = "9";
-          output = right-monitor;
-        }
-        {
-          workspace = "10";
-          output = right-monitor;
-        }
+        { workspace = "1"; output = left-monitor; }
+        { workspace = "2"; output = left-monitor; }
+        { workspace = "3"; output = left-monitor; }
+        { workspace = "4"; output = left-monitor; }
+        { workspace = "5"; output = left-monitor; }
+
+        { workspace = "6"; output = right-monitor; }
+        { workspace = "7"; output = right-monitor; }
+        { workspace = "8"; output = right-monitor; }
+        { workspace = "9"; output = right-monitor; }
+        { workspace = "10"; output = right-monitor; }
       ];
 
       # Define when windows should float
