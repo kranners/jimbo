@@ -33,7 +33,7 @@ in
 
         open_notes_in = "current";
 
-        templates.subdir = "Templates";
+        templates.subdir = "${LATTE_ROOT}/Templates";
 
         daily_notes = {
           date_format = "%Y/%m/%d %B, %Y";
@@ -114,7 +114,7 @@ in
       }
 
       {
-        key = "<Leader><Tab>";
+        key = "<C-Tab>";
         action.__raw = ''
           function()
             local pickers = require("telescope.pickers")
@@ -234,6 +234,140 @@ in
           end
         '';
         options = { desc = "Open note stack"; };
+        mode = "n";
+      }
+
+      {
+        key = "<Leader><Tab>";
+        action.__raw = ''
+          function()
+            local pickers = require("telescope.pickers")
+            local finders = require("telescope.finders")
+            local conf = require("telescope.config").values
+            local actions = require("telescope.actions")
+            local action_state = require("telescope.actions.state")
+
+            local obsidian_client = require("obsidian").get_client()
+
+            local entry_maker = function(line)
+              local note = obsidian_client:resolve_note(line)
+
+              local path = vim.split(line, "/")
+              local name = path[#path]
+
+              return {
+                display = note.aliases[1] or name or line,
+                ordinal = line,
+                value = line,
+              }
+            end
+
+            local note_grepper = function(prompt)
+              if not prompt or prompt == "" then
+                return {
+                  "rg",
+                  ".*",
+                  "${LATTE_ROOT}",
+                  "${FRAPPUCCINO_ROOT}",
+                  "--files-with-matches",
+                }
+              end
+
+              local prompt_words = vim.split(prompt, "%s")
+              local prompt_as_rg_and = table.concat(prompt_words, ".*")
+
+              return {
+                "rg",
+                "--ignore-case",
+                "--multiline",
+                "--multiline-dotall",
+                prompt_as_rg_and,
+                "${LATTE_ROOT}",
+                "${FRAPPUCCINO_ROOT}",
+                "--files-with-matches",
+              }
+            end
+
+            local refresh_picker = function(prompt_bufnr)
+              local picker = action_state.get_current_picker(prompt_bufnr)
+              picker:refresh(nil, { reset_prompt = false })
+            end
+
+            local get_selected_filepath = function()
+              return action_state.get_selected_entry().value
+            end
+
+            local move_note = function(new_filepath)
+              local filepath = get_selected_filepath()
+              local command = string.format('mv "%s" "%s"', filepath, new_filepath)
+
+              vim.notify("Moved note to " .. new_filepath)
+              os.execute(command)
+            end
+
+            local move_note_to_vault = function(vault)
+              local filepath = get_selected_filepath()
+              local note = obsidian_client:resolve_note(filepath)
+
+              move_note(vault .. "/" .. note.aliases[1] .. ".md")
+            end
+
+            local delete_note = function(prompt_bufnr)
+              local filepath = get_selected_filepath()
+              os.execute("rm " .. filepath)
+              vim.notify("Deleted note " .. filepath)
+              refresh_picker(prompt_bufnr)
+            end
+
+            local archive_note = function(prompt_bufnr)
+              move_note_to_vault("${LATTE_ROOT}")
+              refresh_picker(prompt_bufnr)
+            end
+
+            local publish_note = function(prompt_bufnr)
+              move_note_to_vault("${FRAPPUCCINO_ROOT}")
+              refresh_picker(prompt_bufnr)
+            end
+
+            local make_note_daily = function(prompt_bufnr)
+              local daily_note_path = string.format(
+                "${LATTE_ROOT}/%s.md", 
+                os.date("%Y/%m/%d %B, %Y")
+              )
+
+              move_note(daily_note_path)
+              refresh_picker(prompt_bufnr)
+            end
+
+            local stack_notes = function(opts)
+              opts = opts or {}
+
+              local picker = pickers.new(opts, {
+                prompt_title = "All Notes",
+                prompt_prefix = "🏫 ",
+                finder = finders.new_job(
+                  note_grepper,
+                  entry_maker
+                ),
+                previewer = conf.file_previewer(opts),
+                attach_mappings = function(_, map)
+                  map({ "i", "n" }, "<C-d>", delete_note)
+                  map({ "i", "n" }, "<C-e>", archive_note)
+                  map({ "i", "n" }, "<C-p>", publish_note)
+                  map({ "i", "n" }, "<C-m>", make_note_daily)
+                  map({ "i", "n" }, "<C-Space>", actions.delete_buffer)
+                  map({ "i", "n" }, "<CR>", actions.file_edit)
+                  return true
+                end
+              })
+
+              picker:find()
+            end
+
+            stack_notes()
+          end
+        '';
+        options = { desc = "Open full note search"; };
         mode = "n";
       }
     ];
