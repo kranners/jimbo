@@ -143,6 +143,8 @@
           "pulseaudio"
           "custom/icon-bluetooth"
           "bluetooth"
+          "custom/icon-space-left"
+          "network"
           "custom/icon-clock"
           "clock"
           "custom/notifications"
@@ -224,6 +226,13 @@
           format = "{status}";
           on-click = "${pkgs.blueberry}/bin/blueberry";
         };
+
+        network = {
+          interface = "enp42s0";
+          format = "{ifname}";
+          format-wifi = " {essid} ({signalStrength}%)";
+          format-ethernet = "󰈀 {ipaddr}";
+        };
       };
 
     style =
@@ -266,6 +275,7 @@
         #bluetooth,
         #clock,
         #pulseaudio,
+        #network,
         #workspaces {
             background: @bg-light;
         }
@@ -303,6 +313,7 @@
         #custom-power-logout,
         #custom-power-reboot,
         #custom-suspend,
+        #network,
         #tray {
             margin-bottom: ${space-sm};
             margin-top: ${space-sm};
@@ -326,7 +337,8 @@
             padding-right: ${space-md};
         }
 
-        #custom-icon-tray {
+        #custom-icon-tray,
+        #network {
             padding-left: ${space-sm};
         }
 
@@ -338,6 +350,7 @@
         #bluetooth,
         #clock,
         #custom-icon-tray,
+        #network,
         #pulseaudio {
             border-radius: 0 ${space-sm} ${space-sm} 0;
             margin-right: ${space-lg};
