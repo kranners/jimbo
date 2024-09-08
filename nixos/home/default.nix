@@ -26,7 +26,6 @@ in
     ./obs-studio.nix
     ./avizo.nix
     ./easyeffects.nix
-    ./foot.nix
     ./firefox.nix
     ./plexamp.nix
     ./wallpaper.nix
