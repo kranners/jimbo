@@ -25,7 +25,7 @@ let
         exit 0
       fi
 
-      if [[ "$FOCUSED_NODE_NAME" =~ ^\"[0-9]+\"$ ]]; then
+      if [[ "$FOCUSED_NODE_NAME" =~ ^"[0-9]+"$ ]]; then
         swaynag -t warning -m 'Shutdown?' -b 'Yes' 'shutdown now';
         exit 0
       fi
@@ -118,6 +118,16 @@ in
         { workspace = "10"; output = right-monitor; }
       ];
 
+      assigns = {
+        "1" = [{ app_id = "Alacritty"; }];
+        "2" = [{ class = "obsidian"; }];
+        "3" = [{ class = "Plexamp"; }];
+        "5" = [{ class = "steam"; }];
+
+        "6" = [{ app_id = "vesktop"; }];
+        "0" = [{ app_id = "firefox"; }];
+      };
+
       # Define when windows should float
       floating.criteria = [
         { app_id = "pavucontrol"; }
@@ -191,13 +201,6 @@ in
           "${modifier}+Shift+0" = "move container to workspace number 10";
 
           "${modifier}+Shift+c" = "reload";
-
-          "${modifier}+Ctrl+1" = "assign [app_id=\"Alacritty\"] workspace number 1 ; exec alacritty";
-          "${modifier}+Ctrl+2" = "assign [class=\"obsidian\"] workspace number 2 ; exec obsidian";
-          "${modifier}+Ctrl+3" = "assign [class=\"Plexamp\"] workspace number 3 ; exec plexamp";
-          "${modifier}+Ctrl+4" = "assign [app_id=\"vesktop\"] workspace number 4 ; exec vesktop";
-          "${modifier}+Ctrl+5" = "assign [class=\"steam\"] workspace number 5 ; exec steam";
-          "${modifier}+Ctrl+0" = "assign [app_id=\"firefox\"] workspace number 10 ; exec firefox";
         };
     };
   };
