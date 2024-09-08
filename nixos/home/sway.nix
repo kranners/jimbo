@@ -55,7 +55,7 @@ let
   };
 
   left-monitor = "LG Electronics LG ULTRAGEAR 112NTWGG8937";
-  right-monitor = "AOC G2770 0x000001F2";
+  right-monitor = "AOC G2770 FWJE7HA000498";
 in
 {
   # See: https://github.com/nix-community/home-manager/issues/5379
@@ -92,7 +92,6 @@ in
       # SUPER
       modifier = "Mod4";
 
-      # Configure monitors
       output = {
         ${left-monitor} = {
           mode = "2560x1440@164.956Hz";
@@ -104,51 +103,39 @@ in
         };
       };
 
-      # WARNING: These output assignments are total nonsense. They make sense in my head, somehow
       workspaceOutputAssign = [
-        {
-          workspace = "1";
-          output = left-monitor;
-        }
-        {
-          workspace = "2";
-          output = left-monitor;
-        }
-        {
-          workspace = "3";
-          output = left-monitor;
-        }
-        {
-          workspace = "4";
-          output = right-monitor;
-        }
-        {
-          workspace = "5";
-          output = left-monitor;
-        }
-        {
-          workspace = "6";
-          output = right-monitor;
-        }
-        {
-          workspace = "7";
-          output = left-monitor;
-        }
-        {
-          workspace = "8";
-          output = right-monitor;
-        }
-        {
-          workspace = "9";
-          output = right-monitor;
-        }
-        {
-          workspace = "10";
-          output = right-monitor;
-        }
+        { workspace = "1"; output = left-monitor; }
+        { workspace = "2"; output = left-monitor; }
+        { workspace = "3"; output = left-monitor; }
+        { workspace = "4"; output = left-monitor; }
+        { workspace = "5"; output = left-monitor; }
+
+        { workspace = "6"; output = right-monitor; }
+        { workspace = "7"; output = right-monitor; }
+        { workspace = "8"; output = right-monitor; }
+        { workspace = "9"; output = right-monitor; }
+        { workspace = "10"; output = right-monitor; }
       ];
 
-      # Define when windows should float
+      assigns = {
+        "1" = [{ app_id = "Alacritty"; }];
+        "2" = [{ class = "obsidian"; }];
+        "3" = [{ class = "Plexamp"; }];
+        "5" = [{ class = "steam"; }];
+
+        "6" = [{ app_id = "vesktop"; }];
+        "10" = [{ app_id = "firefox"; }];
+      };
+
+      startup = [
+        { command = "alacritty"; }
+        { command = "obsidian"; }
+        { command = "plexamp"; }
+        { command = "steam"; }
+        { command = "vesktop"; }
+        { command = "firefox"; }
+      ];
+
       floating.criteria = [
         { app_id = "pavucontrol"; }
         { app_id = "nemo"; }
@@ -221,13 +208,6 @@ in
           "${modifier}+Shift+0" = "move container to workspace number 10";
 
           "${modifier}+Shift+c" = "reload";
-
-          "${modifier}+Ctrl+1" = "assign [app_id=\"Alacritty\"] workspace number 1 ; exec alacritty";
-          "${modifier}+Ctrl+2" = "assign [class=\"obsidian\"] workspace number 2 ; exec obsidian";
-          "${modifier}+Ctrl+3" = "assign [class=\"Plexamp\"] workspace number 3 ; exec plexamp";
-          "${modifier}+Ctrl+4" = "assign [app_id=\"vesktop\"] workspace number 4 ; exec vesktop";
-          "${modifier}+Ctrl+5" = "assign [class=\"steam\"] workspace number 5 ; exec steam";
-          "${modifier}+Ctrl+0" = "assign [app_id=\"firefox\"] workspace number 10 ; exec firefox";
         };
     };
   };
