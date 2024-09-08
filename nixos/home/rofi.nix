@@ -11,8 +11,6 @@
     package = pkgs.rofi-wayland;
 
     plugins = [
-      pkgs.rofi-emoji
-      pkgs.rofi-calc
       (pkgs.callPackage ../../shared/packages/rofi-games { })
     ];
 
@@ -21,7 +19,7 @@
     theme = "material";
 
     extraConfig = {
-      modi = "window,drun,emoji,calc,games";
+      modi = "window,drun,games";
 
       icon-theme = "Oranchelo";
 
@@ -36,8 +34,8 @@
 
       drun-display-format = "{icon} {name}";
 
-      display-drun = "Apps";
       display-window = "Window";
+      display-drun = "Apps";
       display-games = "Games";
     };
   };
