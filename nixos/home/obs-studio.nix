@@ -1,9 +1,4 @@
-{ config
-, pkgs
-, lib
-, inputs
-, ...
-}:
+{ config, pkgs, ... }:
 let
   modifier = config.wayland.windowManager.sway.config.modifier;
 
