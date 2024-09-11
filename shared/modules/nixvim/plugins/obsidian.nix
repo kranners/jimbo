@@ -125,11 +125,19 @@ in
 
             local obsidian_client = require("obsidian").get_client()
 
+            local daily_note_path = string.format(
+              "${LATTE_ROOT}/%s.md", 
+              os.date("%Y/%m/%d %B, %Y")
+            )
+
             local entry_maker = function(line)
               local note = obsidian_client:resolve_note(line)
 
+              local path = vim.split(line, "/")
+              local name = path[#path]
+
               return {
-                display = note.aliases[1],
+                display = note.aliases[1] or name or line,
                 ordinal = line,
                 value = line,
               }
@@ -137,7 +145,13 @@ in
 
             local note_grepper = function(prompt)
               if not prompt or prompt == "" then
-                return { "find", "${LATTE_ROOT}/${STACK_DIR_NAME}", "-type", "f" }
+                return {
+                  "rg",
+                  ".*",
+                  "${LATTE_ROOT}/${STACK_DIR_NAME}",
+                  daily_note_path,
+                  "--files-with-matches",
+                }
               end
 
               local prompt_words = vim.split(prompt, "%s")
@@ -150,6 +164,7 @@ in
                 "--multiline-dotall",
                 prompt_as_rg_and,
                 "${LATTE_ROOT}/${STACK_DIR_NAME}",
+                daily_note_path,
                 "--files-with-matches",
               }
             end
@@ -180,7 +195,7 @@ in
 
             local delete_note = function(prompt_bufnr)
               local filepath = get_selected_filepath()
-              os.execute("rm " .. filepath)
+              os.execute(string.format('rm "%s"', filepath))
               vim.notify("Deleted note " .. filepath)
               refresh_picker(prompt_bufnr)
             end
@@ -196,11 +211,6 @@ in
             end
 
             local make_note_daily = function(prompt_bufnr)
-              local daily_note_path = string.format(
-                "${LATTE_ROOT}/%s.md", 
-                os.date("%Y/%m/%d %B, %Y")
-              )
-
               move_note(daily_note_path)
               refresh_picker(prompt_bufnr)
             end
@@ -314,7 +324,7 @@ in
 
             local delete_note = function(prompt_bufnr)
               local filepath = get_selected_filepath()
-              os.execute("rm " .. filepath)
+              os.execute(string.format('rm "%s"', filepath))
               vim.notify("Deleted note " .. filepath)
               refresh_picker(prompt_bufnr)
             end
