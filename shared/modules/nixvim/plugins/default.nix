@@ -1,4 +1,4 @@
-{ inputs, pkgs, ... }: {
+{
   imports = [
     ./cmp.nix
     ./conform.nix
@@ -34,24 +34,6 @@
     which-key.enable = true;
     indent-blankline.enable = true;
     gitsigns.enable = true;
-
-    mini = {
-      enable = true;
-      modules = {
-        animate = {
-          resize.enable = false;
-        };
-      };
-    };
-  };
-
-  programs.nixvim = {
-    extraPlugins = with inputs.awesome-neovim-plugins.packages.${pkgs.system}; [
-      colorful-winsep-nvim
-    ];
-
-    extraConfigLua = ''
-      require('colorful-winsep').setup()
-    '';
+    neoscroll.enable = true;
   };
 }

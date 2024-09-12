@@ -7,5 +7,7 @@
     tabstop = 2;
 
     shiftwidth = 0;
+
+    swapfile = false;
   };
 }
