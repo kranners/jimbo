@@ -47,6 +47,18 @@ resession.add_hook(
     end
 
     overseer.load_task_bundle(get_cwd_as_name(), { ignore_missing = true })
+
+    local bufs = vim.api.nvim_list_bufs()
+    for _, buf in ipairs(bufs) do
+      local line_count = vim.api.nvim_buf_line_count(buf)
+
+      if line_count <= 1 then
+        vim.api.nvim_buf_delete(buf, { force = true })
+
+        local message = string.format("Closed empty buffer %s", buf)
+        vim.print(message)
+      end
+    end
   end
 )
 
