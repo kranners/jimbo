@@ -18,12 +18,12 @@
     ./obsidian.nix
     ./codesnap.nix
     ./zen-mode.nix
-    ./spectre.nix
     ./resession.nix
     ./windline.nix
     ./flatten.nix
     ./noice.nix
     ./firenvim.nix
+    ./grug-far.nix
   ];
 
   programs.nixvim.plugins = {

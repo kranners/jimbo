@@ -49,6 +49,11 @@
       url = "github:willothy/flatten.nvim";
       flake = false;
     };
+
+    grug-far = {
+      url = "github:MagicDuck/grug-far.nvim";
+      flake = false;
+    };
   };
 
   outputs =
