@@ -22,6 +22,8 @@ in
           "Ctrl n"
           "Ctrl p"
           "Ctrl /"
+          "Ctrl ]"
+          "Ctrl ["
         ];
       };
     };
