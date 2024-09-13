@@ -57,10 +57,14 @@ in
   programs.git = {
     enable = true;
 
+    difftastic.enable = true;
+
     aliases = {
       cram = "commit --amend --no-edit --no-verify";
       s = "status";
     };
+
+    extraConfig.init.defaultBranch = "main";
   };
 
   # Set TTY for GPG to do hardware signing on commits

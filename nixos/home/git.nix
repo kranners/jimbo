@@ -6,21 +6,10 @@
     userEmail = "aaron@cute.engineer";
 
     extraConfig = {
-      push = {
-        autoSetupRemote = true;
-      };
-
-      user = {
-        signingkey = "53EAEA9DA697D60B";
-      };
-
-      commit = {
-        gpgsign = true;
-      };
-
-      core = {
-        editor = "nvim -b";
-      };
+      push.autoSetupRemote = true;
+      user.signingkey = "53EAEA9DA697D60B";
+      commit.gpgsign = true;
+      core.editor = "nvim -b";
     };
   };
 }
