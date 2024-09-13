@@ -4,7 +4,6 @@ local conf = require("telescope.config").values
 local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
 
-local client = require("obsidian").get_client()
 local util = require("obsidian.util")
 
 local home = os.getenv("HOME")
@@ -12,6 +11,8 @@ local home = os.getenv("HOME")
 local latte_root = vim.fn.resolve(home .. "/Documents/Latte")
 local frappuccino_root = vim.fn.resolve(home .. "/workspace/frappuccino/docs")
 local stack_root = vim.fn.resolve(latte_root .. "/Stack")
+
+local client = require("obsidian").get_client({ dir = latte_root })
 
 local prompt_for_new_note = function()
   -- If we are currently in a floating window, just close that instead
@@ -222,18 +223,5 @@ local all_notes = function(opts)
 end
 
 vim.keymap.set("n", "<Tab>", prompt_for_new_note)
-vim.keymap.set("n", "<C-Tab>", stack_notes)
+vim.keymap.set("n", "<C-s>", stack_notes)
 vim.keymap.set("n", "<Leader><Tab>", all_notes)
-
--- Surround selected text as mark
--- Stolen from linkarzu: https://github.com/linkarzu/dotfiles-latest/blob/main/neovim/neobean/lua/config/keymaps.lua#L829C1-L848C38
-vim.keymap.set("v", "<C-k>", function()
-  vim.cmd("let @a = getreg('+')")
-  vim.cmd("normal d")
-  vim.cmd("startinsert")
-  vim.api.nvim_put({ "[]() " }, "c", true, true)
-  vim.cmd("normal F[pf(")
-  vim.cmd("call setreg('+', @a)")
-  vim.cmd("normal p")
-  vim.cmd("stopinsert")
-end, { desc = "[P]Convert to link" })
