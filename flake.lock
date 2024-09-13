@@ -282,6 +282,22 @@
         "type": "github"
       }
     },
+    "grug-far": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1725881415,
+        "narHash": "sha256-E3JIy9nZHWpWUXzg186T+/kGaw9PfxZW0jfA7+whyH4=",
+        "owner": "MagicDuck",
+        "repo": "grug-far.nvim",
+        "rev": "76d86580f71bd2f07d4264c782ab8d1c12302e13",
+        "type": "github"
+      },
+      "original": {
+        "owner": "MagicDuck",
+        "repo": "grug-far.nvim",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -549,6 +565,7 @@
         "cyberdream": "cyberdream",
         "firefox-addons": "firefox-addons",
         "flatten": "flatten",
+        "grug-far": "grug-far",
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
         "nix-vscode-extensions": "nix-vscode-extensions",
