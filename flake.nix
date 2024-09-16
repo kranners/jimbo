@@ -54,11 +54,6 @@
       url = "github:MagicDuck/grug-far.nvim";
       flake = false;
     };
-
-    catppuccin-zellij = {
-      url = "github:catppuccin/zellij";
-      flake = false;
-    };
   };
 
   outputs =
