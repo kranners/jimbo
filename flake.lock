@@ -20,22 +20,6 @@
         "type": "github"
       }
     },
-    "catppuccin-zellij": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1725130447,
-        "narHash": "sha256-X00xZghPrHdLWZMUCxpjqqRRcdGrLIiW03YHDJmruPc=",
-        "owner": "catppuccin",
-        "repo": "zellij",
-        "rev": "aaabdd0af9b4cf5a8c0d2195f8fdebdc8a015250",
-        "type": "github"
-      },
-      "original": {
-        "owner": "catppuccin",
-        "repo": "zellij",
-        "type": "github"
-      }
-    },
     "cyberdream": {
       "flake": false,
       "locked": {
@@ -578,7 +562,6 @@
     "root": {
       "inputs": {
         "awesome-neovim-plugins": "awesome-neovim-plugins",
-        "catppuccin-zellij": "catppuccin-zellij",
         "cyberdream": "cyberdream",
         "firefox-addons": "firefox-addons",
         "flatten": "flatten",

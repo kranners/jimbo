@@ -18,7 +18,7 @@ in
       }
 
       {
-        key = "<Leader>l";
+        key = "<C-BS>";
         action = "<CMD>OverseerQuickAction open float<CR>";
         options = { desc = "Open last task"; };
         mode = "n";
