@@ -21,5 +21,7 @@
     pkgs.prettierd
 
     pkgs.devenv
+    pkgs.just
+    pkgs.broot
   ];
 }
