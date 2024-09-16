@@ -17,7 +17,6 @@
     ./treesitter.nix
     ./obsidian.nix
     ./codesnap.nix
-    ./zen-mode.nix
     ./resession.nix
     ./windline.nix
     ./flatten.nix
@@ -35,5 +34,6 @@
     indent-blankline.enable = true;
     gitsigns.enable = true;
     neoscroll.enable = true;
+    zen-mode.enable = true;
   };
 }
