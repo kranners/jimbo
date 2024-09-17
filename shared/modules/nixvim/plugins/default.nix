@@ -21,7 +21,6 @@
     ./windline.nix
     ./flatten.nix
     ./noice.nix
-    ./firenvim.nix
     ./grug-far.nix
   ];
 
