@@ -39,14 +39,14 @@ in
       }
 
       {
-        key = "<Leader>[";
+        key = "<C-[>";
         action = "<C-o>";
         options = { desc = "Jump back to last entry in jumplist"; };
         mode = "n";
       }
 
       {
-        key = "<Leader>]";
+        key = "<C-]>";
         action = "<C-i>";
         options = { desc = "Jump forward to next entry in jumplist"; };
         mode = "n";

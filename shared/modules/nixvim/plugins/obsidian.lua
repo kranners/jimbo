@@ -223,5 +223,5 @@ local all_notes = function(opts)
 end
 
 vim.keymap.set("n", "<Tab>", prompt_for_new_note)
-vim.keymap.set("n", "<C-s>", stack_notes)
+vim.keymap.set("n", "<C-Tab>", stack_notes)
 vim.keymap.set("n", "<Leader><Tab>", all_notes)
