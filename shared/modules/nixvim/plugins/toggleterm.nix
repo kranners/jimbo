@@ -3,7 +3,7 @@
     plugins.toggleterm = {
       enable = true;
       settings = {
-        direction = "float";
+        direction = "vertical";
         size = 40;
         hide_numbers = false;
       };

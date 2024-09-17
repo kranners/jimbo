@@ -22,6 +22,7 @@
     ./flatten.nix
     ./noice.nix
     ./grug-far.nix
+    ./zen-mode.nix
   ];
 
   programs.nixvim.plugins = {
@@ -33,6 +34,5 @@
     indent-blankline.enable = true;
     gitsigns.enable = true;
     neoscroll.enable = true;
-    zen-mode.enable = true;
   };
 }

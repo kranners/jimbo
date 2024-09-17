@@ -4,15 +4,32 @@ local conf = require("telescope.config").values
 local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
 
-local util = require("obsidian.util")
-
 local home = os.getenv("HOME")
 
 local latte_root = vim.fn.resolve(home .. "/Documents/Latte")
 local frappuccino_root = vim.fn.resolve(home .. "/workspace/frappuccino/docs")
 local stack_root = vim.fn.resolve(latte_root .. "/Stack")
 
+require("obsidian").setup({
+  daily_notes = { date_format = "%Y/%m/%d %B, %Y", template = "Daily.md" },
+  open_notes_in = "current",
+  templates = { subdir = latte_root .. "/Templates" },
+  ui = {
+    checkboxes = {
+      [" "] = { char = " ", hl_group = "ObsidianTodo", order = 100 },
+      ["~"] = { char = "~", hl_group = "ObsidianTilde", order = 200 },
+      ["x"] = { char = "x", hl_group = "ObsidianDone", order = 300 },
+    },
+    enable = false,
+  },
+  workspaces = {
+    { name = "Latte",       path = latte_root },
+    { name = "Frappuccino", path = frappuccino_root },
+  },
+})
+
 local client = require("obsidian").get_client({ dir = latte_root })
+local util = require("obsidian.util")
 
 local prompt_for_new_note = function()
   -- If we are currently in a floating window, just close that instead
