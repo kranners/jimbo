@@ -230,6 +230,22 @@
         "type": "github"
       }
     },
+    "fzf-lua-resession": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1727353223,
+        "narHash": "sha256-MfhxXpuZ8wEbFerlShJ0vimSBJbC9QY70fRN5NKdFH8=",
+        "ref": "refs/heads/master",
+        "rev": "d1eb3e1fdb19271b6f2a63c6944e2295f3d0a407",
+        "revCount": 1,
+        "type": "git",
+        "url": "ssh://git@github.com/roastedramen/fzf-lua-resession.nvim"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/roastedramen/fzf-lua-resession.nvim"
+      }
+    },
     "git-hooks": {
       "inputs": {
         "flake-compat": [
@@ -565,6 +581,7 @@
         "cyberdream": "cyberdream",
         "firefox-addons": "firefox-addons",
         "flatten": "flatten",
+        "fzf-lua-resession": "fzf-lua-resession",
         "grug-far": "grug-far",
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
@@ -573,7 +590,6 @@
         "nixvim": "nixvim",
         "nur": "nur",
         "resession": "resession",
-        "telescope-resession": "telescope-resession",
         "toggleterm-manager": "toggleterm-manager",
         "windline": "windline"
       }
@@ -620,22 +636,6 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
-        "type": "github"
-      }
-    },
-    "telescope-resession": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1719167594,
-        "narHash": "sha256-j5mSvv+NaLLIbIr3h9i+v9bxH9O4dX02QzsRSppMYT4=",
-        "owner": "scottmckendry",
-        "repo": "telescope-resession.nvim",
-        "rev": "a5dd49e7324ecee4ba662032301cc8a4ceb51eaa",
-        "type": "github"
-      },
-      "original": {
-        "owner": "scottmckendry",
-        "repo": "telescope-resession.nvim",
         "type": "github"
       }
     },

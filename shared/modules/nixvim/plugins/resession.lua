@@ -1,6 +1,18 @@
 local resession = require('resession')
 local overseer = require('overseer')
 
+local set_alacritty_window_name = function(name)
+  local window_id = os.getenv("ALACRITTY_WINDOW_ID")
+
+  local rename_command = string.format(
+    'alacritty msg config --window-id "%s" "window.title=\'%s\'"',
+    window_id,
+    name
+  )
+
+  os.execute(rename_command)
+end
+
 resession.setup({
   autosave = {
     enabled = true,
@@ -13,6 +25,14 @@ resession.setup({
       status = "RUNNING",
     },
   }
+})
+
+vim.api.nvim_create_autocmd("VimLeavePre", {
+  callback = function()
+    -- Reset the name whenever leaving the session
+    local pokemon_name = os.getenv("CURRENT_POKEMON")
+    set_alacritty_window_name(pokemon_name)
+  end
 })
 
 resession.add_hook(
@@ -59,6 +79,15 @@ resession.add_hook(
         vim.print(message)
       end
     end
+
+    -- Rename Alacritty to include the session name
+    local session_path = vim.split(vim.fn.getcwd(), "/")
+    local session_name = table.remove(session_path)
+
+    local pokemon_name = os.getenv("CURRENT_POKEMON")
+    local window_name = string.format("%s (%s)", session_name, pokemon_name)
+
+    set_alacritty_window_name(window_name)
   end
 )
 

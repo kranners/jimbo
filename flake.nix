@@ -30,11 +30,6 @@
       flake = false;
     };
 
-    telescope-resession = {
-      url = "github:scottmckendry/telescope-resession.nvim";
-      flake = false;
-    };
-
     cyberdream = {
       url = "github:scottmckendry/cyberdream.nvim";
       flake = false;
@@ -52,6 +47,11 @@
 
     grug-far = {
       url = "github:MagicDuck/grug-far.nvim";
+      flake = false;
+    };
+
+    fzf-lua-resession = {
+      url = "git+ssh://git@github.com/roastedramen/fzf-lua-resession.nvim";
       flake = false;
     };
   };

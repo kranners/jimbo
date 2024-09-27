@@ -6,18 +6,10 @@ let
     src = inputs.resession;
     meta.homepage = "https://github.com/stevearc/resession.nvim";
   };
-
-  telescope-resession = pkgs.vimUtils.buildVimPlugin {
-    pname = "telescope-resession";
-    version = "2024-08-20";
-    src = inputs.telescope-resession;
-    meta.homepage = "https://github.com/scottmckendry/telescope-resession.nvim";
-  };
 in
 {
   programs.nixvim = {
-    extraPlugins = [ resession telescope-resession ];
-
+    extraPlugins = [ resession ];
     extraConfigLua = builtins.readFile ./resession.lua;
 
     keymaps = [
@@ -29,13 +21,6 @@ in
           end
         '';
         options = { desc = "Save session"; };
-        mode = "n";
-      }
-
-      {
-        key = "<Leader>L";
-        action = "<CMD>Telescope resession<CR>";
-        options = { desc = "Find session"; };
         mode = "n";
       }
     ];
