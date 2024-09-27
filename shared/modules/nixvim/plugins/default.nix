@@ -23,6 +23,7 @@
     ./noice.nix
     ./grug-far.nix
     ./zen-mode.nix
+    ./fzf.nix
   ];
 
   programs.nixvim.plugins = {

@@ -26,6 +26,9 @@ require("obsidian").setup({
     { name = "Latte",       path = latte_root },
     { name = "Frappuccino", path = frappuccino_root },
   },
+  follow_url_func = function(url)
+    vim.fn.jobstart({ "open", url })
+  end
 })
 
 local client = require("obsidian").get_client({ dir = latte_root })
@@ -84,9 +87,11 @@ local entry_maker = function(line)
   local path = vim.split(line, "/")
   local name = path[#path]
 
+  local value = note.aliases[1] or name or line
+
   return {
-    display = note.aliases[1] or name or line,
-    ordinal = line,
+    display = value,
+    ordinal = value,
     value = line,
   }
 end
