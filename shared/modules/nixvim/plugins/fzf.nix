@@ -31,6 +31,20 @@ in
 
     keymaps = [
       {
+        key = "]";
+        action = "<CMD>FzfLua lsp_definitions<CR>";
+        options = { desc = "Search definitions"; };
+        mode = "n";
+      }
+
+      {
+        key = "[";
+        action = "<CMD>FzfLua lsp_references<CR>";
+        options = { desc = "Search references"; };
+        mode = "n";
+      }
+
+      {
         key = "<C-f>";
         action = "<CMD>FzfLua live_grep<CR>";
         options = { desc = "Fuzzy find file contents"; };

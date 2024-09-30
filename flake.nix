@@ -54,6 +54,11 @@
       url = "git+ssh://git@github.com/roastedramen/fzf-lua-resession.nvim";
       flake = false;
     };
+
+    neorepl = {
+      url = "github:ii14/neorepl.nvim";
+      flake = false;
+    };
   };
 
   outputs =

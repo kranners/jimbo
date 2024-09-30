@@ -12,7 +12,6 @@
     ./treesj.nix
     ./barbar.nix
     ./trouble.nix
-    ./goto-preview.nix
     ./neotest.nix
     ./treesitter.nix
     ./obsidian.nix
@@ -24,6 +23,7 @@
     ./grug-far.nix
     ./zen-mode.nix
     ./fzf.nix
+    ./neorepl.nix
   ];
 
   programs.nixvim.plugins = {
