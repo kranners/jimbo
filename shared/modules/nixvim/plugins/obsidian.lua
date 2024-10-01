@@ -1,11 +1,6 @@
-local pickers = require("telescope.pickers")
-local finders = require("telescope.finders")
-local conf = require("telescope.config").values
-local actions = require("telescope.actions")
-local action_state = require("telescope.actions.state")
+local fzf_lua = require("fzf-lua")
 
 local home = os.getenv("HOME")
-
 local latte_root = vim.fn.resolve(home .. "/Documents/Latte")
 local frappuccino_root = vim.fn.resolve(home .. "/workspace/frappuccino/docs")
 local stack_root = vim.fn.resolve(latte_root .. "/Stack")
@@ -52,7 +47,12 @@ local prompt_for_new_note = function()
     return
   end
 
-  local note = client:create_note({ title = title, no_write = true, dir = stack_root })
+  local note = client:create_note({
+    title = title,
+    no_write = true,
+    dir = stack_root,
+    id = title
+  })
 
   local width = math.ceil(math.min(150, vim.o.columns * 0.8))
   local height = math.ceil(math.min(35, vim.o.lines * 0.5))
@@ -75,173 +75,124 @@ local prompt_for_new_note = function()
   client:write_note_to_buffer(note)
 end
 
-local daily_note_path = string.format(
-  "%s/%s.md",
-  latte_root,
-  os.date("%Y/%m/%d %B, %Y")
-)
+local move_note_to_vault = function(file, vault)
+  local note = client:resolve_note(file)
 
-local entry_maker = function(line)
-  local note = client:resolve_note(line)
-
-  local path = vim.split(line, "/")
-  local name = path[#path]
-
-  local value = note.aliases[1] or name or line
-
-  return {
-    display = value,
-    ordinal = value,
-    value = line,
-  }
-end
-
-local note_grepper = function(prompt)
-  if not prompt or prompt == "" then
-    return {
-      "rg",
-      ".*",
-      stack_root,
-      daily_note_path,
-      "--files-with-matches",
-    }
-  end
-
-  local prompt_words = vim.split(prompt, "%s")
-  local prompt_as_rg_and = table.concat(prompt_words, ".*")
-
-  return {
-    "rg",
-    "--ignore-case",
-    "--multiline",
-    "--multiline-dotall",
-    prompt_as_rg_and,
-    stack_root,
-    daily_note_path,
-    "--files-with-matches",
-  }
-end
-
-local all_note_grepper = function(prompt)
-  if not prompt or prompt == "" then
-    return {
-      "rg",
-      ".*",
-      latte_root,
-      frappuccino_root,
-      "--files-with-matches",
-    }
-  end
-
-  local prompt_words = vim.split(prompt, "%s")
-  local prompt_as_rg_and = table.concat(prompt_words, ".*")
-
-  return {
-    "rg",
-    "--ignore-case",
-    "--multiline",
-    "--multiline-dotall",
-    prompt_as_rg_and,
-    latte_root,
-    frappuccino_root,
-    "--files-with-matches",
-  }
-end
-
-local refresh_picker = function(prompt_bufnr)
-  local picker = action_state.get_current_picker(prompt_bufnr)
-  picker:refresh(nil, { reset_prompt = false })
-end
-
-local get_selected_filepath = function()
-  return action_state.get_selected_entry().value
-end
-
-local move_note = function(new_filepath)
-  local filepath = get_selected_filepath()
-  local command = string.format('mv "%s" "%s"', filepath, new_filepath)
+  local new_filepath = vault .. "/" .. note.aliases[1] .. ".md"
+  local command = string.format('mv "%s" "%s"', file, new_filepath)
 
   vim.notify("Moved note to " .. new_filepath)
   os.execute(command)
 end
 
-local move_note_to_vault = function(vault)
-  local filepath = get_selected_filepath()
-  local note = client:resolve_note(filepath)
-
-  move_note(vault .. "/" .. note.aliases[1] .. ".md")
-end
-
-local delete_note = function(prompt_bufnr)
-  local filepath = get_selected_filepath()
-  os.execute(string.format('rm "%s"', filepath))
-  vim.notify("Deleted note " .. filepath)
-  refresh_picker(prompt_bufnr)
-end
-
-local archive_note = function(prompt_bufnr)
-  move_note_to_vault(latte_root)
-  refresh_picker(prompt_bufnr)
-end
-
-local publish_note = function(prompt_bufnr)
-  move_note_to_vault(frappuccino_root)
-  refresh_picker(prompt_bufnr)
-end
-
-local make_note_daily = function(prompt_bufnr)
-  move_note(daily_note_path)
-  refresh_picker(prompt_bufnr)
-end
-
-local stack_notes = function(opts)
-  opts = opts or {}
-
-  local picker = pickers.new(opts, {
-    prompt_title = "Note Stack",
-    prompt_prefix = "📚 ",
-    finder = finders.new_job(
-      note_grepper,
-      entry_maker
-    ),
-    previewer = conf.file_previewer(opts),
-    attach_mappings = function(_, map)
-      map({ "i", "n" }, "<C-d>", delete_note)
-      map({ "i", "n" }, "<C-e>", archive_note)
-      map({ "i", "n" }, "<C-p>", publish_note)
-      map({ "i", "n" }, "<C-m>", make_note_daily)
-      map({ "i", "n" }, "<C-Space>", actions.delete_buffer)
-      map({ "i", "n" }, "<CR>", actions.file_edit)
-      return true
+local get_note_ripgrep_call = function(additional_path)
+  return function(query)
+    if not query or query == "" then
+      return table.concat({
+        "rg",
+        ".",
+        additional_path,
+        "--sortr=created",
+        "--files-with-matches",
+      }, " ")
     end
-  })
 
-  picker:find()
+    local trimmed_query = string.gsub(query, '%s+$', '')
+    local query_as_words = vim.split(trimmed_query, "%s")
+
+    local query_words_with_wildcards = table.concat(query_as_words, ".*")
+
+    return table.concat({
+      "rg",
+      additional_path,
+      "--smart-case",
+      "--column",
+      "--no-heading",
+      "--color=always",
+      "--max-columns=4096",
+      "--sortr=created",
+      "--files-with-matches",
+      "--multiline",
+      "--multiline-dotall",
+      "-e",
+      string.format("'%s'", query_words_with_wildcards),
+    }, " ")
+  end
 end
 
-local all_notes = function(opts)
-  opts = opts or {}
-
-  local picker = pickers.new(opts, {
-    prompt_title = "All Notes",
-    prompt_prefix = "🏫 ",
-    finder = finders.new_job(
-      all_note_grepper,
-      entry_maker
-    ),
-    previewer = conf.file_previewer(opts),
-    attach_mappings = function(_, map)
-      map({ "i", "n" }, "<C-d>", delete_note)
-      map({ "i", "n" }, "<C-e>", archive_note)
-      map({ "i", "n" }, "<C-p>", publish_note)
-      map({ "i", "n" }, "<C-m>", make_note_daily)
-      map({ "i", "n" }, "<C-Space>", actions.delete_buffer)
-      map({ "i", "n" }, "<CR>", actions.file_edit)
-      return true
+local get_fzf_note_actions = function(note_path_prefix)
+  local for_each_note = function(callback)
+    return function(selected_notes)
+      for _, note in ipairs(selected_notes) do
+        callback(
+          string.format("%s/%s", note_path_prefix, note)
+        )
+      end
     end
-  })
+  end
 
-  picker:find()
+  local delete = function(note)
+    os.execute(string.format('rm "%s"', note))
+    vim.notify("Deleted note " .. note)
+  end
+
+  local archive = function(note)
+    move_note_to_vault(note, latte_root)
+  end
+
+  local publish = function(note)
+    move_note_to_vault(note, frappuccino_root)
+  end
+
+  return {
+    ["default"] = fzf_lua.actions.file_edit,
+    ["ctrl-d"] = { fn = for_each_note(delete), reload = true },
+    ["ctrl-e"] = { fn = for_each_note(archive), reload = true },
+    ["ctrl-p"] = { fn = for_each_note(publish), reload = true },
+  }
+end
+
+local note_fzf_live_options = {
+  fzf_opts = {
+    ["--preview"] = "bat --color=always --theme='zenburn' --style=numbers {}",
+    ["--delimiter"] = ":",
+    ["--multi"] = true,
+  },
+  file_icons = false,
+  git_icons = false,
+  exec_empty_query = true,
+}
+
+local stack_notes = function()
+  fzf_lua.fzf_live(
+    get_note_ripgrep_call(""),
+    vim.tbl_extend(
+      "error",
+      note_fzf_live_options,
+      {
+        prompt = "📚 ",
+        winopts = { title = "Note Stack" },
+        cwd = stack_root,
+        actions = get_fzf_note_actions(stack_root),
+      }
+    )
+  )
+end
+
+local all_notes = function()
+  fzf_lua.fzf_live(
+    get_note_ripgrep_call(latte_root .. " " .. frappuccino_root),
+    vim.tbl_extend(
+      "error",
+      note_fzf_live_options,
+      {
+        prompt = "🏫 ",
+        winopts = { title = "All Notes" },
+        cwd = latte_root,
+        actions = get_fzf_note_actions(""),
+      }
+    )
+  )
 end
 
 vim.keymap.set("n", "<Tab>", prompt_for_new_note)
