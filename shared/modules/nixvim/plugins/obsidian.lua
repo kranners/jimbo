@@ -5,6 +5,12 @@ local latte_root = vim.fn.resolve(home .. "/Documents/Latte")
 local frappuccino_root = vim.fn.resolve(home .. "/workspace/frappuccino/docs")
 local stack_root = vim.fn.resolve(latte_root .. "/Stack")
 
+local daily_note_path = string.format(
+  "%s/%s.md",
+  latte_root,
+  os.date("%Y/%m/%d %B, %Y")
+)
+
 require("obsidian").setup({
   daily_notes = { date_format = "%Y/%m/%d %B, %Y", template = "Daily.md" },
   open_notes_in = "current",
@@ -78,7 +84,8 @@ end
 local move_note_to_vault = function(file, vault)
   local note = client:resolve_note(file)
 
-  local new_filepath = vault .. "/" .. note.aliases[1] .. ".md"
+  local note_title = note.aliases[1] or note.id
+  local new_filepath = vault .. "/" .. note_title .. ".md"
   local command = string.format('mv "%s" "%s"', file, new_filepath)
 
   vim.notify("Moved note to " .. new_filepath)
@@ -154,10 +161,9 @@ end
 
 local note_fzf_live_options = {
   fzf_opts = {
-    ["--preview"] = "bat --color=always --theme='zenburn' --style=numbers {}",
-    ["--delimiter"] = ":",
     ["--multi"] = true,
   },
+  preview = "bat --color=always --theme='zenburn' --style=numbers {}",
   file_icons = false,
   git_icons = false,
   exec_empty_query = true,
