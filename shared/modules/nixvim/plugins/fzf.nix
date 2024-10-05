@@ -31,14 +31,14 @@ in
 
     keymaps = [
       {
-        key = "]";
+        key = "]]";
         action = "<CMD>FzfLua lsp_definitions<CR>";
         options = { desc = "Search definitions"; };
         mode = "n";
       }
 
       {
-        key = "[";
+        key = "[[";
         action = "<CMD>FzfLua lsp_references<CR>";
         options = { desc = "Search references"; };
         mode = "n";
