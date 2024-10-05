@@ -1,9 +1,4 @@
-{ config
-, pkgs
-, lib
-, inputs
-, ...
-}:
+{ pkgs, ... }:
 let
   wine-local = pkgs.writeShellApplication {
     name = "wine-local";
@@ -30,6 +25,7 @@ in
     ./plexamp.nix
     ./wallpaper.nix
     ./inactive-windows-transparency.nix
+    ./ungoogled-chromium.nix
   ];
 
   home.username = "aaron";
