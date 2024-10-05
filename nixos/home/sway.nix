@@ -103,6 +103,13 @@ in
         };
       };
 
+      input = {
+        "type:pointer" = {
+          accel_profile = "flat";
+          pointer_accel = "-0.5";
+        };
+      };
+
       workspaceOutputAssign = [
         { workspace = "1"; output = left-monitor; }
         { workspace = "2"; output = left-monitor; }
