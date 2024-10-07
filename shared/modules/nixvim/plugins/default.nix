@@ -24,6 +24,7 @@
     ./zen-mode.nix
     ./fzf.nix
     ./neorepl.nix
+    ./pomo.nix
   ];
 
   programs.nixvim.plugins = {

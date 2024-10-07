@@ -59,6 +59,11 @@
       url = "github:ii14/neorepl.nvim";
       flake = false;
     };
+
+    pomo = {
+      url = "github:epwalsh/pomo.nvim";
+      flake = false;
+    };
   };
 
   outputs =
