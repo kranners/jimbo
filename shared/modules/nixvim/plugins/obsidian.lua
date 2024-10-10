@@ -195,16 +195,9 @@ local all_notes = function()
   )
 end
 
--- Using this over :ObsidianToday to avoid opening in the
--- wrong vault.
 local open_daily = function()
-  local daily_note_path = string.format(
-    "%s/%s.md",
-    latte_root,
-    os.date("%Y/%m/%d %B, %Y")
-  )
-
-  vim.cmd("e " .. daily_note_path)
+  vim.cmd("e " .. latte_root)
+  vim.cmd("ObsidianToday")
 end
 
 vim.keymap.set("n", "<Tab>", prompt_for_new_note)
