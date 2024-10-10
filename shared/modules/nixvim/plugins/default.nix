@@ -24,6 +24,7 @@
     ./zen-mode.nix
     ./fzf.nix
     ./neorepl.nix
+    ./xcodebuild.nix
   ];
 
   programs.nixvim.plugins = {

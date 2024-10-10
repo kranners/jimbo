@@ -31,6 +31,10 @@
       "rbenv"
       "redis"
       "watchman"
+
+      "xcode-build-server"
+      "xcbeautify"
+      "pipx"
     ];
 
     masApps = {

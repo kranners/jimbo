@@ -608,7 +608,8 @@
         "nur": "nur",
         "resession": "resession",
         "toggleterm-manager": "toggleterm-manager",
-        "windline": "windline"
+        "windline": "windline",
+        "xcodebuild": "xcodebuild"
       }
     },
     "systems": {
@@ -706,6 +707,22 @@
       "original": {
         "owner": "windwp",
         "repo": "windline.nvim",
+        "type": "github"
+      }
+    },
+    "xcodebuild": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1728471037,
+        "narHash": "sha256-WQFhTb4Gxhmk5SN0AIDTZRwJnJdv394ihN1rCEq6RQ0=",
+        "owner": "wojciech-kulik",
+        "repo": "xcodebuild.nvim",
+        "rev": "186f63e5d6dd5fafeb8854b291601e7291b1b110",
+        "type": "github"
+      },
+      "original": {
+        "owner": "wojciech-kulik",
+        "repo": "xcodebuild.nvim",
         "type": "github"
       }
     }

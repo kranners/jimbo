@@ -59,6 +59,11 @@
       url = "github:ii14/neorepl.nvim";
       flake = false;
     };
+
+    xcodebuild = {
+      url = "github:wojciech-kulik/xcodebuild.nvim";
+      flake = false;
+    };
   };
 
   outputs =
