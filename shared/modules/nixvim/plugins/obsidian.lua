@@ -5,12 +5,6 @@ local latte_root = vim.fn.resolve(home .. "/Documents/Latte")
 local frappuccino_root = vim.fn.resolve(home .. "/workspace/frappuccino/docs")
 local stack_root = vim.fn.resolve(latte_root .. "/Stack")
 
-local daily_note_path = string.format(
-  "%s/%s.md",
-  latte_root,
-  os.date("%Y/%m/%d %B, %Y")
-)
-
 require("obsidian").setup({
   daily_notes = { date_format = "%Y/%m/%d %B, %Y", template = "Daily.md" },
   open_notes_in = "current",
@@ -201,6 +195,12 @@ local all_notes = function()
   )
 end
 
+local open_daily = function()
+  vim.cmd("e " .. latte_root)
+  vim.cmd("ObsidianToday")
+end
+
 vim.keymap.set("n", "<Tab>", prompt_for_new_note)
 vim.keymap.set("n", "<C-Tab>", stack_notes)
 vim.keymap.set("n", "<Leader><Tab>", all_notes)
+vim.keymap.set("n", "<Leader>d", open_daily)
