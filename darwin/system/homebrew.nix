@@ -32,5 +32,11 @@
       "redis"
       "watchman"
     ];
+
+    masApps = {
+      "flow" = 1423210932; # https://www.flow.app/
+      "just-focus-2" = 1142151959; # https://getjustfocus.com/
+      "dropover" = 1355679052; # https://dropoverapp.com/
+    };
   };
 }
