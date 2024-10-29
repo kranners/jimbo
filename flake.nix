@@ -55,8 +55,8 @@
       flake = false;
     };
 
-    neorepl = {
-      url = "github:ii14/neorepl.nvim";
+    remote-line = {
+      url = "github:ksaito422/remote-line.nvim";
       flake = false;
     };
   };

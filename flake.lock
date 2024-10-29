@@ -355,22 +355,6 @@
         "type": "github"
       }
     },
-    "neorepl": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1717290930,
-        "narHash": "sha256-PBEZDbwH1ZYAh9y2XXavbKo1SzlzO66J4e03gOh+Pwc=",
-        "owner": "ii14",
-        "repo": "neorepl.nvim",
-        "rev": "15f4c4e523e1fbec74766e1967e1c2491df013c9",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ii14",
-        "repo": "neorepl.nvim",
-        "type": "github"
-      }
-    },
     "nix-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -575,6 +559,22 @@
         "type": "github"
       }
     },
+    "remote-line": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1728779553,
+        "narHash": "sha256-zTP8BT1xPO0VeeZE6wmJgV8g11wVnhWmyLhwRKyF7Ng=",
+        "owner": "ksaito422",
+        "repo": "remote-line.nvim",
+        "rev": "c80446018813d56b9dff0e87bdc44b2c2ab3840b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ksaito422",
+        "repo": "remote-line.nvim",
+        "type": "github"
+      }
+    },
     "resession": {
       "flake": false,
       "locked": {
@@ -600,12 +600,12 @@
         "fzf-lua-resession": "fzf-lua-resession",
         "grug-far": "grug-far",
         "home-manager": "home-manager",
-        "neorepl": "neorepl",
         "nix-darwin": "nix-darwin",
         "nix-vscode-extensions": "nix-vscode-extensions",
         "nixpkgs": "nixpkgs_4",
         "nixvim": "nixvim",
         "nur": "nur",
+        "remote-line": "remote-line",
         "resession": "resession",
         "toggleterm-manager": "toggleterm-manager",
         "windline": "windline"
