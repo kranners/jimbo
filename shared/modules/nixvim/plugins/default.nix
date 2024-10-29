@@ -23,7 +23,7 @@
     ./grug-far.nix
     ./zen-mode.nix
     ./fzf.nix
-    ./neorepl.nix
+    ./remote-line.nix
   ];
 
   programs.nixvim.plugins = {
