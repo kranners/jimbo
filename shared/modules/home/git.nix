@@ -41,12 +41,27 @@ let
       git push --force
     '';
   };
+
+  git-skip = pkgs.writeShellApplication {
+    name = "git-skip";
+    inherit runtimeInputs;
+
+    text = ''
+      FILE_TO_SKIP="$1"
+      CHECKOUT_STRATEGY="''${2:-theirs}"
+
+      git checkout --"$CHECKOUT_STRATEGY" "$FILE_TO_SKIP"
+      git add "$FILE_TO_SKIP"
+      git rebase --continue
+    '';
+  };
 in
 {
   home = {
     packages = [
       git-update
       git-shove
+      git-skip
     ];
 
     shellAliases = {
