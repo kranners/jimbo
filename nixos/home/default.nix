@@ -64,7 +64,6 @@ in
     pkgs.nemo-with-extensions # File manager
     pkgs.grimblast # Screen capture
     pkgs.mpv # Media playback
-    pkgs.davinci-resolve
     pkgs.blueberry # Bluetooth manager
     pkgs.wl-clipboard # Clipboard manager
     pkgs.helvum # Multi-audio output

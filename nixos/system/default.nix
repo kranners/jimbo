@@ -26,7 +26,7 @@
   ];
 
   # Enable Flakes
-  nix.package = pkgs.nixFlakes;
+  nix.package = pkgs.nixVersions.stable;
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   # Allow root users access to the Nix store
