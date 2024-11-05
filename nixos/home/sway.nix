@@ -34,26 +34,6 @@ let
     '';
   };
 
-  swayrst = pkgs.python311Packages.buildPythonApplication rec {
-    name = "swayrst";
-    version = "1.1";
-
-    src = pkgs.fetchFromGitHub {
-      owner = "Nama";
-      repo = "swayrst";
-      rev = "refs/tags/${version}";
-      hash = "sha256-MJRu7sFCTpL/pYdTxPJL7jOiE3vRBQcUC29WyzJtAmQ=";
-    };
-
-    nativeBuildInputs = [ pkgs.python311Packages.i3ipc ];
-    propagatedBuildInputs = [ pkgs.python311Packages.i3ipc ];
-  };
-
-  sway_workspaces = pkgs.writeShellApplication {
-    name = "sway_workspaces";
-    text = "${swayrst}/bin/sway_workspaces.py";
-  };
-
   left-monitor = "LG Electronics LG ULTRAGEAR 112NTWGG8937";
   right-monitor = "AOC G2770 FWJE7HA000498";
 in
@@ -62,7 +42,7 @@ in
   # TODO: FIXME: Delete this as soon as possible!
   wayland.windowManager.sway.checkConfig = false;
 
-  home.packages = [ screenshot-region exit-if-all-closed sway_workspaces ];
+  home.packages = [ screenshot-region exit-if-all-closed ];
 
   wayland.windowManager.sway = {
     enable = true;
@@ -106,7 +86,7 @@ in
       input = {
         "type:pointer" = {
           accel_profile = "flat";
-          pointer_accel = "-0.5";
+          # pointer_accel = "-0.5";
         };
       };
 

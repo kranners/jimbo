@@ -8,7 +8,7 @@ in
 
     # https://alacritty.org/config-alacritty.html
     settings = {
-      import = [
+      general.import = [
         "${inputs.cyberdream}/extras/alacritty/cyberdream.toml"
       ];
 

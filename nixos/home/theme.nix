@@ -2,15 +2,6 @@
   gtk = {
     enable = true;
 
-    iconTheme = {
-      package = pkgs.catppuccin-papirus-folders.override {
-        flavor = "latte";
-        accent = "sky";
-      };
-
-      name = "Papirus-Light";
-    };
-
     theme = {
       package = pkgs.catppuccin-gtk.override {
         variant = "latte";
