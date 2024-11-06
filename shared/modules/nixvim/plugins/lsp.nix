@@ -11,8 +11,8 @@
         eslint.enable = true;
         pyright.enable = true;
         yamlls.enable = true;
-        lua-ls.enable = true;
-        tsserver = {
+        lua_ls.enable = true;
+        ts_ls = {
           enable = true;
 
           extraOptions = {

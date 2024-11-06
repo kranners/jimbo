@@ -1,6 +1,6 @@
 { pkgs, lib, inputs, ... }:
 let
-  isLinux = pkgs.hostPlatform.isLinux;
+  inherit (pkgs.hostPlatform) isLinux isDarwin;
 in
 {
   programs.alacritty = {
@@ -8,7 +8,17 @@ in
 
     # https://alacritty.org/config-alacritty.html
     settings = {
-      general.import = [
+
+      # Alacritty config has changed between the versions available on nixpkgs
+      # Linux vs nixpkgs Darwin. This will probably come up on an upcoming
+      # flake update.
+      general = lib.mkIf isLinux {
+        import = [
+          "${inputs.cyberdream}/extras/alacritty/cyberdream.toml"
+        ];
+      };
+
+      import = lib.mkIf isDarwin [
         "${inputs.cyberdream}/extras/alacritty/cyberdream.toml"
       ];
 

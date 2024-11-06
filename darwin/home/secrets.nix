@@ -6,7 +6,7 @@ let
   export-secrets = pkgs.writeShellApplication {
     name = "export-secrets";
 
-    runtimeInputs = [ pkgs._1password ];
+    runtimeInputs = [ pkgs._1password-cli ];
 
     text = ''
       op read 'op://Employee/GitHub Personal Access Token/token' > ${gh-token}

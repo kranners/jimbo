@@ -27,7 +27,7 @@
   ];
 
   programs.nixvim.plugins = {
-    surround.enable = true;
+    vim-surround.enable = true;
     nvim-autopairs.enable = true;
     rainbow-delimiters.enable = true;
     nvim-lightbulb.enable = true;
@@ -35,5 +35,6 @@
     indent-blankline.enable = true;
     gitsigns.enable = true;
     neoscroll.enable = true;
+    web-devicons.enable = true;
   };
 }

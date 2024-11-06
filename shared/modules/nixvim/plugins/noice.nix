@@ -3,13 +3,15 @@
     noice = {
       enable = true;
 
-      health.checker = false;
+      settings = {
+        health.checker = false;
 
-      views = {
-        cmdline_popup = {
-          filter_options = { };
-          win_options = {
-            winhighlight = "NormalFloat:NormalFloat,FloatBorder:FloatBorder";
+        views = {
+          cmdline_popup = {
+            filter_options = { };
+            win_options = {
+              winhighlight = "NormalFloat:NormalFloat,FloatBorder:FloatBorder";
+            };
           };
         };
       };
