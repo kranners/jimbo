@@ -57,18 +57,10 @@
         action.__raw = ''
           function()
             local current_filepath = vim.fn.getreg("%")
-            local current_position = vim.api.nvim_win_get_cursor(0)
-
-            local row, column = unpack(current_position)
-
-            local file_position = string.format(
-              "%s:%s:%s", current_filepath, row, column
-            )
-
-            vim.fn.setreg("@", file_position)
+            vim.fn.setreg("@", current_filepath)
 
             vim.print(
-              string.format("Copied current position (%s)", file_position)
+              string.format("Yanked current filepath (%s)", current_filepath)
             )
           end
         '';

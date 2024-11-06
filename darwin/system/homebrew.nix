@@ -15,7 +15,6 @@
       "microsoft-outlook"
       "aws-vpn-client"
       "codeship/taps/jet"
-      "tuple"
     ];
 
     brews = [

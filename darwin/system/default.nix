@@ -1,6 +1,20 @@
 {
   services.nix-daemon.enable = true;
-  nix.settings.experimental-features = "nix-command flakes";
+
+  nix.settings = {
+    experimental-features = "nix-command flakes";
+
+    fallback = false;
+
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+    ];
+
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+  };
+
   nixpkgs.config.allowUnfree = true;
 
   security.pam.enableSudoTouchIdAuth = true;
@@ -29,4 +43,8 @@
   system.activationScripts.postUserActivation.text = ''
     /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
   '';
+
+  # stateVersion didn't need to be defined until 6th November, 2024 flake update
+  # Hardcoding to v5
+  system.stateVersion = 5;
 }
