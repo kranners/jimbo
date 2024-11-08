@@ -24,6 +24,7 @@
     ./zen-mode.nix
     ./fzf.nix
     ./fugitive.nix
+    ./tiny-inline-diagnostic.nix
   ];
 
   programs.nixvim.plugins = {
