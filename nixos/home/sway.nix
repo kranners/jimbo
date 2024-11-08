@@ -60,6 +60,28 @@ in
       corner_radius 6
     '';
 
+    extraConfig = ''
+      input "type:pointer" {
+        accel_profile flat
+        pointer_accel -0.5
+      }
+
+      input "9639:64124:Compx_2.4G_Wireless_Receiver" {
+        accel_profile flat
+        pointer_accel 0
+      }
+
+      input "5426:166:Razer_Razer_Viper_V2_Pro" {
+        accel_profile flat
+        pointer_accel -0.5
+      }
+
+      input "1133:16519:Logitech_G903_LS" {
+        accel_profile flat
+        pointer_accel -0.5
+      }
+    '';
+
     config.gaps = {
       inner = 4;
       outer = 5;
@@ -80,13 +102,6 @@ in
         ${right-monitor} = {
           mode = "1920x1080@144.001Hz";
           pos = "2560 0";
-        };
-      };
-
-      input = {
-        "type:pointer" = {
-          accel_profile = "flat";
-          # pointer_accel = "-0.5";
         };
       };
 
