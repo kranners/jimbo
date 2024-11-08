@@ -85,10 +85,10 @@ local prompt_for_new_note = function()
 
   -- Append the template to the file
   local template = get_note_template_contents(title)
-  vim.api.nvim_put(template, "l", true, true)
+  vim.api.nvim_put(template, "l", false, true)
 
   -- Go into insert mode
-  vim.api.nvim_feedkeys("o", "t", false)
+  vim.api.nvim_feedkeys("i", "t", false)
 end
 
 local move_note_to_vault = function(file, vault)
@@ -224,7 +224,7 @@ local open_daily = function()
 
   if line_count < 2 then
     local template = get_note_template_contents(os.date("%d %B, %Y"))
-    vim.api.nvim_put(template, "l", true, true)
+    vim.api.nvim_put(template, "l", false, true)
 
     vim.cmd.read(daily_template_path)
   end
