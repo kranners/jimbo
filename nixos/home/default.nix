@@ -26,6 +26,7 @@ in
     ./wallpaper.nix
     ./inactive-windows-transparency.nix
     ./ungoogled-chromium.nix
+    ./mangohud.nix
   ];
 
   home.username = "aaron";
@@ -49,7 +50,6 @@ in
     pkgs.nicotine-plus
 
     # Gaming
-    pkgs.mangohud
     pkgs.protonup-qt
     pkgs.r2modman
 
