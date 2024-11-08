@@ -619,6 +619,7 @@
         "nixvim": "nixvim",
         "nur": "nur",
         "resession": "resession",
+        "tiny-inline-diagnostic": "tiny-inline-diagnostic",
         "toggleterm-manager": "toggleterm-manager",
         "windline": "windline"
       }
@@ -665,6 +666,22 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "tiny-inline-diagnostic": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1730644451,
+        "narHash": "sha256-Bx43LvcE9iSgtXEMaVgZoElUkmuEK8Ik8tRdD0DX1FY=",
+        "owner": "rachartier",
+        "repo": "tiny-inline-diagnostic.nvim",
+        "rev": "d10c9fda7b8b7b81b2c6eb4c3909adfe9812c6bf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "rachartier",
+        "repo": "tiny-inline-diagnostic.nvim",
         "type": "github"
       }
     },

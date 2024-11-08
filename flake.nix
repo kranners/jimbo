@@ -54,6 +54,11 @@
       url = "git+ssh://git@github.com/roastedramen/fzf-lua-resession.nvim";
       flake = false;
     };
+
+    tiny-inline-diagnostic = {
+      url = "github:rachartier/tiny-inline-diagnostic.nvim";
+      flake = false;
+    };
   };
 
   outputs =
