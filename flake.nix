@@ -54,11 +54,6 @@
       url = "git+ssh://git@github.com/roastedramen/fzf-lua-resession.nvim";
       flake = false;
     };
-
-    remote-line = {
-      url = "github:ksaito422/remote-line.nvim";
-      flake = false;
-    };
   };
 
   outputs =

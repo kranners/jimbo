@@ -559,22 +559,6 @@
         "type": "github"
       }
     },
-    "remote-line": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1728779553,
-        "narHash": "sha256-zTP8BT1xPO0VeeZE6wmJgV8g11wVnhWmyLhwRKyF7Ng=",
-        "owner": "ksaito422",
-        "repo": "remote-line.nvim",
-        "rev": "c80446018813d56b9dff0e87bdc44b2c2ab3840b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ksaito422",
-        "repo": "remote-line.nvim",
-        "type": "github"
-      }
-    },
     "resession": {
       "flake": false,
       "locked": {
@@ -605,7 +589,6 @@
         "nixpkgs": "nixpkgs_4",
         "nixvim": "nixvim",
         "nur": "nur",
-        "remote-line": "remote-line",
         "resession": "resession",
         "toggleterm-manager": "toggleterm-manager",
         "windline": "windline"
