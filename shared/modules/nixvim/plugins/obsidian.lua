@@ -5,10 +5,13 @@ local latte_root = vim.fn.resolve(home .. "/Documents/Latte")
 local frappuccino_root = vim.fn.resolve(home .. "/workspace/frappuccino/docs")
 local stack_root = vim.fn.resolve(latte_root .. "/Stack")
 
+local daily_template_path = vim.fn.resolve(latte_root .. "/Templates/Daily.md")
+
 require("obsidian").setup({
   daily_notes = { date_format = "%Y/%m/%d %B, %Y", template = "Daily.md" },
   open_notes_in = "current",
   templates = { subdir = latte_root .. "/Templates" },
+  disable_frontmatter = true,
   ui = {
     checkboxes = {
       [" "] = { char = " ", hl_group = "ObsidianTodo", order = 100 },
@@ -26,8 +29,19 @@ require("obsidian").setup({
   end
 })
 
-local client = require("obsidian").get_client({ dir = latte_root })
 local util = require("obsidian.util")
+
+local get_note_template_contents = function(title)
+  return {
+    "---",
+    string.format("id: %s", title),
+    string.format('date: "%s"', os.date("%d %B, %Y")),
+    "---",
+    "",
+    string.format("# %s", title),
+    "",
+  }
+end
 
 local prompt_for_new_note = function()
   -- If we are currently in a floating window, just close that instead
@@ -47,13 +61,7 @@ local prompt_for_new_note = function()
     return
   end
 
-  local note = client:create_note({
-    title = title,
-    no_write = true,
-    dir = stack_root,
-    id = title
-  })
-
+  -- Make a new floating window, a new buffer
   local width = math.ceil(math.min(150, vim.o.columns * 0.8))
   local height = math.ceil(math.min(35, vim.o.lines * 0.5))
   local row = math.ceil(vim.o.lines - height) * 0.5 - 1
@@ -71,15 +79,21 @@ local prompt_for_new_note = function()
   local buf = vim.api.nvim_create_buf(false, false)
   vim.api.nvim_open_win(buf, true, float_config)
 
-  client:open_note(note, { sync = true })
-  client:write_note_to_buffer(note)
+  -- Open a new note in that buffer
+  local new_filepath = string.format("%s/%s.md", stack_root, title)
+  vim.cmd.edit(new_filepath)
+
+  -- Append the template to the file
+  local template = get_note_template_contents(title)
+  vim.api.nvim_put(template, "l", true, true)
+
+  -- Go into insert mode
+  vim.api.nvim_feedkeys("o", "t", false)
 end
 
 local move_note_to_vault = function(file, vault)
-  local note = client:resolve_note(file)
-
-  local note_title = note.aliases[1] or note.id
-  local new_filepath = vault .. "/" .. note_title .. ".md"
+  local basename = vim.fs.basename(file)
+  local new_filepath = vault .. "/" .. basename
   local command = string.format('mv "%s" "%s"', file, new_filepath)
 
   vim.notify("Moved note to " .. new_filepath)
@@ -196,8 +210,24 @@ local all_notes = function()
 end
 
 local open_daily = function()
-  vim.cmd("e " .. latte_root)
-  vim.cmd("ObsidianToday")
+  -- Open the daily note path
+  local daily_note_path = string.format(
+    "%s/%s.md",
+    latte_root,
+    os.date("%Y/%m/%d %B, %Y")
+  )
+
+  vim.cmd.edit(daily_note_path)
+
+  -- If we have nothing in there, then add the Daily template.
+  local line_count = vim.api.nvim_buf_line_count(0)
+
+  if line_count < 2 then
+    local template = get_note_template_contents(os.date("%d %B, %Y"))
+    vim.api.nvim_put(template, "l", true, true)
+
+    vim.cmd.read(daily_template_path)
+  end
 end
 
 vim.keymap.set("n", "<Tab>", prompt_for_new_note)
