@@ -23,6 +23,7 @@
         scale=1
         altTaskSwitcher=true
         ignoreSpaceChanged=true
+        invertIgnoreApps=true
       '';
     };
   };
