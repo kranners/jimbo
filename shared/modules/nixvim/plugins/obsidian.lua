@@ -6,6 +6,7 @@ local frappuccino_root = vim.fn.resolve(home .. "/workspace/frappuccino/docs")
 local stack_root = vim.fn.resolve(latte_root .. "/Stack")
 
 local daily_template_path = vim.fn.resolve(latte_root .. "/Templates/Daily.md")
+local weekly_template_path = vim.fn.resolve(latte_root .. "/Templates/Weekly.md")
 
 require("obsidian").setup({
   daily_notes = { date_format = "%Y/%m/%d %B, %Y", template = "Daily.md" },
@@ -230,7 +231,30 @@ local open_daily = function()
   end
 end
 
+local open_weekly = function()
+  local week_num = math.floor(os.date("*t").yday / 7)
+  local weekly_note_path = string.format(
+    "%s/%s/Week %s.md",
+    latte_root,
+    os.date("%Y"),
+    week_num
+  )
+
+  vim.cmd.edit(weekly_note_path)
+
+  -- If we have nothing in there, then add the Weekly template.
+  local line_count = vim.api.nvim_buf_line_count(0)
+
+  if line_count < 2 then
+    local template = get_note_template_contents("Week " .. week_num)
+    vim.api.nvim_put(template, "l", false, true)
+
+    vim.cmd.read(weekly_template_path)
+  end
+end
+
 vim.keymap.set("n", "<Tab>", prompt_for_new_note)
 vim.keymap.set("n", "<C-Tab>", stack_notes)
 vim.keymap.set("n", "<Leader><Tab>", all_notes)
 vim.keymap.set("n", "<Leader>d", open_daily)
+vim.keymap.set("n", "<Leader>D", open_weekly)
