@@ -7,6 +7,7 @@
     ./alacritty.nix
     ./krabby.nix
     ./espanso.nix
+    ./personal-shells.nix
   ];
 
   programs.direnv = {

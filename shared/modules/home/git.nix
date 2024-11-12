@@ -11,13 +11,19 @@ let
 
       UPDATE_STRATEGY="$1"
       UPDATE_BRANCH="''${2:-master}"
+      STRATEGY_OPTION="''${3:-ort}"
+
+      usage() {
+        echo "Usage: git update <merge|rebase> [trunk-branch] <theirs|ours>"
+        echo "<merge|rebase> whether to update in a merge commit or in a rebase."
+        echo "[trunk-branch] optional argument for the branch to update from, usually master or main."
+        echo "<theirs|ours|ort> optional argument for the strategy option to use while merging."
+        exit 1
+      }
 
       case "$UPDATE_STRATEGY" in
-        merge|rebase)
-          ;;
-        *)
-          echo "Usage: git update <merge|rebase> [update from branch, usually master]"
-          exit 1 ;;
+        merge|rebase) ;;
+        *) usage ;;
       esac
 
       git switch "$UPDATE_BRANCH"
@@ -25,8 +31,8 @@ let
       git switch "$CURRENT_BRANCH"
 
       case "$UPDATE_STRATEGY" in
-        "rebase") git rebase "$UPDATE_BRANCH" ;;
-        "merge") git merge "$UPDATE_BRANCH" --no-edit ;;
+        "rebase") git rebase "$UPDATE_BRANCH" --strategy-option "$STRATEGY_OPTION" ;;
+        "merge") git merge "$UPDATE_BRANCH" --no-edit --strategy-option "$STRATEGY_OPTION" ;;
       esac
     '';
   };
