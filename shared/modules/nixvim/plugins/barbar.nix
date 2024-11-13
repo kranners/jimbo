@@ -4,7 +4,7 @@
 
     keymaps = [
       {
-        key = "<C-w>";
+        key = "<Leader>w";
         action = "<CMD>BufferCloseAllButVisible<CR>";
         options = { desc = "Clean invisible buffers"; };
         mode = "n";
