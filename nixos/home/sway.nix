@@ -141,6 +141,7 @@ in
       floating.criteria = [
         { app_id = "pavucontrol"; }
         { app_id = "nemo"; }
+        { app_id = "mpv"; }
 
         { app_id = "blueberry.py"; }
 
