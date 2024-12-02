@@ -57,6 +57,22 @@
         "type": "github"
       }
     },
+    "dial": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1732022590,
+        "narHash": "sha256-YeAKLXxodzACP1PLlery8fCKJN5mJ0V5tvAHmJy7NpY=",
+        "owner": "monaqa",
+        "repo": "dial.nvim",
+        "rev": "46b4375e84e8eb771129bff6b2b1e47746601ef9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "monaqa",
+        "repo": "dial.nvim",
+        "type": "github"
+      }
+    },
     "firefox-addons": {
       "inputs": {
         "flake-utils": "flake-utils_2",
@@ -608,6 +624,7 @@
       "inputs": {
         "awesome-neovim-plugins": "awesome-neovim-plugins",
         "cyberdream": "cyberdream",
+        "dial": "dial",
         "firefox-addons": "firefox-addons",
         "flatten": "flatten",
         "fzf-lua-resession": "fzf-lua-resession",
