@@ -59,6 +59,11 @@
       url = "github:rachartier/tiny-inline-diagnostic.nvim";
       flake = false;
     };
+
+    dial = {
+      url = "github:monaqa/dial.nvim";
+      flake = false;
+    };
   };
 
   outputs =
