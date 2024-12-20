@@ -18,9 +18,9 @@
   home.packages = [
     pkgs.eslint_d
     pkgs.prettierd
+    pkgs.rubocop
 
     pkgs.devenv
     pkgs.just
-    pkgs.broot
   ];
 }

@@ -12,6 +12,9 @@
         pyright.enable = true;
         yamlls.enable = true;
         lua_ls.enable = true;
+        ruby_lsp.enable = true;
+        gopls.enable = true;
+        emmet_language_server.enable = true;
         ts_ls = {
           enable = true;
 

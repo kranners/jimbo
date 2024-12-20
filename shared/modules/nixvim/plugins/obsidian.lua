@@ -10,23 +10,23 @@ local weekly_template_path = vim.fn.resolve(latte_root .. "/Templates/Weekly.md"
 
 local util = require("obsidian.util")
 
-local smart_action_across_vaults = function()
-  local current_line = vim.api.nvim_get_current_line()
-  local start_pos, end_pos, link_type = util.cursor_on_markdown_link(current_line, nil)
-
-  if link_type == "Wiki" then
-    local link_location = string.sub(current_line, start_pos + 2, end_pos - 2)
-
-    for _, search_dir in ipairs({ latte_root, frappuccino_root, stack_root }) do
-      local note_path = string.format("%s/%s.md", search_dir, link_location)
-      if vim.fn.filereadable(note_path) == 1 then
-        return vim.cmd.edit(note_path)
-      end
-    end
-  end
-
-  util.smart_action()
-end
+-- local smart_action_across_vaults = function()
+--   local current_line = vim.api.nvim_get_current_line()
+--   local start_pos, end_pos, link_type = util.cursor_on_markdown_link(current_line, nil)
+--
+--   if link_type == "Wiki" then
+--     local link_location = string.sub(current_line, start_pos + 2, end_pos - 2)
+--
+--     for _, search_dir in ipairs({ latte_root, frappuccino_root, stack_root }) do
+--       local note_path = string.format("%s/%s.md", search_dir, link_location)
+--       if vim.fn.filereadable(note_path) == 1 then
+--         return vim.cmd.edit(note_path)
+--       end
+--     end
+--   end
+--
+--   return util.smart_action()
+-- end
 
 require("obsidian").setup({
   daily_notes = { date_format = "%Y/%m/%d %B, %Y", template = "Daily.md" },
@@ -48,11 +48,11 @@ require("obsidian").setup({
   follow_url_func = function(url)
     vim.fn.jobstart({ "open", url })
   end,
-  mappings = {
-    ["<cr>"] = {
-      action = smart_action_across_vaults,
-    },
-  },
+  -- mappings = {
+  --   ["<cr>"] = {
+  --     action = smart_action_across_vaults,
+  --   },
+  -- },
 })
 
 local get_note_template_contents = function(title)
