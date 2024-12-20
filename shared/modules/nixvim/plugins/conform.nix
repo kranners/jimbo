@@ -18,18 +18,9 @@
             javascriptreact = js-formatters;
             typescript = js-formatters;
             typescriptreact = js-formatters;
+            ruby = [ "rubocop" ];
           };
       };
-
     };
-
-    keymaps = [
-      {
-        key = "<Leader><Leader>";
-        action = "<CMD>lua require('conform').format()<CR>";
-        options = { desc = "Format document"; };
-        mode = "n";
-      }
-    ];
   };
 }

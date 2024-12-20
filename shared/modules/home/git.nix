@@ -7,32 +7,18 @@ let
     inherit runtimeInputs;
 
     text = ''
-      CURRENT_BRANCH="$(git symbolic-ref --short -q HEAD)"
+      UPDATE_BRANCH="$(basename "$(git symbolic-ref refs/remotes/origin/HEAD)")"
+      CURRENT_BRANCH="$(git symbolic-ref --short --quiet HEAD)"
 
-      UPDATE_STRATEGY="$1"
-      UPDATE_BRANCH="''${2:-master}"
-      STRATEGY_OPTION="''${3:-ort}"
-
-      usage() {
-        echo "Usage: git update <merge|rebase> [trunk-branch] <theirs|ours>"
-        echo "<merge|rebase> whether to update in a merge commit or in a rebase."
-        echo "[trunk-branch] optional argument for the branch to update from, usually master or main."
-        echo "<theirs|ours|ort> optional argument for the strategy option to use while merging."
-        exit 1
-      }
-
-      case "$UPDATE_STRATEGY" in
-        merge|rebase) ;;
-        *) usage ;;
-      esac
+      UPDATE_STRATEGY="''${1:-rebase}"
 
       git switch "$UPDATE_BRANCH"
       git pull
       git switch "$CURRENT_BRANCH"
 
       case "$UPDATE_STRATEGY" in
-        "rebase") git rebase "$UPDATE_BRANCH" --strategy-option "$STRATEGY_OPTION" ;;
-        "merge") git merge "$UPDATE_BRANCH" --no-edit --strategy-option "$STRATEGY_OPTION" ;;
+        "rebase") git rebase "$UPDATE_BRANCH" "''${@:2}" ;;
+        "merge") git merge "$UPDATE_BRANCH" "''${@:2}" ;;
       esac
     '';
   };
@@ -61,6 +47,18 @@ let
       git rebase --continue
     '';
   };
+
+  git-freshen = pkgs.writeShellApplication {
+    name = "git-freshen";
+    inherit runtimeInputs;
+
+    text = ''
+      UPDATE_BRANCH="$(basename "$(git symbolic-ref refs/remotes/origin/HEAD)")"
+
+      git switch "$UPDATE_BRANCH"
+      git pull --rebase
+    '';
+  };
 in
 {
   home = {
@@ -68,6 +66,7 @@ in
       git-update
       git-shove
       git-skip
+      git-freshen
     ];
 
     shellAliases = {
