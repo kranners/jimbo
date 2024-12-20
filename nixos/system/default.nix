@@ -1,8 +1,4 @@
-{ config
-, pkgs
-, inputs
-, ...
-}: {
+{ pkgs, ... }: {
   imports = [
     ./boot.nix
     ./environment.nix
@@ -57,8 +53,7 @@
     btop
     htop
 
-    # Basic vim is great as a git EDITOR, etc
-    vim
+    gptfdisk
 
     # Required libs for background services
     libnotify
