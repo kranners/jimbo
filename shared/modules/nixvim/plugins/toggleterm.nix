@@ -4,7 +4,7 @@
       enable = true;
       settings = {
         direction = "vertical";
-        size = 40;
+        size = 60;
         hide_numbers = false;
       };
     };
