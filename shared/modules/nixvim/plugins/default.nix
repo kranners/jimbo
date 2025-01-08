@@ -26,6 +26,7 @@
     ./fugitive.nix
     ./tiny-inline-diagnostic.nix
     ./dial.nix
+    ./nvim-recorder.nix
   ];
 
   programs.nixvim.plugins = {
