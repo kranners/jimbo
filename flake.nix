@@ -64,6 +64,11 @@
       url = "github:monaqa/dial.nvim";
       flake = false;
     };
+
+    nvim-recorder = {
+      url = "github:chrisgrieser/nvim-recorder";
+      flake = false;
+    };
   };
 
   outputs =

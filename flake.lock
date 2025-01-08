@@ -604,6 +604,22 @@
         "type": "github"
       }
     },
+    "nvim-recorder": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1735559860,
+        "narHash": "sha256-JYH+b5/1Ce6iTn6fhE8lSb5/psw5sEEthoXXWT/w7dc=",
+        "owner": "chrisgrieser",
+        "repo": "nvim-recorder",
+        "rev": "00644d6a389d24500ebfca325440500d1aff23c4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "chrisgrieser",
+        "repo": "nvim-recorder",
+        "type": "github"
+      }
+    },
     "resession": {
       "flake": false,
       "locked": {
@@ -635,6 +651,7 @@
         "nixpkgs": "nixpkgs_4",
         "nixvim": "nixvim",
         "nur": "nur",
+        "nvim-recorder": "nvim-recorder",
         "resession": "resession",
         "tiny-inline-diagnostic": "tiny-inline-diagnostic",
         "toggleterm-manager": "toggleterm-manager",
