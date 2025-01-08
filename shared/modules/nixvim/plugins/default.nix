@@ -1,6 +1,5 @@
 {
   imports = [
-    ./cmp.nix
     ./conform.nix
     ./lsp.nix
     ./oil.nix
@@ -8,7 +7,6 @@
     ./toggleterm.nix
     ./telescope.nix
     ./comment.nix
-    ./luasnip.nix
     ./treesj.nix
     ./barbar.nix
     ./trouble.nix
@@ -38,5 +36,9 @@
     gitsigns.enable = true;
     neoscroll.enable = true;
     web-devicons.enable = true;
+    blink-cmp = {
+      enable = true;
+      settings.keymap.preset = "enter";
+    };
   };
 }
