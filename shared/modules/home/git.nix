@@ -59,6 +59,16 @@ let
       git pull --rebase
     '';
   };
+
+  git-catchup = pkgs.writeShellApplication {
+    name = "git-catchup";
+    inherit runtimeInputs;
+
+    text = ''
+      git update rebase
+      git push --force
+    '';
+  };
 in
 {
   home = {
@@ -67,6 +77,7 @@ in
       git-shove
       git-skip
       git-freshen
+      git-catchup
     ];
 
     shellAliases = {
@@ -81,7 +92,6 @@ in
 
     aliases = {
       cram = "commit --amend --no-edit --no-verify";
-      s = "status";
     };
 
     extraConfig.init.defaultBranch = "main";
