@@ -10,6 +10,12 @@ in
 {
   programs.nixvim = {
     extraPlugins = [ nvim-recorder ];
-    extraConfigLua = "require('recorder').setup({})";
+    extraConfigLua = ''
+      require('recorder').setup({
+        mapping = {
+          addBreakPoint = "<Leader>q",
+        },
+      })
+    '';
   };
 }
