@@ -2,13 +2,24 @@
   description = "flake for jimbo";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    nur.url = "github:nix-community/NUR";
+    nixpkgs = {
+      url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    };
 
-    firefox-addons.url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
-    awesome-neovim-plugins.url = "github:m15a/flake-awesome-neovim-plugins";
-    nixvim.url = "github:nix-community/nixvim";
-    nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
+    firefox-addons = {
+      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    awesome-neovim-plugins = {
+      url = "github:m15a/flake-awesome-neovim-plugins";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    nixvim = {
+      url = "github:nix-community/nixvim";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     nix-darwin = {
       url = "github:LnL7/nix-darwin";
@@ -70,7 +81,6 @@
     { nixpkgs
     , home-manager
     , nixvim
-    , nur
     , nix-darwin
     , ...
     } @ inputs: {
@@ -111,7 +121,6 @@
           modules = [
             home-manager.nixosModules.home-manager
             nixvim.nixosModules.nixvim
-            nur.nixosModules.nur
 
             ./nixos/system
             ./shared/modules/nixvim
