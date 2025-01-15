@@ -25,7 +25,6 @@
     ./fzf.nix
     ./fugitive.nix
     ./tiny-inline-diagnostic.nix
-    ./dial.nix
     ./nvim-recorder.nix
   ];
 
