@@ -1,3 +1,7 @@
+{ pkgs, inputs, ... }:
+let
+  neovim-nightly = inputs.neovim-nightly-overlay.packages.${pkgs.system}.default;
+in
 {
   imports = [
     ./options
@@ -6,6 +10,7 @@
 
   programs.nixvim = {
     enable = true;
+    package = neovim-nightly;
 
     globals.mapleader = " ";
 
