@@ -19,7 +19,6 @@
     ./resession.nix
     ./windline.nix
     ./flatten.nix
-    ./noice.nix
     ./grug-far.nix
     ./zen-mode.nix
     ./fzf.nix

@@ -92,6 +92,25 @@ in
         options = { desc = "List git branches"; };
         mode = "n";
       }
+
+      {
+        key = ":";
+        action.__raw = ''
+          function()
+            local fzf_lua = require("fzf-lua")
+            local actions = require("fzf-lua.actions")
+
+            fzf_lua.commands({
+              winopts = { height = 0.5 },
+              actions = {
+                ["enter"] = actions.ex_run_cr,
+              },
+            })
+          end
+        '';
+        options = { desc = "Open command picker"; };
+        mode = "n";
+      }
     ];
   };
 }
