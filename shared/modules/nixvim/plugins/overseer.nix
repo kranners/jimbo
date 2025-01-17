@@ -56,7 +56,11 @@ in
         }
       })
 
-      require('dressing').setup()
+      require('dressing').setup({
+        input = {
+          start_mode = "normal",
+        },
+      })
     '';
   };
 }

@@ -9,5 +9,7 @@
     shiftwidth = 0;
 
     swapfile = false;
+
+    equalalways = false;
   };
 }
