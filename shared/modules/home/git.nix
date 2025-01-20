@@ -88,8 +88,6 @@ in
   programs.git = {
     enable = true;
 
-    difftastic.enable = true;
-
     aliases = {
       cram = "commit --amend --no-edit --no-verify";
     };
