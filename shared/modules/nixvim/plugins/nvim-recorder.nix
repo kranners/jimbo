@@ -13,7 +13,7 @@ in
     extraConfigLua = ''
       require('recorder').setup({
         mapping = {
-          addBreakPoint = "<Leader>q",
+          addBreakPoint = "<Leader>#",
         },
       })
     '';
