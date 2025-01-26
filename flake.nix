@@ -46,11 +46,6 @@
       flake = false;
     };
 
-    windline = {
-      url = "github:windwp/windline.nvim";
-      flake = false;
-    };
-
     flatten = {
       url = "github:willothy/flatten.nvim";
       flake = false;
@@ -58,11 +53,6 @@
 
     grug-far = {
       url = "github:MagicDuck/grug-far.nvim";
-      flake = false;
-    };
-
-    fzf-lua-resession = {
-      url = "git+ssh://git@github.com/roastedramen/fzf-lua-resession.nvim";
       flake = false;
     };
 

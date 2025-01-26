@@ -1,33 +1,9 @@
-{ pkgs, inputs, ... }:
-let
-  fzf-lua-resession = pkgs.vimUtils.buildVimPlugin {
-    pname = "fzf-lua-resession";
-    version = "2024-09-26";
-    src = inputs.fzf-lua-resession;
-    meta.homepage = "https://github.com/roastedramen/fzf-lua-resession.nvim";
-  };
-in
 {
   programs.nixvim = {
     plugins.fzf-lua = {
       enable = true;
       profile = "telescope";
     };
-
-    extraPlugins = [ fzf-lua-resession ];
-    extraConfigLua = ''
-      require("fzf-lua-resession").setup({
-        session_dir = "dirsession"
-      })
-
-      vim.keymap.set(
-        "n", "<Leader>L",
-        function()
-          require('fzf-lua').resession_picker()
-        end, 
-        { desc = "Resession picker" }
-      )
-    '';
 
     keymaps = [
       {

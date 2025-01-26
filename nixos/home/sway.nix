@@ -49,17 +49,6 @@ in
     xwayland = true;
     systemd.enable = true;
 
-    # Effects and eye candy
-    package = pkgs.swayfx;
-    extraConfigEarly = ''
-      layer_effects "waybar" "blur enable; shadows enable"
-
-      blur enable
-
-      shadows enable
-      corner_radius 6
-    '';
-
     extraConfig = ''
       input "type:pointer" {
         accel_profile flat
