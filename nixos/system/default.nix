@@ -1,14 +1,9 @@
 { pkgs, ... }: {
   imports = [
     ./boot.nix
-    ./environment.nix
     ./fonts.nix
     ./hardware.nix
-    ./home-manager.nix
-    ./login.nix
     ./users.nix
-    ./x11.nix
-    ./gpg.nix
     ./steam.nix
     ./graphics.nix
     ./sound.nix
@@ -16,9 +11,7 @@
     ./xdg.nix
     ./locale.nix
     ./services.nix
-    ./vial.nix
-    ./nix-index.nix
-    ./openrazer.nix
+    ./hyprland.nix
   ];
 
   # Enable Flakes
@@ -58,7 +51,15 @@
     # Required libs for background services
     libnotify
     pipewire
+
+    home-manager
   ];
+
+  # Required to prevent Home Manager crashing
+  # https://github.com/nix-community/home-manager/issues/3113
+  programs.dconf.enable = true;
+
+  programs.gnupg.agent.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

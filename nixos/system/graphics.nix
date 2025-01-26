@@ -4,7 +4,8 @@
     enable32Bit = true;
 
     extraPackages = [
-      pkgs.rocmPackages.clr.icd
+      # TODO: Look into why this isn't building properly
+      # pkgs.rocmPackages.clr.icd
       pkgs.amdvlk
       pkgs.libva-utils
     ];
