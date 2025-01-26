@@ -1,15 +1,5 @@
 { config, pkgs, ... }:
 let
-  screenshot-region = pkgs.writeShellApplication {
-    name = "screenshot-region";
-
-    runtimeInputs = [ pkgs.grim pkgs.slurp pkgs.wl-clipboard ];
-
-    text = ''
-      grim -g "$(slurp -d)" - | wl-copy && notify-send "Copied region to clipboard"
-    '';
-  };
-
   exit-if-all-closed = pkgs.writeShellApplication {
     name = "exit-if-all-closed";
 
@@ -42,7 +32,7 @@ in
   # TODO: FIXME: Delete this as soon as possible!
   wayland.windowManager.sway.checkConfig = false;
 
-  home.packages = [ screenshot-region exit-if-all-closed ];
+  home.packages = [ exit-if-all-closed ];
 
   wayland.windowManager.sway = {
     enable = true;
@@ -155,49 +145,12 @@ in
         {
           # Mimicking Windows behaviour to either kill individual windows or to shutdown the whole system
           "${modifier}+Shift+q" = "exec exit-if-all-closed";
-          "${modifier}+Return" = "exec ${cfg.terminal}";
-          "${modifier}+space" = "exec ${cfg.menu}";
-
-          "${modifier}+Shift+s" = "exec screenshot-region";
-          "${modifier}+e" = "exec nemo";
-
-          "${modifier}+${cfg.left}" = "focus left";
-          "${modifier}+${cfg.down}" = "focus down";
-          "${modifier}+${cfg.up}" = "focus up";
-          "${modifier}+${cfg.right}" = "focus right";
-
-          "${modifier}+Shift+${cfg.left}" = "move left";
-          "${modifier}+Shift+${cfg.down}" = "move down";
-          "${modifier}+Shift+${cfg.up}" = "move up";
-          "${modifier}+Shift+${cfg.right}" = "move right";
 
           "${modifier}+f" = "fullscreen toggle";
           "${modifier}+Shift+f" = "floating toggle";
 
           "${modifier}+t" = "layout tabbed";
           "${modifier}+Shift+t" = "layout toggle split";
-
-          "${modifier}+1" = "workspace number 1";
-          "${modifier}+2" = "workspace number 2";
-          "${modifier}+3" = "workspace number 3";
-          "${modifier}+4" = "workspace number 4";
-          "${modifier}+5" = "workspace number 5";
-          "${modifier}+6" = "workspace number 6";
-          "${modifier}+7" = "workspace number 7";
-          "${modifier}+8" = "workspace number 8";
-          "${modifier}+9" = "workspace number 9";
-          "${modifier}+0" = "workspace number 10";
-
-          "${modifier}+Shift+1" = "move container to workspace number 1";
-          "${modifier}+Shift+2" = "move container to workspace number 2";
-          "${modifier}+Shift+3" = "move container to workspace number 3";
-          "${modifier}+Shift+4" = "move container to workspace number 4";
-          "${modifier}+Shift+5" = "move container to workspace number 5";
-          "${modifier}+Shift+6" = "move container to workspace number 6";
-          "${modifier}+Shift+7" = "move container to workspace number 7";
-          "${modifier}+Shift+8" = "move container to workspace number 8";
-          "${modifier}+Shift+9" = "move container to workspace number 9";
-          "${modifier}+Shift+0" = "move container to workspace number 10";
 
           "${modifier}+Shift+c" = "reload";
         };
