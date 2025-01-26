@@ -70,11 +70,6 @@
       url = "github:rachartier/tiny-inline-diagnostic.nvim";
       flake = false;
     };
-
-    nvim-recorder = {
-      url = "github:chrisgrieser/nvim-recorder";
-      flake = false;
-    };
   };
 
   outputs =

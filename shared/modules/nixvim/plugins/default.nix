@@ -11,7 +11,6 @@
     ./luasnip.nix
     ./treesj.nix
     ./barbar.nix
-    ./trouble.nix
     ./neotest.nix
     ./treesitter.nix
     ./obsidian.nix
@@ -25,7 +24,6 @@
     ./fzf.nix
     ./fugitive.nix
     ./tiny-inline-diagnostic.nix
-    ./nvim-recorder.nix
   ];
 
   programs.nixvim.plugins = {
