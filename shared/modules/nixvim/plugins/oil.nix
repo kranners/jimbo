@@ -27,7 +27,7 @@
         keymaps = {
           "<C-l>" = false;
           "<C-h>" = false;
-          "<C-c>" = false;
+          "<C-c>" = "actions.copy_entry_path";
           "<C-r>" = "actions.refresh";
         };
       };

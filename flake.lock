@@ -461,22 +461,6 @@
         "type": "github"
       }
     },
-    "nvim-recorder": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1735559860,
-        "narHash": "sha256-JYH+b5/1Ce6iTn6fhE8lSb5/psw5sEEthoXXWT/w7dc=",
-        "owner": "chrisgrieser",
-        "repo": "nvim-recorder",
-        "rev": "00644d6a389d24500ebfca325440500d1aff23c4",
-        "type": "github"
-      },
-      "original": {
-        "owner": "chrisgrieser",
-        "repo": "nvim-recorder",
-        "type": "github"
-      }
-    },
     "resession": {
       "flake": false,
       "locked": {
@@ -505,7 +489,6 @@
         "nix-darwin": "nix-darwin",
         "nixpkgs": "nixpkgs",
         "nixvim": "nixvim",
-        "nvim-recorder": "nvim-recorder",
         "resession": "resession",
         "tiny-inline-diagnostic": "tiny-inline-diagnostic",
         "toggleterm-manager": "toggleterm-manager",
@@ -545,11 +528,11 @@
     "tiny-inline-diagnostic": {
       "flake": false,
       "locked": {
-        "lastModified": 1730644451,
-        "narHash": "sha256-Bx43LvcE9iSgtXEMaVgZoElUkmuEK8Ik8tRdD0DX1FY=",
+        "lastModified": 1737370340,
+        "narHash": "sha256-VDW9oI0Ks+1ZZugeh5eJYzexOMl+Twy9rkAq1A5hgWg=",
         "owner": "rachartier",
         "repo": "tiny-inline-diagnostic.nvim",
-        "rev": "d10c9fda7b8b7b81b2c6eb4c3909adfe9812c6bf",
+        "rev": "2c50854895c9b553482d4289976194a477b41b8f",
         "type": "github"
       },
       "original": {

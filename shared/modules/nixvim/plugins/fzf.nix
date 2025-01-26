@@ -73,6 +73,13 @@ in
       }
 
       {
+        key = "<Leader>q";
+        action = "<CMD>FzfLua diagnostics_workspace<CR>";
+        options = { desc = "Show diagnostics"; };
+        mode = "n";
+      }
+
+      {
         key = "<C-p>";
         action = "<CMD>FzfLua keymaps<CR>";
         options = { desc = "Show keymaps / command prompt"; };

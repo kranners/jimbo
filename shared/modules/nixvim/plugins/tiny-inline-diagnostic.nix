@@ -9,7 +9,22 @@ let
 in
 {
   programs.nixvim = {
+    diagnostics = {
+      virtual_text = false;
+    };
+
     extraPlugins = [ tiny-inline-diagnostic ];
-    extraConfigLua = "require('tiny-inline-diagnostic').setup()";
+    extraConfigLua = ''
+      require('tiny-inline-diagnostic').setup({
+        preset = "ghost",
+
+        options = {
+          multiline = {
+            enabled = true,
+            always_show = true,
+          },
+        },
+      })
+    '';
   };
 }
