@@ -1,5 +1,7 @@
 { pkgs, config, ... }:
 let
+  op-account = "LWDABTQNUBGJ7HHPGYSPCTG3PA";
+
   gh-token = "${config.xdg.cacheHome}/.gh-token";
   npm-token = "${config.xdg.cacheHome}/.npm-token";
 
@@ -9,6 +11,8 @@ let
     runtimeInputs = [ pkgs._1password-cli ];
 
     text = ''
+      export OP_ACCOUNT="${op-account}"
+
       op read 'op://Employee/GitHub Personal Access Token/token' > ${gh-token}
       op read 'op://Employee/NPM Access Token/credential' > ${npm-token}
     '';
