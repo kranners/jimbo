@@ -24,6 +24,11 @@ in
   wayland.windowManager.hyprland = {
     enable = true;
 
+    plugins = [
+      pkgs.hyprlandPlugins.hyprspace
+      pkgs.hyprlandPlugins.hyprsplit
+    ];
+
     settings = {
       "$mod" = "SUPER";
       "$terminal" = "alacritty";
@@ -47,6 +52,8 @@ in
 
       bind = [
         "$mod, SPACE, exec, $menu"
+        "$mod, TAB, overview:toggle, all"
+
         "$mod, RETURN, exec, $terminal"
         "$mod, E, exec, $fileManager"
 
@@ -65,27 +72,27 @@ in
         "$mod SHIFT, K, movewindow, u"
         "$mod SHIFT, L, movewindow, r"
 
-        "$mod, 1, workspace, 1"
-        "$mod, 2, workspace, 2"
-        "$mod, 3, workspace, 3"
-        "$mod, 4, workspace, 4"
-        "$mod, 5, workspace, 5"
-        "$mod, 6, workspace, 6"
-        "$mod, 7, workspace, 7"
-        "$mod, 8, workspace, 8"
-        "$mod, 9, workspace, 9"
-        "$mod, 0, workspace, 10"
+        "$mod, 1, split:workspace, 1"
+        "$mod, 2, split:workspace, 2"
+        "$mod, 3, split:workspace, 3"
+        "$mod, 4, split:workspace, 4"
+        "$mod, 5, split:workspace, 5"
+        "$mod, 6, split:workspace, 6"
+        "$mod, 7, split:workspace, 7"
+        "$mod, 8, split:workspace, 8"
+        "$mod, 9, split:workspace, 9"
+        "$mod, 0, split:workspace, 10"
 
-        "$mod SHIFT, 1, movetoworkspace, 1"
-        "$mod SHIFT, 2, movetoworkspace, 2"
-        "$mod SHIFT, 3, movetoworkspace, 3"
-        "$mod SHIFT, 4, movetoworkspace, 4"
-        "$mod SHIFT, 5, movetoworkspace, 5"
-        "$mod SHIFT, 6, movetoworkspace, 6"
-        "$mod SHIFT, 7, movetoworkspace, 7"
-        "$mod SHIFT, 8, movetoworkspace, 8"
-        "$mod SHIFT, 9, movetoworkspace, 9"
-        "$mod SHIFT, 0, movetoworkspace, 10"
+        "$mod SHIFT, 1, split:movetoworkspacesilent, 1"
+        "$mod SHIFT, 2, split:movetoworkspacesilent, 2"
+        "$mod SHIFT, 3, split:movetoworkspacesilent, 3"
+        "$mod SHIFT, 4, split:movetoworkspacesilent, 4"
+        "$mod SHIFT, 5, split:movetoworkspacesilent, 5"
+        "$mod SHIFT, 6, split:movetoworkspacesilent, 6"
+        "$mod SHIFT, 7, split:movetoworkspacesilent, 7"
+        "$mod SHIFT, 8, split:movetoworkspacesilent, 8"
+        "$mod SHIFT, 9, split:movetoworkspacesilent, 9"
+        "$mod SHIFT, 0, split:movetoworkspacesilent, 10"
       ];
     };
   };
