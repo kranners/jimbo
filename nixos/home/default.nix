@@ -24,12 +24,12 @@ in
     ./firefox.nix
     ./plexamp.nix
     ./wallpaper.nix
-    ./inactive-windows-transparency.nix
     ./ungoogled-chromium.nix
     ./mangohud.nix
     ./hyprland.nix
     ./kando.nix
     ./wayvnc.nix
+    ./swww.nix
   ];
 
   home.username = "aaron";
