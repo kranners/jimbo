@@ -29,6 +29,7 @@ in
     ./mangohud.nix
     ./hyprland.nix
     ./kando.nix
+    ./wayvnc.nix
   ];
 
   home.username = "aaron";
