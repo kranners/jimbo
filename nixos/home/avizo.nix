@@ -1,9 +1,4 @@
-{ config
-, pkgs
-, lib
-, inputs
-, ...
-}:
+{ pkgs, ... }:
 let
   play-pause = pkgs.writeShellApplication {
     name = "play-pause";
@@ -52,25 +47,18 @@ in
     };
   };
 
-  wayland.windowManager.sway.config = {
-    startup = [
-      {
-        command = "systemctl --user restart avizo";
-        always = true;
-      }
+  wayland.windowManager.hyprland.settings = {
+    exec-once = [ "uwsm app -- systemctl --user restart avizo" ];
+
+    bindl = [
+      ",XF86AudioRaiseVolume, exec, volumectl -u up"
+      ",XF86AudioLowerVolume, exec, volumectl -u down"
+      ",XF86AudioMute, exec, volumectl toggle-mute"
+      ",XF86AudioMicMute, exec, volumectl -m toggle-mute"
+      ",XF86AudioPlay, exec, play-pause"
+      ",XF86MonBrightnessUp, exec, lightctl up"
+      ",XF86MonBrightnessDown, exec, lightctl down"
     ];
-
-    keybindings = {
-      "XF86AudioRaiseVolume" = "exec volumectl -u up";
-      "XF86AudioLowerVolume" = "exec volumectl -u down";
-      "XF86AudioMute" = "exec volumectl toggle-mute";
-      "XF86AudioMicMute" = "exec volumectl -m toggle-mute";
-
-      "XF86AudioPlay" = "exec play-pause";
-
-      "XF86MonBrightnessUp" = "exec lightctl up";
-      "XF86MonBrightnessDown" = "exec lightctl down";
-    };
   };
 
   # Config reference:
