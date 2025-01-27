@@ -60,6 +60,11 @@
       url = "github:rachartier/tiny-inline-diagnostic.nvim";
       flake = false;
     };
+
+    swww = {
+      url = "github:LGFae/swww";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
