@@ -1,4 +1,4 @@
-{ inputs, pkgs, ... }:
+{ pkgs, inputs, ... }:
 let
   screenshot-region = pkgs.writeShellApplication {
     name = "screenshot-region";
@@ -13,11 +13,11 @@ let
       grim -g "$(slurp -d)" - | wl-copy && notify-send "Copied region to clipboard"
     '';
   };
-
 in
 {
   home.packages = [
     screenshot-region
+    pkgs.nwg-dock-hyprland
   ];
 
   wayland.windowManager.hyprland = {
@@ -26,12 +26,33 @@ in
     plugins = [
       pkgs.hyprlandPlugins.hyprspace
       pkgs.hyprlandPlugins.hyprsplit
+      pkgs.hyprlandPlugins.hyprbars
     ];
 
     settings = {
       "$mod" = "SUPER";
       "$fileManager" = "nemo";
-      "$menu" = "ulauncher";
+      "$menu" = "rofi -show drun -monitor -1";
+      "$terminal" = "alacritty";
+
+      plugin = {
+        hyprbars = {
+          bar_height = 20;
+          bar_precedence_over_border = true;
+
+          # order is right-to-left
+          hyprbars-button = [
+            # close
+            "rgb(FF605C), 10, , hyprctl dispatch killactive"
+            # maximize
+            "rgb(00CA4E), 10, , hyprctl dispatch fullscreen 1"
+          ];
+        };
+      };
+
+      exec-once = [
+        "uwsm app -- ${pkgs.nwg-dock-hyprland}/bin/nwg-dock-hyprland -d"
+      ];
 
       windowrule = [
         "noblur, ulauncher"

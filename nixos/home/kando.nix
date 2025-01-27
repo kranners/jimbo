@@ -1,11 +1,11 @@
-{ pkgs, ... }: {
+{ pkgs, config, ... }: {
   home.packages = [ pkgs.kando ];
 
   systemd.user.services.kando = {
     Unit = {
       Description = "Configurable radial menu for Hyprland";
     };
-    Install = { WantedBy = [ "sway-session.target" ]; };
+    Install = { WantedBy = [ config.wayland.systemd.target ]; };
     Service = {
       ExecStart = "${pkgs.kando}/bin/kando";
       Restart = "always";

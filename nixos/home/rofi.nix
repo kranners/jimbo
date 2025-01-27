@@ -1,5 +1,8 @@
 { pkgs, inputs, ... }: {
-  wayland.windowManager.hyprland.settings."$terminal" = "rofi -show drun -monitor -1";
+  xdg.configFile.rofi-spotlight = {
+    target = "./rofi/theme/spotlight.rasi";
+    source = "${inputs.rofi-themes-collection}/themes/spotlight.rasi";
+  };
 
   programs.rofi = {
     enable = true;
@@ -11,7 +14,7 @@
 
     location = "center";
 
-    theme = "${inputs.rofi-themes-collection}/spotlight.rasi";
+    theme = "~/.config/rofi/theme/spotlight.rasi";
 
     extraConfig = {
       modi = "window,drun,games";

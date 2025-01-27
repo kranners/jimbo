@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 let
   TEMP_WALLPAPER_PATH = "/tmp/wallpaper.jpg";
 
@@ -46,7 +46,7 @@ in
         PartOf = [ "graphical-session.target" ];
       };
 
-      Install.WantedBy = [ "sway-session.target" ];
+      Install.WantedBy = [ config.wayland.systemd.target ];
 
       Service = {
         ExecStart = "${download-and-set}/bin/download-and-set";

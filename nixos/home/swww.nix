@@ -44,7 +44,7 @@ in
       Restart = "on-failure";
     };
 
-    Install.WantedBy = [ "sway-session.target" ];
+    Install.WantedBy = [ config.wayland.systemd.target ];
   };
 
   systemd.user.services.swww-randomize = {
@@ -59,6 +59,6 @@ in
       Restart = "on-failure";
     };
 
-    Install.WantedBy = [ "sway-session.target" ];
+    Install.WantedBy = [ config.wayland.systemd.target ];
   };
 }

@@ -68,7 +68,7 @@
 
     rofi-themes-collection = {
       url = "github:newmanls/rofi-themes-collection";
-      inputs.nixpkgs.follows = "nixpkgs";
+      flake = false;
     };
   };
 
