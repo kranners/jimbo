@@ -1,10 +1,5 @@
-{ config
-, pkgs
-, lib
-, inputs
-, ...
-}: {
-  wayland.windowManager.sway.config.menu = "rofi -show drun -monitor -1";
+{ pkgs, inputs, ... }: {
+  wayland.windowManager.hyprland.settings."$terminal" = "rofi -show drun -monitor -1";
 
   programs.rofi = {
     enable = true;
@@ -16,7 +11,7 @@
 
     location = "center";
 
-    theme = "material";
+    theme = "${inputs.rofi-themes-collection}/spotlight.rasi";
 
     extraConfig = {
       modi = "window,drun,games";

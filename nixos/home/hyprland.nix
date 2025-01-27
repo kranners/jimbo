@@ -18,7 +18,6 @@ in
 {
   home.packages = [
     screenshot-region
-    pkgs.ulauncher
   ];
 
   wayland.windowManager.hyprland = {
@@ -31,7 +30,6 @@ in
 
     settings = {
       "$mod" = "SUPER";
-      "$terminal" = "alacritty";
       "$fileManager" = "nemo";
       "$menu" = "ulauncher";
 

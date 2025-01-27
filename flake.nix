@@ -65,6 +65,11 @@
       url = "github:LGFae/swww";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    rofi-themes-collection = {
+      url = "github:newmanls/rofi-themes-collection";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
