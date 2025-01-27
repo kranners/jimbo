@@ -16,7 +16,6 @@
     ./obsidian.nix
     ./codesnap.nix
     ./resession.nix
-    ./windline.nix
     ./flatten.nix
     ./noice.nix
     ./grug-far.nix

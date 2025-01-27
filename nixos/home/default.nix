@@ -27,6 +27,9 @@ in
     ./inactive-windows-transparency.nix
     ./ungoogled-chromium.nix
     ./mangohud.nix
+    ./hyprland.nix
+    ./kando.nix
+    ./wayvnc.nix
   ];
 
   home.username = "aaron";

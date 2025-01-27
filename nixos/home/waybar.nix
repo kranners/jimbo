@@ -1,14 +1,7 @@
 { pkgs, lib, ... }: {
-  wayland.windowManager.sway.config.startup = [
-    {
-      command = "systemctl --user restart waybar";
-      always = true;
-    }
-
-    {
-      command = "systemctl --user restart workstyle";
-      always = true;
-    }
+  wayland.windowManager.hyprland.settings.exec-once = [
+    "uwsm app -- systemctl --user restart waybar"
+    "uwsm app -- systemctl --user restart workstyle"
   ];
 
   programs.waybar = {
@@ -78,7 +71,7 @@
         ];
 
         modules-center = [
-          "sway/workspaces"
+          "hyprland/workspaces"
         ];
 
         modules-right = [
@@ -95,7 +88,7 @@
           "custom/notifications"
         ];
 
-        "sway/workspaces" = {
+        "hyprland/workspaces" = {
           format = "{name}";
         };
 
@@ -230,7 +223,7 @@
             color: @inactive;
         }
 
-        #workspaces button.focused {
+        #workspaces button.active {
             color: @accent;
         }
 
