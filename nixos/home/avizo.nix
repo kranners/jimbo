@@ -1,9 +1,4 @@
-{ config
-, pkgs
-, lib
-, inputs
-, ...
-}:
+{ pkgs, ... }:
 let
   play-pause = pkgs.writeShellApplication {
     name = "play-pause";
@@ -53,7 +48,7 @@ in
   };
 
   wayland.windowManager.hyprland.settings = {
-    exec-once = "uwsm app -- systemctl --user restart avizo";
+    exec-once = [ "uwsm app -- systemctl --user restart avizo" ];
 
     bindl = [
       ",XF86AudioRaiseVolume, exec, volumectl -u up"

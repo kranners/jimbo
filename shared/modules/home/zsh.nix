@@ -36,9 +36,12 @@
       }
     ];
 
-    # Disable instant prompt to allow instantly starting into Nix shells
     initExtraBeforeCompInit = ''
+      # Disable instant prompt to allow instantly starting into Nix shells
       typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
+
+      # Explicitly disable Vi mode
+      bindkey -e
     '';
   };
 }

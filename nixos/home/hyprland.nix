@@ -1,9 +1,13 @@
-{ pkgs, ... }:
+{ inputs, pkgs, ... }:
 let
   screenshot-region = pkgs.writeShellApplication {
     name = "screenshot-region";
 
-    runtimeInputs = [ pkgs.grim pkgs.slurp pkgs.wl-clipboard ];
+    runtimeInputs = [
+      pkgs.grim
+      pkgs.slurp
+      pkgs.wl-clipboard
+    ];
 
     text = ''
       grim -g "$(slurp -d)" - | wl-copy && notify-send "Copied region to clipboard"
@@ -12,7 +16,10 @@ let
 
 in
 {
-  home.packages = [ screenshot-region pkgs.ulauncher ];
+  home.packages = [
+    screenshot-region
+    pkgs.ulauncher
+  ];
 
   wayland.windowManager.hyprland = {
     enable = true;
@@ -22,6 +29,16 @@ in
       "$terminal" = "alacritty";
       "$fileManager" = "nemo";
       "$menu" = "ulauncher";
+
+      windowrule = [
+        "noblur, ulauncher"
+        "opaque, ulauncher"
+        "size 100% 100%, ulauncher"
+        "noborder, ulauncher"
+        "noanim, ulauncher"
+        "float, ulauncher"
+        "pin, ulauncher"
+      ];
 
       bindm = [
         "$mod, mouse:272, movewindow"

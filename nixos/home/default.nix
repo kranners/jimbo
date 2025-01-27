@@ -28,6 +28,7 @@ in
     ./ungoogled-chromium.nix
     ./mangohud.nix
     ./hyprland.nix
+    ./kando.nix
   ];
 
   home.username = "aaron";
