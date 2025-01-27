@@ -20,7 +20,7 @@ in
     Unit = {
       Description = "OBS Studio, mainly for screen recordings and replays";
     };
-    Install = { WantedBy = [ "sway-session.target" ]; };
+    Install = { WantedBy = [ config.wayland.systemd.target ]; };
     Service = {
       ExecStart = "${pkgs.obs-studio}/bin/obs --startreplaybuffer --minimize-to-tray --disable-shutdown-check";
       Restart = "always";

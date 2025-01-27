@@ -35,17 +35,7 @@ in
 {
   home.packages = [ pkgs.avizo pkgs.playerctl play-pause ];
 
-  systemd.user.services.avizo = {
-    Unit = {
-      Description = "MacOS-like volume control hotkeys and notifications";
-    };
-    Install = { WantedBy = [ "sway-session.target" ]; };
-    Service = {
-      ExecStart = "${pkgs.avizo}/bin/avizo-service";
-      Restart = "always";
-      RestartSec = "3";
-    };
-  };
+  services.avizo.enable = true;
 
   wayland.windowManager.hyprland.settings = {
     exec-once = [ "uwsm app -- systemctl --user restart avizo" ];

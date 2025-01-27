@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ pkgs, config, ... }: {
   home.packages = [ pkgs.wayvnc ];
 
   xdg.configFile."wayvnc/config" = {
@@ -20,6 +20,6 @@
       Restart = "on-failure";
     };
 
-    Install.WantedBy = [ "sway-session.target" ];
+    Install.WantedBy = [ config.wayland.systemd.target ];
   };
 }
