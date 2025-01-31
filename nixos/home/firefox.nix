@@ -4,7 +4,7 @@
 
     profiles.jimbo = {
       extensions = with inputs.firefox-addons.packages.x86_64-linux; [
-        tree-style-tab
+        sidebery
         kagi-search
         ublock-origin
         vimium
