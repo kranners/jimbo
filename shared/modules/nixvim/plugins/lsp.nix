@@ -15,6 +15,7 @@
         ruby_lsp.enable = true;
         gopls.enable = true;
         emmet_language_server.enable = true;
+        terraformls.enable = true;
         ts_ls = {
           enable = true;
 

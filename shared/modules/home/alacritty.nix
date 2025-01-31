@@ -14,12 +14,12 @@ in
       # flake update.
       general = lib.mkIf isLinux {
         import = [
-          "${inputs.cyberdream}/extras/alacritty/cyberdream.toml"
+          "${inputs.alacritty-themes}/cyberdream-light.toml"
         ];
       };
 
       import = lib.mkIf isDarwin [
-        "${inputs.cyberdream}/extras/alacritty/cyberdream.toml"
+        "${inputs.alacritty-themes}/cyberdream-light.toml"
       ];
 
       window = {

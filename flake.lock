@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "alacritty-themes": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1738109068,
+        "narHash": "sha256-SJXWkZ7gAbSScC6mi40hJqGUYzNIdV8JNDKefH48Zug=",
+        "owner": "Johnsoct",
+        "repo": "alacritty",
+        "rev": "4df5f0ead671f6c65522a08f9ffadf7f3e326fab",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Johnsoct",
+        "repo": "alacritty",
+        "type": "github"
+      }
+    },
     "awesome-neovim-plugins": {
       "inputs": {
         "flake-compat": "flake-compat",
@@ -20,22 +36,6 @@
       "original": {
         "owner": "m15a",
         "repo": "flake-awesome-neovim-plugins",
-        "type": "github"
-      }
-    },
-    "cyberdream": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1737497647,
-        "narHash": "sha256-Jjvr5L93Ue2Hg7PIgjIKFPbNSx2UxW20go2NvTIejXM=",
-        "owner": "scottmckendry",
-        "repo": "cyberdream.nvim",
-        "rev": "5b42c2e6764312c166c25bc79dfcbaadac2d5425",
-        "type": "github"
-      },
-      "original": {
-        "owner": "scottmckendry",
-        "repo": "cyberdream.nvim",
         "type": "github"
       }
     },
@@ -492,8 +492,8 @@
     },
     "root": {
       "inputs": {
+        "alacritty-themes": "alacritty-themes",
         "awesome-neovim-plugins": "awesome-neovim-plugins",
-        "cyberdream": "cyberdream",
         "firefox-addons": "firefox-addons",
         "flatten": "flatten",
         "grug-far": "grug-far",
