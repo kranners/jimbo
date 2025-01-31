@@ -41,8 +41,8 @@
       flake = false;
     };
 
-    cyberdream = {
-      url = "github:scottmckendry/cyberdream.nvim";
+    alacritty-themes = {
+      url = "github:Johnsoct/alacritty";
       flake = false;
     };
 
