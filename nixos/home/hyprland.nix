@@ -32,7 +32,6 @@ in
     settings = {
       "$mod" = "SUPER";
       "$fileManager" = "nemo";
-      "$menu" = "rofi -show drun -monitor -1";
       "$terminal" = "alacritty";
 
       plugin = {

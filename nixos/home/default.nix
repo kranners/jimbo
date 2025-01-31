@@ -23,13 +23,12 @@ in
     ./easyeffects.nix
     ./firefox.nix
     ./plexamp.nix
-    ./wallpaper.nix
     ./ungoogled-chromium.nix
     ./mangohud.nix
     ./hyprland.nix
-    ./kando.nix
     ./wayvnc.nix
-    ./swww.nix
+    ./wpaperd.nix
+    ./walker.nix
   ];
 
   home.username = "aaron";
