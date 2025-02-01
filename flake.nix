@@ -31,10 +31,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    walker = {
-      url = "github:abenz1267/walker";
-      # Don't follow nixpkgs, use the substituter instead
-      # inputs.nixpkgs.follows = "nixpkgs";
+    anyrun = {
+      url = "github:anyrun-org/anyrun";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     toggleterm-manager = {
@@ -78,21 +77,12 @@
     };
   };
 
-  # TODO: Check if this or the one in nixos/home/default.nix is right
-  # nixConfig = {
-  #   extra-substituters = [ "https://walker.cachix.org" "https://walker-git.cachix.org" ];
-  #   extra-trusted-public-keys = [
-  #     "walker.cachix.org-1:fG8q+uAaMqhsMxWjwvk0IMb4mFPFLqHjuvfwQxE4oJM="
-  #     "walker-git.cachix.org-1:vmC0ocfPWh0S/vRAQGtChuiZBTAe4wiKDeyyXM0/7pM="
-  #   ];
-  # };
-
   outputs =
     { nixpkgs
     , home-manager
     , nixvim
     , nix-darwin
-    , walker
+    , anyrun
     , ...
     } @ inputs: {
       darwinConfigurations = {
@@ -146,7 +136,7 @@
 
                 users.aaron = {
                   imports = [
-                    walker.homeManagerModules.default
+                    anyrun.homeManagerModules.default
                     ./nixos/home
                     ./shared/modules/home
                   ];

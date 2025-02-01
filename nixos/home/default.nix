@@ -28,7 +28,7 @@ in
     ./hyprland.nix
     ./wayvnc.nix
     ./wpaperd.nix
-    ./walker.nix
+    ./anyrun.nix
   ];
 
   home.username = "aaron";
@@ -86,10 +86,12 @@ in
   systemd.user.startServices = "sd-switch";
 
   nix.settings = {
-    extra-substituters = ["https://walker.cachix.org" "https://walker-git.cachix.org"];
+    extra-substituters = [
+      "https://anyrun.cachix.org"
+    ];
+
     extra-trusted-public-keys = [
-      "walker.cachix.org-1:fG8q+uAaMqhsMxWjwvk0IMb4mFPFLqHjuvfwQxE4oJM="
-      "walker-git.cachix.org-1:vmC0ocfPWh0S/vRAQGtChuiZBTAe4wiKDeyyXM0/7pM="
+      "anyrun.cachix.org-1:pqBobmOjI7nKlsUMV25u9QHa9btJK65/C8vnO3p346s="
     ];
   };
 
