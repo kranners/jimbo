@@ -8,7 +8,7 @@ Darwin:
 	git add . ; nix run nix-darwin -- switch --flake .#cassandra
 
 Linux:
-	git add . ; nh os switch . --hostname jimbo -- --accept-flake-config
+	git add . ; nh os switch . --hostname jimbo
 
 check:
 	nix flake check --show-trace --max-jobs {{ jobs }}
