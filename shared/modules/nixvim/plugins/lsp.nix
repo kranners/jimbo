@@ -16,6 +16,7 @@
         gopls.enable = true;
         emmet_language_server.enable = true;
         terraformls.enable = true;
+        nil_ls.enable = true;
         ts_ls = {
           enable = true;
 
@@ -33,11 +34,6 @@
               };
             };
           };
-        };
-
-        nixd = {
-          enable = true;
-          settings.formatting.command = [ "nixpkgs-fmt" ];
         };
       };
     };
