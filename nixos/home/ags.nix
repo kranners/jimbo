@@ -4,9 +4,7 @@
 
   programs.ags = {
     enable = true;
-
-    # symlink to ~/.config/ags
-    configDir = ../ags;
+    package = inputs.jimbags.packages.${pkgs.system}.default;
 
     # additional packages to add to gjs's runtime
     extraPackages = with pkgs; [
