@@ -41,6 +41,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    jimbags = {
+      url = "github:kranners/jimbags";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     toggleterm-manager = {
       url = "github:ryanmsnyder/toggleterm-manager.nvim";
       flake = false;
