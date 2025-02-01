@@ -17,7 +17,6 @@ in
 {
   home.packages = [
     screenshot-region
-    pkgs.nwg-dock-hyprland
   ];
 
   wayland.windowManager.hyprland = {
@@ -49,6 +48,10 @@ in
           ];
         };
       };
+
+      exec-once = [
+        "${pkgs.hyprsunset} --temperature 5700"
+      ];
 
       windowrule = [
         "noblur, ulauncher"
