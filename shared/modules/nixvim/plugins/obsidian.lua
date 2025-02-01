@@ -68,15 +68,7 @@ local get_note_template_contents = function(title)
 end
 
 local prompt_for_new_note = function()
-  -- If we are currently in a floating window, just close that instead
   local win = vim.api.nvim_get_current_win()
-  local win_config = vim.api.nvim_win_get_config(win)
-
-  local floating = win_config.relative == "editor"
-  if floating then
-    vim.api.nvim_buf_delete(vim.api.nvim_win_get_buf(win), { force = true })
-    return
-  end
 
   -- Otherwise, create a new note with a given title
   local title = util.input("Enter title", { completion = "file" })
@@ -85,23 +77,11 @@ local prompt_for_new_note = function()
     return
   end
 
-  -- Make a new floating window, a new buffer
-  local width = math.ceil(math.min(150, vim.o.columns * 0.8))
-  local height = math.ceil(math.min(35, vim.o.lines * 0.5))
-  local row = math.ceil(vim.o.lines - height) * 0.5 - 1
-  local col = math.ceil(vim.o.columns - width) * 0.5 - 1
-
-  local float_config = {
-    width = width,
-    height = height,
-    row = row,
-    col = col,
-    relative = "editor",
-    border = "rounded",
-  }
-
+  -- Open a new horizontal split and move into it
   local buf = vim.api.nvim_create_buf(false, false)
-  vim.api.nvim_open_win(buf, true, float_config)
+  vim.cmd('split')
+  vim.cmd('wincmd j')
+  vim.api.nvim_win_set_buf(win, buf)
 
   -- Open a new note in that buffer
   local new_filepath = string.format("%s/%s.md", stack_root, title)
