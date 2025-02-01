@@ -20,7 +20,6 @@ in
     ./lutris.nix
     ./obs-studio.nix
     ./avizo.nix
-    ./easyeffects.nix
     ./firefox.nix
     ./plexamp.nix
     ./ungoogled-chromium.nix
@@ -29,6 +28,7 @@ in
     ./wayvnc.nix
     ./wpaperd.nix
     ./anyrun.nix
+    ./ags.nix
   ];
 
   home.username = "aaron";
