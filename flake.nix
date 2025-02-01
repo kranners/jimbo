@@ -31,6 +31,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    anyrun = {
+      url = "github:anyrun-org/anyrun";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     toggleterm-manager = {
       url = "github:ryanmsnyder/toggleterm-manager.nvim";
       flake = false;
@@ -77,6 +82,7 @@
     , home-manager
     , nixvim
     , nix-darwin
+    , anyrun
     , ...
     } @ inputs: {
       darwinConfigurations = {
@@ -129,7 +135,11 @@
                 backupFileExtension = "backup";
 
                 users.aaron = {
-                  imports = [ ./nixos/home ./shared/modules/home ];
+                  imports = [
+                    anyrun.homeManagerModules.default
+                    ./nixos/home
+                    ./shared/modules/home
+                  ];
                 };
               };
             }
