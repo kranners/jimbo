@@ -36,7 +36,6 @@
   };
 
   environment.systemPackages = with pkgs; [
-    # Nix development tools
     nixfmt-rfc-style
     gnumake
     gnupg
@@ -45,14 +44,11 @@
     eza
     btop
     htop
-
     gptfdisk
-
-    # Required libs for background services
     libnotify
     pipewire
-
     home-manager
+    busybox
   ];
 
   # Required to prevent Home Manager crashing

@@ -4,6 +4,9 @@
   programs.zsh.initExtra = ''
     if [[ -z "$CURRENT_POKEMON" ]]; then
       export CURRENT_POKEMON="$(krabby random --no-gmax --no-mega --no-regional | awk 'NR == 1 {print tolower($0)}')"
+    fi
+
+    if [[ -n "$ALACRITTY_WINDOW_ID" ]]; then
       alacritty msg config --window-id "$ALACRITTY_WINDOW_ID" "window.title=\"$CURRENT_POKEMON\""
     fi
 
