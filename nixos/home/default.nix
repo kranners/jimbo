@@ -23,13 +23,12 @@ in
     ./easyeffects.nix
     ./firefox.nix
     ./plexamp.nix
-    ./wallpaper.nix
     ./ungoogled-chromium.nix
     ./mangohud.nix
     ./hyprland.nix
-    ./kando.nix
     ./wayvnc.nix
-    ./swww.nix
+    ./wpaperd.nix
+    ./anyrun.nix
   ];
 
   home.username = "aaron";
@@ -85,6 +84,16 @@ in
 
   # Give Home Manager the power to stop and start systemd services
   systemd.user.startServices = "sd-switch";
+
+  nix.settings = {
+    extra-substituters = [
+      "https://anyrun.cachix.org"
+    ];
+
+    extra-trusted-public-keys = [
+      "anyrun.cachix.org-1:pqBobmOjI7nKlsUMV25u9QHa9btJK65/C8vnO3p346s="
+    ];
+  };
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release

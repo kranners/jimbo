@@ -17,7 +17,6 @@ in
 {
   home.packages = [
     screenshot-region
-    pkgs.nwg-dock-hyprland
   ];
 
   wayland.windowManager.hyprland = {
@@ -32,26 +31,26 @@ in
     settings = {
       "$mod" = "SUPER";
       "$fileManager" = "nemo";
-      "$menu" = "rofi -show drun -monitor -1";
       "$terminal" = "alacritty";
 
       plugin = {
         hyprbars = {
-          bar_height = 20;
+          bar_height = 30;
           bar_precedence_over_border = true;
+          bar_buttons_alignment = "left";
 
           # order is right-to-left
           hyprbars-button = [
             # close
-            "rgb(FF605C), 10, , hyprctl dispatch killactive"
+            "rgb(FF605C), 15, , hyprctl dispatch killactive"
             # maximize
-            "rgb(00CA4E), 10, , hyprctl dispatch fullscreen 1"
+            "rgb(00CA4E), 15, , hyprctl dispatch fullscreen 1"
           ];
         };
       };
 
       exec-once = [
-        "uwsm app -- ${pkgs.nwg-dock-hyprland}/bin/nwg-dock-hyprland -d"
+        "${pkgs.hyprsunset} --temperature 5700"
       ];
 
       windowrule = [
