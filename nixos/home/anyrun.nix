@@ -1,4 +1,6 @@
 { pkgs, inputs, ... }: {
+  imports = [ inputs.anyrun.homeManagerModules.default];
+
   wayland.windowManager.hyprland.settings."$menu" = "anyrun";
 
   programs.anyrun = {
