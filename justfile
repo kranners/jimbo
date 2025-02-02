@@ -16,3 +16,6 @@ check:
 repl:
 	NIX_DEBUG=7 nix repl -f '<nixos>'
 
+ags:
+  nix flake update jimbags ; just
+
