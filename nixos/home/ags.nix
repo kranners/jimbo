@@ -1,15 +1,23 @@
-{ pkgs, inputs, ... }: {
-  # add the home manager module
-  imports = [ inputs.ags.homeManagerModules.default ];
+{ inputs, ... }: {
+  home.packages = [ inputs.jimbags.packages.x86_64-linux.default ];
 
-  programs.ags = {
-    enable = true;
-    package = inputs.jimbags.packages.${pkgs.system}.default;
+  # See https://github.com/Aylur/ags/blob/main/nix/hm-module.nix
+  systemd.user.services.ags = {
+    Unit = {
+      Description = "ags for jimbo";
+      Documentation = "https://github.com/kranners/jimbags";
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session-pre.target"];
+    };
 
-    # additional packages to add to gjs's runtime
-    extraPackages = with pkgs; [
-      inputs.ags.packages.${pkgs.system}.battery
-      fzf
-    ];
+    Service = {
+      ExecStart = "${inputs.jimbags.packages.x86_64-linux.default}/bin/jimbags";
+      Restart = "on-failure";
+      KillMode = "mixed";
+    };
+
+    Install = {
+      WantedBy = ["graphical-session.target"];
+    };
   };
 }
