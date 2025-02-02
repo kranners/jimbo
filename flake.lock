@@ -21,6 +21,28 @@
         "type": "github"
       }
     },
+    "ags_2": {
+      "inputs": {
+        "astal": "astal_2",
+        "nixpkgs": [
+          "jimbags",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1738087375,
+        "narHash": "sha256-GLyNtU9A2VN22jNRHZ2OXuFfTJLh8uEVVt+ftsKUX0c=",
+        "owner": "aylur",
+        "repo": "ags",
+        "rev": "a6a7a0adb17740f4c34a59902701870d46fbb6a4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "aylur",
+        "repo": "ags",
+        "type": "github"
+      }
+    },
     "alacritty-themes": {
       "flake": false,
       "locked": {
@@ -62,6 +84,28 @@
     "astal": {
       "inputs": {
         "nixpkgs": [
+          "ags",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1737670815,
+        "narHash": "sha256-ZCxxshGN7XooabArcoGkYSNx5yVunqjKJi2aTv6cznI=",
+        "owner": "aylur",
+        "repo": "astal",
+        "rev": "127e9cdcbf173846a3c40ddc0abfbb038df48042",
+        "type": "github"
+      },
+      "original": {
+        "owner": "aylur",
+        "repo": "astal",
+        "type": "github"
+      }
+    },
+    "astal_2": {
+      "inputs": {
+        "nixpkgs": [
+          "jimbags",
           "ags",
           "nixpkgs"
         ]
@@ -435,6 +479,27 @@
         "type": "github"
       }
     },
+    "jimbags": {
+      "inputs": {
+        "ags": "ags_2",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1738458238,
+        "narHash": "sha256-rkGH0tPOpWaYWitCo8/MwB6wT+WlTz/f+V5UdVcGBx0=",
+        "owner": "kranners",
+        "repo": "jimbags",
+        "rev": "a1d4638aaef088d3f5cd8878df6f210bac986002",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kranners",
+        "repo": "jimbags",
+        "type": "github"
+      }
+    },
     "nix-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -585,6 +650,7 @@
         "flatten": "flatten",
         "grug-far": "grug-far",
         "home-manager": "home-manager",
+        "jimbags": "jimbags",
         "nix-darwin": "nix-darwin",
         "nixpkgs": "nixpkgs",
         "nixvim": "nixvim",
