@@ -25,7 +25,7 @@ in
       window = {
         padding = { x = 15; y = 15; };
         decorations = "Full";
-        opacity = 0.90;
+        opacity = 0.80;
         resize_increments = true;
         option_as_alt = "OnlyLeft";
       };
