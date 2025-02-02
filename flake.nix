@@ -31,8 +31,18 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    ags = {
+      url = "github:aylur/ags";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     anyrun = {
       url = "github:anyrun-org/anyrun";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    jimbags = {
+      url = "github:kranners/jimbags";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -82,7 +92,6 @@
     , home-manager
     , nixvim
     , nix-darwin
-    , anyrun
     , ...
     } @ inputs: {
       darwinConfigurations = {
@@ -135,11 +144,7 @@
                 backupFileExtension = "backup";
 
                 users.aaron = {
-                  imports = [
-                    anyrun.homeManagerModules.default
-                    ./nixos/home
-                    ./shared/modules/home
-                  ];
+                  imports = [ ./nixos/home ./shared/modules/home ];
                 };
               };
             }

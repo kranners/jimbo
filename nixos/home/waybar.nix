@@ -1,9 +1,4 @@
 { pkgs, lib, ... }: {
-  wayland.windowManager.hyprland.settings.exec-once = [
-    "uwsm app -- systemctl --user restart waybar"
-    "uwsm app -- systemctl --user restart workstyle"
-  ];
-
   programs.waybar = {
     enable = true;
     systemd.enable = true;
