@@ -20,7 +20,6 @@ in
     ./lutris.nix
     ./obs-studio.nix
     ./avizo.nix
-    ./easyeffects.nix
     ./firefox.nix
     ./plexamp.nix
     ./ungoogled-chromium.nix
