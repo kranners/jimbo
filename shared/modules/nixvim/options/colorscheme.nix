@@ -9,7 +9,7 @@
         transparent = true;
 
         theme = {
-          variant = "light";
+          variant = "dark";
         };
 
         extensions = {
