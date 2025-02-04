@@ -1,12 +1,10 @@
 { pkgs, lib, ... }: {
   wayland.windowManager.hyprland.settings.exec-once = [
-    "uwsm app -- systemctl --user restart waybar"
-    "uwsm app -- systemctl --user restart workstyle"
+    "uwsm app -- waybar"
   ];
 
   programs.waybar = {
     enable = true;
-    systemd.enable = true;
 
     settings.main =
       let
@@ -33,7 +31,7 @@
           };
           logout = {
             icon = "";
-            action = "sway exit";
+            action = "uwsm stop";
           };
           firmware = {
             icon = "";

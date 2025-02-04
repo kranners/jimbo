@@ -53,16 +53,6 @@ in
         "${pkgs.hyprsunset} --temperature 5700"
       ];
 
-      windowrule = [
-        "noblur, ulauncher"
-        "opaque, ulauncher"
-        "size 100% 100%, ulauncher"
-        "noborder, ulauncher"
-        "noanim, ulauncher"
-        "float, ulauncher"
-        "pin, ulauncher"
-      ];
-
       bindm = [
         "$mod, mouse:272, movewindow"
         "$mod, mouse:273, resizewindow"
@@ -79,7 +69,7 @@ in
 
         "$mod SHIFT, Q, killactive"
 
-        "$mod, F, togglefloating"
+        "$mod, F, fullscreen"
 
         "$mod, H, movefocus, l"
         "$mod, J, movefocus, d"
