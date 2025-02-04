@@ -11,14 +11,11 @@ in
 {
   imports = [
     ./git.nix
-    ./sway.nix
-    ./rofi.nix
     ./waybar.nix
     ./theme.nix
     ./swaync.nix
     ./vesktop.nix
     ./lutris.nix
-    ./obs-studio.nix
     ./avizo.nix
     ./firefox.nix
     ./plexamp.nix
@@ -27,7 +24,7 @@ in
     ./hyprland.nix
     ./wayvnc.nix
     ./wpaperd.nix
-    ./anyrun.nix
+    ./walker.nix
   ];
 
   home.username = "aaron";
@@ -42,34 +39,22 @@ in
   };
 
   home.packages = [
-    # General
-    pkgs.google-chrome
-
-    # Media
     pkgs.spotify
     pkgs.plexamp
     pkgs.nicotine-plus
-
-    # Gaming
     pkgs.protonup-qt
     pkgs.r2modman
-
-    # Productivity
     pkgs.obsidian
     pkgs.ripgrep
     pkgs.jq
     pkgs.nh
 
-    # Utilities
     pkgs.pavucontrol # Audio control
     pkgs.nemo-with-extensions # File manager
-    pkgs.grimblast # Screen capture
     pkgs.mpv # Media playback
     pkgs.blueberry # Bluetooth manager
     pkgs.wl-clipboard # Clipboard manager
     pkgs.helvum # Multi-audio output
-
-    # Scripts
     wine-local
   ];
 
@@ -86,11 +71,11 @@ in
 
   nix.settings = {
     extra-substituters = [
-      "https://anyrun.cachix.org"
+      "https://walker-git.cachix.org"
     ];
 
     extra-trusted-public-keys = [
-      "anyrun.cachix.org-1:pqBobmOjI7nKlsUMV25u9QHa9btJK65/C8vnO3p346s="
+      "walker-git.cachix.org-1:vmC0ocfPWh0S/vRAQGtChuiZBTAe4wiKDeyyXM0/7pM="
     ];
   };
 

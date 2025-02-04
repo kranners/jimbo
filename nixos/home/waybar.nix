@@ -164,7 +164,7 @@
         };
 
         network = {
-          interface = "enp42s0";
+          interface = "wlo1";
           format = "{ifname}";
           format-wifi = " {essid} ({signalStrength}%)";
           format-ethernet = "󰈀 {ipaddr}";
@@ -299,6 +299,10 @@
             padding-right: ${space-md};
             border-radius: ${space-sm} 0 0 ${space-sm};
             margin-left: ${space-lg};
+        }
+
+        #network {
+            color: @accent;
         }
 
         #custom-icon-space {
