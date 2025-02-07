@@ -1,27 +1,11 @@
-{ pkgs, lib, inputs, ... }:
-let
-  inherit (pkgs.hostPlatform) isLinux isDarwin;
-in
-{
+{ pkgs, lib, ... }: let
+  inherit (pkgs.hostPlatform) isLinux;
+in {
   programs.alacritty = {
     enable = true;
 
     # https://alacritty.org/config-alacritty.html
     settings = {
-
-      # Alacritty config has changed between the versions available on nixpkgs
-      # Linux vs nixpkgs Darwin. This will probably come up on an upcoming
-      # flake update.
-      general = lib.mkIf isLinux {
-        import = [
-          "${inputs.alacritty-themes}/cyberdream.toml"
-        ];
-      };
-
-      import = lib.mkIf isDarwin [
-        "${inputs.alacritty-themes}/cyberdream.toml"
-      ];
-
       window = {
         padding = { x = 15; y = 15; };
         decorations = "Full";
