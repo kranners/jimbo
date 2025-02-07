@@ -83,63 +83,26 @@
     , nixvim
     , nix-darwin
     , ...
-    } @ inputs: {
-      darwinConfigurations = {
-        cassandra = nix-darwin.lib.darwinSystem {
-          specialArgs = { inherit inputs; };
-          system = "aarch64-darwin";
+    } @ inputs: let
+      inherit (nixpkgs) lib legacyPackages;
 
-          modules = [
-            home-manager.darwinModules.home-manager
-            nixvim.nixDarwinModules.nixvim
+      # systems = ["aarch64-darwin" "x86_64-linux"];
 
-            ./darwin/system
-            ./shared/modules/nixvim
-
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
-
-                backupFileExtension = "backup";
-
-                users.aaronpierce = {
-                  imports = [ ./darwin/home ./shared/modules/home ];
-                };
-              };
-            }
-          ];
+      forEachSystem = system: lib.evalModules {
+        specialArgs = {
+          inherit inputs system;
+          pkgs = legacyPackages.${system};
         };
+
+        modules = [
+          ./modules
+          {
+            cow = true;
+            cyberdream-theme = "dark";
+          }
+        ];
       };
 
-      nixosConfigurations = {
-        jimbo = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs; };
-          system = "x86_64-linux";
-
-          modules = [
-            home-manager.nixosModules.home-manager
-            nixvim.nixosModules.nixvim
-
-            ./nixos/system
-            ./shared/modules/nixvim
-
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
-
-                backupFileExtension = "backup";
-
-                users.aaron = {
-                  imports = [ ./nixos/home ./shared/modules/home ];
-                };
-              };
-            }
-          ];
-        };
-      };
-    };
+      moduleFlakeOutput = forEachSystem "aarch64-darwin";
+    in moduleFlakeOutput.config;
 }

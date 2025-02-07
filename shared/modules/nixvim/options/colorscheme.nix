@@ -8,10 +8,6 @@
       settings = {
         transparent = true;
 
-        theme = {
-          variant = "dark";
-        };
-
         extensions = {
           cmp = true;
           fzflua = true;

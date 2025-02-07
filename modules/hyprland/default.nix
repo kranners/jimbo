@@ -1,25 +1,26 @@
-{ pkgs, ... }:
-let
-  screenshot-region = pkgs.writeShellApplication {
-    name = "screenshot-region";
+{ pkgs, ... }: {
+  nixosModule = {
+    programs.hyprland = {
+      enable = true;
+      withUWSM = true;
+    };
 
-    runtimeInputs = [
-      pkgs.grim
-      pkgs.slurp
-      pkgs.wl-clipboard
-    ];
+    programs.uwsm.enable = true;
 
-    text = ''
-      grim -g "$(slurp -d)" - | wl-copy && notify-send "Copied region to clipboard"
-    '';
+    services.greetd = {
+      enable = true;
+      settings = {
+        default_session = {
+          command = "uwsm start hyprland-uwsm.desktop";
+          user = "aaron";
+        };
+      };
+    };
+
+    environment.sessionVariables.NIXOS_OZONE_WL = "1";
   };
-in
-{
-  home.packages = [
-    screenshot-region
-  ];
 
-  wayland.windowManager.hyprland = {
+  nixosHomeModule.wayland.windowManager.hyprland = {
     enable = true;
 
     plugins = [
