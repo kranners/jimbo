@@ -77,7 +77,8 @@
     };
   };
 
-  outputs = { nixpkgs, ... } @ inputs: let
+  outputs = { nixpkgs, ... } @ inputs:
+    let
       inherit (nixpkgs) lib legacyPackages;
 
       hosts = {
@@ -87,7 +88,7 @@
           username = "aaron";
         };
 
-         cassandra = {
+        cassandra = {
           system = "aarch64-darwin";
           hostname = "cassandra";
           username = "aaronpierce";
@@ -111,5 +112,6 @@
       };
 
       moduleFlakeOutput = forEachHost hosts.cassandra;
-    in moduleFlakeOutput.config;
+    in
+    moduleFlakeOutput.config;
 }

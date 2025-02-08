@@ -1,7 +1,10 @@
-{ lib, inputs, config, host, ... }: let
+{ lib, inputs, config, host, ... }:
+let
   inherit (lib) mkOption types;
-in {
+in
+{
   imports = [
+    ./home
     ./hyprland
     ./cyberdream
     ./cow
@@ -10,118 +13,76 @@ in {
   options = {
     darwinModule = mkOption {
       type = types.attrsOf types.anything;
-      default = {};
+      default = { };
     };
 
     nixosModule = mkOption {
       type = types.attrsOf types.anything;
-      default = {};
+      default = { };
     };
 
     nixosHomeModule = mkOption {
       type = types.attrsOf types.anything;
-      default = {};
+      default = { };
     };
 
     darwinHomeModule = mkOption {
       type = types.attrsOf types.anything;
-      default = {};
+      default = { };
     };
 
     sharedSystemModule = mkOption {
       type = types.attrsOf types.anything;
-      default = {};
+      default = { };
     };
 
     sharedHomeModule = mkOption {
       type = types.attrsOf types.anything;
-      default = {};
+      default = { };
     };
 
     darwinConfigurations = mkOption {
       type = types.attrsOf types.anything;
-      default = {};
+      default = { };
     };
 
     nixosConfigurations = mkOption {
       type = types.attrsOf types.anything;
-      default = {};
+      default = { };
     };
   };
 
   config = {
-    darwinConfigurations = {
-      cassandra = inputs.nix-darwin.lib.darwinSystem {
-        specialArgs = { inherit inputs; };
-        system = "aarch64-darwin";
+    darwinConfigurations.${host.hostname} = inputs.nix-darwin.lib.darwinSystem {
+      specialArgs = { inherit inputs; };
+      inherit (host) system;
 
-        modules = [
-          inputs.home-manager.darwinModules.home-manager
-          inputs.nixvim.nixDarwinModules.nixvim
+      modules = [
+        inputs.home-manager.darwinModules.home-manager
+        inputs.nixvim.nixDarwinModules.nixvim
 
-          ../darwin/system
-          ../shared/modules/nixvim
+        ../darwin/system
+        ../shared/modules/nixvim
 
-          config.darwinModule
-          config.sharedSystemModule
-
-          {
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              extraSpecialArgs = { inherit inputs; };
-
-              backupFileExtension = "backup";
-
-              users.aaronpierce = {
-                imports = [
-                  ../darwin/home
-                  ../shared/modules/home
-                  config.darwinHomeModule
-                  config.sharedHomeModule
-                ];
-              };
-            };
-          }
-        ];
-      };
+        config.darwinModule
+        config.sharedSystemModule
+      ];
     };
 
-    nixosConfigurations = {
-      jimbo = lib.nixosSystem {
-        specialArgs = { inherit inputs; };
-        system = "x86_64-linux";
+    nixosConfigurations.${host.hostname} = lib.nixosSystem {
+      specialArgs = { inherit inputs; };
+      inherit (host) system;
 
-        modules = [
-          inputs.home-manager.nixosModules.home-manager
-          inputs.nixvim.nixosModules.nixvim
+      modules = [
+        inputs.home-manager.nixosModules.home-manager
+        inputs.nixvim.nixosModules.nixvim
 
-          ../nixos/system
-          ../shared/modules/nixvim
+        ../nixos/system
+        ../shared/modules/nixvim
 
-          config.nixosModule
-          config.sharedSystemModule
-
-          {
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              extraSpecialArgs = { inherit inputs; };
-
-              backupFileExtension = "backup";
-
-              users.aaron = {
-                imports = [
-                  ../nixos/home
-                  ../shared/modules/home
-                  config.nixosHomeModule
-                  config.sharedHomeModule
-                ];
-              };
-            };
-          }
-        ];
-      };
+        config.nixosModule
+        config.sharedSystemModule
+      ];
     };
   };
 }
