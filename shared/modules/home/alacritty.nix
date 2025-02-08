@@ -1,6 +1,4 @@
-{ pkgs, lib, ... }: let
-  inherit (pkgs.hostPlatform) isLinux;
-in {
+{
   programs.alacritty = {
     enable = true;
 
@@ -17,14 +15,10 @@ in {
       colors.transparent_background_colors = true;
 
       font = {
-        size = if isLinux then 12.0 else 16.0;
+        size = 12.0;
         normal = { family = "Iosevka Nerd Font Mono"; style = "Regular"; };
         bold = { family = "Iosevka Nerd Font Mono"; style = "Regular"; };
       };
     };
-  };
-
-  wayland.windowManager.sway.config = lib.mkIf isLinux {
-    terminal = "alacritty";
   };
 }
