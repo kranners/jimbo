@@ -1,5 +1,5 @@
 { pkgs, inputs, ... }: {
-  imports = [ inputs.walker.homeManagerModules.default];
+  imports = [ inputs.walker.homeManagerModules.default ];
 
   home.packages = [ pkgs.libqalculate ];
 

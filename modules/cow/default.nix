@@ -8,7 +8,7 @@
 
   config = {
     sharedHomeModule = lib.mkIf config.cow {
-      home.packages = [pkgs.cowsay];
+      home.packages = [ pkgs.cowsay ];
     };
   };
 })
