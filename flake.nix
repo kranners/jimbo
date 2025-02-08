@@ -77,21 +77,28 @@
     };
   };
 
-  outputs =
-    { nixpkgs
-    , home-manager
-    , nixvim
-    , nix-darwin
-    , ...
-    } @ inputs: let
+  outputs = { nixpkgs, ... } @ inputs: let
       inherit (nixpkgs) lib legacyPackages;
 
-      # systems = ["aarch64-darwin" "x86_64-linux"];
+      hosts = {
+        jimbo = {
+          system = "x86_64-linux";
+          hostname = "jimbo";
+          username = "aaron";
+        };
 
-      forEachSystem = system: lib.evalModules {
-        specialArgs = {
-          inherit inputs system;
-          pkgs = legacyPackages.${system};
+         cassandra = {
+          system = "aarch64-darwin";
+          hostname = "cassandra";
+          username = "aaronpierce";
+        };
+      };
+
+      forEachHost = host: lib.evalModules {
+        specialArgs = rec {
+          inherit inputs host;
+
+          pkgs = legacyPackages.${host.system};
         };
 
         modules = [
@@ -103,6 +110,6 @@
         ];
       };
 
-      moduleFlakeOutput = forEachSystem "aarch64-darwin";
+      moduleFlakeOutput = forEachHost hosts.cassandra;
     in moduleFlakeOutput.config;
 }
