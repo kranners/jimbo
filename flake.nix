@@ -77,63 +77,17 @@
     };
   };
 
-  outputs = { nixpkgs, ... } @ inputs: {
-    darwinConfigurations = {
-      cassandra = inputs.nix-darwin.lib.darwinSystem {
+  outputs = { nixpkgs, ... } @ inputs:
+    let
+      inherit (nixpkgs) lib;
+
+      eval = lib.evalModules {
         specialArgs = { inherit inputs; };
-        system = "aarch64-darwin";
 
         modules = [
-          inputs.home-manager.darwinModules.home-manager
-          inputs.nixvim.nixDarwinModules.nixvim
-
-          ./darwin/system
-          ./shared/modules/nixvim
-
-          {
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              extraSpecialArgs = { inherit inputs; };
-
-              backupFileExtension = "backup";
-
-              users.aaronpierce = {
-                imports = [ ./darwin/home ./shared/modules/home ];
-              };
-            };
-          }
+          ./modules
         ];
       };
-    };
-
-    nixosConfigurations = {
-      jimbo = nixpkgs.lib.nixosSystem {
-        specialArgs = { inherit inputs; };
-        system = "x86_64-linux";
-
-        modules = [
-          inputs.home-manager.nixosModules.home-manager
-          inputs.nixvim.nixosModules.nixvim
-
-          ./nixos/system
-          ./shared/modules/nixvim
-
-          {
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              extraSpecialArgs = { inherit inputs; };
-
-              backupFileExtension = "backup";
-
-              users.aaron = {
-                imports = [ ./nixos/home ./shared/modules/home ];
-              };
-            };
-          }
-        ];
-      };
-    };
-  };
+    in
+    eval.config;
 }
