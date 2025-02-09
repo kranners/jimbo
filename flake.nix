@@ -77,69 +77,63 @@
     };
   };
 
-  outputs =
-    { nixpkgs
-    , home-manager
-    , nixvim
-    , nix-darwin
-    , ...
-    } @ inputs: {
-      darwinConfigurations = {
-        cassandra = nix-darwin.lib.darwinSystem {
-          specialArgs = { inherit inputs; };
-          system = "aarch64-darwin";
+  outputs = { nixpkgs, ... } @ inputs: {
+    darwinConfigurations = {
+      cassandra = inputs.nix-darwin.lib.darwinSystem {
+        specialArgs = { inherit inputs; };
+        system = "aarch64-darwin";
 
-          modules = [
-            home-manager.darwinModules.home-manager
-            nixvim.nixDarwinModules.nixvim
+        modules = [
+          inputs.home-manager.darwinModules.home-manager
+          inputs.nixvim.nixDarwinModules.nixvim
 
-            ./darwin/system
-            ./shared/modules/nixvim
+          ./darwin/system
+          ./shared/modules/nixvim
 
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              extraSpecialArgs = { inherit inputs; };
 
-                backupFileExtension = "backup";
+              backupFileExtension = "backup";
 
-                users.aaronpierce = {
-                  imports = [ ./darwin/home ./shared/modules/home ];
-                };
+              users.aaronpierce = {
+                imports = [ ./darwin/home ./shared/modules/home ];
               };
-            }
-          ];
-        };
-      };
-
-      nixosConfigurations = {
-        jimbo = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs; };
-          system = "x86_64-linux";
-
-          modules = [
-            home-manager.nixosModules.home-manager
-            nixvim.nixosModules.nixvim
-
-            ./nixos/system
-            ./shared/modules/nixvim
-
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
-
-                backupFileExtension = "backup";
-
-                users.aaron = {
-                  imports = [ ./nixos/home ./shared/modules/home ];
-                };
-              };
-            }
-          ];
-        };
+            };
+          }
+        ];
       };
     };
+
+    nixosConfigurations = {
+      jimbo = nixpkgs.lib.nixosSystem {
+        specialArgs = { inherit inputs; };
+        system = "x86_64-linux";
+
+        modules = [
+          inputs.home-manager.nixosModules.home-manager
+          inputs.nixvim.nixosModules.nixvim
+
+          ./nixos/system
+          ./shared/modules/nixvim
+
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              extraSpecialArgs = { inherit inputs; };
+
+              backupFileExtension = "backup";
+
+              users.aaron = {
+                imports = [ ./nixos/home ./shared/modules/home ];
+              };
+            };
+          }
+        ];
+      };
+    };
+  };
 }
