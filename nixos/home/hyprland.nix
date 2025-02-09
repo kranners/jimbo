@@ -33,6 +33,14 @@ in
       "$fileManager" = "nemo";
       "$terminal" = "alacritty";
 
+      device = [
+        {
+          name = "compx-2.4g-wireless-receiver";
+          accel_profile = "flat";
+          sensitivity = "0";
+        }
+      ];
+
       plugin = {
         hyprbars = {
           bar_height = 30;
