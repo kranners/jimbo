@@ -77,69 +77,44 @@
     };
   };
 
-  outputs =
-    { nixpkgs
-    , home-manager
-    , nixvim
-    , nix-darwin
-    , ...
-    } @ inputs: {
-      darwinConfigurations = {
-        cassandra = nix-darwin.lib.darwinSystem {
-          specialArgs = { inherit inputs; };
-          system = "aarch64-darwin";
+  outputs = { nixpkgs, ... } @ inputs:
+    let
+      inherit (nixpkgs) lib legacyPackages;
 
-          modules = [
-            home-manager.darwinModules.home-manager
-            nixvim.nixDarwinModules.nixvim
-
-            ./darwin/system
-            ./shared/modules/nixvim
-
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
-
-                backupFileExtension = "backup";
-
-                users.aaronpierce = {
-                  imports = [ ./darwin/home ./shared/modules/home ];
-                };
-              };
-            }
-          ];
-        };
-      };
-
-      nixosConfigurations = {
-        jimbo = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs; };
+      hosts = [
+        {
           system = "x86_64-linux";
+          hostname = "jimbo";
+          username = "aaron";
+        }
 
-          modules = [
-            home-manager.nixosModules.home-manager
-            nixvim.nixosModules.nixvim
+        {
+          system = "aarch64-darwin";
+          hostname = "cassandra";
+          username = "aaronpierce";
+        }
+      ];
 
-            ./nixos/system
-            ./shared/modules/nixvim
+      flakeOutputPerHost = host: lib.evalModules {
+        specialArgs = rec {
+          inherit inputs host;
 
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
-
-                backupFileExtension = "backup";
-
-                users.aaron = {
-                  imports = [ ./nixos/home ./shared/modules/home ];
-                };
-              };
-            }
-          ];
+          pkgs = legacyPackages.${host.system};
         };
+
+        modules = [
+          ./modules
+          {
+            cow = true;
+            cyberdream-theme = "dark";
+          }
+        ];
       };
-    };
+
+      flakeOutputs = lib.forEach hosts flakeOutputPerHost;
+
+      # [attrsets] -> attrset
+      mergedOutput = lib.foldl' lib.recursiveUpdate { } flakeOutputs;
+    in
+    mergedOutput.config;
 }

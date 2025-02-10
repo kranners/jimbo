@@ -11,7 +11,6 @@
     ./xdg.nix
     ./locale.nix
     ./services.nix
-    ./hyprland.nix
   ];
 
   # Enable Flakes

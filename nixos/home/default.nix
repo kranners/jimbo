@@ -21,7 +21,6 @@ in
     ./plexamp.nix
     ./ungoogled-chromium.nix
     ./mangohud.nix
-    ./hyprland.nix
     ./wayvnc.nix
     ./wpaperd.nix
     ./walker.nix
