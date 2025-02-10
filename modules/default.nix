@@ -1,6 +1,9 @@
 { lib, inputs, config, host, ... }:
 let
-  inherit (lib) mkOption types;
+  inherit (lib) mkOption mkIf types;
+  inherit (host) system;
+
+  platform = lib.lists.last (lib.strings.splitString "-" system);
 in
 {
   imports = [
@@ -42,47 +45,51 @@ in
     };
 
     darwinConfigurations = mkOption {
-      type = types.attrsOf types.anything;
+      type = types.raw;
       default = { };
     };
 
     nixosConfigurations = mkOption {
-      type = types.attrsOf types.anything;
+      type = types.raw;
       default = { };
     };
   };
 
   config = {
-    darwinConfigurations.${host.hostname} = inputs.nix-darwin.lib.darwinSystem {
-      specialArgs = { inherit inputs; };
-      inherit (host) system;
+    darwinConfigurations = mkIf (platform == "darwin") {
+      ${host.hostname} = inputs.nix-darwin.lib.darwinSystem {
+        specialArgs = { inherit inputs host; };
+        inherit (host) system;
 
-      modules = [
-        inputs.home-manager.darwinModules.home-manager
-        inputs.nixvim.nixDarwinModules.nixvim
+        modules = [
+          inputs.home-manager.darwinModules.home-manager
+          inputs.nixvim.nixDarwinModules.nixvim
 
-        ../darwin/system
-        ../shared/modules/nixvim
+          ../darwin/system
+          ../shared/modules/nixvim
 
-        config.darwinModule
-        config.sharedSystemModule
-      ];
+          config.darwinModule
+          config.sharedSystemModule
+        ];
+      };
     };
 
-    nixosConfigurations.${host.hostname} = lib.nixosSystem {
-      specialArgs = { inherit inputs; };
-      inherit (host) system;
+    nixosConfigurations = mkIf (platform == "linux") {
+      ${host.hostname} = inputs.nixpkgs.lib.nixosSystem {
+        specialArgs = { inherit inputs host; };
+        inherit (host) system;
 
-      modules = [
-        inputs.home-manager.nixosModules.home-manager
-        inputs.nixvim.nixosModules.nixvim
+        modules = [
+          inputs.home-manager.nixosModules.home-manager
+          inputs.nixvim.nixosModules.nixvim
 
-        ../nixos/system
-        ../shared/modules/nixvim
+          ../nixos/system
+          ../shared/modules/nixvim
 
-        config.nixosModule
-        config.sharedSystemModule
-      ];
+          config.nixosModule
+          config.sharedSystemModule
+        ];
+      };
     };
   };
 }
