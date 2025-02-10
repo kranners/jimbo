@@ -12,14 +12,14 @@ let
   };
 in
 {
-  darwinModule = mkHome [
+  darwinSystemModule = mkHome [
     ../../darwin/home
     ../../shared/modules/home
     config.darwinHomeModule
     config.sharedHomeModule
   ];
 
-  nixosModule = mkHome [
+  nixosSystemModule = mkHome [
     ../../nixos/home
     ../../shared/modules/home
     config.nixosHomeModule
