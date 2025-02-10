@@ -14,12 +14,12 @@ in
   ];
 
   options = {
-    darwinModule = mkOption {
+    darwinSystemModule = mkOption {
       type = types.attrsOf types.anything;
       default = { };
     };
 
-    nixosModule = mkOption {
+    nixosSystemModule = mkOption {
       type = types.attrsOf types.anything;
       default = { };
     };
@@ -62,13 +62,13 @@ in
         inherit (host) system;
 
         modules = [
-          inputs.home-manager.darwinModules.home-manager
+          inputs.home-manager.darwinSystemModules.home-manager
           inputs.nixvim.nixDarwinModules.nixvim
 
           ../darwin/system
           ../shared/modules/nixvim
 
-          config.darwinModule
+          config.darwinSystemModule
           config.sharedSystemModule
         ];
       };
@@ -80,13 +80,13 @@ in
         inherit (host) system;
 
         modules = [
-          inputs.home-manager.nixosModules.home-manager
-          inputs.nixvim.nixosModules.nixvim
+          inputs.home-manager.nixosSystemModules.home-manager
+          inputs.nixvim.nixosSystemModules.nixvim
 
           ../nixos/system
           ../shared/modules/nixvim
 
-          config.nixosModule
+          config.nixosSystemModule
           config.sharedSystemModule
         ];
       };

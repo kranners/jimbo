@@ -1,5 +1,5 @@
 { pkgs, ... }: {
-  nixosModule = {
+  nixosSystemModule = {
     programs.hyprland = {
       enable = true;
       withUWSM = true;
