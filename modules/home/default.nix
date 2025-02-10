@@ -4,7 +4,7 @@ let
     home-manager = {
       useGlobalPkgs = true;
       useUserPackages = true;
-      extraSpecialArgs = { inherit inputs; };
+      extraSpecialArgs = { inherit inputs host; };
       backupFileExtension = "backup";
 
       users.${host.username} = { inherit imports; };

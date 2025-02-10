@@ -81,21 +81,21 @@
     let
       inherit (nixpkgs) lib legacyPackages;
 
-      hosts = {
-        jimbo = {
+      hosts = [
+        {
           system = "x86_64-linux";
           hostname = "jimbo";
           username = "aaron";
-        };
+        }
 
-        cassandra = {
+        {
           system = "aarch64-darwin";
           hostname = "cassandra";
           username = "aaronpierce";
-        };
-      };
+        }
+      ];
 
-      forEachHost = host: lib.evalModules {
+      flakeOutputPerHost = host: lib.evalModules {
         specialArgs = rec {
           inherit inputs host;
 
@@ -111,7 +111,10 @@
         ];
       };
 
-      moduleFlakeOutput = forEachHost hosts.cassandra;
+      flakeOutputs = lib.forEach hosts flakeOutputPerHost;
+
+      # [attrsets] -> attrset
+      mergedOutput = lib.foldl' lib.recursiveUpdate { } flakeOutputs;
     in
-    moduleFlakeOutput.config;
+    mergedOutput.config;
 }
