@@ -5,12 +5,12 @@ in
 {
   options = {
     darwinConfigurations = mkOption {
-      type = types.attrsOf types.anything;
+      type = types.raw;
       default = { };
     };
 
     nixosConfigurations = mkOption {
-      type = types.attrsOf types.anything;
+      type = types.raw;
       default = { };
     };
   };
