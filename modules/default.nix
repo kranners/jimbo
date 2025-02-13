@@ -11,6 +11,8 @@ in
     ./hyprland
     ./cyberdream
     ./cow
+    ./apps
+    ./nixpkgs-config
   ];
 
   options = {
@@ -62,7 +64,7 @@ in
         inherit (host) system;
 
         modules = [
-          inputs.home-manager.darwinSystemModules.home-manager
+          inputs.home-manager.darwinModules.home-manager
           inputs.nixvim.nixDarwinModules.nixvim
 
           ../darwin/system
@@ -80,8 +82,8 @@ in
         inherit (host) system;
 
         modules = [
-          inputs.home-manager.nixosSystemModules.home-manager
-          inputs.nixvim.nixosSystemModules.nixvim
+          inputs.home-manager.nixosModules.home-manager
+          inputs.nixvim.nixosModules.nixvim
 
           ../nixos/system
           ../shared/modules/nixvim

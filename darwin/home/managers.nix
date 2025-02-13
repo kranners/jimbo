@@ -9,8 +9,6 @@
     enableZshIntegration = true;
   };
 
-  home.packages = [ pkgs.fnm ];
-
   programs.zsh.initExtraBeforeCompInit = ''
     # firenvim has no access to brew installed stuff
     eval "$(pyenv virtualenv-init - 2>/dev/null 1>&2)"

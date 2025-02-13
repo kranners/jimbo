@@ -22,7 +22,7 @@
 
       {
         key = "<C-f>";
-        action = "<CMD>FzfLua live_grep<CR>";
+        action = "<CMD>FzfLua live_grep formatter=path.filename_first<CR>";
         options = { desc = "Fuzzy find file contents"; };
         mode = "n";
       }
@@ -36,7 +36,7 @@
 
       {
         key = "<C-o>";
-        action = "<CMD>FzfLua files<CR>";
+        action = "<CMD>FzfLua files formatter=path.filename_first<CR>";
         options = { desc = "Find files by name"; };
         mode = "n";
       }

@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{
   imports = [
     ./boot.nix
     ./fonts.nix
@@ -13,42 +13,11 @@
     ./services.nix
   ];
 
-  # Enable Flakes
-  nix.package = pkgs.nixVersions.stable;
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
-  # Allow root users access to the Nix store
-  nix.settings.trusted-users = [ "root" "@wheel" ];
-
-  # Allow unfree packages
-  nixpkgs.config = {
-    allowUnfree = true;
-
-    # Allow for certain insecure packages
-    permittedInsecurePackages = [ "electron-25.9.0" "nix-2.16.2" ];
-  };
-
   # Enable networking
   networking = {
     networkmanager.enable = true;
     hostName = "jimbo";
   };
-
-  environment.systemPackages = with pkgs; [
-    nixfmt-rfc-style
-    gnumake
-    gnupg
-    manix
-    nurl
-    eza
-    btop
-    htop
-    gptfdisk
-    libnotify
-    pipewire
-    home-manager
-    busybox
-  ];
 
   # Required to prevent Home Manager crashing
   # https://github.com/nix-community/home-manager/issues/3113
