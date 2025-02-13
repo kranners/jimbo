@@ -38,22 +38,6 @@ in
   };
 
   home.packages = [
-    pkgs.spotify
-    pkgs.plexamp
-    pkgs.nicotine-plus
-    pkgs.protonup-qt
-    pkgs.r2modman
-    pkgs.obsidian
-    pkgs.ripgrep
-    pkgs.jq
-    pkgs.nh
-
-    pkgs.pavucontrol # Audio control
-    pkgs.nemo-with-extensions # File manager
-    pkgs.mpv # Media playback
-    pkgs.blueberry # Bluetooth manager
-    pkgs.wl-clipboard # Clipboard manager
-    pkgs.helvum # Multi-audio output
     wine-local
   ];
 

@@ -26,13 +26,6 @@ in
 
   home.packages = [
     nuke-xcode
-
-    pkgs.nixpkgs-fmt
-    pkgs.discord
-    pkgs.nurl
-    pkgs.nix-output-monitor
-    pkgs.mas
-    pkgs.nodePackages.svgo
   ];
 
   # This value determines the Home Manager release that your configuration is
