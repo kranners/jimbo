@@ -75,6 +75,11 @@
       url = "github:newmanls/rofi-themes-collection";
       flake = false;
     };
+
+    mdlink = {
+      url = "github:Nedra1998/nvim-mdlink";
+      flake = false;
+    };
   };
 
   outputs = { nixpkgs, ... } @ inputs:
@@ -107,6 +112,7 @@
           {
             cow = true;
             cyberdream-theme = "dark";
+            completion-engine = "cmp";
           }
         ];
       };

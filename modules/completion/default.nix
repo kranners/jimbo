@@ -1,15 +1,43 @@
+({ config, lib, ... }:
+let
+  is-blink-cmp = config.completion-engine == "blink-cmp";
+  is-cmp = config.completion-engine == "cmp";
+in
 {
-  programs.nixvim = {
-    # Sources
-    plugins.cmp-nvim-lsp.enable = true;
-    # plugins.cmp_yanky.enable = true;
+  options = {
+    completion-engine = lib.mkOption {
+      type = lib.types.enum [ "cmp" "blink-cmp" ];
+      default = "cmp";
+    };
+  };
+
+  config.sharedSystemModule.programs.nixvim = {
+    plugins.blink-cmp = {
+      enable = is-blink-cmp;
+
+      settings = {
+        keymap = {
+          preset = "enter";
+
+          "<CR>" = [ "accept" "fallback" ];
+          "<Tab>" = [ "snippet_forward" "select_next" "fallback" ];
+          "<S-Tab>" = [ "snippet_backward" "select_prev" "fallback" ];
+        };
+
+        appearance.nerd_font_variant = "mono";
+
+        completion.list.selection.preselect = false;
+      };
+    };
+
+    plugins.blink-ripgrep.enable = is-blink-cmp;
+    plugins.cmp-nvim-lsp.enable = is-cmp;
 
     plugins.cmp = {
-      enable = true;
+      enable = is-cmp;
 
       settings.sources = [
         { name = "nvim_lsp"; }
-        { name = "luasnip"; }
 
         { name = "buffer"; }
         { name = "path"; }
@@ -53,4 +81,4 @@
       };
     };
   };
-}
+})

@@ -11,5 +11,7 @@
     swapfile = false;
 
     equalalways = false;
+
+    conceallevel = 3;
   };
 }
