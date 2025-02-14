@@ -5,11 +5,9 @@
     ./oil.nix
     ./overseer.nix
     ./toggleterm.nix
-    ./telescope.nix
     ./comment.nix
     ./treesj.nix
     ./barbar.nix
-    ./neotest.nix
     ./treesitter.nix
     ./obsidian.nix
     ./codesnap.nix
@@ -22,6 +20,7 @@
     ./fugitive.nix
     ./tiny-inline-diagnostic.nix
     ./blink.nix
+    ./markdown.nix
   ];
 
   programs.nixvim.plugins = {

@@ -90,13 +90,3 @@ resession.add_hook(
     set_alacritty_window_name(window_name)
   end
 )
-
-local telescope = require('telescope')
-telescope.setup({
-  extensions = {
-    resession = {
-      prompt_title = "Find Sessions",
-      dir = "dirsession",
-    },
-  },
-})
