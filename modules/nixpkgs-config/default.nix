@@ -8,7 +8,7 @@ let
   };
 
   nix = {
-    package = pkgs.nixVersions.stable;
+    package = pkgs.lix;
 
     settings = {
       # Enable Flakes
