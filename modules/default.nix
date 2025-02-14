@@ -17,32 +17,32 @@ in
 
   options = {
     darwinSystemModule = mkOption {
-      type = types.attrsOf types.anything;
+      type = types.deferredModule;
       default = { };
     };
 
     nixosSystemModule = mkOption {
-      type = types.attrsOf types.anything;
+      type = types.deferredModule;
       default = { };
     };
 
     nixosHomeModule = mkOption {
-      type = types.attrsOf types.anything;
+      type = types.deferredModule;
       default = { };
     };
 
     darwinHomeModule = mkOption {
-      type = types.attrsOf types.anything;
+      type = types.deferredModule;
       default = { };
     };
 
     sharedSystemModule = mkOption {
-      type = types.attrsOf types.anything;
+      type = types.deferredModule;
       default = { };
     };
 
     sharedHomeModule = mkOption {
-      type = types.attrsOf types.anything;
+      type = types.deferredModule;
       default = { };
     };
 

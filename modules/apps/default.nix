@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ pkgs, lib, ... }: {
   darwinSystemModule = {
     homebrew = {
       enable = true;
@@ -41,6 +41,10 @@
       };
     };
   };
+
+  sharedHomeModule.home.packages = [
+    pkgs.bat
+  ];
 
   darwinHomeModule.home.packages = [
     pkgs.nixpkgs-fmt
