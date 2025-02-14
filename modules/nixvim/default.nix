@@ -1,10 +1,18 @@
-{
+{ lib, config, ... }: {
+  options.programs.nixvim = lib.mkOption {
+    type = lib.types.deferredModule;
+    default = { };
+  };
+
   imports = [
     ./options
     ./plugins
   ];
 
-  programs.nixvim = {
+  config.nixosSystemModule.programs.nixvim = config.programs.nixvim;
+  config.darwinSystemModule.programs.nixvim = config.programs.nixvim;
+
+  config.programs.nixvim = {
     enable = true;
 
     globals.mapleader = " ";

@@ -14,15 +14,30 @@ in
 {
   darwinSystemModule = mkHome [
     ../../darwin/home
-    ../../shared/modules/home
     config.darwinHomeModule
     config.sharedHomeModule
   ];
 
   nixosSystemModule = mkHome [
     ../../nixos/home
-    ../../shared/modules/home
     config.nixosHomeModule
     config.sharedHomeModule
   ];
+
+  sharedHomeModule = {
+    imports = [
+      ./git.nix
+      ./zsh.nix
+      ./scripts.nix
+      ./zoxide.nix
+      ./alacritty.nix
+      ./krabby.nix
+      ./personal-shells.nix
+    ];
+
+    programs.direnv = {
+      enable = true;
+      enableZshIntegration = true;
+    };
+  };
 }

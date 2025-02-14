@@ -6,15 +6,6 @@ let
   platform = lib.lists.last (lib.strings.splitString "-" system);
 in
 {
-  imports = [
-    ./home
-    ./hyprland
-    ./cyberdream
-    ./cow
-    ./apps
-    ./nixpkgs-config
-  ];
-
   options = {
     darwinSystemModule = mkOption {
       type = types.deferredModule;
@@ -68,8 +59,6 @@ in
           inputs.nixvim.nixDarwinModules.nixvim
 
           ../darwin/system
-          ../shared/modules/nixvim
-
           config.darwinSystemModule
           config.sharedSystemModule
         ];
@@ -86,12 +75,21 @@ in
           inputs.nixvim.nixosModules.nixvim
 
           ../nixos/system
-          ../shared/modules/nixvim
-
           config.nixosSystemModule
           config.sharedSystemModule
         ];
       };
     };
   };
+
+  imports = [
+    ./home
+    ./hyprland
+    ./cyberdream
+    ./cow
+    ./apps
+    ./nixpkgs-config
+    ./completion
+    ./nixvim
+  ];
 }
