@@ -1,5 +1,6 @@
 {
   imports = [
+    ./cmp.nix
     ./conform.nix
     ./lsp.nix
     ./oil.nix
