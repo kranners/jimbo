@@ -55,10 +55,12 @@ in
   nix.settings = {
     extra-substituters = [
       "https://walker-git.cachix.org"
+      "https://kranners.cachix.org"
     ];
 
     extra-trusted-public-keys = [
       "walker-git.cachix.org-1:vmC0ocfPWh0S/vRAQGtChuiZBTAe4wiKDeyyXM0/7pM="
+      "kranners.cachix.org-1:ZuxIgFNLP2qrpRXPKGMV1U+GErsAFU4Em4sqoOkJ0no="
     ];
   };
 
