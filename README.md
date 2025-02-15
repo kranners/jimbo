@@ -1,19 +1,17 @@
 # jimbo ❄️🧑‍🌾
 
-Flake for managing all the Nix in my life.
+[![Check flake](https://github.com/kranners/jimbo/actions/workflows/test.yml/badge.svg)](https://github.com/kranners/jimbo/actions/workflows/test.yml)
 
-### Structure
+Flake for a home NixOS PC and a Macbook running nix-darwin.
 
+Project structure:
 ```
-├── assets           Non-code assets and media
-├── darwin
-│  ├── home          Home Manager options for Cassandra
-│  └── system        Nix Darwin options for Cassandra
-├── nixos
-│  ├── home          Home Manager options for Jimbo
-│  └── system        NixOS options for Jimbo
-└── shared
-   ├── modules       Shared modules between systems, like Nixvim and shared Home Manager options
-   └── packages      Custom packages
+📁  assets/      <-- static assets
+📁  modules/     <-- config modules
+    📁  nixvim/  <-- neovim config using nixvim
+📁  darwin/      <-- legacy nix-darwin modules
+📁  nixos/       <-- legacy nixos-modules
 ```
+
+Trying to emulate [`nix-config-modules`](https://github.com/chadac/nix-config-modules) using `lib` functions.
 
