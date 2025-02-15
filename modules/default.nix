@@ -6,6 +6,16 @@ let
   platform = lib.lists.last (lib.strings.splitString "-" system);
 in
 {
+  imports = [
+    ./home
+    ./hyprland
+    ./cyberdream
+    ./apps
+    ./nixpkgs-config
+    ./completion
+    ./nixvim
+  ];
+
   options = {
     darwinSystemModule = mkOption {
       type = types.deferredModule;
@@ -81,15 +91,4 @@ in
       };
     };
   };
-
-  imports = [
-    ./home
-    ./hyprland
-    ./cyberdream
-    ./cow
-    ./apps
-    ./nixpkgs-config
-    ./completion
-    ./nixvim
-  ];
 }

@@ -110,7 +110,6 @@
         modules = [
           ./modules
           {
-            cow = true;
             cyberdream-theme = "dark";
             completion-engine = "cmp";
           }
