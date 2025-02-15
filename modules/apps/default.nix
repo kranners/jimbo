@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }: {
+{ pkgs, ... }: {
   darwinSystemModule = {
     homebrew = {
       enable = true;
@@ -47,6 +47,7 @@
     pkgs.eslint_d
     pkgs.prettierd
     pkgs.rubocop
+    pkgs.cachix
 
     pkgs.devenv
     pkgs.just
