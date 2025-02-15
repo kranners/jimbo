@@ -523,7 +523,8 @@
         "swww": "swww",
         "tiny-inline-diagnostic": "tiny-inline-diagnostic",
         "toggleterm-manager": "toggleterm-manager",
-        "walker": "walker"
+        "walker": "walker",
+        "zen-browser": "zen-browser"
       }
     },
     "swww": {
@@ -718,6 +719,26 @@
       "original": {
         "owner": "abenz1267",
         "repo": "walker",
+        "type": "github"
+      }
+    },
+    "zen-browser": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1739582274,
+        "narHash": "sha256-qDVcTrCMixPzxb9rzgTXkHaF9jxz6ptmGbuzO6RhAhc=",
+        "owner": "0xc000022070",
+        "repo": "zen-browser-flake",
+        "rev": "66976a3e4a8ee9bf29f89c81b48b4f4126c619e3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "0xc000022070",
+        "repo": "zen-browser-flake",
         "type": "github"
       }
     }

@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ pkgs, inputs, host, ... }: {
   darwinSystemModule = {
     homebrew = {
       enable = true;
@@ -75,6 +75,7 @@
     pkgs.pipewire
     pkgs.home-manager
     pkgs.busybox
+    inputs.zen-browser.packages.${host.system}.default
   ];
 
   nixosHomeModule.home.packages = [
