@@ -1,6 +1,6 @@
 name: "Check flake"
 on:
-  push:
+  pull_request:
 jobs:
   build:
     strategy:

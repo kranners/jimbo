@@ -20,6 +20,12 @@
     environment.sessionVariables.NIXOS_OZONE_WL = "1";
   };
 
+  nixosHomeModule.home.packages = [
+    pkgs.grim
+    pkgs.slurp
+    pkgs.wl-clipboard
+  ];
+
   nixosHomeModule.wayland.windowManager.hyprland = {
     enable = true;
 
@@ -74,7 +80,7 @@
         "$mod, RETURN, exec, $terminal"
         "$mod, E, exec, $fileManager"
 
-        "$mod SHIFT, S, exec, screenshot-region"
+        "$mod SHIFT, S, exec, grim -g \"$(slurp -d)\" - | wl-copy && notify-send 'Copied to clipboard'"
 
         "$mod SHIFT, Q, killactive"
 
