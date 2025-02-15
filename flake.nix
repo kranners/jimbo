@@ -84,7 +84,7 @@
 
   outputs = { nixpkgs, ... } @ inputs:
     let
-      inherit (nixpkgs) lib legacyPackages;
+      inherit (nixpkgs) lib;
 
       hosts = [
         {
@@ -101,10 +101,16 @@
       ];
 
       flakeOutputPerHost = host: lib.evalModules {
-        specialArgs = rec {
+        specialArgs = {
           inherit inputs host;
 
-          pkgs = legacyPackages.${host.system};
+          pkgs = import nixpkgs {
+            system = host.system;
+
+            config = {
+              allowUnfree = true;
+            };
+          };
         };
 
         modules = [
