@@ -14,6 +14,7 @@ in
     ./nixpkgs-config
     ./completion
     ./nixvim
+    ./network-over-ethernet
   ];
 
   options = {
