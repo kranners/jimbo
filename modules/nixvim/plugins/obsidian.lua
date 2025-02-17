@@ -2,7 +2,7 @@ local fzf_lua = require("fzf-lua")
 
 local home = os.getenv("HOME")
 local latte_root = vim.fn.resolve(home .. "/Documents/Latte")
-local frappuccino_root = vim.fn.resolve(home .. "/workspace/frappuccino/docs")
+local frappuccino_root = vim.fn.resolve(latte_root .. "/frappuccino/docs")
 local stack_root = vim.fn.resolve(latte_root .. "/Stack")
 
 local daily_template_path = vim.fn.resolve(latte_root .. "/Templates/Daily.md")
