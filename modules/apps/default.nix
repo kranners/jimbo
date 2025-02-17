@@ -75,6 +75,8 @@
     pkgs.pipewire
     pkgs.home-manager
     pkgs.busybox
+    pkgs.woeusb-ng
+    pkgs.ntfs3g
     inputs.zen-browser.packages.${host.system}.default
   ];
 
