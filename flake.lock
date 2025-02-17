@@ -350,22 +350,6 @@
         "type": "github"
       }
     },
-    "mdlink": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1730952723,
-        "narHash": "sha256-7dbTam7ckF80Ug5KIEr/5T6FBYc+dkaNrjUr7xnZgV4=",
-        "owner": "Nedra1998",
-        "repo": "nvim-mdlink",
-        "rev": "17f1ba488cafa18ddad415ae9cd7b8f7538f30c2",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Nedra1998",
-        "repo": "nvim-mdlink",
-        "type": "github"
-      }
-    },
     "nix-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -514,7 +498,6 @@
         "flatten": "flatten",
         "grug-far": "grug-far",
         "home-manager": "home-manager",
-        "mdlink": "mdlink",
         "nix-darwin": "nix-darwin",
         "nixpkgs": "nixpkgs",
         "nixvim": "nixvim",
