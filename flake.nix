@@ -117,7 +117,7 @@
           ./modules
           {
             cyberdream-theme = "dark";
-            completion-engine = "cmp";
+            completion-engine = "blink-cmp";
           }
         ];
       };
