@@ -24,10 +24,12 @@ let
 
       extra-substituters = [
         "https://nix-community.cachix.org"
+        "https://kranners.cachix.org"
       ];
 
       extra-trusted-public-keys = [
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+        "kranners.cachix.org-1:ZuxIgFNLP2qrpRXPKGMV1U+GErsAFU4Em4sqoOkJ0no="
       ];
     };
   };

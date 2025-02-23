@@ -51,18 +51,6 @@ in
   # Give Home Manager the power to stop and start systemd services
   systemd.user.startServices = "sd-switch";
 
-  nix.settings = {
-    extra-substituters = [
-      "https://walker-git.cachix.org"
-      "https://kranners.cachix.org"
-    ];
-
-    extra-trusted-public-keys = [
-      "walker-git.cachix.org-1:vmC0ocfPWh0S/vRAQGtChuiZBTAe4wiKDeyyXM0/7pM="
-      "kranners.cachix.org-1:ZuxIgFNLP2qrpRXPKGMV1U+GErsAFU4Em4sqoOkJ0no="
-    ];
-  };
-
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
   # introduces backwards incompatible changes.
