@@ -73,7 +73,7 @@
       ];
 
       bind = [
-        "$mod, SPACE, exec, $menu"
+        "$mod, SPACE, exec, $launcher"
         "$mod, TAB, overview:toggle, all"
 
         "$mod, RETURN, exec, $terminal"
