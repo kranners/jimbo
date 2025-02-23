@@ -1,4 +1,38 @@
-{ pkgs, ... }: {
+{ pkgs, ... }:
+let
+  exit-if-all-closed = pkgs.writeShellApplication {
+    name = "exit-if-all-closed";
+
+    runtimeInputs = [ pkgs.sway ];
+    bashOptions = [ ];
+
+    text = ''
+      SWAYNAG_MAX_COUNT="3"
+      SWAYNAG_CURRENT="$(pgrep swaynag --count)"
+      SWAYNAG_DISPLAY_CURRENT="$(( SWAYNAG_CURRENT + 1 ))"
+
+      if [[ "$SWAYNAG_CURRENT" -ge "$SWAYNAG_MAX_COUNT" ]]; then
+        shutdown now
+        exit 0
+      fi
+
+      if [[ "$(hyprctl activewindow)" == "Invalid" ]]; then
+        swaynag -t warning -m "Shutdown $SWAYNAG_DISPLAY_CURRENT/$SWAYNAG_MAX_COUNT"
+        exit 0
+      fi
+
+      hyprctl dispatch killactive
+    '';
+  };
+in
+{
+  nixosHomeModule.home.packages = [
+    exit-if-all-closed
+    pkgs.grim
+    pkgs.slurp
+    pkgs.wl-clipboard
+  ];
+
   nixosSystemModule = {
     programs.hyprland = {
       enable = true;
@@ -19,12 +53,6 @@
 
     environment.sessionVariables.NIXOS_OZONE_WL = "1";
   };
-
-  nixosHomeModule.home.packages = [
-    pkgs.grim
-    pkgs.slurp
-    pkgs.wl-clipboard
-  ];
 
   nixosHomeModule.wayland.windowManager.hyprland = {
     enable = true;
@@ -81,7 +109,7 @@
 
         "$mod SHIFT, S, exec, grim -g \"$(slurp -d)\" - | wl-copy && notify-send 'Copied to clipboard'"
 
-        "$mod SHIFT, Q, killactive"
+        "$mod SHIFT, Q, exec, exit-if-all-closed"
 
         "$mod, F, fullscreen"
 
