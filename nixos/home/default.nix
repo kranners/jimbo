@@ -23,7 +23,6 @@ in
     ./mangohud.nix
     ./wayvnc.nix
     ./wpaperd.nix
-    ./walker.nix
   ];
 
   home.username = "aaron";

@@ -32,7 +32,6 @@
     plugins = [
       pkgs.hyprlandPlugins.hyprspace
       pkgs.hyprlandPlugins.hyprsplit
-      pkgs.hyprlandPlugins.hyprbars
     ];
 
     settings = {
