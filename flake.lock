@@ -474,22 +474,6 @@
         "type": "github"
       }
     },
-    "rofi-themes-collection": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1730393626,
-        "narHash": "sha256-pHPhqbRFNhs1Se2x/EhVe8Ggegt7/r9UZRocHlIUZKY=",
-        "owner": "newmanls",
-        "repo": "rofi-themes-collection",
-        "rev": "c2be059e9507785d42fc2077a4c3bc2533760939",
-        "type": "github"
-      },
-      "original": {
-        "owner": "newmanls",
-        "repo": "rofi-themes-collection",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
         "alacritty-themes": "alacritty-themes",
@@ -502,11 +486,9 @@
         "nixpkgs": "nixpkgs",
         "nixvim": "nixvim",
         "resession": "resession",
-        "rofi-themes-collection": "rofi-themes-collection",
         "swww": "swww",
         "tiny-inline-diagnostic": "tiny-inline-diagnostic",
         "toggleterm-manager": "toggleterm-manager",
-        "walker": "walker",
         "zen-browser": "zen-browser"
       }
     },
@@ -574,21 +556,6 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
-        "type": "github"
-      }
-    },
-    "systems_4": {
-      "locked": {
-        "lastModified": 1689347949,
-        "narHash": "sha256-12tWmuL2zgBgZkdoB6qXZsgJEH9LR3oUgpaQq2RbI80=",
-        "owner": "nix-systems",
-        "repo": "default-linux",
-        "rev": "31732fcf5e8fea42e59c2488ad31a0e651500f68",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-systems",
-        "repo": "default-linux",
         "type": "github"
       }
     },
@@ -681,27 +648,6 @@
       "original": {
         "owner": "numtide",
         "repo": "flake-utils",
-        "type": "github"
-      }
-    },
-    "walker": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "systems": "systems_4"
-      },
-      "locked": {
-        "lastModified": 1738513552,
-        "narHash": "sha256-yAnkLGSrU4jwlqi0bl9TbNS8piRqqzXyx/XlSMLjRvs=",
-        "owner": "abenz1267",
-        "repo": "walker",
-        "rev": "621ff078c5cccf8b46b9f921de7635ffdb51133e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "abenz1267",
-        "repo": "walker",
         "type": "github"
       }
     },
