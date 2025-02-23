@@ -15,6 +15,7 @@ in
     ./completion
     ./nixvim
     ./font-size
+    ./launcher
   ];
 
   options = {
