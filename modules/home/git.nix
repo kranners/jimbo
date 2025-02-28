@@ -92,7 +92,56 @@ in
       cram = "commit --amend --no-edit --no-verify";
     };
 
-    extraConfig.init.defaultBranch = "main";
+    extraConfig = {
+      # show branches etc in table rather than list
+      column.ui = "auto";
+
+      # order branches by recent commits
+      # order tags by semver
+      branch.sort = "-committerdate";
+      tag.sort = "version:refname";
+
+      # dont make me pick a default branch
+      init.defaultBranch = "main";
+
+      # make diff smarter, especially with moves
+      diff.algorithm = "histogram";
+
+      # distinguish moves from add/remove in diffs
+      diff.colorMoved = "plain";
+
+      # replace a/b with i/w/c (index, worktree, commit)
+      diff.mnemonicPrefix = true;
+
+      # detect renamed files
+      diff.renames = true;
+
+      # create remote on push if not exist, and set tracking
+      push.autoSetupRemote = true;
+
+      # push local tags
+      push.followTags = true;
+
+      # delete local branches when deleted upstream
+      fetch.prune = true;
+      fetch.pruneTags = true;
+      fetch.all = true;
+
+      # show diffs in commit editor
+      commit.verbose = true;
+
+      # record rebase resolutions.
+      rerere.enabled = true;
+      rerere.autoaupdate = true;
+
+      # auto everything for rebase
+      rebase.autoSquash = true;
+      rebase.autoStash = true;
+      rebase.updateRefs = true;
+
+      # automatically rebase on pull
+      pull.rebase = true;
+    };
   };
 
   # Set TTY for GPG to do hardware signing on commits
