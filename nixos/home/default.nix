@@ -23,6 +23,7 @@ in
     ./mangohud.nix
     ./wayvnc.nix
     ./wpaperd.nix
+    ./obsidian-service.nix
   ];
 
   home.username = "aaron";
