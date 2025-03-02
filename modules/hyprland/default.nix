@@ -73,6 +73,12 @@ in
           accel_profile = "flat";
           sensitivity = "0";
         }
+
+        {
+          name = "compx-2.4g-dual-mode-mouse";
+          accel_profile = "flat";
+          sensitivity = "0";
+        }
       ];
 
       plugin = {
