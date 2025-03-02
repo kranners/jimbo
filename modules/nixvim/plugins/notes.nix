@@ -8,15 +8,13 @@ in
     extraPlugins = [ pkgs.vimPlugins.obsidian-nvim ];
 
     extraConfigLua = ''
-      -- vim.opt.rtp:append("${configHome}/nvim/notes")
-
-      package.path = package.path .. ';' .. "${configHome}/nvim/notes/?.lua"
+      package.path = package.path .. ';' .. "${configHome}/nvim/?.lua"
       require("notes")
     '';
   };
 
   home-manager.users.${host.username}.xdg.configFile = {
-    "nvim/notes" = {
+    nvim = {
       recursive = true;
       source = mkOutOfStoreSymlink ./notes;
     };

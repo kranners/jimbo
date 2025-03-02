@@ -1,9 +1,11 @@
+local constants = require("constants")
 local NotePreviewer = require("fzf-lua.previewer.builtin").buffer_or_file:extend()
 
 function NotePreviewer:new(o, opts, fzf_win)
   NotePreviewer.super.new(self, o, opts, fzf_win)
   setmetatable(self, NotePreviewer)
   self.filetype = "markdown"
+
   return self
 end
 
@@ -12,7 +14,7 @@ function NotePreviewer:set_preview_buf(newbuf, min_winopts)
   -- https://github.com/ibhagwan/fzf-lua/blob/ace9968be267b034e450be4feaf6e9107bc34fbd/lua/fzf-lua/previewer/builtin.lua#L144
   -- except it sets the buf filetype and sends autocmds when loading, to
   -- trigger render-markdown
-  --
+
   if not self.win or not self.win:validate_preview() then
     return
   end
