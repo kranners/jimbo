@@ -16,6 +16,7 @@
         "microsoft-outlook"
         "aws-vpn-client"
         "codeship/taps/jet"
+        "chromium"
       ];
 
       brews = [
