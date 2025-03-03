@@ -10,7 +10,7 @@
       ./treesj.nix
       ./barbar.nix
       ./treesitter.nix
-      ./obsidian.nix
+      ./notes.nix
       ./codesnap.nix
       ./resession.nix
       ./flatten.nix
