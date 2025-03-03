@@ -11,9 +11,10 @@ local get_rg_callback = function(cwd, cuts)
       return table.concat({
         "rg",
         cwd,
-        "--sortr=created",
+        "--sortr=modified",
         "--files-with-matches",
-        "| cut -d '/' -f 6-",
+        "-e .",
+        "| cut -d '/' -f " .. cuts .. "-",
       }, " ")
     end
 
@@ -29,7 +30,7 @@ local get_rg_callback = function(cwd, cuts)
       "--no-heading",
       "--color=always",
       "--max-columns=4096",
-      "--sortr=created",
+      "--sortr=modified",
       "--files-with-matches",
       "--multiline",
       "--multiline-dotall",
@@ -44,12 +45,15 @@ M.search_all_notes = function()
   fzf_lua.fzf_live(
     get_rg_callback(constants.latte_root, "6"),
     {
+      fzf_opts = {
+        ["--multi"] = true,
+      },
       exec_empty_query = true,
       cwd = constants.latte_root,
       prompt = "🏫 ",
       winopts = { title = "All Notes" },
       previewer = NotePreviewer,
-      actions = actions,
+      actions = actions.get_actions_table(constants.latte_root),
     })
 end
 
@@ -57,10 +61,15 @@ M.stack_notes = function()
   fzf_lua.fzf_live(
     get_rg_callback(constants.stack_root, "7"),
     {
-      cwd = constants.latte_root,
+      fzf_opts = {
+        ["--multi"] = true,
+      },
+      exec_empty_query = true,
+      cwd = constants.stack_root,
       prompt = "📚 ",
       winopts = { title = "Stack Notes" },
       previewer = NotePreviewer,
+      actions = actions.get_actions_table(constants.stack_root),
     })
 end
 

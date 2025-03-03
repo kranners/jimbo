@@ -44,6 +44,7 @@ in
     };
 
     plugins.blink-ripgrep.enable = is-blink-cmp;
+
     plugins.cmp-nvim-lsp.enable = is-cmp;
 
     plugins.cmp = {
