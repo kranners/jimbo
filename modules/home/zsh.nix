@@ -7,6 +7,10 @@
 
     sessionVariables = {
       EDITOR = "nvim";
+
+      # TODO: Nix shell can fix this
+      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "1";
+      PUPPETEER_EXECUTABLE_PATH = "which chromium";
     };
   };
 
