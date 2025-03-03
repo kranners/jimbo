@@ -2,6 +2,7 @@
 let
   inherit (config.home-manager.users.${host.username}.lib.file) mkOutOfStoreSymlink;
   inherit (config.home-manager.users.${host.username}.xdg) configHome;
+  inherit (config.home-manager.users.${host.username}.home) homeDirectory;
 in
 {
   programs.nixvim = {
@@ -14,9 +15,6 @@ in
   };
 
   home-manager.users.${host.username}.xdg.configFile = {
-    nvim = {
-      recursive = true;
-      source = mkOutOfStoreSymlink ./notes;
-    };
+    nvim.source = mkOutOfStoreSymlink "${homeDirectory}/workspace/jimbo/modules/nixvim/plugins/notes";
   };
 }
