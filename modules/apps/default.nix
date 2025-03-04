@@ -93,7 +93,6 @@
     pkgs.nurl
 
     pkgs.pavucontrol # Audio control
-    pkgs.nemo-with-extensions # File manager
     pkgs.mpv # Media playback
     pkgs.blueberry # Bluetooth manager
     pkgs.wl-clipboard # Clipboard manager

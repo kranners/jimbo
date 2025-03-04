@@ -10,7 +10,6 @@
     ./security.nix
     ./xdg.nix
     ./locale.nix
-    ./services.nix
   ];
 
   # Enable networking

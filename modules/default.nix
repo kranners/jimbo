@@ -16,6 +16,7 @@ in
     ./nixvim
     ./font-size
     ./launcher
+    ./file-manager
   ];
 
   options = {
