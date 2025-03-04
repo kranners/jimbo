@@ -64,7 +64,6 @@ in
 
     settings = {
       "$mod" = "SUPER";
-      "$fileManager" = "nemo";
       "$terminal" = "alacritty";
 
       device = [
