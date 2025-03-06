@@ -61,6 +61,7 @@
     pkgs.mas
     pkgs.nodePackages.svgo
     pkgs.fnm
+    pkgs.rio
   ];
 
   nixosSystemModule.environment.systemPackages = [
