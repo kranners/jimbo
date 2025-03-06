@@ -107,6 +107,17 @@
             # TODO: need to move to regular Lua config, then install obsidian-nvim/obsidian.nvim
             completion-engine = "cmp";
           }
+          {
+            rio = {
+              enable = true;
+
+              settings = {
+                option-as-alt = "left";
+                fonts.family = "Iosevka Nerd Font Mono";
+                window.opacity = 0.80;
+              };
+            };
+          }
         ];
       };
 
