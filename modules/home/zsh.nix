@@ -2,7 +2,7 @@
   home = {
     shellAliases = {
       ns = "nix-shell --command zsh";
-      where-config = "cat $(which nvim) | tail -n 1 | awk '{print $15}'";
+      where-config = "cat $(which nvim) | tail -n 1 | tr ' ' '\\n' | grep init.lua";
     };
 
     sessionVariables = {
