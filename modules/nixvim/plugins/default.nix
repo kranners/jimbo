@@ -33,6 +33,7 @@
       gitsigns.enable = true;
       neoscroll.enable = true;
       web-devicons.enable = true;
+      colorizer.enable = true;
     };
   };
 }
