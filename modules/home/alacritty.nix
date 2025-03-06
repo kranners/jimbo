@@ -5,7 +5,6 @@
     # https://alacritty.org/config-alacritty.html
     settings = {
       window = {
-        padding = { x = 15; y = 15; };
         decorations = "Full";
         opacity = 0.80;
         resize_increments = true;
