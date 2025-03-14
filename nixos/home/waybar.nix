@@ -1,10 +1,11 @@
-{ pkgs, lib, ... }: {
-  wayland.windowManager.hyprland.settings.exec-once = [
-    "uwsm app -- waybar"
-  ];
-
+{ pkgs, lib, config, ... }: {
   programs.waybar = {
     enable = true;
+
+    systemd = {
+      enable = true;
+      target = config.wayland.systemd.target;
+    };
 
     settings.main =
       let
