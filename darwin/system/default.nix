@@ -1,7 +1,6 @@
 {
-  services.nix-daemon.enable = true;
-
-  security.pam.enableSudoTouchIdAuth = true;
+  security.pam.services.sudo_local.touchIdAuth = true;
+  ids.gids.nixbld = 30000;
 
   imports = [
     ./users.nix
