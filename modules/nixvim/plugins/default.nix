@@ -28,7 +28,6 @@
       nvim-autopairs.enable = true;
       rainbow-delimiters.enable = true;
       nvim-lightbulb.enable = true;
-      which-key.enable = true;
       indent-blankline.enable = true;
       gitsigns.enable = true;
       neoscroll.enable = true;
