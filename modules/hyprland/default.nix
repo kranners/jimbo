@@ -117,6 +117,7 @@ in
         "$mod SHIFT, Q, exec, exit-if-all-closed"
 
         "$mod, F, fullscreen"
+        "$mod SHIFT, F, togglefloating"
 
         "$mod, H, movefocus, l"
         "$mod, J, movefocus, d"
