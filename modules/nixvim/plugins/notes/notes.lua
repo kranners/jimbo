@@ -2,6 +2,8 @@ local constants = require("constants")
 local commands = require("commands")
 local pickers = require("pickers")
 
+local is_darwin = vim.fn.has('macunix') == 1
+
 require("obsidian").setup({
   daily_notes = { date_format = "%Y/%m/%d %B, %Y", template = "Daily.md" },
   open_notes_in = "current",
@@ -19,7 +21,13 @@ require("obsidian").setup({
     { name = "Latte", path = constants.latte_root },
   },
   follow_url_func = function(url)
-    vim.fn.jobstart({ "open", url })
+    if is_darwin then
+      vim.fn.jobstart({ "open", url })
+    end
+
+    if not is_darwin then
+      vim.fn.jobstart({ "xdg-open", url })
+    end
   end,
 })
 
