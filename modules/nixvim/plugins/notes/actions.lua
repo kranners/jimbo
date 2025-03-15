@@ -3,8 +3,6 @@ local fzf_lua = require("fzf-lua")
 
 local M = {}
 
-M.query_was_successful = false
-
 M.get_actions_table = function(cwd)
   local move_note_to_vault = function(file, vault)
     local basename = vim.fs.basename(file)
