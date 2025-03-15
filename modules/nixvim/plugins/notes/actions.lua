@@ -3,6 +3,8 @@ local fzf_lua = require("fzf-lua")
 
 local M = {}
 
+M.query_was_successful = false
+
 M.get_actions_table = function(cwd)
   local move_note_to_vault = function(file, vault)
     local basename = vim.fs.basename(file)
@@ -36,9 +38,22 @@ M.get_actions_table = function(cwd)
 
   return {
     ["default"] = fzf_lua.actions.file_edit,
-    ["ctrl-x"] = { fn = for_each_note(delete), reload = true },
-    ["ctrl-e"] = { fn = for_each_note(archive), reload = true },
-    ["ctrl-p"] = { fn = for_each_note(publish), reload = true },
+    ["ctrl-x"] = {
+      fn = for_each_note(delete),
+      reload = true,
+      desc = "Delete note(s)",
+    },
+    ["ctrl-e"] = {
+      fn = for_each_note(archive),
+      reload = true,
+      desc = "Archive note(s)",
+    },
+    ["ctrl-p"] = {
+      fn = for_each_note(publish),
+      reload = true,
+      desc = "Publish note(s)",
+    },
+    ["esc"] = { fn = fzf_lua.actions.dummy_abort }
   }
 end
 
