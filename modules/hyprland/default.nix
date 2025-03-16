@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
   exit-if-all-closed = pkgs.writeShellApplication {
     name = "exit-if-all-closed";
@@ -96,8 +96,11 @@ in
         };
       };
 
-      exec-once = [
-        "${pkgs.hyprsunset} --temperature 5700"
+      exec-once = lib.lists.map (x: "app2unit -- " + x) [
+        "${pkgs.vesktop}/share/applications/vesktop.desktop"
+        "${pkgs.steam}/share/applications/steam.desktop"
+      ] ++ [
+        "uwsm app -- ${pkgs.hyprsunset} --temperature 5700"
       ];
 
       bindm = [
