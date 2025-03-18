@@ -21,6 +21,7 @@
       ./fugitive.nix
       ./tiny-inline-diagnostic.nix
       ./markdown.nix
+      ./eagle.nix
     ];
 
     programs.nixvim.plugins = {
