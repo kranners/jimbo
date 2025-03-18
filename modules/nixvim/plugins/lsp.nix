@@ -44,13 +44,6 @@
 
     keymaps = [
       {
-        key = "<CR>";
-        action = "<CMD>lua vim.lsp.buf.hover()<CR>";
-        options = { desc = "Hover over token"; };
-        mode = "n";
-      }
-
-      {
         key = "<Leader><CR>";
         action = "<CMD>lua vim.lsp.buf.code_action()<CR>";
         options = { desc = "Show code actions"; };

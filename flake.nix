@@ -65,6 +65,11 @@
       url = "github:rachartier/tiny-inline-diagnostic.nvim";
       flake = false;
     };
+
+    eagle = {
+      url = "github:soulis-1256/eagle.nvim";
+      flake = false;
+    };
   };
 
   outputs = { nixpkgs, ... } @ inputs:

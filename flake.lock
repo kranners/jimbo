@@ -39,6 +39,22 @@
         "type": "github"
       }
     },
+    "eagle": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1732549102,
+        "narHash": "sha256-0kZNyYY9L87ndUL6u9eSokJoDwS9Fd0XGDgTR77VbRM=",
+        "owner": "soulis-1256",
+        "repo": "eagle.nvim",
+        "rev": "4105db74a1a0809b968661ec8d8531724fc66241",
+        "type": "github"
+      },
+      "original": {
+        "owner": "soulis-1256",
+        "repo": "eagle.nvim",
+        "type": "github"
+      }
+    },
     "firefox-addons": {
       "inputs": {
         "flake-utils": "flake-utils_2",
@@ -331,6 +347,7 @@
       "inputs": {
         "alacritty-themes": "alacritty-themes",
         "awesome-neovim-plugins": "awesome-neovim-plugins",
+        "eagle": "eagle",
         "firefox-addons": "firefox-addons",
         "flatten": "flatten",
         "grug-far": "grug-far",
