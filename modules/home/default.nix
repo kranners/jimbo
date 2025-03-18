@@ -33,6 +33,7 @@ in
       ./alacritty.nix
       ./krabby.nix
       ./personal-shells.nix
+      ./uv
     ];
 
     programs.direnv = {
