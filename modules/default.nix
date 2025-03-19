@@ -12,7 +12,6 @@ in
     ./cyberdream
     ./apps
     ./nixpkgs-config
-    ./completion
     ./neovim
     ./font-size
     ./launcher
@@ -69,7 +68,6 @@ in
 
         modules = [
           inputs.home-manager.darwinModules.home-manager
-          inputs.nixvim.nixDarwinModules.nixvim
 
           ../darwin/system
           config.darwinSystemModule
@@ -85,7 +83,6 @@ in
 
         modules = [
           inputs.home-manager.nixosModules.home-manager
-          inputs.nixvim.nixosModules.nixvim
 
           ../nixos/system
           config.nixosSystemModule

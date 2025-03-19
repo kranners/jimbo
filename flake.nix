@@ -65,13 +65,7 @@
 
         modules = [
           ./modules
-          {
-            cyberdream-theme = "dark";
-
-            # TODO: epwalsh/obsidian.nvim doesn't support blink-cmp yet.
-            # TODO: need to move to regular Lua config, then install obsidian-nvim/obsidian.nvim
-            completion-engine = "cmp";
-          }
+          { cyberdream-theme = "dark"; }
         ];
       };
 
