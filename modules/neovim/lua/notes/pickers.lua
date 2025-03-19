@@ -1,7 +1,7 @@
 local fzf_lua = require("fzf-lua")
-local NotePreviewer = require("previewer")
-local actions = require("actions")
-local constants = require("constants")
+local NotePreviewer = require("notes.previewer")
+local actions = require("notes.actions")
+local constants = require("notes.constants")
 
 local M = {}
 
