@@ -1,6 +1,6 @@
-local constants = require("constants")
-local commands = require("commands")
-local pickers = require("pickers")
+local constants = require("notes.constants")
+local commands = require("notes.commands")
+local pickers = require("notes.pickers")
 
 local is_darwin = vim.fn.has('macunix') == 1
 

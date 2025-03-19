@@ -13,7 +13,7 @@ in
     ./apps
     ./nixpkgs-config
     ./completion
-    ./nixvim
+    ./neovim
     ./font-size
     ./launcher
     ./file-manager

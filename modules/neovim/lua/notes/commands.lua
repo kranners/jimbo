@@ -1,4 +1,4 @@
-local constants = require("constants")
+local constants = require("notes.constants")
 local util = require("obsidian.util")
 
 local M = {}

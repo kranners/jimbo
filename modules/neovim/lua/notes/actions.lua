@@ -1,4 +1,4 @@
-local constants = require("constants")
+local constants = require("notes.constants")
 local fzf_lua = require("fzf-lua")
 
 local M = {}
