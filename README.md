@@ -8,7 +8,7 @@ Project structure:
 ```
 📁  assets/      <-- static assets
 📁  modules/     <-- config modules
-    📁  nixvim/  <-- neovim config using nixvim
+    📁  neovim/  <-- neovim lua config
 📁  darwin/      <-- legacy nix-darwin modules
 📁  nixos/       <-- legacy nixos-modules
 ```

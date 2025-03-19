@@ -17,12 +17,6 @@ in
   };
 
   config = {
-    sharedSystemModule = {
-      programs.nixvim = {
-        colorschemes.cyberdream.settings.theme.variant = config.cyberdream-theme;
-      };
-    };
-
     darwinHomeModule = {
       programs.alacritty.settings.import = [
         "${inputs.alacritty-themes}/${theme-filename}.toml"
