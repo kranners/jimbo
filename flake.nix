@@ -11,16 +11,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    awesome-neovim-plugins = {
-      url = "github:m15a/flake-awesome-neovim-plugins";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    nixvim = {
-      url = "github:nix-community/nixvim";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     nix-darwin = {
       url = "github:LnL7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -36,38 +26,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    toggleterm-manager = {
-      url = "github:ryanmsnyder/toggleterm-manager.nvim";
-      flake = false;
-    };
-
-    resession = {
-      url = "github:stevearc/resession.nvim";
-      flake = false;
-    };
-
     alacritty-themes = {
       url = "github:Johnsoct/alacritty";
-      flake = false;
-    };
-
-    flatten = {
-      url = "github:willothy/flatten.nvim";
-      flake = false;
-    };
-
-    grug-far = {
-      url = "github:MagicDuck/grug-far.nvim";
-      flake = false;
-    };
-
-    tiny-inline-diagnostic = {
-      url = "github:rachartier/tiny-inline-diagnostic.nvim";
-      flake = false;
-    };
-
-    eagle = {
-      url = "github:soulis-1256/eagle.nvim";
       flake = false;
     };
   };
