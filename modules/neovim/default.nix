@@ -14,6 +14,7 @@
       pkgs.typescript-language-server
       pkgs.vscode-langservers-extracted
       pkgs.emmet-language-server
+      pkgs.nixd
     ];
   };
 }
