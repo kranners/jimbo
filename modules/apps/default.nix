@@ -78,7 +78,6 @@
     pkgs.busybox
     pkgs.woeusb-ng
     pkgs.ntfs3g
-    inputs.zen-browser.packages.${host.system}.default
   ];
 
   nixosHomeModule.home.packages = [
