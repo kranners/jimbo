@@ -86,7 +86,6 @@ do
     },
     { name = "terraformls" },
     { name = "ruby_lsp" },
-    { name = "pyright" },
     { extraOptions = { settings = { nixd = { formatting = { command = { "nixpkgs-fmt" } } } } }, name = "nixd" },
     { name = "lua_ls" },
     { name = "jsonls" },
@@ -95,6 +94,8 @@ do
     { name = "eslint" },
     { name = "emmet_language_server" },
     { name = "astro" },
+    { name = "ruff" },
+    { name = "jedi_language_server" },
   }
   -- Adding lspOnAttach function to nixvim module lua table so other plugins can hook into it.
   _M.lspOnAttach = function(client, bufnr) end
@@ -150,8 +151,6 @@ cmp.setup.cmdline(
     sources = { { name = "path" }, { name = "cmdline", option = { ignore_cmds = { "Man", "!" } } } },
   }
 )
-
-require("zen-mode").setup({})
 
 vim.opt.runtimepath:prepend(vim.fs.joinpath(vim.fn.stdpath("data"), "site"))
 require("nvim-treesitter.configs").setup({
@@ -394,7 +393,12 @@ do
       mode = "n",
       options = { desc = "Open search-replace vertical buffer" },
     },
-    { action = "<CMD>ZenMode<CR>",               key = "<Leader>z", mode = "n", options = { desc = "Toggle zen mode" } },
+    {
+      action = "<CMD>NoNeckPain<CR>",
+      key = "<Leader>z",
+      mode = "n",
+      options = { desc = "Toggle neck pain" },
+    },
     {
       action = "<CMD>FzfLua lsp_definitions<CR>",
       key = "]]",
@@ -420,7 +424,7 @@ do
       mode = "n",
       options = { desc = "Find files by name" },
     },
-    { action = "<CMD>FzfLua buffers<CR>", key = "<Leader>b", mode = "n", options = { desc = "Find buffers" } },
+    { action = "<CMD>FzfLua buffers<CR>",        key = "<Leader>b", mode = "n", options = { desc = "Find buffers" } },
     {
       action = "<CMD>FzfLua diagnostics_workspace<CR>",
       key = "<Leader>q",
@@ -445,8 +449,8 @@ do
       mode = "n",
       options = { desc = "List git branches" },
     },
-    { action = "<CMD>.GBrowse!<CR>",      key = "<C-m>",     mode = "n", options = { desc = "Copy line permalink" } },
-    { action = "<CMD>.GBrowse<CR>",       key = "<Leader>m", mode = "n", options = { desc = "Open line permalink" } },
+    { action = "<CMD>.GBrowse!<CR>", key = "<C-m>",     mode = "n", options = { desc = "Copy line permalink" } },
+    { action = "<CMD>.GBrowse<CR>",  key = "<Leader>m", mode = "n", options = { desc = "Open line permalink" } },
     {
       action = "<CMD>EagleWin<CR>",
       key = "<CR>",
