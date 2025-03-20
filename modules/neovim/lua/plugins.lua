@@ -30,7 +30,6 @@ require('pckr').add {
   'akinsho/toggleterm.nvim',
   'nvim-treesitter/nvim-treesitter',
   'Wansmer/treesj',
-  'folke/zen-mode.nvim',
   'stevearc/overseer.nvim',
   'MeanderingProgrammer/render-markdown.nvim',
   'MagicDuck/grug-far.nvim',
@@ -50,6 +49,9 @@ require('pckr').add {
   'lukas-reineke/indent-blankline.nvim',
   'lewis6991/gitsigns.nvim',
   'tpope/vim-surround',
+  'tpope/vim-fugitive',
+  'tpope/vim-rhubarb',
   'norcalli/nvim-colorizer.lua',
   'nvim-lua/plenary.nvim',
+  'shortcuts/no-neck-pain.nvim',
 }

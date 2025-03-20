@@ -55,7 +55,6 @@
   ];
 
   darwinHomeModule.home.packages = [
-    pkgs.nixpkgs-fmt
     pkgs.nurl
     pkgs.nix-output-monitor
     pkgs.mas

@@ -15,6 +15,9 @@
       pkgs.vscode-langservers-extracted
       pkgs.emmet-language-server
       pkgs.nixd
+      pkgs.nixpkgs-fmt
+      pkgs.ruff
+      pkgs.python313Packages.jedi-language-server
     ];
   };
 }
