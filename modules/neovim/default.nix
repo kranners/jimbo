@@ -18,6 +18,7 @@
       pkgs.nixpkgs-fmt
       pkgs.ruff
       pkgs.python313Packages.jedi-language-server
+      pkgs.fzf
     ];
   };
 }
