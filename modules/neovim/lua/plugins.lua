@@ -48,7 +48,7 @@ require('pckr').add {
   'MunifTanjim/nui.nvim',
   'lukas-reineke/indent-blankline.nvim',
   'lewis6991/gitsigns.nvim',
-  'tpope/vim-surround',
+  'kylechui/nvim-surround',
   'tpope/vim-fugitive',
   'tpope/vim-rhubarb',
   'norcalli/nvim-colorizer.lua',

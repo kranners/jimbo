@@ -34,6 +34,8 @@ do
 end
 -- }}}
 
+require("nvim-surround").setup({})
+
 require("cyberdream").setup({
   extensions = {
     cmp = true,
