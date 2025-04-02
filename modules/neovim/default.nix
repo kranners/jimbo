@@ -20,6 +20,7 @@
       pkgs.python313Packages.jedi-language-server
       pkgs.fzf
       pkgs.lua-language-server
+      pkgs.gh
     ];
   };
 }
