@@ -1,4 +1,4 @@
-{ pkgs, inputs, host, ... }: {
+{ pkgs, ... }: {
   darwinSystemModule = {
     homebrew = {
       enable = true;
