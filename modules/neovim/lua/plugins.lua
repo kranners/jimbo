@@ -54,4 +54,5 @@ require('pckr').add {
   'norcalli/nvim-colorizer.lua',
   'nvim-lua/plenary.nvim',
   'shortcuts/no-neck-pain.nvim',
+  'pwntester/octo.nvim',
 }

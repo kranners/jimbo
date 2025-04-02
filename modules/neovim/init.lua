@@ -666,3 +666,11 @@ do
   end
 end
 -- }}
+--
+--
+require("octo").setup({
+  picker = "fzf-lua",
+  picker_config = {
+    use_emojis = true,
+  },
+})
