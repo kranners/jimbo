@@ -183,9 +183,19 @@ require("nvim-treesitter.configs").setup({
   parser_install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site"),
 })
 
-require("toggleterm").setup({ direction = "vertical", hide_numbers = false, size = 60 })
+require("toggleterm").setup({
+  direction = "vertical",
+  hide_numbers = false,
+  size = 60,
+})
 
-require("render-markdown").setup({ anti_conceal = { enabled = true }, preset = "obsidian" })
+require("render-markdown").setup({
+  anti_conceal = { enabled = true },
+  preset = "obsidian",
+  pipe_table = {
+    style = "normal",
+  },
+})
 
 require("oil").setup({
   default_file_explorer = true,
