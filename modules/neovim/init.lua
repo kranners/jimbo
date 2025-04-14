@@ -17,7 +17,7 @@ end
 -- Set up options {{{
 do
   local nixvim_options = {
-    conceallevel = 3,
+    conceallevel = 0,
     equalalways = false,
     expandtab = true,
     number = true,

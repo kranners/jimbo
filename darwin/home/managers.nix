@@ -14,4 +14,6 @@
     eval "$(pyenv virtualenv-init - 2>/dev/null 1>&2)"
     eval "$(fnm env --use-on-cd)"
   '';
+
+  home.packages = [ pkgs.uv ];
 }
