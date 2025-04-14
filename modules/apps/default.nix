@@ -17,6 +17,8 @@
         "aws-vpn-client"
         "codeship/taps/jet"
         "chromium"
+        "orion"
+        "cursor"
       ];
 
       brews = [
