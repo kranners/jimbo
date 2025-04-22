@@ -275,6 +275,8 @@ require("codesnap").setup({ bg_color = "#ffffff00", code_font_family = "Iosevka 
 
 require("barbar").setup({})
 
+require("snacks").setup({})
+
 -- Set up keybinds {{{
 do
   local __nixvim_binds = {
@@ -419,54 +421,46 @@ do
       options = { desc = "Toggle neck pain" },
     },
     {
-      action = "<CMD>FzfLua lsp_definitions<CR>",
+      action = function() Snacks.picker.lsp_definitions() end,
       key = "]]",
       mode = "n",
       options = { desc = "Search definitions" },
     },
-    { action = "<CMD>FzfLua lsp_references<CR>", key = "[[",        mode = "n", options = { desc = "Search references" } },
     {
-      action = "<CMD>FzfLua live_grep formatter=path.filename_first<CR>",
+      action = function() Snacks.picker.lsp_references() end,
+      key = "[[",
+      mode = "n",
+      options = { desc = "Search references" },
+    },
+    {
+      action = function() Snacks.picker.grep() end,
       key = "<C-f>",
       mode = "n",
       options = { desc = "Fuzzy find file contents" },
     },
     {
-      action = "<CMD>FzfLua buffers<CR>",
+      action = function() Snacks.picker.buffers() end,
       key = "<C-b>",
       mode = "n",
       options = { desc = "Search through current buffers" },
     },
     {
-      action = "<CMD>FzfLua files formatter=path.filename_first<CR>",
+      action = function() Snacks.picker.files() end,
       key = "<C-o>",
       mode = "n",
       options = { desc = "Find files by name" },
     },
-    { action = "<CMD>FzfLua buffers<CR>",        key = "<Leader>b", mode = "n", options = { desc = "Find buffers" } },
     {
-      action = "<CMD>FzfLua diagnostics_workspace<CR>",
-      key = "<Leader>q",
+      action = function() Snacks.picker.diagnostics() end,
+      key = "<C-q>",
       mode = "n",
       options = { desc = "Show diagnostics" },
     },
     {
-      action = "<CMD>FzfLua keymaps<CR>",
+      action = function() Snacks.picker.keymaps() end,
       key = "<C-p>",
       mode = "n",
-      options = { desc = "Show keymaps / command prompt" },
-    },
-    {
-      action = "<CMD>FzfLua git_status<CR>",
-      key = "<Leader>gs",
-      mode = "n",
-      options = { desc = "Show git status" },
-    },
-    {
-      action = "<CMD>FzfLua git_branches<CR>",
-      key = "<Leader>gb",
-      mode = "n",
-      options = { desc = "List git branches" },
+      options = { desc = "Show keymaps" },
     },
     { action = "<CMD>.GBrowse!<CR>", key = "<C-m>",     mode = "n", options = { desc = "Copy line permalink" } },
     { action = "<CMD>.GBrowse<CR>",  key = "<Leader>m", mode = "n", options = { desc = "Open line permalink" } },
