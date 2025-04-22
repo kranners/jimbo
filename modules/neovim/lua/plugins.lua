@@ -55,4 +55,5 @@ require('pckr').add {
   'nvim-lua/plenary.nvim',
   'shortcuts/no-neck-pain.nvim',
   'pwntester/octo.nvim',
+  'folke/snacks.nvim',
 }
