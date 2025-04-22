@@ -6,7 +6,13 @@ local _M = {}
 
 -- Set up globals {{{
 do
-  local nixvim_globals = { mapleader = " ", maplocalleader = "," }
+  local nixvim_globals = {
+    mapleader = " ",
+    maplocalleader = ",",
+    -- Ensure conceallevel is set to 0 on JSON
+    -- https://github.com/nvim-treesitter/nvim-treesitter/issues/2825#issuecomment-1496747076
+    indentLine_fileTypeExclude = { "dashboard", "json", "markdown" }
+  }
 
   for k, v in pairs(nixvim_globals) do
     vim.g[k] = v
@@ -99,6 +105,7 @@ do
     { name = "ruff" },
     { name = "jedi_language_server" },
   }
+
   -- Adding lspOnAttach function to nixvim module lua table so other plugins can hook into it.
   _M.lspOnAttach = function(client, bufnr) end
   local __lspCapabilities = function()

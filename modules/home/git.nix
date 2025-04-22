@@ -69,6 +69,18 @@ let
       git push --force
     '';
   };
+
+  git-new = pkgs.writeShellApplication {
+    name = "git-new";
+    inherit runtimeInputs;
+
+    text = ''
+      NEW_BRANCH_NAME="$1"
+
+      git freshen
+      git switch --create "$NEW_BRANCH_NAME"
+    '';
+  };
 in
 {
   home = {
@@ -78,6 +90,7 @@ in
       git-skip
       git-freshen
       git-catchup
+      git-new
     ];
 
     shellAliases = {
