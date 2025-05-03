@@ -1,0 +1,40 @@
+name: "Create flake update"
+on:
+  workflow_dispatch: 
+  schedule:
+    - "0 9 * * 1"
+
+jobs:
+  create-flake-update:
+    permissions:
+      pull-requests: write
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+      - uses: cachix/cachix-action@v14
+        with:
+          name: kranners
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Create flake PR
+        run: |
+          git config --global user.email "flake-updater@cute.engineer"
+          git config --global user.name "Flake Updater"
+
+          export TZ="Australia/Melbourne"
+          export FLAKE_BRANCH_NAME="flake-update-$(date +'%Y-%m-%dT%H-%M-%S')"
+
+          git switch --create "$FLAKE_BRANCH_NAME"
+          nix flake update
+          git commit -am "Flake update"
+          git push -u origin "$FLAKE_BRANCH_NAME"
+
+          gh pr create \
+            --base main \
+            --reviewer kranners \
+            --title "Flake update on $(date +'%Y-%m-%d at %H:%M:%S')" \
+            --body "Updates the flake. Ensure checks have passed before merging."
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_SCOPED_TOKEN }}
+
