@@ -83,6 +83,7 @@ in
 
         modules = [
           inputs.home-manager.nixosModules.home-manager
+          inputs.flatpaks.nixosModules.declarative-flatpak
 
           ../nixos/system
           config.nixosSystemModule

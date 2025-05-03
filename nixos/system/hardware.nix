@@ -8,7 +8,15 @@
   # Enable AMD GPU support
   boot.initrd.kernelModules = [ "amdgpu" ];
 
-  boot.kernelParams = [ "video=DP-1:2560x1440@165" "video=DP-3:1920x1080@144" ];
+  boot.kernelParams = [
+    "video=DP-1:2560x1440@165"
+    "video=DP-3:1920x1080@144"
+    "kvm.enable_virt_at_load=0"
+  ];
+  virtualisation.virtualbox.host = {
+    enable = true;
+    enableExtensionPack = true;
+  };
 
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];

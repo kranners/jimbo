@@ -8,7 +8,11 @@
 
     shell = pkgs.zsh;
 
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+      "vboxusers"
+    ];
   };
 
   security.sudo.wheelNeedsPassword = false;
