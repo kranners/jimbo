@@ -1,0 +1,39 @@
+name: "Create Flake update"
+on:
+  workflow_dispatch: 
+
+jobs:
+  create-flake-update:
+    permissions:
+      pull-requests: write
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+      - uses: cachix/cachix-action@v14
+        with:
+          name: kranners
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Create Flake PR
+        run: |
+          git config --global user.email "flake-updater@cute.engineer"
+          git config --global user.name "Flake Updater"
+
+          export TZ="Australia/Melbourne"
+          export FLAKE_BRANCH_NAME="flake-update-$(date +'%Y-%m-%dT%H-%M-%S')"
+
+          git switch --create "$FLAKE_BRANCH_NAME"
+          nix flake update
+          git commit -am "Flake update"
+          git push -u origin "$FLAKE_BRANCH_NAME"
+
+          gh pr create \
+            --base main \
+            --title "Flake update on $(date +'%Y-%m-%d at %H:%M:%S')" \
+            --body "Created by a GitHub Action."
+
+          gh workflow run test.yml --ref "$FLAKE_BRANCH_NAME"
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_SCOPED_TOKEN }}
+
