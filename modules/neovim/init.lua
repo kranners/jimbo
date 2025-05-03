@@ -190,12 +190,6 @@ require("nvim-treesitter.configs").setup({
   parser_install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site"),
 })
 
-require("toggleterm").setup({
-  direction = "vertical",
-  hide_numbers = false,
-  size = 60,
-})
-
 require("render-markdown").setup({
   anti_conceal = { enabled = true },
   preset = "obsidian",
@@ -367,7 +361,6 @@ do
       mode = "n",
       options = { desc = "Toggle task view" },
     },
-    { action = "<cmd>ToggleTerm<cr>", key = "=",         mode = "n", options = { desc = "Toggle terminal" } },
     {
       action = "<CMD>lua require('Comment.api').toggle.linewise.current()<CR><C-o>$",
       key = "<C-/>",
@@ -386,8 +379,8 @@ do
       mode = "x",
       options = { desc = "Toggle comment (visual)" },
     },
-    { action = "<CMD>TSJJoin<CR>",    key = "<Leader>j", mode = "n", options = { desc = "Join object together" } },
-    { action = "<CMD>TSJSplit<CR>",   key = "<Leader>k", mode = "n", options = { desc = "Split object apart" } },
+    { action = "<CMD>TSJJoin<CR>",  key = "<Leader>j", mode = "n", options = { desc = "Join object together" } },
+    { action = "<CMD>TSJSplit<CR>", key = "<Leader>k", mode = "n", options = { desc = "Split object apart" } },
     {
       action = "<CMD>TSJToggle<CR>",
       key = "<Leader>m",
@@ -471,7 +464,7 @@ do
       options = { desc = "Open Eagle hover window 🦅", silent = true },
     },
   }
-  for i, map in ipairs(__nixvim_binds) do
+  for _, map in ipairs(__nixvim_binds) do
     vim.keymap.set(map.mode, map.key, map.action, map.options)
   end
 end
@@ -509,7 +502,8 @@ require("treesj").setup({
 })
 
 -- package.path = package.path .. ";" .. "/Users/aaronpierce/.config/nvim/?.lua"
-require("notes/notes")
+require("notes")
+require("terminals")
 
 local resession = require("resession")
 local overseer = require("overseer")
@@ -544,17 +538,6 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
   end,
 })
 
-vim.api.nvim_create_autocmd("ExitPre", {
-  pattern = "*",
-  callback = function()
-    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-      if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "terminal" then
-        vim.api.nvim_buf_delete(buf, { force = true })
-      end
-    end
-  end,
-})
-
 resession.add_hook("pre_load", function()
   -- Save the current session before starting to switch
   resession.save(vim.fn.getcwd(), { dir = "dirsession" })
@@ -567,9 +550,7 @@ resession.add_hook("pre_load", function()
   -- Dispose of all the remaining terminal buffers
   local bufs = vim.api.nvim_list_bufs()
   for _, buf in ipairs(bufs) do
-    local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
-
-    if buftype == "terminal" then
+    if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "terminal" then
       vim.api.nvim_buf_delete(buf, { force = true })
     end
   end
@@ -644,7 +625,7 @@ do
         do
           local __nixvim_binds = {}
 
-          for i, map in ipairs(__nixvim_binds) do
+          for _, map in ipairs(__nixvim_binds) do
             local options = vim.tbl_extend("keep", map.options or {}, { buffer = args.buf })
             vim.keymap.set(map.mode, map.key, map.action, options)
           end
