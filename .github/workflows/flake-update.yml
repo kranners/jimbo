@@ -1,0 +1,31 @@
+name: "Create Flake update"
+on:
+  workflow_dispatch: 
+
+permissions:
+  pull-requests: write
+
+jobs:
+  create-flake-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+      - uses: cachix/cachix-action@v14
+        with:
+          name: kranners
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%dT%H-%M-%S')"
+      - name: Create Flake PR
+        run: |
+          git config --global user.email "flake-updater@cute.engineer"
+          git config --global user.name "Flake Updater"
+          git switch --create flake-update-${{ steps.date.outputs.date }}
+          nix flake update
+          git commit -am "Flake update"
+          gh pr create -H "main" -B "flake-update-${{ steps.date.outputs.date }}" --title "Flake update ${{ steps.date.outputs.date }}" --body "Created by a GitHub Action."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
