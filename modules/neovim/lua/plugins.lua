@@ -27,7 +27,6 @@ require('pckr').add {
   'stevearc/oil.nvim/',
   'stevearc/resession.nvim',
   'rachartier/tiny-inline-diagnostic.nvim',
-  'akinsho/toggleterm.nvim',
   'nvim-treesitter/nvim-treesitter',
   'Wansmer/treesj',
   'stevearc/overseer.nvim',
