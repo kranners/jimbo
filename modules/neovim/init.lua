@@ -544,6 +544,17 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
   end,
 })
 
+vim.api.nvim_create_autocmd("ExitPre", {
+  pattern = "*",
+  callback = function()
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "terminal" then
+        vim.api.nvim_buf_delete(buf, { force = true })
+      end
+    end
+  end,
+})
+
 resession.add_hook("pre_load", function()
   -- Save the current session before starting to switch
   resession.save(vim.fn.getcwd(), { dir = "dirsession" })
