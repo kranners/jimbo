@@ -22,11 +22,12 @@ jobs:
         run: |
           git config --global user.email "flake-updater@cute.engineer"
           git config --global user.name "Flake Updater"
-          git switch --create flake-update-${{ steps.date.outputs.date }}
+          FLAKE_BRANCH_NAME="flake-update-${{ steps.date.outputs.date }}"
+          git switch --create "$FLAKE_BRANCH_NAME"
           nix flake update
           git commit -am "Flake update"
-          git push -u origin flake-update-${{ steps.date.outputs.date }}
-          gh pr create --base "main" --title "Flake update ${{ steps.date.outputs.date }}" --body "Created by a GitHub Action."
+          git push -u origin "$FLAKE_BRANCH_NAME"
+          gh pr create --base main --title "Flake update $(date +'%Y-%m-%dT%H-%M-%S')" --body "Created by a GitHub Action."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
