@@ -25,7 +25,8 @@ jobs:
           git switch --create flake-update-${{ steps.date.outputs.date }}
           nix flake update
           git commit -am "Flake update"
-          gh pr create -H "main" -B "flake-update-${{ steps.date.outputs.date }}" --title "Flake update ${{ steps.date.outputs.date }}" --body "Created by a GitHub Action."
+          git push -u origin flake-update-${{ steps.date.outputs.date }}
+          gh pr create --base "main" --title "Flake update ${{ steps.date.outputs.date }}" --body "Created by a GitHub Action."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
