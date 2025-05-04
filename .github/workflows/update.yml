@@ -1,8 +1,9 @@
-name: "Create flake update"
+name: Update flake
+
 on:
   workflow_dispatch: 
   schedule:
-    - "0 9 * * 1"
+    - cron: "0 9 * * 1"
 
 jobs:
   create-flake-update:
@@ -17,8 +18,7 @@ jobs:
         with:
           name: kranners
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Create flake PR
-        run: |
+      - run: |
           git config --global user.email "flake-updater@cute.engineer"
           git config --global user.name "Flake Updater"
 
