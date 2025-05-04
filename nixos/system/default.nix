@@ -27,6 +27,14 @@
 
   services.openssh.enable = true;
 
+  services.flatpak = {
+    enable = true;
+    packages = [ "flathub:app/org.vinegarhq.Sober//stable" ];
+    remotes = {
+      "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+    };
+  };
+
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
   # on your system were taken. It‘s perfectly fine and recommended to leave

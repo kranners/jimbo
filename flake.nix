@@ -25,6 +25,10 @@
       url = "github:Johnsoct/alacritty";
       flake = false;
     };
+
+    flatpaks = {
+      url = "github:GermanBread/declarative-flatpak/stable-v3";
+    };
   };
 
   outputs = { nixpkgs, ... } @ inputs:
