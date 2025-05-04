@@ -1,8 +1,9 @@
-name: "Create flake update"
+name: Update flake
+
 on:
   workflow_dispatch: 
   schedule:
-    - "0 9 * * 1"
+    - cron: "0 9 * * 1"
 
 jobs:
   create-flake-update:
@@ -17,10 +18,19 @@ jobs:
         with:
           name: kranners
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Create flake PR
-        run: |
+      - run: |
           git config --global user.email "flake-updater@cute.engineer"
           git config --global user.name "Flake Updater"
+
+          EXISTING_PRS=$(gh pr list \
+            --json headRefName,number \
+            --jq '.[] | select(.headRefName | test("flake-update-.*")) | .number')
+
+          for pr in $EXISTING_PRS; do
+            gh pr close $pr \
+              --comment "Closing, has been superceded by another flake update." \
+              --delete-branch
+          done
 
           export TZ="Australia/Melbourne"
           export FLAKE_BRANCH_NAME="flake-update-$(date +'%Y-%m-%dT%H-%M-%S')"
@@ -35,6 +45,7 @@ jobs:
             --reviewer kranners \
             --title "Flake update on $(date +'%Y-%m-%d at %H:%M:%S')" \
             --body "Updates the flake. Ensure checks have passed before merging."
+
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_SCOPED_TOKEN }}
 
