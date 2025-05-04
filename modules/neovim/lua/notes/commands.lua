@@ -64,10 +64,10 @@ M.prompt_for_new_note_split = function()
     return
   end
 
-  -- Open a new horizontal split and move into it
+  -- Open a new vertical split, stay in the original position
   local buf = vim.api.nvim_create_buf(false, false)
-  vim.cmd('split')
-  vim.cmd('wincmd j')
+  vim.cmd('vsplit')
+  vim.cmd('wincmd l')
   vim.api.nvim_win_set_buf(win, buf)
 
   -- Open a new note in that buffer

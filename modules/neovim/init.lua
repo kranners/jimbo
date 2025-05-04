@@ -269,7 +269,16 @@ require("codesnap").setup({ bg_color = "#ffffff00", code_font_family = "Iosevka 
 
 require("barbar").setup({})
 
-require("snacks").setup({})
+require("snacks").setup({
+  picker = {
+    formatters = {
+      file = {
+        filename_first = false,
+        truncate = 10000,
+      },
+    },
+  },
+})
 
 -- Set up keybinds {{{
 do
@@ -500,6 +509,12 @@ do
       options = { desc = "Toggle neck pain" },
     },
     {
+      action = "<CMD>ZenMode<CR>",
+      key = "<S-z>",
+      mode = "n",
+      options = { desc = "Toggle zen mode" },
+    },
+    {
       action = function() Snacks.picker.lsp_definitions() end,
       key = "]]",
       mode = "n",
@@ -524,7 +539,7 @@ do
       options = { desc = "Search through current buffers" },
     },
     {
-      action = function() Snacks.picker.files() end,
+      action = function() require("fzf-lua").files() end,
       key = "<C-o>",
       mode = "n",
       options = { desc = "Find files by name" },
@@ -624,6 +639,13 @@ resession.setup({
       status = "RUNNING",
     },
   },
+})
+
+vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
+  pattern = { "*.json" },
+  callback = function()
+    vim.opt.conceallevel = 0
+  end,
 })
 
 vim.api.nvim_create_autocmd("VimLeavePre", {

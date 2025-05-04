@@ -55,4 +55,5 @@ require('pckr').add {
   'shortcuts/no-neck-pain.nvim',
   'pwntester/octo.nvim',
   'folke/snacks.nvim',
+  'folke/zen-mode.nvim',
 }
