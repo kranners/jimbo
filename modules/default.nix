@@ -17,6 +17,7 @@ in
     ./launcher
     ./file-manager
     ./theme
+    ./eww
   ];
 
   options = {
