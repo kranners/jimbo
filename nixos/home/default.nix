@@ -12,7 +12,6 @@ in
   imports = [
     ./git.nix
     ./waybar.nix
-    ./theme.nix
     ./swaync.nix
     ./vesktop.nix
     ./lutris.nix

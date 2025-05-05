@@ -16,6 +16,7 @@ in
     ./font-size
     ./launcher
     ./file-manager
+    ./theme
   ];
 
   options = {
