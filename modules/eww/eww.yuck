@@ -1,10 +1,80 @@
-(defwindow dashboard
-           :monitor 0
-           :geometry (geometry :x "0%"
-                               :y "20px"
-                               :width "50%"
-                               :height "50%"
-                               :anchor "center")
-           :stacking "fg"
-  "example content")
+(defwindow sampler
+  :monitor 0
+  :stacking "fg"
+  :geometry (geometry
+    :x "0%"
+    :y "20px"
+    :width "50%"
+    :height "50%"
+    :anchor "center"
+  )
+  (launcherpanel)
+)
+
+(defwidget iconbutton [onclick icon]
+  (button
+    :onclick onclick
+    :height 24
+    :width 24
+    :halign "center"
+    :valign "center"
+    :class "iconbutton"
+    (image :icon icon)
+  )
+)
+
+(defwidget launcherpanel []
+  (box
+    :halign "center"
+    :valign "center"
+    :orientation "vertical"
+    :spacing 12
+    :class "launcherpanel"
+    (box
+      :spacing 12
+      (iconbutton
+        :onclick "notify-send 'onclicked'"
+        :icon "obsidian"
+      )
+      (iconbutton
+        :onclick "notify-send 'onclicked'"
+        :icon "steam"
+      )
+      (iconbutton
+        :onclick "notify-send 'onclicked'"
+        :icon "discord"
+      )
+    )
+    (box
+      :spacing 12
+      (iconbutton
+        :onclick "notify-send 'onclicked'"
+        :icon "utilities-terminal"
+      )
+      (iconbutton
+        :onclick "notify-send 'onclicked'"
+        :icon "firefox"
+      )
+      (iconbutton
+        :onclick "notify-send 'onclicked'"
+        :icon "plexamp"
+      )
+    )
+    (box
+      :spacing 12
+      (iconbutton
+        :onclick "notify-send 'onclicked'"
+        :icon "spotify"
+      )
+      (iconbutton
+        :onclick "notify-send 'onclicked'"
+        :icon "system-file-manager"
+      )
+      (iconbutton
+        :onclick "notify-send 'onclicked'"
+        :icon "chromium"
+      )
+    )
+  )
+)
 
