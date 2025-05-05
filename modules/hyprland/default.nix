@@ -57,11 +57,6 @@ in
   nixosHomeModule.wayland.windowManager.hyprland = {
     enable = true;
 
-    plugins = [
-      pkgs.hyprlandPlugins.hyprspace
-      pkgs.hyprlandPlugins.hyprsplit
-    ];
-
     settings = {
       "$mod" = "SUPER";
       "$terminal" = "alacritty";
@@ -80,22 +75,6 @@ in
         }
       ];
 
-      plugin = {
-        hyprbars = {
-          bar_height = 30;
-          bar_precedence_over_border = true;
-          bar_buttons_alignment = "left";
-
-          # order is right-to-left
-          hyprbars-button = [
-            # close
-            "rgb(FF605C), 15, , hyprctl dispatch killactive"
-            # maximize
-            "rgb(00CA4E), 15, , hyprctl dispatch fullscreen 1"
-          ];
-        };
-      };
-
       exec-once = lib.lists.map (x: "app2unit -- " + x) [
         "${pkgs.vesktop}/share/applications/vesktop.desktop"
         "${pkgs.steam}/share/applications/steam.desktop"
@@ -110,7 +89,6 @@ in
 
       bind = [
         "$mod, SPACE, exec, $launcher"
-        "$mod, TAB, overview:toggle, all"
 
         "$mod, RETURN, exec, $terminal"
         "$mod, E, exec, $fileManager"
@@ -131,27 +109,27 @@ in
         "$mod SHIFT, K, movewindow, u"
         "$mod SHIFT, L, movewindow, r"
 
-        "$mod, 1, split:workspace, 1"
-        "$mod, 2, split:workspace, 2"
-        "$mod, 3, split:workspace, 3"
-        "$mod, 4, split:workspace, 4"
-        "$mod, 5, split:workspace, 5"
-        "$mod, 6, split:workspace, 6"
-        "$mod, 7, split:workspace, 7"
-        "$mod, 8, split:workspace, 8"
-        "$mod, 9, split:workspace, 9"
-        "$mod, 0, split:workspace, 10"
+        "$mod, 1, workspace, 1"
+        "$mod, 2, workspace, 2"
+        "$mod, 3, workspace, 3"
+        "$mod, 4, workspace, 4"
+        "$mod, 5, workspace, 5"
+        "$mod, 6, workspace, 6"
+        "$mod, 7, workspace, 7"
+        "$mod, 8, workspace, 8"
+        "$mod, 9, workspace, 9"
+        "$mod, 0, workspace, 10"
 
-        "$mod SHIFT, 1, split:movetoworkspacesilent, 1"
-        "$mod SHIFT, 2, split:movetoworkspacesilent, 2"
-        "$mod SHIFT, 3, split:movetoworkspacesilent, 3"
-        "$mod SHIFT, 4, split:movetoworkspacesilent, 4"
-        "$mod SHIFT, 5, split:movetoworkspacesilent, 5"
-        "$mod SHIFT, 6, split:movetoworkspacesilent, 6"
-        "$mod SHIFT, 7, split:movetoworkspacesilent, 7"
-        "$mod SHIFT, 8, split:movetoworkspacesilent, 8"
-        "$mod SHIFT, 9, split:movetoworkspacesilent, 9"
-        "$mod SHIFT, 0, split:movetoworkspacesilent, 10"
+        "$mod SHIFT, 1, movetoworkspacesilent, 1"
+        "$mod SHIFT, 2, movetoworkspacesilent, 2"
+        "$mod SHIFT, 3, movetoworkspacesilent, 3"
+        "$mod SHIFT, 4, movetoworkspacesilent, 4"
+        "$mod SHIFT, 5, movetoworkspacesilent, 5"
+        "$mod SHIFT, 6, movetoworkspacesilent, 6"
+        "$mod SHIFT, 7, movetoworkspacesilent, 7"
+        "$mod SHIFT, 8, movetoworkspacesilent, 8"
+        "$mod SHIFT, 9, movetoworkspacesilent, 9"
+        "$mod SHIFT, 0, movetoworkspacesilent, 10"
       ];
     };
   };
