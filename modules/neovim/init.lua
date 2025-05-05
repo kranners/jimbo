@@ -184,6 +184,7 @@ require("nvim-treesitter.configs").setup({
     "java",
     "swift",
     "scss",
+    "yuck",
   },
   highlight = { additional_vim_regex_highlighting = false, enable = true },
   indent = { enable = true },

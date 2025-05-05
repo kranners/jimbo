@@ -23,6 +23,7 @@
         pkgs.fzf
         pkgs.lua-language-server
         pkgs.gh
+        pkgs.gcc
       ];
     };
 }
