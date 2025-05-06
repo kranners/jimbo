@@ -35,6 +35,14 @@
   }
 }
 
+.column {
+  padding: 12px;
+
+  &:nth-child(1) {
+    border-right: 2px solid rgba(#fff, 0.5);
+  }
+}
+
 .lg {
   font-size: 56px;
   color: #fff;
