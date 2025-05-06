@@ -66,6 +66,82 @@
   )
 )
 
+(defpoll volume
+  :interval "1s"
+  `wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print int($2*100)}'`
+)
+
+(defpoll is_muted
+  :interval "0.5s"
+  `wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep -q MUTED && echo 1 || echo 0`
+)
+
+
+(defwidget volume_slider []
+  (scale
+    :hexpand true
+    :min 0
+    :max 100
+    :value volume
+    :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ $(awk 'BEGIN {print {}/100}') ; eww update volume={}"
+  )
+)
+
+(defwidget mute_toggle_button []
+  (button
+    :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+    :halign "center"
+    :valign "center"
+    :class "icon_button"
+    (image
+      :icon {
+        is_muted == 1 ? "audio-volume-muted"
+        : volume > 60 ? "audio-volume-high" 
+        : volume > 30 ? "audio-volume-medium"
+        : volume > 0 ? "audio-volume-low"
+        : "audio-volume-muted"
+      }
+      :icon-size "large-toolbar"
+    )
+  )
+)
+
+(defwidget audio_output_selector []
+  (box
+    :orientation "horizontal"
+    :space-evenly false
+    :halign "center"
+    :valign "center"
+    :spacing 12
+    (button
+      :onclick "scripts/set_output_device.py 'iFi USB Audio SE Analog Stereo'"
+      :class "icon_button"
+      (image
+        :icon "audio-headphones"
+        :icon-size "large-toolbar"
+      )
+    )
+    (button
+      :onclick "scripts/set_output_device.py 'USB SPDIF Adapter Analog Stereo'"
+      :class "icon_button"
+      (image
+        :icon "audio-speakers"
+        :icon-size "large-toolbar"
+      )
+    )
+  )
+)
+
+(defwidget audio_controls []
+  (box
+    :space-evenly false
+    :hexpand true
+    (mute_toggle_button)
+    (volume_slider)
+    (audio_output_selector)
+  )
+)
+
 (defwidget launcher [onclick icon title hotkey]
   (button
     :onclick onclick
@@ -75,7 +151,10 @@
       :orientation "horizontal"
       :space-evenly false
       :spacing 12
-      (image :icon icon)
+      (image
+        :icon icon
+        :icon-size "large-toolbar"
+      )
       (box
         :orientation "vertical"
         (label
@@ -95,12 +174,12 @@
   )
 )
 
-(defwidget launcherpanel []
+(defwidget launcher_panel []
   (box
     :halign "center"
     :valign "center"
     :orientation "horizontal"
-    :class "launcherpanel"
+    :class "launcher_panel"
     :spacing 8
     (box
       :spacing 8
@@ -185,9 +264,11 @@
       :spacing 24
       (datetime)
       (current_weather)
-      (launcherpanel)
+      (launcher_panel)
     )
-    (box)
+    (box
+      (audio_controls)
+    )
   )
 )
 
