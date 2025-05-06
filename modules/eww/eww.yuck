@@ -1,3 +1,18 @@
+;; Library
+
+(defwidget icon_button [onclick icon ?icon-size]
+  (button
+    :onclick onclick
+    :halign "center"
+    :valign "center"
+    :class "icon_button"
+    (image
+      :icon icon
+      :icon-size icon-size
+    )
+  )
+)
+
 ;; Date & time
 
 (defwidget datetime []
@@ -82,7 +97,6 @@
   `wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep -q MUTED && echo 1 || echo 0`
 )
 
-
 (defwidget volume_slider []
   (scale
     :hexpand true
@@ -94,21 +108,16 @@
 )
 
 (defwidget mute_toggle_button []
-  (button
+  (icon_button
     :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-    :halign "center"
-    :valign "center"
-    :class "icon_button"
-    (image
-      :icon {
-        is_muted == 1 ? "audio-volume-muted"
-        : volume > 60 ? "audio-volume-high" 
-        : volume > 30 ? "audio-volume-medium"
-        : volume > 0 ? "audio-volume-low"
-        : "audio-volume-muted"
-      }
-      :icon-size "large-toolbar"
-    )
+    :icon-size "large-toolbar"
+    :icon {
+      is_muted == 1 ? "audio-volume-muted"
+      : volume > 60 ? "audio-volume-high" 
+      : volume > 30 ? "audio-volume-medium"
+      : volume > 0 ? "audio-volume-low"
+      : "audio-volume-muted"
+    }
   )
 )
 
@@ -119,21 +128,17 @@
     :halign "center"
     :valign "center"
     :spacing 12
-    (button
+    (icon_button
       :onclick "scripts/set_output_device.py 'iFi USB Audio SE Analog Stereo'"
       :class "icon_button"
-      (image
-        :icon "audio-headphones"
-        :icon-size "large-toolbar"
-      )
+      :icon "audio-headphones"
+      :icon-size "large-toolbar"
     )
-    (button
+    (icon_button
       :onclick "scripts/set_output_device.py 'USB SPDIF Adapter Analog Stereo'"
       :class "icon_button"
-      (image
-        :icon "audio-speakers"
-        :icon-size "large-toolbar"
-      )
+      :icon "audio-speakers"
+      :icon-size "large-toolbar"
     )
   )
 )
