@@ -1,3 +1,5 @@
+;; Date & time
+
 (defwidget datetime []
   (box
     :orientation "vertical"
@@ -16,6 +18,8 @@
     )
   )
 )
+
+;; Weather
 
 (defpoll weather_data
   :interval "15m"
@@ -65,6 +69,8 @@
     )
   )
 )
+
+;; Audio output controls
 
 (defpoll volume
   :interval "1s"
@@ -141,6 +147,17 @@
     (audio_output_selector)
   )
 )
+
+;; Power controls
+
+(defwidget power_controls []
+  (box
+    :space-evenly false
+    :hexpand true
+  )
+)
+
+;; App launchers
 
 (defwidget launcher [onclick icon title hotkey]
   (button
@@ -252,6 +269,8 @@
     )
   )
 )
+
+;; Layout and window
 
 (defwidget layout []
   (box
