@@ -17,6 +17,55 @@
   )
 )
 
+(defpoll weather_data
+  :interval "15m"
+  `scripts/weather.py`
+)
+
+(defpoll weather_icon
+  :interval "15m"
+  `scripts/weather.py --select icon`
+)
+
+(defpoll weather_description
+  :interval "15m"
+  `scripts/weather.py --select description`
+)
+
+(defpoll weather_temperature
+  :interval "15m"
+  `scripts/weather.py --select temperature`
+)
+
+(defwidget current_weather []
+  (box
+    :orientation "horizontal"
+    :space-evenly false
+    :halign "start"
+    :spacing 12
+    (image
+      :icon weather_icon
+      :icon-size "dialog"
+    )
+    (box
+      :orientation "vertical"
+      :space-evenly false
+      :valign "center"
+      :halign "center"
+      (label
+        :class "md"
+        :halign "start"
+        :text weather_temperature
+      )
+      (label
+        :class "sm"
+        :halign "start"
+        :text weather_description
+      )
+    )
+  )
+)
+
 (defwidget launcher [onclick icon title hotkey]
   (button
     :onclick onclick
@@ -29,7 +78,7 @@
       (image :icon icon)
       (box
         :orientation "vertical"
-        (label 
+        (label
           :class "sm"
           :text title
           :justify "left"
@@ -128,8 +177,17 @@
 (defwidget layout []
   (box
     :orientation "horizontal"
-    (datetime)
-    (launcherpanel)
+    (box
+      :orientation "vertical"
+      :space-evenly false
+      :halign "center"
+      :valign "center"
+      :spacing 24
+      (datetime)
+      (current_weather)
+      (launcherpanel)
+    )
+    (box)
   )
 )
 
