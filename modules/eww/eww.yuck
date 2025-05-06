@@ -1,25 +1,29 @@
-(defwindow sampler
-  :monitor 0
-  :stacking "fg"
-  :geometry (geometry
-    :x "0%"
-    :y "20px"
-    :width "50%"
-    :height "50%"
-    :anchor "center"
-  )
-  (launcherpanel)
-)
-
-(defwidget iconbutton [onclick icon]
+(defwidget launcher [onclick icon title hotkey]
   (button
     :onclick onclick
-    :height 24
-    :width 24
-    :halign "center"
-    :valign "center"
-    :class "iconbutton"
-    (image :icon icon)
+    :class "launcher"
+    :width 128
+    (box
+      :orientation "horizontal"
+      :space-evenly false
+      :spacing 12
+      (image :icon icon)
+      (box
+        :orientation "vertical"
+        (label 
+          :class "sm"
+          :text title
+          :justify "left"
+          :halign "start"
+        )
+        (label
+          :class "xs"
+          :text hotkey
+          :justify "left"
+          :halign "start"
+        )
+      )
+    )
   )
 )
 
@@ -27,54 +31,98 @@
   (box
     :halign "center"
     :valign "center"
-    :orientation "vertical"
-    :spacing 12
+    :orientation "horizontal"
     :class "launcherpanel"
+    :spacing 8
     (box
-      :spacing 12
-      (iconbutton
-        :onclick "notify-send 'onclicked'"
+      :spacing 8
+      :halign "start"
+      :orientation "vertical"
+      (launcher
+        :onclick "obsidian"
         :icon "obsidian"
+        :title "Obsidian"
+        :hotkey "Mod+O"
       )
-      (iconbutton
-        :onclick "notify-send 'onclicked'"
+      (launcher
+        :onclick "steam"
         :icon "steam"
+        :title "Steam"
+        :hotkey "Mod+S"
       )
-      (iconbutton
-        :onclick "notify-send 'onclicked'"
+      (launcher
+        :onclick "vesktop"
         :icon "discord"
+        :title "Vesktop"
+        :hotkey "Mod+V"
       )
     )
     (box
-      :spacing 12
-      (iconbutton
-        :onclick "notify-send 'onclicked'"
+      :spacing 8
+      :orientation "vertical"
+      :halign "start"
+      (launcher
+        :onclick "obsidian"
         :icon "utilities-terminal"
+        :title "Alacritty"
+        :hotkey "Mod+Enter"
       )
-      (iconbutton
-        :onclick "notify-send 'onclicked'"
+      (launcher
+        :onclick "firefox"
         :icon "firefox"
+        :title "Firefox"
+        :hotkey "Mod+F"
       )
-      (iconbutton
-        :onclick "notify-send 'onclicked'"
+      (launcher
+        :onclick "plexamp"
         :icon "plexamp"
+        :title "Plexamp"
+        :hotkey "Mod+P"
       )
     )
     (box
-      :spacing 12
-      (iconbutton
-        :onclick "notify-send 'onclicked'"
+      :spacing 8
+      :orientation "vertical"
+      :halign "start"
+      (launcher
+        :onclick "spotify"
         :icon "spotify"
+        :title "Spotify"
+        :hotkey "Mod+S"
       )
-      (iconbutton
-        :onclick "notify-send 'onclicked'"
+      (launcher
+        :onclick "nautilus"
         :icon "system-file-manager"
+        :title "Nautilus"
+        :hotkey "Mod+E"
       )
-      (iconbutton
-        :onclick "notify-send 'onclicked'"
+      (launcher
+        :onclick "chromium"
         :icon "chromium"
+        :title "Chromium"
+        :hotkey "Mod+C"
       )
     )
   )
+)
+
+(defwidget layout []
+  (box
+    (launcherpanel)
+  )
+)
+
+(defwindow dashboard
+  :monitor 0
+  :stacking "fg"
+  :geometry (geometry
+    :x "0%"
+    :y "0%"
+    :width "50%"
+    :height "50%"
+    :anchor "center"
+  )
+  :class "container"
+  (layout)
 )
 
