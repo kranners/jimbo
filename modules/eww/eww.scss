@@ -1,18 +1,36 @@
-.iconbutton {
-  border: 2px solid #cccccc;
-  border-radius: 50%;
+* {
+  all: unset;
+}
+
+.dashboard {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+}
+
+.launcher {
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 8px;
+  border-radius: 12px;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
 }
 
 .launcherpanel {
-  border-radius: 12px;
-  border: 2px solid #cccccc;
   padding: 12px;
 }
 
+.sm {
+  font-size: 16px;
+  color: #eeeeee;
+}
 
-
-
-
+.xs {
+  font-size: 10px;
+  color: #cccccc;
+}
 
 /* These are for debugging*/
 .red {
