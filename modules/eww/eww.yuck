@@ -145,8 +145,8 @@
 
 (defwidget audio_controls []
   (box
+    :halign "fill"
     :space-evenly false
-    :hexpand true
     (mute_toggle_button)
     (volume_slider)
     (audio_output_selector)
@@ -158,7 +158,28 @@
 (defwidget power_controls []
   (box
     :space-evenly false
-    :hexpand true
+    :halign "center"
+    :spacing 24
+    (icon_button
+      :icon "system-shutdown"
+      :icon-size "large-toolbar"
+      :onclick "systemctl poweroff"
+    )
+    (icon_button
+      :icon "system-reboot"
+      :icon-size "large-toolbar"
+      :onclick "systemctl reboot"
+    )
+    (icon_button
+      :icon "system-lock-screen"
+      :icon-size "large-toolbar"
+      :onclick "uwsm stop"
+    )
+    (icon_button
+      :icon "computer"
+      :icon-size "large-toolbar"
+      :onclick "systemctl reboot --firmware-setup"
+    )
   )
 )
 
@@ -281,17 +302,37 @@
   (box
     :orientation "horizontal"
     (box
+      :class "column"
       :orientation "vertical"
       :space-evenly false
-      :halign "center"
-      :valign "center"
-      :spacing 24
-      (datetime)
-      (current_weather)
-      (launcher_panel)
+      :halign "fill"
+      :valign "fill"
+      :spacing 48
+      (box
+        :orientation "vertical"
+        :halign "center"
+        (datetime)
+        (box
+          :halign "center"
+          :space-evenly false
+          :spacing 24
+          (current_weather)
+          (power_controls)
+        )
+        (launcher_panel)
+      )
     )
     (box
-      (audio_controls)
+      :class "column"
+      :orientation "vertical"
+      :space-evenly false
+      :valign "fill"
+      :spacing 24
+      (box
+        :orientation "vertical"
+        :valign "center"
+        (audio_controls)
+      )
     )
   )
 )
