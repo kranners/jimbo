@@ -95,6 +95,8 @@ in
       bind = [
         "$mod, SPACE, exec, $launcher"
         "$mod L_Control, SPACE, exec, smile"
+        "$mod, D, exec, eww reload && eww open dashboard || notify-send 'Eww failed to reload'"
+        "$mod SHIFT, D, exec, eww close-all"
 
         "$mod, RETURN, exec, $terminal"
         "$mod, E, exec, $fileManager"
