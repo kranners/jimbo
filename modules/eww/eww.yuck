@@ -20,15 +20,14 @@
     :orientation "vertical"
     :space-evenly false
     :valign "center"
-    :halign "center"
     (label
       :class "xl"
-      :halign "start"
+      :halign "center"
       :text {formattime(EWW_TIME, "%I:%M%P")}
     )
     (label
       :class "lg"
-      :halign "start"
+      :halign "center"
       :text {formattime(EWW_TIME, "%A, %m %B %Y")}
     )
   )
@@ -60,7 +59,7 @@
   (box
     :orientation "horizontal"
     :space-evenly false
-    :halign "start"
+    :halign "center"
     :spacing 12
     (image
       :icon weather_icon
@@ -523,36 +522,32 @@
     (box
       :class "column"
       :orientation "vertical"
-      :space-evenly false
       :halign "fill"
       :valign "fill"
-      :spacing 48
       (box
         :orientation "vertical"
+        :space-evenly false
         :halign "center"
+        :valign "center"
+        :spacing 24
         (datetime)
-        (box
-          :halign "center"
-          :space-evenly false
-          :spacing 24
-          (current_weather)
-          (power_controls)
-        )
+        (current_weather)
+        (audio_controls)
+        (notifications)
         (launcher_panel)
+        (power_controls)
       )
     )
     (box
       :class "column"
       :orientation "vertical"
       :space-evenly false
-      :valign "fill"
+      :valign "center"
       :spacing 24
       (box
         :orientation "vertical"
         :valign "center"
-        (audio_controls)
         (hardware_info)
-        (notifications)
         (network_info)
       )
     )
