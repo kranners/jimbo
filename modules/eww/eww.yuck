@@ -35,11 +35,6 @@
 
 ;; Weather
 
-(defpoll weather_data
-  :interval "15m"
-  `scripts/weather.py`
-)
-
 (defpoll weather_icon
   :interval "15m"
   `scripts/weather.py --select icon`
@@ -182,9 +177,28 @@
   )
 )
 
-;; Hardware info
+;; Hardware and network info
 
 (defvar bytes_per_gibibyte 1073741824)
+
+(defvar bytes_per_megabit 125000)
+
+(defpoll connected_device
+  :interval "2s"
+  `nmcli --get-values device,state device | grep ':connected$' | grep -v '^lo:' | cut -d: -f1`
+)
+
+(defpoll download_speed
+  :interval "2s"
+  :initial 0
+  `scripts/network_speed.py download`
+)
+
+(defpoll upload_speed
+  :interval "2s"
+  :initial 0
+  `scripts/network_speed.py upload`
+)
 
 (defwidget hardware_label [icon text subtitle]
   (box
@@ -215,6 +229,32 @@
   )
 )
 
+(defwidget network_info []
+  (box
+    :orientation "vertical"
+    :spacing 12
+    (hardware_label
+      :icon { 
+        matches(connected_device, "enp.*")
+        ? "network-wired-symbolic"
+        : "network-wireless-symbolic"
+      }
+      :text connected_device
+      :subtitle "Connected device"
+    )
+    (hardware_label
+      :icon "go-down"
+      :text { round(download_speed / bytes_per_megabit, 1) + "Mbps" }
+      :subtitle "Download speed"
+    )
+    (hardware_label
+      :icon "go-up"
+      :text { round(upload_speed / bytes_per_megabit, 1) + "Mbps" }
+      :subtitle "Upload speed"
+    )
+  )
+)
+
 (defpoll gpu_temperature
   :interval "2s"
   `sensors -j amdgpu-pci-2d00 | jq '.["amdgpu-pci-2d00"].junction.temp2_input'`
@@ -232,11 +272,12 @@
 
 (defwidget hardware_info []
   (box
-    :orientation "vertical"
+    :orientation "horizontal"
     :spacing 12
     :halign "center"
     (box
-      :spacing 48
+      :orientation "vertical"
+      :spacing 12
       (hardware_label
         :icon "power-profile-performance"
         :text {round(EWW_CPU["avg"], 1) + "%"}
@@ -264,7 +305,8 @@
       )
     )
     (box
-      :spacing 48
+      :orientation "vertical"
+      :spacing 12
       (hardware_label
         :icon "applications-games-symbolic"
         :text { round(gpu_utilization, 1) + "%" }
@@ -281,6 +323,7 @@
         :subtitle "GPU temp"
       )
     )
+    (network_info)
   )
 )
 
@@ -289,11 +332,6 @@
 (defpoll total_notifications
   :interval "2s"
   `swaync-client --count`
-)
-
-(defpoll do_not_disturb_active
-  :interval "2s"
-  `swaync-client --get-dnd`
 )
 
 (defwidget icon_label_button [icon text onclick]
@@ -322,15 +360,6 @@
     :space-evenly false
     :halign "center"
     :spacing 24
-    (icon_button
-      :icon {
-        do_not_disturb_active == "false"
-        ? "notifications"
-        : "notifications-disabled"
-      }
-      :icon-size "large-toolbar"
-      :onclick "swaync-client --toggle-dnd ; eww update do_not_disturb_active=$(swaync-client --get-dnd)"
-    )
     (label
       :class "md"
       :text {
@@ -352,60 +381,12 @@
   )
 )
 
-;; Network
-
-(defpoll connected_device
-  :interval "2s"
-  `nmcli --get-values device,state device | grep ':connected$' | grep -v '^lo:' | cut -d: -f1`
-)
-
-(defvar bytes_per_megabit 125000)
-
-(defpoll download_speed
-  :interval "2s"
-  :initial 0
-  `scripts/network_speed.py download`
-)
-
-(defpoll upload_speed
-  :interval "2s"
-  :initial 0
-  `scripts/network_speed.py upload`
-)
-
-(defwidget network_info []
-  (box
-    :space-evenly false
-    :halign "center"
-    :valign "center"
-    :spacing 36
-    (hardware_label
-      :icon { 
-        matches(connected_device, "enp.*")
-        ? "network-wired-symbolic"
-        : "network-wireless-symbolic"
-      }
-      :text connected_device
-      :subtitle "Connected device"
-    )
-    (hardware_label
-      :icon "go-down"
-      :text { round(download_speed / bytes_per_megabit, 1) + "Mbps" }
-      :subtitle "Download speed"
-    )
-    (hardware_label
-      :icon "go-up"
-      :text { round(upload_speed / bytes_per_megabit, 1) + "Mbps" }
-      :subtitle "Upload speed"
-    )
-  )
-)
-
 ;; App launchers
 
 (defwidget launcher [onclick icon title hotkey]
   (button
     :onclick onclick
+    :timeout 10000
     :class "launcher"
     :width 128
     (box
@@ -447,19 +428,19 @@
       :halign "start"
       :orientation "vertical"
       (launcher
-        :onclick "obsidian"
+        :onclick "uwsm app -- obsidian &"
         :icon "obsidian"
         :title "Obsidian"
         :hotkey "Mod+O"
       )
       (launcher
-        :onclick "steam"
+        :onclick "uwsm app -- steam &"
         :icon "steam"
         :title "Steam"
         :hotkey "Mod+S"
       )
       (launcher
-        :onclick "vesktop"
+        :onclick "uwsm app -- vesktop &"
         :icon "discord"
         :title "Vesktop"
         :hotkey "Mod+V"
@@ -470,19 +451,19 @@
       :orientation "vertical"
       :halign "start"
       (launcher
-        :onclick "obsidian"
+        :onclick "uwsm app -- alacritty &"
         :icon "utilities-terminal"
         :title "Alacritty"
         :hotkey "Mod+Enter"
       )
       (launcher
-        :onclick "firefox"
+        :onclick "uwsm app -- firefox &"
         :icon "firefox"
         :title "Firefox"
         :hotkey "Mod+F"
       )
       (launcher
-        :onclick "plexamp"
+        :onclick "uwsm app -- plexamp &"
         :icon "plexamp"
         :title "Plexamp"
         :hotkey "Mod+P"
@@ -493,19 +474,19 @@
       :orientation "vertical"
       :halign "start"
       (launcher
-        :onclick "spotify"
+        :onclick "uwsm app -- spotify &"
         :icon "spotify"
         :title "Spotify"
-        :hotkey "Mod+S"
+        :hotkey "Mod+Y"
       )
       (launcher
-        :onclick "nautilus"
+        :onclick "uwsm app -- nautilus &"
         :icon "system-file-manager"
         :title "Nautilus"
         :hotkey "Mod+E"
       )
       (launcher
-        :onclick "chromium"
+        :onclick "uwsm app -- chromium &"
         :icon "chromium"
         :title "Chromium"
         :hotkey "Mod+C"
@@ -645,9 +626,8 @@
       :valign "center"
       :spacing 24
       (hardware_info)
-      (network_info)
-      (audio_controls)
       (media_controls)
+      (audio_controls)
     )
   )
 )
@@ -658,8 +638,8 @@
   :geometry (geometry
     :x "0%"
     :y "0%"
-    :width "50%"
-    :height "50%"
+    :width "1250"
+    :height "700"
     :anchor "center"
   )
   :class "container"
