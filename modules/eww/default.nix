@@ -1,5 +1,5 @@
 {
-  nixosHomeModule = { config, ... }:
+  nixosHomeModule = { config, pkgs, ... }:
     let
       inherit (config.lib.file) mkOutOfStoreSymlink;
       ewwSourceHome = "${config.home.homeDirectory}/workspace/jimbo/modules/eww";
@@ -7,5 +7,6 @@
     {
       programs.eww.enable = true;
       xdg.configFile.eww.source = mkOutOfStoreSymlink ewwSourceHome;
+      home.packages = [ pkgs.lm_sensors ];
     };
 }
