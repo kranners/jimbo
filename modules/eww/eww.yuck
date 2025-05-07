@@ -22,12 +22,12 @@
     :valign "center"
     :halign "center"
     (label
-      :class "lg"
+      :class "xl"
       :halign "start"
       :text {formattime(EWW_TIME, "%I:%M%P")}
     )
     (label
-      :class "md"
+      :class "lg"
       :halign "start"
       :text {formattime(EWW_TIME, "%A, %m %B %Y")}
     )
@@ -72,7 +72,7 @@
       :valign "center"
       :halign "center"
       (label
-        :class "md"
+        :class "lg"
         :halign "start"
         :text weather_temperature
       )
@@ -179,6 +179,108 @@
       :icon "computer"
       :icon-size "large-toolbar"
       :onclick "systemctl reboot --firmware-setup"
+    )
+  )
+)
+
+;; Hardware info
+
+(defvar bytes_per_gibibyte 1073741824)
+
+(defwidget hardware_label [icon text subtitle]
+  (box
+    :space-evenly false
+    :spacing 8
+    (image
+      :class "hardware_label_icon"
+      :icon icon
+      :icon-size "large-toolbar"
+      :width 48
+      :height 48
+    )
+    (box
+      :orientation "vertical"
+      :space-evenly "false"
+      :valign "center"
+      (label
+        :class "md"
+        :text text
+        :halign "start"
+      )
+      (label
+        :class "xs"
+        :text subtitle
+        :halign "start"
+      )
+    )
+  )
+)
+
+(defpoll gpu_temperature
+  :interval "2s"
+  `sensors -j amdgpu-pci-2d00 | jq '.["amdgpu-pci-2d00"].junction.temp2_input'`
+)
+
+(defpoll cpu_temperature
+  :interval "2s"
+  `sensors -j k10temp-pci-00c3 | jq '.["k10temp-pci-00c3"].Tctl.temp1_input'`
+)
+
+(defpoll gpu_utilization
+  :interval "2s"
+  `cat /sys/class/drm/card1/device/gpu_busy_percent`
+)
+
+(defwidget hardware_info []
+  (box
+    :orientation "vertical"
+    :spacing 12
+    :halign "center"
+    (box
+      :spacing 48
+      (hardware_label
+        :icon "power-profile-performance"
+        :text {round(EWW_CPU["avg"], 1) + "%"}
+        :subtitle "CPU utilization"
+      )
+      (hardware_label
+        :icon "drive-harddisk-solidstate"
+        :text {
+          round(
+          EWW_RAM["used_mem"] / EWW_RAM["total_mem"] * 100,
+          1
+        ) + "%"
+        }
+        :subtitle "Used memory"
+      )
+      (hardware_label
+        :icon "drive-harddisk-symbolic"
+        :text {
+          round(
+          EWW_DISK["/"]["used"] / EWW_DISK["/"]["total"] * 100,
+          1
+        ) + "%"
+        }
+        :subtitle "Used disk"
+      )
+    )
+    (box
+      :spacing 48
+      (hardware_label
+        :icon "applications-games-symbolic"
+        :text { round(gpu_utilization, 1) + "%" }
+        :subtitle "GPU utilization"
+      )
+      (hardware_label
+        :icon "uninterruptible-power-supply-symbolic"
+        :text { round(cpu_temperature, 1) + "°C" }
+        :subtitle "CPU temp"
+      )
+      (hardware_label
+        :icon "video-display-symbolic"
+        :text { round(gpu_temperature, 1) + "°C" }
+        :subtitle "GPU temp"
+      )
     )
   )
 )
@@ -332,6 +434,7 @@
         :orientation "vertical"
         :valign "center"
         (audio_controls)
+        (hardware_info)
       )
     )
   )
