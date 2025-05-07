@@ -165,7 +165,6 @@
         };
 
         network = {
-          interface = "wlo1";
           format = "{ifname}";
           format-wifi = " {essid} ({signalStrength}%)";
           format-ethernet = "󰈀 {ipaddr}";

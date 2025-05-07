@@ -300,7 +300,7 @@
 (defwidget icon_label_button [icon text onclick]
   (button
     :valign "center"
-    :class "notification-button"
+    :class "notification_button"
     :onclick onclick
     (box
       :space-evenly false
@@ -349,6 +349,55 @@
       :icon "view-fullscreen-symbolic"
       :text "Toggle panel"
       :onclick "swaync-client --toggle-panel"
+    )
+  )
+)
+
+;; Network
+
+(defpoll connected_device
+  :interval "2s"
+  `nmcli --get-values device,state device | grep ':connected$' | grep -v '^lo:' | cut -d: -f1`
+)
+
+(defvar bytes_per_megabit 125000)
+
+(defpoll download_speed
+  :interval "2s"
+  :initial 0
+  `scripts/network_speed.py download`
+)
+
+(defpoll upload_speed
+  :interval "2s"
+  :initial 0
+  `scripts/network_speed.py upload`
+)
+
+(defwidget network_info []
+  (box
+    :space-evenly false
+    :halign "center"
+    :valign "center"
+    :spacing 36
+    (hardware_label
+      :icon { 
+        matches(connected_device, "enp.*")
+        ? "network-wired-symbolic"
+        : "network-wireless-symbolic"
+      }
+      :text connected_device
+      :subtitle "Connected device"
+    )
+    (hardware_label
+      :icon "go-down"
+      :text { round(download_speed / bytes_per_megabit, 1) + "Mbps" }
+      :subtitle "Download speed"
+    )
+    (hardware_label
+      :icon "go-up"
+      :text { round(upload_speed / bytes_per_megabit, 1) + "Mbps" }
+      :subtitle "Upload speed"
     )
   )
 )
@@ -504,6 +553,7 @@
         (audio_controls)
         (hardware_info)
         (notifications)
+        (network_info)
       )
     )
   )
