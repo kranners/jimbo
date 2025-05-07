@@ -17,6 +17,28 @@
   }
 }
 
+.notification_button {
+  all: unset;
+
+  background-color: rgba(#fff, 0.5);
+  border-radius: 12px;
+
+  transition: background-color 0.15s;
+
+  &:hover {
+    background-color: rgba(#fff, 0.8);
+  }
+
+  .label {
+    color: red;
+  }
+}
+
+.notification_button_label {
+  font-size: 16px;
+  color: #444;
+}
+
 .launcher_panel {
   padding: 12px;
 }
