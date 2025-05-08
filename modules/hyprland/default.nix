@@ -31,6 +31,7 @@ in
     pkgs.grim
     pkgs.slurp
     pkgs.wl-clipboard
+    pkgs.smile
   ];
 
   nixosSystemModule = {
@@ -75,6 +76,10 @@ in
         }
       ];
 
+      windowrule = [
+        "float,title:^(Smile)$"
+      ];
+
       exec-once = lib.lists.map (x: "app2unit -- " + x) [
         "${pkgs.vesktop}/share/applications/vesktop.desktop"
         "${pkgs.steam}/share/applications/steam.desktop"
@@ -89,6 +94,7 @@ in
 
       bind = [
         "$mod, SPACE, exec, $launcher"
+        "$mod L_Control, SPACE, exec, smile"
 
         "$mod, RETURN, exec, $terminal"
         "$mod, E, exec, $fileManager"
