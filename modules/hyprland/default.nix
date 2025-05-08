@@ -112,7 +112,7 @@ in
         "$mod, O, exec, obsidian"
         "$mod, S, exec, steam"
         "$mod, Y, exec, spotify"
-        "$mod, F, exec, firefox"
+        "$mod, B, exec, firefox"
         "$mod, V, exec, vesktop"
         "$mod, P, exec, plexamp"
         "$mod, C, exec, chromium"

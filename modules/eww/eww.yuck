@@ -460,7 +460,7 @@
         :onclick "uwsm app -- firefox &"
         :icon "firefox"
         :title "Firefox"
-        :hotkey "Mod+F"
+        :hotkey "Mod+B"
       )
       (launcher
         :onclick "uwsm app -- plexamp &"
