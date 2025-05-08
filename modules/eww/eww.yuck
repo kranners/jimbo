@@ -1,0 +1,648 @@
+;; Library
+
+(defwidget icon_button [onclick icon icon-size]
+  (button
+    :onclick onclick
+    :halign "center"
+    :valign "center"
+    :class "icon_button"
+    (image
+      :icon icon
+      :icon-size icon-size
+    )
+  )
+)
+
+;; Date & time
+
+(defwidget datetime []
+  (box
+    :orientation "vertical"
+    :space-evenly false
+    :valign "center"
+    (label
+      :class "xl"
+      :halign "center"
+      :text {formattime(EWW_TIME, "%I:%M%P")}
+    )
+    (label
+      :class "lg"
+      :halign "center"
+      :text {formattime(EWW_TIME, "%A, %m %B %Y")}
+    )
+  )
+)
+
+;; Weather
+
+(defpoll weather_icon
+  :interval "15m"
+  `scripts/weather.py --select icon`
+)
+
+(defpoll weather_description
+  :interval "15m"
+  `scripts/weather.py --select description`
+)
+
+(defpoll weather_temperature
+  :interval "15m"
+  `scripts/weather.py --select temperature`
+)
+
+(defwidget current_weather []
+  (box
+    :orientation "horizontal"
+    :space-evenly false
+    :halign "center"
+    :spacing 12
+    (image
+      :icon weather_icon
+      :icon-size "dialog"
+    )
+    (box
+      :orientation "vertical"
+      :space-evenly false
+      :valign "center"
+      :halign "center"
+      (label
+        :class "lg"
+        :halign "start"
+        :text weather_temperature
+      )
+      (label
+        :class "sm"
+        :halign "start"
+        :text weather_description
+      )
+    )
+  )
+)
+
+;; Audio output controls
+
+(defpoll volume
+  :interval "1s"
+  `wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print int($2*100)}'`
+)
+
+(defpoll is_muted
+  :interval "0.5s"
+  `wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep -q MUTED && echo 1 || echo 0`
+)
+
+(defwidget volume_slider []
+  (scale
+    :hexpand true
+    :min 0
+    :max 100
+    :value volume
+    :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ $(awk 'BEGIN {print {}/100}') ; eww update volume={}"
+  )
+)
+
+(defwidget mute_toggle_button []
+  (icon_button
+    :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+    :icon-size "large-toolbar"
+    :icon {
+      is_muted == 1 ? "audio-volume-muted"
+      : volume > 60 ? "audio-volume-high" 
+      : volume > 30 ? "audio-volume-medium"
+      : volume > 0 ? "audio-volume-low"
+      : "audio-volume-muted"
+    }
+  )
+)
+
+(defwidget audio_output_selector []
+  (box
+    :orientation "horizontal"
+    :space-evenly false
+    :halign "center"
+    :valign "center"
+    :spacing 12
+    (icon_button
+      :onclick "scripts/set_output_device.py 'iFi USB Audio SE Analog Stereo'"
+      :class "icon_button"
+      :icon "audio-headphones"
+      :icon-size "large-toolbar"
+    )
+    (icon_button
+      :onclick "scripts/set_output_device.py 'USB SPDIF Adapter Analog Stereo'"
+      :class "icon_button"
+      :icon "audio-speakers"
+      :icon-size "large-toolbar"
+    )
+  )
+)
+
+(defwidget audio_controls []
+  (box
+    :halign "fill"
+    :space-evenly false
+    (mute_toggle_button)
+    (volume_slider)
+    (audio_output_selector)
+  )
+)
+
+;; Power controls
+
+(defwidget power_controls []
+  (box
+    :space-evenly false
+    :halign "center"
+    :spacing 24
+    (icon_button
+      :icon "system-shutdown"
+      :icon-size "large-toolbar"
+      :onclick "systemctl poweroff"
+    )
+    (icon_button
+      :icon "system-reboot"
+      :icon-size "large-toolbar"
+      :onclick "systemctl reboot"
+    )
+    (icon_button
+      :icon "system-lock-screen"
+      :icon-size "large-toolbar"
+      :onclick "uwsm stop"
+    )
+    (icon_button
+      :icon "computer"
+      :icon-size "large-toolbar"
+      :onclick "systemctl reboot --firmware-setup"
+    )
+  )
+)
+
+;; Hardware and network info
+
+(defvar bytes_per_gibibyte 1073741824)
+
+(defvar bytes_per_megabit 125000)
+
+(defpoll connected_device
+  :interval "2s"
+  `nmcli --get-values device,state device | grep ':connected$' | grep -v '^lo:' | cut -d: -f1`
+)
+
+(defpoll download_speed
+  :interval "2s"
+  :initial 0
+  `scripts/network_speed.py download`
+)
+
+(defpoll upload_speed
+  :interval "2s"
+  :initial 0
+  `scripts/network_speed.py upload`
+)
+
+(defwidget hardware_label [icon text subtitle]
+  (box
+    :space-evenly false
+    :spacing 8
+    (image
+      :class "hardware_label_icon"
+      :icon icon
+      :icon-size "large-toolbar"
+      :width 48
+      :height 48
+    )
+    (box
+      :orientation "vertical"
+      :space-evenly "false"
+      :valign "center"
+      (label
+        :class "md"
+        :text text
+        :halign "start"
+      )
+      (label
+        :class "xs"
+        :text subtitle
+        :halign "start"
+      )
+    )
+  )
+)
+
+(defwidget network_info []
+  (box
+    :orientation "vertical"
+    :spacing 12
+    (hardware_label
+      :icon { 
+        matches(connected_device, "enp.*")
+        ? "network-wired-symbolic"
+        : "network-wireless-symbolic"
+      }
+      :text connected_device
+      :subtitle "Connected device"
+    )
+    (hardware_label
+      :icon "go-down"
+      :text { round(download_speed / bytes_per_megabit, 1) + "Mbps" }
+      :subtitle "Download speed"
+    )
+    (hardware_label
+      :icon "go-up"
+      :text { round(upload_speed / bytes_per_megabit, 1) + "Mbps" }
+      :subtitle "Upload speed"
+    )
+  )
+)
+
+(defpoll gpu_temperature
+  :interval "2s"
+  `sensors -j amdgpu-pci-2d00 | jq '.["amdgpu-pci-2d00"].junction.temp2_input'`
+)
+
+(defpoll cpu_temperature
+  :interval "2s"
+  `sensors -j k10temp-pci-00c3 | jq '.["k10temp-pci-00c3"].Tctl.temp1_input'`
+)
+
+(defpoll gpu_utilization
+  :interval "2s"
+  `cat /sys/class/drm/card1/device/gpu_busy_percent`
+)
+
+(defwidget hardware_info []
+  (box
+    :orientation "horizontal"
+    :spacing 12
+    :halign "center"
+    (box
+      :orientation "vertical"
+      :spacing 12
+      (hardware_label
+        :icon "power-profile-performance"
+        :text {round(EWW_CPU["avg"], 1) + "%"}
+        :subtitle "CPU utilization"
+      )
+      (hardware_label
+        :icon "drive-harddisk-solidstate"
+        :text {
+          round(
+          EWW_RAM["used_mem"] / EWW_RAM["total_mem"] * 100,
+          1
+        ) + "%"
+        }
+        :subtitle "Used memory"
+      )
+      (hardware_label
+        :icon "drive-harddisk-symbolic"
+        :text {
+          round(
+          EWW_DISK["/"]["used"] / EWW_DISK["/"]["total"] * 100,
+          1
+        ) + "%"
+        }
+        :subtitle "Used disk"
+      )
+    )
+    (box
+      :orientation "vertical"
+      :spacing 12
+      (hardware_label
+        :icon "applications-games-symbolic"
+        :text { round(gpu_utilization, 1) + "%" }
+        :subtitle "GPU utilization"
+      )
+      (hardware_label
+        :icon "uninterruptible-power-supply-symbolic"
+        :text { round(cpu_temperature, 1) + "°C" }
+        :subtitle "CPU temp"
+      )
+      (hardware_label
+        :icon "video-display-symbolic"
+        :text { round(gpu_temperature, 1) + "°C" }
+        :subtitle "GPU temp"
+      )
+    )
+    (network_info)
+  )
+)
+
+;; Notifications
+
+(defpoll total_notifications
+  :interval "2s"
+  `swaync-client --count`
+)
+
+(defwidget icon_label_button [icon text onclick]
+  (button
+    :valign "center"
+    :class "notification_button"
+    :onclick onclick
+    (box
+      :space-evenly false
+      :spacing 8
+      :valign "center"
+      (image
+        :icon icon
+        :icon-size "small-toolbar"
+      )
+      (label
+        :class "notification_button_label"
+        :text text
+      )
+    )
+  )
+)
+
+(defwidget notifications []
+  (box
+    :space-evenly false
+    :halign "center"
+    :spacing 24
+    (label
+      :class "md"
+      :text {
+        total_notifications > 0
+        ? total_notifications + " notifications"
+        : "No notifications"
+      }
+    )
+    (icon_label_button
+      :icon "user-trash-symbolic"
+      :text "Clear"
+      :onclick "swaync-client --close-all ; eww update total_notifications=$(swaync-client --count)"
+    )
+    (icon_label_button
+      :icon "view-fullscreen-symbolic"
+      :text "Toggle panel"
+      :onclick "swaync-client --toggle-panel"
+    )
+  )
+)
+
+;; App launchers
+
+(defwidget launcher [onclick icon title hotkey]
+  (button
+    :onclick onclick
+    :timeout 10000
+    :class "launcher"
+    :width 128
+    (box
+      :orientation "horizontal"
+      :space-evenly false
+      :spacing 12
+      (image
+        :icon icon
+        :icon-size "large-toolbar"
+      )
+      (box
+        :orientation "vertical"
+        (label
+          :class "sm"
+          :text title
+          :justify "left"
+          :halign "start"
+        )
+        (label
+          :class "xs"
+          :text hotkey
+          :justify "left"
+          :halign "start"
+        )
+      )
+    )
+  )
+)
+
+(defwidget launcher_panel []
+  (box
+    :halign "center"
+    :valign "center"
+    :orientation "horizontal"
+    :class "launcher_panel"
+    :spacing 8
+    (box
+      :spacing 8
+      :halign "start"
+      :orientation "vertical"
+      (launcher
+        :onclick "uwsm app -- obsidian &"
+        :icon "obsidian"
+        :title "Obsidian"
+        :hotkey "Mod+O"
+      )
+      (launcher
+        :onclick "uwsm app -- steam &"
+        :icon "steam"
+        :title "Steam"
+        :hotkey "Mod+S"
+      )
+      (launcher
+        :onclick "uwsm app -- vesktop &"
+        :icon "discord"
+        :title "Vesktop"
+        :hotkey "Mod+V"
+      )
+    )
+    (box
+      :spacing 8
+      :orientation "vertical"
+      :halign "start"
+      (launcher
+        :onclick "uwsm app -- alacritty &"
+        :icon "utilities-terminal"
+        :title "Alacritty"
+        :hotkey "Mod+Enter"
+      )
+      (launcher
+        :onclick "uwsm app -- firefox &"
+        :icon "firefox"
+        :title "Firefox"
+        :hotkey "Mod+F"
+      )
+      (launcher
+        :onclick "uwsm app -- plexamp &"
+        :icon "plexamp"
+        :title "Plexamp"
+        :hotkey "Mod+P"
+      )
+    )
+    (box
+      :spacing 8
+      :orientation "vertical"
+      :halign "start"
+      (launcher
+        :onclick "uwsm app -- spotify &"
+        :icon "spotify"
+        :title "Spotify"
+        :hotkey "Mod+Y"
+      )
+      (launcher
+        :onclick "uwsm app -- nautilus &"
+        :icon "system-file-manager"
+        :title "Nautilus"
+        :hotkey "Mod+E"
+      )
+      (launcher
+        :onclick "uwsm app -- chromium &"
+        :icon "chromium"
+        :title "Chromium"
+        :hotkey "Mod+C"
+      )
+    )
+  )
+)
+
+;; Media controls
+
+(defpoll media_art_url
+  :interval "2s"
+  `playerctl metadata --format "{{mpris:artUrl}}" | sed 's|^file://||'`
+)
+
+(defpoll media_song_title
+  :interval "2s"
+  `playerctl metadata --format "{{xesam:title}}"`
+)
+
+(defpoll media_album
+  :interval "2s"
+  `playerctl metadata --format "{{xesam:album}}"`
+)
+
+(defpoll media_artist
+  :interval "2s"
+  `playerctl metadata --format "{{xesam:artist}}"`
+)
+
+(defpoll is_playing
+  :interval "2s"
+  `playerctl status`
+)
+
+(defwidget media_info []
+  (box
+    :space-evenly false
+    :spacing 8
+    :halign "center"
+    :valign "center"
+    :orientation "vertical"
+    (label
+      :halign "start"
+      :class "lg"
+      :truncate true
+      :text media_song_title
+    )
+    (label
+      :halign "start"
+      :class "md"
+      :truncate true
+      :text media_artist
+    )
+    (label
+      :halign "start"
+      :class "sm"
+      :truncate true
+      :text media_album
+    )
+  )
+)
+
+(defwidget playback_controls []
+  (box
+    :space-evenly false
+    :halign "center"
+    :spacing 12
+    (icon_button
+      :icon "go-previous-symbolic"
+      :icon-size "large-toolbar"
+      :onclick "playerctl previous"
+    )
+    (icon_button
+      :icon {
+        is_playing == "Playing"
+        ? "media-playback-pause"
+        : "media-playback-start"
+      }
+      :icon-size "large-toolbar"
+      :onclick "playerctl play-pause ; eww update is_playing=$(playerctl status)"
+    )
+    (icon_button
+      :icon "go-next-symbolic"
+      :icon-size "large-toolbar"
+      :onclick "playerctl next"
+    )
+  )
+)
+
+(defwidget media_controls []
+  (box
+    :space-evenly false
+    :spacing 12
+    :halign "center"
+    (image
+      :path media_art_url
+      :image-width 256
+    )
+    (box
+      :orientation "vertical"
+      :valign "center"
+      :spacing 24
+      (media_info)
+      (playback_controls)
+    )
+  )
+)
+
+;; Layout and window
+
+(defwidget layout []
+  (box
+    :orientation "horizontal"
+    (box
+      :class "column"
+      :orientation "vertical"
+      :halign "fill"
+      :valign "fill"
+      (box
+        :orientation "vertical"
+        :space-evenly false
+        :halign "center"
+        :valign "center"
+        :spacing 24
+        (datetime)
+        (current_weather)
+        (notifications)
+        (launcher_panel)
+        (power_controls)
+      )
+    )
+    (box
+      :class "column"
+      :orientation "vertical"
+      :space-evenly false
+      :valign "center"
+      :spacing 24
+      (hardware_info)
+      (media_controls)
+      (audio_controls)
+    )
+  )
+)
+
+(defwindow dashboard
+  :monitor 0
+  :stacking "fg"
+  :geometry (geometry
+    :x "0%"
+    :y "0%"
+    :width "1250"
+    :height "700"
+    :anchor "center"
+  )
+  :class "container"
+  (layout)
+)
+

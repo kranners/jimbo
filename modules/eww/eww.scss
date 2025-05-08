@@ -1,0 +1,109 @@
+.dashboard {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+}
+
+.launcher {
+  all: unset;
+
+  background-color: rgba(0, 0, 0, 0.5);
+
+  padding: 8px;
+  border-radius: 12px;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+}
+
+.notification_button {
+  all: unset;
+
+  background-color: rgba(#fff, 0.5);
+  padding: 8px;
+  border-radius: 6px;
+
+  transition: background-color 0.15s;
+
+  &:hover {
+    background-color: rgba(#fff, 0.8);
+  }
+
+  .label {
+    color: red;
+  }
+}
+
+.notification_button_label {
+  font-size: 16px;
+  color: #444;
+}
+
+.launcher_panel {
+  padding: 12px;
+}
+
+.icon_button {
+  all: unset;
+
+  background-color: rgba(0, 0, 0, 0.5);
+
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+}
+
+.hardware_label_icon {
+  background-color: rgba(#fff, 0.5);
+  border-radius: 50%;
+}
+
+.column {
+  padding: 12px;
+
+  &:nth-child(1) {
+    border-right: 2px solid rgba(#fff, 0.5);
+  }
+}
+
+.xl {
+  font-size: 56px;
+  color: #fff;
+  font-weight: bolder;
+}
+
+.lg {
+  font-size: 24px;
+  color: #aaa;
+  font-weight: bold;
+}
+
+.md {
+  font-size: 16px;
+  color: #ccc;
+  font-weight: bold;
+}
+
+.sm {
+  font-size: 16px;
+  color: #ddd;
+}
+
+.xs {
+  font-size: 10px;
+  color: #bbb;
+}
+
+/* These are for debugging*/
+.red {
+  background-color: red;
+}
+
+.blue {
+  background-color: blue;
+}
