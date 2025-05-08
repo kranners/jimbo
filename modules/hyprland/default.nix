@@ -24,6 +24,7 @@ let
       hyprctl dispatch killactive
     '';
   };
+
 in
 {
   nixosHomeModule.home.packages = [
@@ -95,6 +96,8 @@ in
       bind = [
         "$mod, SPACE, exec, $launcher"
         "$mod L_Control, SPACE, exec, smile"
+        "$mod, D, exec, eww open dashboard --screen $(hyprctl monitors -j | jq '.[] | select(.focused) | .id')"
+        "$mod SHIFT, D, exec, eww close-all"
 
         "$mod, RETURN, exec, $terminal"
         "$mod, E, exec, $fileManager"
@@ -105,6 +108,14 @@ in
 
         "$mod, F, fullscreen"
         "$mod SHIFT, F, togglefloating"
+
+        "$mod, O, exec, obsidian"
+        "$mod, S, exec, steam"
+        "$mod, Y, exec, spotify"
+        "$mod, F, exec, firefox"
+        "$mod, V, exec, vesktop"
+        "$mod, P, exec, plexamp"
+        "$mod, C, exec, chromium"
 
         "$mod, H, movefocus, l"
         "$mod, J, movefocus, d"
