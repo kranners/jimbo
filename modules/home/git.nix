@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
   runtimeInputs = [ pkgs.git ];
 
@@ -158,7 +158,7 @@ in
   };
 
   # Set TTY for GPG to do hardware signing on commits
-  programs.zsh.initExtraBeforeCompInit = ''
+  programs.zsh.initContent = lib.mkOrder 550 ''
     export GPG_TTY=$(tty)
   '';
 }
