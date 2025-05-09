@@ -86,5 +86,26 @@
 
         Install.WantedBy = [ config.wayland.systemd.target ];
       };
+
+      systemd.user.timers.weather = {
+        Unit.Description = "weather refresher";
+        Install.WantedBy = [ "timers.target" ];
+
+        Timer = {
+          OnBootSec = "5m";
+          OnUnitActiveSec = "15m";
+          Unit = "weather.service";
+        };
+      };
+
+      systemd.user.services.weather = {
+        Unit.Description = "weather refresher";
+        Install.WantedBy = [ config.wayland.systemd.target ];
+
+        Service = {
+          ExecStart = "${pkgs.python3}/bin/python3 ${toString ./scripts/weather.py}";
+          Type = "oneshot";
+        };
+      };
     };
 }
