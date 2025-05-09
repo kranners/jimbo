@@ -272,6 +272,10 @@ require("barbar").setup({})
 
 require("snacks").setup({
   picker = {
+    main = {
+      file = false,
+      current = true,
+    },
     formatters = {
       file = {
         filename_first = false,
@@ -540,7 +544,7 @@ do
       options = { desc = "Search through current buffers" },
     },
     {
-      action = function() require("fzf-lua").files() end,
+      action = function() Snacks.picker.files() end,
       key = "<C-o>",
       mode = "n",
       options = { desc = "Find files by name" },
