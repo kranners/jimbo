@@ -1,7 +1,7 @@
 { pkgs, ... }: {
   home.packages = [ pkgs.krabby ];
 
-  programs.zsh.initExtra = ''
+  programs.zsh.initContent = ''
     if [[ -z "$CURRENT_POKEMON" ]]; then
       export CURRENT_POKEMON="$(krabby random --no-gmax --no-mega --no-regional 1-5 | awk 'NR == 1 {print tolower($0)}')"
 

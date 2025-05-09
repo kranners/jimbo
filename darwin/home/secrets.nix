@@ -21,7 +21,7 @@ in
 {
   home.packages = [ export-secrets ];
 
-  programs.zsh.initExtra = ''
+  programs.zsh.initContent = ''
     [[ ! -f ${gh-token} ]] && export-secrets
     [[ ! -f ${npm-token} ]] && export-secrets
 

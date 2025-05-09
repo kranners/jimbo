@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ pkgs, lib, ... }: {
   home = {
     shellAliases = {
       ns = "nix-shell --command zsh";
@@ -40,7 +40,7 @@
       }
     ];
 
-    initExtraBeforeCompInit = ''
+    initContent = lib.mkOrder 550 ''
       # Disable instant prompt to allow instantly starting into Nix shells
       typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 
