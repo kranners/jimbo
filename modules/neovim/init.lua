@@ -42,6 +42,12 @@ end
 
 require("nvim-surround").setup({})
 
+require("editable-term").setup({
+  promts = {
+    ['^❯ '] = {},
+  }
+})
+
 require("cyberdream").setup({
   extensions = {
     cmp = true,
