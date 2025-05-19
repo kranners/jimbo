@@ -593,12 +593,7 @@ end
 -- }}}
 
 require("overseer").setup({
-  strategy = {
-    "toggleterm",
-    use_shell = true,
-    open_on_start = false,
-    hidden = true,
-  },
+  strategy = "terminal",
   task_list = {
     direction = "bottom",
     bindings = {
@@ -705,14 +700,11 @@ resession.add_hook("post_load", function()
     end
   end
 
-  -- Rename Alacritty to include the session name
+  -- Rename Alacritty to the session name
   local session_path = vim.split(vim.fn.getcwd(), "/")
   local session_name = table.remove(session_path)
 
-  local pokemon_name = os.getenv("CURRENT_POKEMON")
-  local window_name = string.format("%s (%s)", session_name, pokemon_name)
-
-  set_alacritty_window_name(window_name)
+  set_alacritty_window_name(session_name)
 end)
 
 require("flatten").setup({
