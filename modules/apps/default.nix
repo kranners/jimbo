@@ -54,6 +54,7 @@
 
     pkgs.devenv
     pkgs.just
+    pkgs.act
   ];
 
   darwinHomeModule.home.packages = [
