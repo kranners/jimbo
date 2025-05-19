@@ -6,17 +6,17 @@
         "1password"
         "1password-cli"
         "beeper"
-        "iterm2"
+        # "iterm2"
         "slack"
         "zoom"
         "spotify"
-        "google-chrome"
-        "firefox"
+        # "google-chrome"
+        # "firefox"
         "plexamp"
         "microsoft-outlook"
         "aws-vpn-client"
         "codeship/taps/jet"
-        "chromium"
+        # "chromium"
         "orion"
         "cursor"
       ];
@@ -30,7 +30,7 @@
         "gnupg"
         "jq"
         "luajit"
-        "openjdk@11"
+        # "openjdk@11"
         "overmind"
         "pyenv-virtualenv"
         "rbenv"
@@ -55,6 +55,7 @@
     pkgs.devenv
     pkgs.just
     pkgs.act
+    pkgs.nh
   ];
 
   darwinHomeModule.home.packages = [
@@ -91,7 +92,6 @@
     pkgs.obsidian
     pkgs.ripgrep
     pkgs.jq
-    pkgs.nh
     pkgs.nurl
 
     pkgs.pavucontrol # Audio control

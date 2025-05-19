@@ -5,7 +5,7 @@ default:
   just {{ platform }}
 
 Darwin:
-	git add . ; nix run nix-darwin -- switch --flake .#cassandra
+	git add . ; nh darwin switch . --hostname cassandra
 
 Linux:
 	git add . ; nh os switch . --hostname jimbo

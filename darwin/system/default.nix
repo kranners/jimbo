@@ -11,13 +11,15 @@
   # Zsh config is done under darwin/home, but must be explicitly enabled here also
   programs.zsh.enable = true;
 
-  system.defaults = {
-    finder = {
-      AppleShowAllExtensions = true;
-      FXPreferredViewStyle = "clmv";
-    };
+  system = {
+    defaults = {
+      finder = {
+        AppleShowAllExtensions = true;
+        FXPreferredViewStyle = "clmv";
+      };
 
-    screencapture.location = "~/Pictures";
+      screencapture.location = "~/Pictures";
+    };
   };
 
   # Reloads system preferences post nix-darwin activation
