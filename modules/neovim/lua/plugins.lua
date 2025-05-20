@@ -56,5 +56,4 @@ require('pckr').add {
   'pwntester/octo.nvim',
   'folke/snacks.nvim',
   'folke/zen-mode.nvim',
-  'xb-bx/editable-term.nvim',
 }
