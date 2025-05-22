@@ -648,6 +648,13 @@ vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
   end,
 })
 
+vim.api.nvim_create_autocmd("TermClose", {
+  pattern = "*",
+  callback = function(args)
+    vim.api.nvim_buf_delete(args.buf, { force = true })
+  end,
+})
+
 vim.api.nvim_create_autocmd("VimLeavePre", {
   callback = function()
     -- Reset the name whenever leaving the session
