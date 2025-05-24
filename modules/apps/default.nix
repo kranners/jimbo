@@ -83,6 +83,7 @@
   ];
 
   nixosHomeModule.home.packages = [
+    pkgs.code-cursor
     pkgs.spotify
     pkgs.plexamp
     pkgs.nicotine-plus
