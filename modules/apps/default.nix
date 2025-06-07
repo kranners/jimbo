@@ -6,30 +6,25 @@
         "1password"
         "1password-cli"
         "beeper"
-        # "iterm2"
         "slack"
         "zoom"
         "spotify"
-        # "google-chrome"
-        # "firefox"
         "plexamp"
-        "microsoft-outlook"
         "aws-vpn-client"
-        # "chromium"
         "orion"
         "cursor"
+        "linear-linear"
+        "pycharm-ce"
       ];
 
       brews = [
         "awscli"
         "colima"
         "direnv"
-        "fastlane"
         "fnm"
         "gnupg"
         "jq"
         "luajit"
-        # "openjdk@11"
         "overmind"
         "pyenv-virtualenv"
         "rbenv"
@@ -38,7 +33,6 @@
       ];
 
       masApps = {
-        "just-focus-2" = 1142151959; # https://getjustfocus.com/
         "dropover" = 1355679052; # https://dropoverapp.com/
       };
     };
