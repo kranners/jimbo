@@ -14,7 +14,6 @@
         "orion"
         "cursor"
         "linear-linear"
-        "pycharm-ce"
       ];
 
       brews = [

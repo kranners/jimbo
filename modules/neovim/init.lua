@@ -104,6 +104,7 @@ do
     { name = "astro" },
     { name = "ruff" },
     { name = "jedi_language_server" },
+    { name = "basedpyright" },
   }
 
   -- Adding lspOnAttach function to nixvim module lua table so other plugins can hook into it.
