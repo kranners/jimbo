@@ -73,7 +73,7 @@
       systemd.user.services.dashboard = {
         Unit = {
           Description = "Auto dashboard opening and closing";
-          BindsTo = [ "eww.service" ];
+          Wants = [ "eww.service" ];
           After = [ config.wayland.systemd.target "eww.service" ];
           ConditionEnvironment = "WAYLAND_DISPLAY";
         };

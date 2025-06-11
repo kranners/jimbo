@@ -12,7 +12,7 @@
     Unit = {
       Description = "Wayland VNC server";
       ConditionEnvironment = "WAYLAND_DISPLAY";
-      PartOf = [ "graphical-session.target" ];
+      PartOf = [ config.wayland.systemd.target ];
     };
 
     Service = {
