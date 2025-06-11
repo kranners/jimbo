@@ -77,6 +77,7 @@
   ];
 
   nixosHomeModule.home.packages = [
+    pkgs.uv
     pkgs.code-cursor
     pkgs.spotify
     pkgs.plexamp
@@ -87,6 +88,7 @@
     pkgs.ripgrep
     pkgs.jq
     pkgs.nurl
+    pkgs.pokemmo-installer
 
     pkgs.pavucontrol # Audio control
     pkgs.mpv # Media playback
