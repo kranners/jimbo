@@ -24,6 +24,7 @@
         pkgs.lua-language-server
         pkgs.gh
         pkgs.gcc
+        pkgs.basedpyright
       ];
     };
 }
