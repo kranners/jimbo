@@ -94,7 +94,18 @@ do
     },
     { name = "terraformls" },
     { name = "ruby_lsp" },
-    { extraOptions = { settings = { nixd = { formatting = { command = { "nixpkgs-fmt" } } } } }, name = "nixd" },
+    {
+      extraOptions = {
+        settings = {
+          nixd = {
+            formatting = {
+              command = { "nixpkgs-fmt" },
+            },
+          },
+        },
+      },
+      name = "nixd",
+    },
     { name = "lua_ls" },
     { name = "jsonls" },
     { name = "html" },
@@ -104,7 +115,16 @@ do
     { name = "astro" },
     { name = "ruff" },
     { name = "jedi_language_server" },
-    { name = "basedpyright" },
+    {
+      extraOptions = {
+        settings = {
+          basedpyright = {
+            typeCheckingMode = "basic",
+          },
+        },
+      },
+      name = "basedpyright",
+    },
   }
 
   -- Adding lspOnAttach function to nixvim module lua table so other plugins can hook into it.
