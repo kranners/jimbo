@@ -17,6 +17,7 @@
   programs.zsh = {
     enable = true;
 
+    zprof.enable = true;
     syntaxHighlighting.enable = true;
     historySubstringSearch.enable = true;
     autosuggestion.enable = true;
