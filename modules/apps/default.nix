@@ -88,6 +88,7 @@
     pkgs.jq
     pkgs.nurl
     pkgs.pokemmo-installer
+    pkgs.lunar-client
 
     pkgs.pavucontrol # Audio control
     pkgs.mpv # Media playback

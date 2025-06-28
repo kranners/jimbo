@@ -25,21 +25,43 @@ let
     '';
   };
 
-  make_game_window_rules = (
-    window_regex: [
-      "prop noborder,class:${window_regex}"
-      "prop noblur,class:${window_regex}"
-      "prop nodim,class:${window_regex}"
-      "prop noshadow,class:${window_regex}"
-      "prop noanim,class:${window_regex}"
-      "workspace 1,class:${window_regex}"
-      "immediate,class:${window_regex}"
-    ]
-  );
+  gamer-mode = pkgs.writeShellApplication {
+    name = "gamer-mode";
+
+    runtimeInputs = [ ];
+    bashOptions = [ ];
+
+    text = ''
+      PADDING_VALUE=10
+      STATE_FILE="/tmp/hyprland_waybar_toggle_state"
+
+      toggle_on() {
+        systemctl --user stop waybar
+        hyprctl keyword general:gaps_in 0
+        hyprctl keyword general:gaps_out 0
+        echo "on" > "$STATE_FILE"
+      }
+
+      toggle_off() {
+        systemctl --user restart waybar
+        hyprctl keyword general:gaps_in $PADDING_VALUE
+        hyprctl keyword general:gaps_out $PADDING_VALUE
+        echo "off" > "$STATE_FILE"
+      }
+
+      if [[ -f "$STATE_FILE" && $(cat "$STATE_FILE") == "on" ]]; then
+        toggle_off
+        exit 0
+      fi
+
+      toggle_on
+    '';
+  };
 in
 {
   nixosHomeModule.home.packages = [
     exit-if-all-closed
+    gamer-mode
     pkgs.grim
     pkgs.slurp
     pkgs.wl-clipboard
@@ -74,6 +96,16 @@ in
       "$mod" = "SUPER";
       "$terminal" = "alacritty";
 
+      general = {
+        layout = "master";
+      };
+
+      master = {
+        orientation = "center";
+        slave_count_for_center_master = 0;
+        always_keep_position = true;
+      };
+
       device = [
         {
           name = "compx-2.4g-wireless-receiver";
@@ -91,21 +123,6 @@ in
       windowrule = [
         "float,title:^(Smile)$"
       ];
-
-      windowrulev2 = [
-        "workspace 3,class:^steam$"
-        "workspace 2,class:^vesktop$"
-        "workspace 2,class:^Plexamp$"
-      ]
-      ++ lib.lists.flatten (
-        lib.lists.map (window_regex: make_game_window_rules (window_regex)) [
-          "^gamescope$"
-          "^steam_app_\\d+$"
-          "^overwatch.exe$"
-        ]
-      );
-
-
 
       exec-once = lib.lists.map (x: "app2unit -- " + x) [
         "${pkgs.vesktop}/share/applications/vesktop.desktop"
@@ -131,6 +148,8 @@ in
         "$mod SHIFT, S, exec, grim -g \"$(slurp -d)\" - | wl-copy && notify-send 'Copied to clipboard'"
 
         "$mod SHIFT, Q, exec, exit-if-all-closed"
+
+        "$mod, G, exec, gamer-mode"
 
         "$mod, F, fullscreen"
         "$mod SHIFT, F, togglefloating"
