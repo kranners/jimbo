@@ -19,6 +19,7 @@ in
     ./theme
     ./eww
     ./ssh
+    ./ollama
   ];
 
   options = {
