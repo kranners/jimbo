@@ -48,6 +48,7 @@
     pkgs.just
     pkgs.act
     pkgs.nh
+    pkgs.ollama
   ];
 
   darwinHomeModule.home.packages = [
