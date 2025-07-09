@@ -18,12 +18,6 @@ let
 
 in
 {
-  imports = [
-    ./managers.nix
-    ./android.nix
-    ./secrets.nix
-  ];
-
   home.packages = [
     nuke-xcode
   ];
