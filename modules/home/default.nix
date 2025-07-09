@@ -32,7 +32,6 @@ in
       ./zoxide.nix
       ./alacritty.nix
       ./krabby.nix
-      ./personal-shells.nix
       ./uv
     ];
 
