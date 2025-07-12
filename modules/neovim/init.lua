@@ -289,8 +289,6 @@ require("colorizer").setup({})
 
 require("codesnap").setup({ bg_color = "#ffffff00", code_font_family = "Iosevka Nerd Font Mono", watermark = "" })
 
-require("barbar").setup({})
-
 require("snacks").setup({
   picker = {
     main = {
@@ -666,13 +664,6 @@ vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
   pattern = { "*.json" },
   callback = function()
     vim.opt.conceallevel = 0
-  end,
-})
-
-vim.api.nvim_create_autocmd("TermClose", {
-  pattern = "*",
-  callback = function(args)
-    vim.api.nvim_buf_delete(args.buf, { force = true })
   end,
 })
 

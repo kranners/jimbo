@@ -1,4 +1,4 @@
 {
-  darwinHomeModule.programs.alacritty.settings.font.size = 16;
+  darwinHomeModule.programs.alacritty.settings.font.size = 12;
   nixosHomeModule.programs.alacritty.settings.font.size = 12;
 }
