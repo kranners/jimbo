@@ -72,13 +72,11 @@ if args["select"] is not None:
 
 base_url = "https://api.open-meteo.com/v1/forecast"
 
-current_param = ",".join(["temperature_2m", "weather_code", "rain"])
-
 params = urllib.parse.urlencode(
     {
         "latitude": -37.7693349,
         "longitude": 144.9990326,
-        "current": current_param,
+        "current": "temperature_2m,weather_code,rain",
         "timezone": "Australia/Sydney",
         "forecast_days": 1,
     }

@@ -39,7 +39,6 @@ require('pckr').add {
   'numToStr/Comment.nvim',
   'mistricky/codesnap.nvim',
   'hrsh7th/nvim-cmp',
-  'romgrk/barbar.nvim',
   'nvim-tree/nvim-web-devicons',
   'kosayoda/nvim-lightbulb',
   'windwp/nvim-autopairs',
