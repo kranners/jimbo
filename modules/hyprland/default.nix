@@ -65,7 +65,6 @@ in
     pkgs.grim
     pkgs.slurp
     pkgs.wl-clipboard
-    pkgs.smile
   ];
 
   nixosSystemModule = {
@@ -120,15 +119,11 @@ in
         }
       ];
 
-      windowrule = [
-        "float,title:^(Smile)$"
-      ];
+      windowrule = [ "tile,class:.*" ];
 
       exec-once = lib.lists.map (x: "app2unit -- " + x) [
         "${pkgs.vesktop}/share/applications/vesktop.desktop"
         "${pkgs.steam}/share/applications/steam.desktop"
-      ] ++ [
-        "uwsm app -- ${pkgs.hyprsunset} --temperature 5700"
       ];
 
       bindm = [
@@ -138,7 +133,6 @@ in
 
       bind = [
         "$mod, SPACE, exec, $launcher"
-        "$mod L_Control, SPACE, exec, smile"
         "$mod, D, exec, eww open dashboard --screen $(hyprctl monitors -j | jq '.[] | select(.focused) | .id')"
         "$mod SHIFT, D, exec, eww close-all"
 

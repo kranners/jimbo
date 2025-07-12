@@ -20,7 +20,6 @@
         "awscli"
         "colima"
         "direnv"
-        "fnm"
         "gnupg"
         "jq"
         "luajit"
@@ -43,6 +42,8 @@
     pkgs.prettierd
     pkgs.rubocop
     pkgs.cachix
+    pkgs.docker-compose
+    pkgs.fnm
 
     pkgs.devenv
     pkgs.just
@@ -55,7 +56,6 @@
     pkgs.nix-output-monitor
     pkgs.mas
     pkgs.nodePackages.svgo
-    pkgs.fnm
   ];
 
   nixosSystemModule.environment.systemPackages = [
