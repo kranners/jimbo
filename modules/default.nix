@@ -20,6 +20,7 @@ in
     ./eww
     ./ssh
     ./zsh
+    ./ghostty
   ];
 
   options = {
