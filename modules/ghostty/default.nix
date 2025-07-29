@@ -3,9 +3,13 @@
     "ghostty"
   ];
 
-  nixosHomeModule.home.packages = [
-    pkgs.ghostty
-  ];
+  nixosHomeModule = {
+    home.packages = [
+      pkgs.ghostty
+    ];
+
+    wayland.windowManager.hyprland.settings."$terminal" = "ghostty";
+  };
 
   sharedHomeModule.xdg.configFile.ghostty = {
     target = "./ghostty/config";
@@ -39,7 +43,7 @@
       background-blur = 20
 
       font-family = Iosevka Nerd Font Mono
-      font-size = 24
+      font-size = 16
 
       cursor-style = block
     '';
