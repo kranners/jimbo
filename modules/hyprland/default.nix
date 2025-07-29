@@ -25,43 +25,31 @@ let
     '';
   };
 
-  gamer-mode = pkgs.writeShellApplication {
-    name = "gamer-mode";
+  gapless-mode = pkgs.writeShellApplication {
+    name = "gapless-mode";
 
-    runtimeInputs = [ ];
     bashOptions = [ ];
 
     text = ''
       PADDING_VALUE=10
-      STATE_FILE="/tmp/hyprland_waybar_toggle_state"
 
-      toggle_on() {
+      if systemctl --user --quiet is-active waybar; then
         systemctl --user stop waybar
         hyprctl keyword general:gaps_in 0
         hyprctl keyword general:gaps_out 0
-        echo "on" > "$STATE_FILE"
-      }
-
-      toggle_off() {
-        systemctl --user restart waybar
-        hyprctl keyword general:gaps_in $PADDING_VALUE
-        hyprctl keyword general:gaps_out $PADDING_VALUE
-        echo "off" > "$STATE_FILE"
-      }
-
-      if [[ -f "$STATE_FILE" && $(cat "$STATE_FILE") == "on" ]]; then
-        toggle_off
         exit 0
       fi
 
-      toggle_on
+      systemctl --user start waybar
+      hyprctl keyword general:gaps_in $PADDING_VALUE
+      hyprctl keyword general:gaps_out $PADDING_VALUE
     '';
   };
 in
 {
   nixosHomeModule.home.packages = [
     exit-if-all-closed
-    gamer-mode
+    gapless-mode
     pkgs.grim
     pkgs.slurp
     pkgs.wl-clipboard
@@ -93,7 +81,6 @@ in
 
     settings = {
       "$mod" = "SUPER";
-      "$terminal" = "alacritty";
 
       general = {
         layout = "master";
@@ -143,7 +130,7 @@ in
 
         "$mod SHIFT, Q, exec, exit-if-all-closed"
 
-        "$mod, G, exec, gamer-mode"
+        "$mod, G, exec, gapless-mode"
 
         "$mod, F, fullscreen"
         "$mod SHIFT, F, togglefloating"
