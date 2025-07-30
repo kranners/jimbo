@@ -55,4 +55,5 @@ require('pckr').add {
   'pwntester/octo.nvim',
   'folke/snacks.nvim',
   'folke/zen-mode.nvim',
+  'sudo-tee/opencode.nvim',
 }

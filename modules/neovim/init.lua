@@ -811,3 +811,5 @@ require("octo").setup({
     use_emojis = true,
   },
 })
+
+require("opencode").setup({})
