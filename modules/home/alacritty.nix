@@ -14,8 +14,15 @@
       colors.transparent_background_colors = true;
 
       font = {
-        normal = { family = "Iosevka Nerd Font Mono"; style = "Regular"; };
-        bold = { family = "Iosevka Nerd Font Mono"; style = "Regular"; };
+        normal = {
+          family = "Iosevka Nerd Font Mono";
+          style = "Light";
+        };
+
+        bold = {
+          family = "Iosevka Nerd Font Mono";
+          style = "Light";
+        };
       };
     };
   };
