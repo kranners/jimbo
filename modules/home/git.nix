@@ -24,6 +24,16 @@ let
     '';
   };
 
+  git-cram = pkgs.writeShellApplication {
+    name = "git-cram";
+    inherit runtimeInputs;
+
+    text = ''
+      git add .
+      git commit --amend --no-edit --no-verify
+    '';
+  };
+
   git-shove = pkgs.writeShellApplication {
     name = "git-shove";
     inherit runtimeInputs;
@@ -92,6 +102,7 @@ in
       git-freshen
       git-catchup
       git-new
+      git-cram
     ];
 
     shellAliases = {
@@ -101,10 +112,6 @@ in
 
   programs.git = {
     enable = true;
-
-    aliases = {
-      cram = "commit --amend --no-edit --no-verify";
-    };
 
     extraConfig = {
       # show branches etc in table rather than list

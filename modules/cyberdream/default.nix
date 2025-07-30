@@ -17,13 +17,7 @@ in
   };
 
   config = {
-    darwinHomeModule = {
-      programs.alacritty.settings.import = [
-        "${inputs.alacritty-themes}/${theme-filename}.toml"
-      ];
-    };
-
-    nixosHomeModule = {
+    sharedHomeModule = {
       programs.alacritty.settings.general.import = [
         "${inputs.alacritty-themes}/${theme-filename}.toml"
       ];

@@ -451,9 +451,9 @@
       :orientation "vertical"
       :halign "start"
       (launcher
-        :onclick "uwsm app -- alacritty &"
+        :onclick "uwsm app -- ghostty &"
         :icon "utilities-terminal"
-        :title "Alacritty"
+        :title "Ghostty"
         :hotkey "Mod+Enter"
       )
       (launcher
