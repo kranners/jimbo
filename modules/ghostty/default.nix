@@ -46,6 +46,8 @@
       font-size = 16
 
       cursor-style = block
+
+      shell-integration-features = no-title
     '';
   };
 }
