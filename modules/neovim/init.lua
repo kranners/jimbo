@@ -28,7 +28,7 @@ do
     expandtab = true,
     number = true,
     relativenumber = true,
-    shiftwidth = 0,
+    shiftwidth = 2,
     swapfile = false,
     tabstop = 2,
     termguicolors = true,

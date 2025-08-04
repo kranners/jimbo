@@ -42,11 +42,20 @@ M.prompt_for_new_note = function()
 end
 
 M.open_daily = function()
+  -- Create the folder for the daily to go in
+  local daily_note_folder = string.format(
+    "%s/%s",
+    constants.latte_root,
+    os.date("%Y/%m") -- /Latte/2000/01/
+  )
+
+  vim.fn.mkdir(daily_note_folder, "p")
+
   -- Open the daily note path
   local daily_note_path = string.format(
     "%s/%s.md",
-    constants.latte_root,
-    os.date("%Y/%m/%d %B, %Y")
+    daily_note_folder,
+    os.date("%d %B, %Y") -- /Latte/2000/01/01 January, 2000.md
   )
 
   vim.cmd.edit(daily_note_path)
