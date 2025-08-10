@@ -811,3 +811,11 @@ require("octo").setup({
     use_emojis = true,
   },
 })
+
+require("live-command").setup({
+  commands = {
+    Norm = { cmd = "norm" },
+  },
+})
+
+vim.cmd("cnoreabbrev norm Norm")
