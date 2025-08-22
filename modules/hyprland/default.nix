@@ -45,6 +45,18 @@ let
       hyprctl keyword general:gaps_out $PADDING_VALUE
     '';
   };
+
+  make_game_window_rules = (
+    window_regex: [
+      "prop noborder,class:${window_regex}"
+      "prop noblur,class:${window_regex}"
+      "prop nodim,class:${window_regex}"
+      "prop noshadow,class:${window_regex}"
+      "prop noanim,class:${window_regex}"
+      "workspace 1,class:${window_regex}"
+      "immediate,class:${window_regex}"
+    ]
+  );
 in
 {
   nixosHomeModule.home.packages = [
@@ -106,7 +118,13 @@ in
         }
       ];
 
-      windowrule = [ "tile,class:.*" ];
+      windowrulev2 = lib.lists.flatten (
+        lib.lists.map (window_regex: make_game_window_rules (window_regex)) [
+          "^gamescope$"
+          "^steam_app_\\d+$"
+          "^overwatch.exe$"
+        ]
+      );
 
       exec-once = lib.lists.map (x: "app2unit -- " + x) [
         "${pkgs.vesktop}/share/applications/vesktop.desktop"
