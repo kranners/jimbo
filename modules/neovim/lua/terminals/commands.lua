@@ -9,6 +9,7 @@ M.open_terminal_vertical = function()
 
   vim.api.nvim_win_set_buf(win, buf)
   vim.fn.jobstart("zsh", { term = true })
+  vim.api.nvim_feedkeys("i", "n", false)
 end
 
 M.open_terminal_horizontal = function()
@@ -20,6 +21,7 @@ M.open_terminal_horizontal = function()
 
   vim.api.nvim_win_set_buf(win, buf)
   vim.fn.jobstart("zsh", { term = true })
+  vim.api.nvim_feedkeys("i", "n", false)
 end
 
 return M
