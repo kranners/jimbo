@@ -11,7 +11,7 @@ do
     maplocalleader = ",",
     -- Ensure conceallevel is set to 0 on JSON
     -- https://github.com/nvim-treesitter/nvim-treesitter/issues/2825#issuecomment-1496747076
-    indentLine_fileTypeExclude = { "dashboard", "json", "markdown" }
+    indentLine_fileTypeExclude = { "dashboard", "json", "markdown" },
   }
 
   for k, v in pairs(nixvim_globals) do
@@ -174,13 +174,10 @@ cmp.setup({
 
 cmp.setup.cmdline("/", { mapping = cmp.mapping.preset.cmdline(), sources = { { name = "buffer" } } })
 
-cmp.setup.cmdline(
-  ":",
-  {
-    mapping = cmp.mapping.preset.cmdline(),
-    sources = { { name = "path" }, { name = "cmdline", option = { ignore_cmds = { "Man", "!" } } } },
-  }
-)
+cmp.setup.cmdline(":", {
+  mapping = cmp.mapping.preset.cmdline(),
+  sources = { { name = "path" }, { name = "cmdline", option = { ignore_cmds = { "Man", "!" } } } },
+})
 
 vim.opt.runtimepath:prepend(vim.fs.joinpath(vim.fn.stdpath("data"), "site"))
 require("nvim-treesitter.configs").setup({
@@ -244,6 +241,14 @@ require("noice").setup({
   views = { cmdline_popup = { win_options = { winhighlight = "NormalFloat:NormalFloat,FloatBorder:FloatBorder" } } },
 })
 
+require("lazydev").setup({
+  library = {
+    -- See the configuration section for more details
+    -- Load luvit types when the `vim.uv` word is found
+    { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+  },
+})
+
 require("neoscroll").setup({})
 
 require("lualine").setup({
@@ -266,12 +271,6 @@ require("lualine").setup({
   },
 })
 
-require("ibl").setup({})
-
-require("gitsigns").setup({})
-
-require("fzf-lua").setup({ "telescope" })
-
 require("conform").setup({
   format_on_save = { lsp_fallback = true, timeout_ms = 500 },
   formatters_by_fmt = {
@@ -282,6 +281,12 @@ require("conform").setup({
     typescriptreact = { { "eslint_d", "prettierd" } },
   },
 })
+
+require("ibl").setup({})
+
+require("gitsigns").setup({})
+
+require("fzf-lua").setup({ "telescope" })
 
 require("Comment").setup({ mappings = { basic = false, extra = false } })
 
@@ -539,43 +544,57 @@ do
       options = { desc = "Toggle zen mode" },
     },
     {
-      action = function() Snacks.picker.lsp_definitions() end,
+      action = function()
+        Snacks.picker.lsp_definitions()
+      end,
       key = "]]",
       mode = "n",
       options = { desc = "Search definitions" },
     },
     {
-      action = function() Snacks.picker.lsp_references() end,
+      action = function()
+        Snacks.picker.lsp_references()
+      end,
       key = "[[",
       mode = "n",
       options = { desc = "Search references" },
     },
     {
-      action = function() Snacks.picker.grep() end,
+      action = function()
+        Snacks.picker.grep()
+      end,
       key = "<C-f>",
       mode = "n",
       options = { desc = "Fuzzy find file contents" },
     },
     {
-      action = function() Snacks.picker.buffers() end,
+      action = function()
+        Snacks.picker.buffers()
+      end,
       key = "<C-b>",
       mode = "n",
       options = { desc = "Search through current buffers" },
     },
     {
-      action = function() Snacks.picker.files() end,
+      action = function()
+        Snacks.picker.files()
+      end,
       key = "<C-o>",
       mode = "n",
       options = { desc = "Find files by name" },
     },
     {
-      action = function() Snacks.picker.diagnostics() end,
+      action = function()
+        Snacks.picker.diagnostics()
+      end,
       key = "<C-q>",
       mode = "n",
       options = { desc = "Show diagnostics" },
     },
     {
-      action = function() Snacks.picker.keymaps() end,
+      action = function()
+        Snacks.picker.keymaps()
+      end,
       key = "<C-p>",
       mode = "n",
       options = { desc = "Show keymaps" },
