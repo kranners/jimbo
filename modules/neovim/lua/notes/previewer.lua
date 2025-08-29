@@ -1,4 +1,3 @@
-local constants = require("notes.constants")
 local NotePreviewer = require("fzf-lua.previewer.builtin").buffer_or_file:extend()
 
 function NotePreviewer:new(o, opts, fzf_win)
