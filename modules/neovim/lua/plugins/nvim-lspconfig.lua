@@ -1,49 +1,49 @@
 return {
-  'neovim/nvim-lspconfig',
-  opts = {
-    enabled_servers = {
-      yamlls = {  },
-      ts_ls = {
-        filetypes = {
-          "javascript",
-          "javascriptreact",
-          "javascript.jsx",
-          "typescript",
-          "typescriptreact",
-          "typescript.tsx",
-        },
-        init_options = {
-          preferences = {
-            importModuleSpecifierPreference = "non-relative",
-            includeInlayEnumMemberValueHints = true,
-            includeInlayFunctionLikeReturnTypeHints = true,
-            includeInlayFunctionParameterTypeHints = true,
-            includeInlayParameterNameHints = "all",
-            includeInlayParameterNameHintsWhenArgumentMatchesName = true,
-            includeInlayPropertyDeclarationTypeHints = true,
-            includeInlayVariableTypeHints = true,
-          },
-        },
-      },
-      nixd = {
-        settings = {
-          nixd = {
-            formatting = {
-              command = { "nixpkgs-fmt" },
-            },
-          },
-        },
-      },
-      lua_ls = {  },
-      jsonls = {  },
-      html = {  },
-      eslint = {  },
-      emmet_language_server = {  },
-      astro = {  },
-    },
-  },
-  config = function(_, opts)
-    local build_caps = function()
+	"neovim/nvim-lspconfig",
+	opts = {
+		enabled_servers = {
+			yamlls = {},
+			ts_ls = {
+				filetypes = {
+					"javascript",
+					"javascriptreact",
+					"javascript.jsx",
+					"typescript",
+					"typescriptreact",
+					"typescript.tsx",
+				},
+				init_options = {
+					preferences = {
+						importModuleSpecifierPreference = "non-relative",
+						includeInlayEnumMemberValueHints = true,
+						includeInlayFunctionLikeReturnTypeHints = true,
+						includeInlayFunctionParameterTypeHints = true,
+						includeInlayParameterNameHints = "all",
+						includeInlayParameterNameHintsWhenArgumentMatchesName = true,
+						includeInlayPropertyDeclarationTypeHints = true,
+						includeInlayVariableTypeHints = true,
+					},
+				},
+			},
+			nixd = {
+				settings = {
+					nixd = {
+						formatting = {
+							command = { "nixpkgs-fmt" },
+						},
+					},
+				},
+			},
+			lua_ls = {},
+			jsonls = {},
+			html = {},
+			eslint = {},
+			emmet_language_server = {},
+			astro = {},
+		},
+	},
+	config = function(_, opts)
+		local build_caps = function()
 			local base_caps = vim.lsp.protocol.make_client_capabilities()
 			base_caps.general.positionEncodings = { "utf-8" }
 
@@ -54,7 +54,7 @@ return {
 			return base_caps
 		end
 
-    local default_config = {
+		local default_config = {
 			capabilities = build_caps(),
 			flags = {
 				debounce_text_changes = 150,
@@ -67,5 +67,19 @@ return {
 			vim.lsp.config(server, config)
 			vim.lsp.enable(server)
 		end
-  end
+	end,
+	keys = {
+		{
+			"<Leader><CR>",
+			"<CMD>lua vim.lsp.buf.code_action()<CR>",
+			mode = "n",
+			desc = "Show code actions",
+		},
+		{
+			"<Leader>r",
+			"<CMD>lua vim.lsp.buf.rename()<CR>",
+			mode = "n",
+			desc = "Rename symbol",
+		},
+	},
 }
