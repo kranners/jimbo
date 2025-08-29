@@ -6,7 +6,9 @@ local constants = require("notes.constants")
 local M = {}
 
 local get_rg_callback = function(cwd, cuts)
-  return function(query)
+  return function(queries)
+    local query = queries[1]
+
     if not query or query == "" then
       return table.concat({
         "rg",
