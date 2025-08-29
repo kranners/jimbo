@@ -1,0 +1,31 @@
+return {
+  'nvim-treesitter/nvim-treesitter',
+  opts = {
+    ensure_installed = {
+      "javascript",
+      "tsx",
+      "typescript",
+      "python",
+      "lua",
+      "luadoc",
+      "markdown",
+      "vim",
+      "vimdoc",
+      "nix",
+      "bash",
+      "css",
+      "diff",
+      "graphql",
+      "json",
+      "just",
+      "kotlin",
+      "java",
+      "swift",
+      "scss",
+      "yuck",
+    },
+    highlight = { additional_vim_regex_highlighting = false, enable = true },
+    indent = { enable = true },
+    parser_install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site"),
+  }
+}
