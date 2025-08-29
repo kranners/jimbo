@@ -822,10 +822,8 @@ vim.cmd("cnoreabbrev norm Norm")
 
 vim.api.nvim_create_autocmd("TermOpen", {
   callback = function()
-    if vim.bo.buflisted then
-      vim.opt_local.number = true
-      vim.opt_local.relativenumber = true
-    end
+    vim.opt_local.number = true
+    vim.opt_local.relativenumber = true
   end,
 })
 
