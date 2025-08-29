@@ -18,7 +18,7 @@ local get_rg_callback = function(cwd, cuts)
       }, " ")
     end
 
-    local trimmed_query = string.gsub(query, '%s+$', '')
+    local trimmed_query = string.gsub(query, "%s+$", "")
     local query_as_words = vim.split(trimmed_query, "%s")
 
     local query_words_with_wildcards = table.concat(query_as_words, ".*")
@@ -48,12 +48,7 @@ local on_close_without_select = function()
     local search_history_note_path = constants.latte_root .. "/Search History.md"
     local date_and_time = os.date("%c")
 
-    local append_command = string.format(
-      "echo '%s - %s' >> '%s'",
-      date_and_time,
-      last_query,
-      search_history_note_path
-    )
+    local append_command = string.format("echo '%s - %s' >> '%s'", date_and_time, last_query, search_history_note_path)
 
     os.execute(append_command)
   end
@@ -62,55 +57,41 @@ local on_close_without_select = function()
 end
 
 M.search_all_notes = function()
-  fzf_lua.fzf_live(
-    get_rg_callback(constants.latte_root, "6"),
-    {
-      fzf_opts = {
-        ["--multi"] = true,
-      },
-      exec_empty_query = true,
-      cwd = constants.latte_root,
-      prompt = "🏫 ",
-      winopts = {
-        title = "All Notes",
-        on_create = function(e)
-          vim.keymap.set(
-            { "t", "n" },
-            "<Esc>",
-            on_close_without_select,
-            { buffer = e.bufnr, nowait = true }
-          )
-        end
-      },
-      previewer = NotePreviewer,
-      actions = actions.get_actions_table(constants.latte_root),
-    })
+  fzf_lua.fzf_live(get_rg_callback(constants.latte_root, "6"), {
+    fzf_opts = {
+      ["--multi"] = true,
+    },
+    exec_empty_query = true,
+    cwd = constants.latte_root,
+    prompt = "🏫 ",
+    winopts = {
+      title = "All Notes",
+      on_create = function(e)
+        vim.keymap.set({ "t", "n" }, "<Esc>", on_close_without_select, { buffer = e.bufnr, nowait = true })
+      end,
+    },
+    previewer = NotePreviewer,
+    actions = actions.get_actions_table(constants.latte_root),
+  })
 end
 
 M.stack_notes = function()
-  fzf_lua.fzf_live(
-    get_rg_callback(constants.stack_root, "7"),
-    {
-      fzf_opts = {
-        ["--multi"] = true,
-      },
-      exec_empty_query = true,
-      cwd = constants.stack_root,
-      prompt = "📚 ",
-      winopts = {
-        title = "Stack Notes",
-        on_create = function(e)
-          vim.keymap.set(
-            { "t", "n" },
-            "<Esc>",
-            fzf_lua.hide,
-            { buffer = e.bufnr, nowait = true }
-          )
-        end
-      },
-      previewer = NotePreviewer,
-      actions = actions.get_actions_table(constants.stack_root),
-    })
+  fzf_lua.fzf_live(get_rg_callback(constants.stack_root, "7"), {
+    fzf_opts = {
+      ["--multi"] = true,
+    },
+    exec_empty_query = true,
+    cwd = constants.stack_root,
+    prompt = "📚 ",
+    winopts = {
+      title = "Stack Notes",
+      on_create = function(e)
+        vim.keymap.set({ "t", "n" }, "<Esc>", fzf_lua.hide, { buffer = e.bufnr, nowait = true })
+      end,
+    },
+    previewer = NotePreviewer,
+    actions = actions.get_actions_table(constants.stack_root),
+  })
 end
 
 return M

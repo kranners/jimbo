@@ -2,7 +2,7 @@ local constants = require("notes.constants")
 local commands = require("notes.commands")
 local pickers = require("notes.pickers")
 
-local is_darwin = vim.fn.has('macunix') == 1
+local is_darwin = vim.fn.has("macunix") == 1
 
 require("obsidian").setup({
   daily_notes = { date_format = "%Y/%m/%d %B, %Y", template = "Daily.md" },

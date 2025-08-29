@@ -1,8 +1,8 @@
 return {
-  'willothy/flatten.nvim',
+  "willothy/flatten.nvim",
   opts = {
     window = {
       open = "split",
     },
-  }
+  },
 }

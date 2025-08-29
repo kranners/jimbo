@@ -1,5 +1,5 @@
 return {
-  'nvim-treesitter/nvim-treesitter',
+  "nvim-treesitter/nvim-treesitter",
   opts = {
     ensure_installed = {
       "javascript",
@@ -27,5 +27,5 @@ return {
     highlight = { additional_vim_regex_highlighting = false, enable = true },
     indent = { enable = true },
     parser_install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site"),
-  }
+  },
 }

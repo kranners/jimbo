@@ -1,5 +1,5 @@
 return {
-  'folke/lazydev.nvim',
+  "folke/lazydev.nvim",
   opts = {
     library = {
       -- See the configuration section for more details

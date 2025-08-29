@@ -1,7 +1,7 @@
 return {
-  'numToStr/Comment.nvim',
+  "numToStr/Comment.nvim",
   opts = {
-    mappings = { basic = false, extra = false }
+    mappings = { basic = false, extra = false },
   },
   keys = {
     {
@@ -13,7 +13,6 @@ return {
     {
       "<C-/>",
       "<PLUG>(comment_toggle_linewise_current)",
-      mode = "n",
       desc = "Toggle comment (normal)",
     },
     {
@@ -22,5 +21,5 @@ return {
       mode = "x",
       desc = "Toggle comment (visual)",
     },
-  }
+  },
 }
