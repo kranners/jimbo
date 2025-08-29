@@ -1,4 +1,4 @@
 return {
-  'kosayoda/nvim-lightbulb',
+  "kosayoda/nvim-lightbulb",
   opts = {},
 }

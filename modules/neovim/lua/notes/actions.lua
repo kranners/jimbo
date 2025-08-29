@@ -51,7 +51,7 @@ M.get_actions_table = function(cwd)
       reload = true,
       desc = "Publish note(s)",
     },
-    ["esc"] = { fn = fzf_lua.actions.dummy_abort }
+    ["esc"] = { fn = fzf_lua.actions.dummy_abort },
   }
 end
 

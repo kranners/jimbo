@@ -1,5 +1,5 @@
 return {
-  'rachartier/tiny-inline-diagnostic.nvim',
+  "rachartier/tiny-inline-diagnostic.nvim",
   opts = {
     preset = "ghost",
 

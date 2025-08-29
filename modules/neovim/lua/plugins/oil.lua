@@ -1,5 +1,5 @@
 return {
-  'stevearc/oil.nvim',
+  "stevearc/oil.nvim",
   opts = {
     default_file_explorer = true,
     delete_to_trash = true,
@@ -17,8 +17,7 @@ return {
     {
       "-",
       "<cmd>lua require('oil').open()<cr>",
-      mode = "n",
       desc = "View files",
-    }
+    },
   },
 }

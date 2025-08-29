@@ -1,5 +1,5 @@
 return {
-  'nvim-lualine/lualine.nvim',
+  "nvim-lualine/lualine.nvim",
   opts = {
     sections = {
       lualine_x = {

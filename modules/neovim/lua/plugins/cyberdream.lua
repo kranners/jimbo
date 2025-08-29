@@ -15,5 +15,5 @@ return {
     },
     theme = { variant = "dark" },
     transparent = true,
-  }
+  },
 }
