@@ -26,6 +26,7 @@
         pkgs.gcc
         pkgs.basedpyright
         pkgs.stylua
+        pkgs.cargo
       ];
     };
 }
