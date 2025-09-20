@@ -12,7 +12,11 @@ return {
   config = function()
     require("neotest").setup({
       adapters = {
-        require("neotest-vitest"),
+        require("neotest-vitest")({
+          cwd = function()
+            return vim.fn.getcwd()
+          end,
+        }),
         require("neotest-jest")({}),
       },
     })
