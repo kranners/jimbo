@@ -38,7 +38,6 @@
 
   sharedHomeModule.home.packages = [
     pkgs.bat
-    pkgs.eslint_d
     pkgs.prettierd
     pkgs.rubocop
     pkgs.cachix
