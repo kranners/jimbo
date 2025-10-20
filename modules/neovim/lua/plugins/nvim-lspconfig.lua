@@ -22,6 +22,7 @@ return {
             includeInlayParameterNameHintsWhenArgumentMatchesName = true,
             includeInlayPropertyDeclarationTypeHints = true,
             includeInlayVariableTypeHints = true,
+            preferTypeOnlyAutoImports = true,
           },
         },
       },
