@@ -48,7 +48,6 @@ return {
         local project_board_path = string.format("%s/%s.md", board_root_path, project_name)
 
         if vim.uv.fs_stat(project_board_path) ~= nil then
-          vim.print("it exists")
           return require("super-kanban").open(project_board_path)
         end
 
