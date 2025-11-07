@@ -60,7 +60,7 @@
 
         modules = [
           ./modules
-          { cyberdream-theme = "dark"; }
+          { cyberdream-theme = "light"; }
         ];
       };
 
