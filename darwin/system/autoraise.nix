@@ -13,7 +13,7 @@
 
   security.accessibilityPrograms = [ "/opt/homebrew/Cellar/autoraise/5.3/bin/AutoRaise" ];
 
-  home-manager.users.aaronpierce = {
+  home-manager.users.aaron = {
     xdg.configFile.autoraise = {
       target = "./AutoRaise/config";
 
