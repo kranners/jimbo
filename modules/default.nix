@@ -21,6 +21,7 @@ in
     ./ssh
     ./zsh
     ./ghostty
+    ./preferences
   ];
 
   options = {

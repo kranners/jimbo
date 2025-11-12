@@ -1,27 +1,4 @@
-{ pkgs, ... }:
-let
-  nuke-xcode = pkgs.writeShellApplication {
-    name = "nuke-xcode";
-
-    text = ''
-      rm -rf "$HOME/Library/Developer/Xcode/DerivedData" && echo "❌ Deleted DerivedData"
-
-      if [ ! -d "./Pods" ]; then
-        echo "⏩ No Pods found in directory, skipping"
-        exit 0;
-      fi
-
-      rm -rf "./Pods" && echo "❌ Deleted Pods"
-      ( pod install )
-    '';
-  };
-
-in
 {
-  home.packages = [
-    nuke-xcode
-  ];
-
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
   # introduces backwards incompatible changes.

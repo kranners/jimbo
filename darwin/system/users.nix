@@ -1,8 +1,8 @@
 {
-  users.users.aaronpierce = {
-    name = "aaronpierce";
-    home = "/Users/aaronpierce";
+  users.users.aaron = {
+    name = "aaron";
+    home = "/Users/aaron";
   };
 
-  system.primaryUser = "aaronpierce";
+  system.primaryUser = "aaron";
 }

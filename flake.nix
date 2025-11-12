@@ -40,8 +40,8 @@
 
         {
           system = "aarch64-darwin";
-          hostname = "cassandra";
-          username = "aaronpierce";
+          hostname = "piggys-MBP";
+          username = "aaron";
         }
       ];
 
