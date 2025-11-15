@@ -6,96 +6,98 @@
       casks = [
         "font-iosevka-nerd-font"
 
-          "visual-studio-code"
-          "ghostty"
-          "obsidian"
-          "busycal"
+        "visual-studio-code"
+        "ghostty"
+        "obsidian"
+        "busycal"
 
-          "slack"
-          "discord"
-          "readdle-spark"
+        "slack"
+        "discord"
+        "readdle-spark"
 
-          "plexamp"
-          "spotify"
+        "plexamp"
+        "spotify"
 
-          "rectangle"
-          "charmstone"
-          "raycast"
+        "rectangle"
+        "charmstone"
+        "raycast"
 
-          "jagex"
+        "jagex"
       ];
 
       brews = [
         "direnv"
-          "gnupg"
-          "jq"
-          "luajit"
+        "gnupg"
+        "jq"
+        "luajit"
       ];
 
       masApps = {
         "dropover" = 1355679052;
         "bitwarden" = 1352778147;
+        "kagi" = 1622835804;
+        "ublock-origin-lite" = 6745342698;
       };
     };
   };
 
   sharedHomeModule.home.packages = [
     pkgs.bat
-      pkgs.prettierd
-      pkgs.rubocop
-      pkgs.cachix
-      pkgs.docker-compose
-      pkgs.fnm
+    pkgs.prettierd
+    pkgs.rubocop
+    pkgs.cachix
+    pkgs.docker-compose
+    pkgs.fnm
 
-      pkgs.devenv
-      pkgs.just
-      pkgs.act
-      pkgs.nh
+    pkgs.devenv
+    pkgs.just
+    pkgs.act
+    pkgs.nh
   ];
 
   darwinHomeModule.home.packages = [
     pkgs.nurl
-      pkgs.nix-output-monitor
-      pkgs.mas
-      pkgs.nodePackages.svgo
+    pkgs.nix-output-monitor
+    pkgs.mas
+    pkgs.nodePackages.svgo
   ];
 
   nixosSystemModule.environment.systemPackages = [
     pkgs.nixfmt-rfc-style
-      pkgs.gnumake
-      pkgs.gnupg
-      pkgs.manix
-      pkgs.eza
-      pkgs.btop
-      pkgs.htop
-      pkgs.gptfdisk
-      pkgs.libnotify
-      pkgs.pipewire
-      pkgs.home-manager
-      pkgs.busybox
-      pkgs.woeusb-ng
-      pkgs.ntfs3g
+    pkgs.gnumake
+    pkgs.gnupg
+    pkgs.manix
+    pkgs.eza
+    pkgs.btop
+    pkgs.htop
+    pkgs.gptfdisk
+    pkgs.libnotify
+    pkgs.pipewire
+    pkgs.home-manager
+    pkgs.busybox
+    pkgs.woeusb-ng
+    pkgs.ntfs3g
   ];
 
   nixosHomeModule.home.packages = [
     pkgs.uv
-      pkgs.code-cursor
-      pkgs.spotify
-      pkgs.plexamp
-      pkgs.nicotine-plus
-      pkgs.protonup-qt
-      pkgs.r2modman
-      pkgs.obsidian
-      pkgs.ripgrep
-      pkgs.jq
-      pkgs.nurl
-      pkgs.pokemmo-installer
-      pkgs.prismlauncher
+    pkgs.code-cursor
+    pkgs.spotify
+    pkgs.plexamp
+    pkgs.nicotine-plus
+    pkgs.protonup-qt
+    pkgs.r2modman
+    pkgs.obsidian
+    pkgs.ripgrep
+    pkgs.jq
+    pkgs.nurl
+    pkgs.pokemmo-installer
+    pkgs.prismlauncher
 
-      pkgs.pavucontrol # Audio control
-      pkgs.mpv # Media playback
-      pkgs.blueberry # Bluetooth manager
-      pkgs.wl-clipboard # Clipboard manager
-      pkgs.helvum # Multi-audio output
+    pkgs.pavucontrol # Audio control
+    pkgs.mpv # Media playback
+    pkgs.blueberry # Bluetooth manager
+    pkgs.wl-clipboard # Clipboard manager
+    pkgs.helvum # Multi-audio output
   ];
                }
