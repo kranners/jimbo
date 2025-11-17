@@ -57,6 +57,7 @@
     pkgs.just
     pkgs.act
     pkgs.nh
+    pkgs.ripgrep
   ];
 
   darwinHomeModule.home.packages = [
@@ -92,7 +93,6 @@
     pkgs.protonup-qt
     pkgs.r2modman
     pkgs.obsidian
-    pkgs.ripgrep
     pkgs.jq
     pkgs.nurl
     pkgs.pokemmo-installer
