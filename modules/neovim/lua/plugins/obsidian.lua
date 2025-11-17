@@ -1,5 +1,6 @@
 return {
   "obsidian-nvim/obsidian.nvim",
+  enabled = false,
   dependencies = {
     "nvim-lua/plenary.nvim",
   },

@@ -1,5 +1,4 @@
 local constants = require("notes.constants")
-local util = require("obsidian.util")
 
 local M = {}
 
@@ -15,9 +14,7 @@ local get_note_template_contents = function(title)
   }
 end
 
-M.prompt_for_new_note = function()
-  -- Otherwise, create a new note with a given title
-  local title = util.input("Enter note title", { completion = "file" })
+local create_new_note = function(title)
   if title == "" or title == nil then
     vim.notify("Provide a title for the note")
     return
@@ -39,6 +36,10 @@ M.prompt_for_new_note = function()
 
   -- Go into insert mode
   vim.api.nvim_feedkeys("i", "t", false)
+end
+
+M.prompt_for_new_note = function()
+  vim.ui.input({ prompt = "Enter note title" }, create_new_note)
 end
 
 M.open_daily = function()

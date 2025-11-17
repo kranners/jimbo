@@ -11,7 +11,8 @@
         "obsidian"
         "busycal"
 
-        "slack"
+        "microsoft-teams"
+        "microsoft-outlook"
         "discord"
         "readdle-spark"
 
@@ -30,13 +31,16 @@
         "gnupg"
         "jq"
         "luajit"
+
+        "glab"
       ];
 
       masApps = {
-        "dropover" = 1355679052;
+        # "dropover" = 1355679052;
         "bitwarden" = 1352778147;
         "kagi" = 1622835804;
         "ublock-origin-lite" = 6745342698;
+        "1password" = 1569813296;
       };
     };
   };
