@@ -162,7 +162,34 @@ in
 
       # automatically rebase on pull
       pull.rebase = true;
+
+      user = {
+        name = "Aaron";
+        email = "aaron@cute.engineer";
+      };
     };
+
+    includes = [
+      {
+        condition = "gitdir:~/git/praxhub/";
+        path = "~/.config/git/work-config";
+      }
+
+      {
+        condition = "gitdir:~/git/praxhub-web/";
+        path = "~/.config/git/work-config";
+      }
+    ];
+  };
+
+  xdg.configFile.gitWorkProfile = {
+    target = "./git/work-config";
+
+    text = ''
+      [user]
+        name = Aaron Pierce
+        email = aaron@praxhub.com
+    '';
   };
 
   # Set TTY for GPG to do hardware signing on commits

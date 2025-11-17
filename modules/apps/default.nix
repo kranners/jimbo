@@ -8,11 +8,14 @@
 
         "visual-studio-code"
         "ghostty"
+        "mysqlworkbench"
+
         "obsidian"
         "busycal"
 
         "microsoft-teams"
         "microsoft-outlook"
+        "onedrive"
         "discord"
         "readdle-spark"
 
