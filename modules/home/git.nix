@@ -113,7 +113,7 @@ in
   programs.git = {
     enable = true;
 
-    extraConfig = {
+    settings = {
       # show branches etc in table rather than list
       column.ui = "auto";
 

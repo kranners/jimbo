@@ -4,7 +4,6 @@
     enable32Bit = true;
 
     extraPackages = [
-      pkgs.amdvlk
       pkgs.libva-utils
     ];
   };

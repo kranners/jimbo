@@ -13,6 +13,7 @@
         "obsidian"
         "busycal"
 
+        "docker-desktop"
         "microsoft-teams"
         "microsoft-outlook"
         "onedrive"
@@ -30,6 +31,7 @@
       ];
 
       brews = [
+        "docker"
         "direnv"
         "gnupg"
         "jq"
