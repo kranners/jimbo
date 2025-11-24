@@ -3,7 +3,8 @@
 
   inputs = {
     nixpkgs = {
-      url = "github:nixos/nixpkgs/nixpkgs-unstable";
+      # url = "github:nixos/nixpkgs/nixpkgs-unstable/a603d123fc44af98e868e83f56cfc450b46aac73";
+      url = "github:nixos/nixpkgs/461e78c";
     };
 
     firefox-addons = {

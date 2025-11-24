@@ -23,6 +23,7 @@ in
     ./ghostty
     ./preferences
     ./overlays
+    ./beets
   ];
 
   options = {
