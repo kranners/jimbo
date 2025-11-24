@@ -26,6 +26,7 @@ in
     ./users
     ./fonts
     ./git
+    ./beets
   ];
 
   options = {
