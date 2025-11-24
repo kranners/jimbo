@@ -4,7 +4,6 @@ return {
     { "disrupted/blink-cmp-conventional-commits" },
   },
   version = "1.*",
-  build = "nix run .#build-plugin",
   opts = {
     keymap = {
       preset = "super-tab",

@@ -13,6 +13,12 @@
       sessionVariables = {
         EDITOR = "nvim";
       };
+
+      sessionPath = [
+        # /scripts is intentionally not managed with Nix.
+        "$HOME/scripts"
+      ];
+
     };
 
     programs.starship.enable = true;

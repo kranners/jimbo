@@ -1,5 +1,6 @@
 return {
   "kranners/ts-refactor.nvim",
+  enabled = false,
   lazy = false,
   name = "ts-refactor",
   dir = "/Users/aaron/git/ts-refactor.nvim",

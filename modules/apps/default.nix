@@ -20,6 +20,9 @@
         "discord"
         "readdle-spark"
 
+        "ungoogled-chromium"
+        "firefox"
+
         "plexamp"
         "spotify"
 
@@ -41,11 +44,13 @@
       ];
 
       masApps = {
-        # "dropover" = 1355679052;
-        "bitwarden" = 1352778147;
-        "kagi" = 1622835804;
-        "ublock-origin-lite" = 6745342698;
+        # dropover = 1355679052;
+        bitwarden = 1352778147;
+        kagi = 1622835804;
+        ublock-origin-lite = 6745342698;
         "1password" = 1569813296;
+        refined-github = 1519867270;
+        userscripts = 1463298887;
       };
     };
   };
