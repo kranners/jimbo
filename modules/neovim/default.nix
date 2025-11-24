@@ -27,6 +27,7 @@
         pkgs.basedpyright
         pkgs.stylua
         pkgs.cargo
+        pkgs.tree-sitter
       ];
     };
 }
