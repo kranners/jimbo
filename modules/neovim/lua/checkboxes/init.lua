@@ -6,6 +6,7 @@ vim.api.nvim_create_autocmd("filetype", {
     local buftype = vim.bo[args.buf].buftype
     local filename = vim.api.nvim_buf_get_name(args.buf)
 
+    -- Do not set bind for non-file buffers
     if buftype ~= "" or filename == "" then
       return
     end
