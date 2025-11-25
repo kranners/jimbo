@@ -40,6 +40,7 @@ end
 
 M.prompt_for_new_note = function()
   vim.ui.input({ prompt = "Enter note title" }, create_new_note)
+  vim.api.nvim_feedkeys("i", "t", false)
 end
 
 M.open_daily = function()

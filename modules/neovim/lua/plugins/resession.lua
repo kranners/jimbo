@@ -33,7 +33,9 @@ return {
       -- Dispose of all the remaining terminal buffers
       local bufs = vim.api.nvim_list_bufs()
       for _, buf in ipairs(bufs) do
-        if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "terminal" then
+        if
+          vim.api.nvim_get_option_value("buftype", { buf = buf }) == "terminal"
+        then
           vim.api.nvim_buf_delete(buf, { force = true })
         end
       end
@@ -72,7 +74,10 @@ return {
         -- Only load the session if nvim was started with no args
         if vim.fn.argc(-1) == 0 then
           -- Save these to a different directory, so our manual sessions don't get polluted
-          resession.load(vim.fn.getcwd(), { dir = "dirsession", silence_errors = true })
+          resession.load(
+            vim.fn.getcwd(),
+            { dir = "dirsession", silence_errors = true }
+          )
         end
       end,
       nested = true,
