@@ -23,6 +23,7 @@ return {
       "swift",
       "scss",
       "yuck",
+      "sql",
     },
     highlight = { additional_vim_regex_highlighting = false, enable = true },
     indent = { enable = true },
