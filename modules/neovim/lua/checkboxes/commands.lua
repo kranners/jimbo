@@ -1,9 +1,5 @@
 local M = {}
 
-local function starts_with(str, start)
-  return str:sub(1, #start) == start
-end
-
 local function replace_current_line_with(str)
   local buffer_number = vim.api.nvim_win_get_buf(0)
   local current_line_number = vim.api.nvim_win_get_cursor(0)[1]
@@ -32,7 +28,7 @@ M.cycle_checkbox = function()
     return
   end
 
-  if starts_with(current_line, "- ") then
+  if current_line:match("^%- ") then
     local new_line = current_line:gsub("- ", "- [ ] ", 1)
     replace_current_line_with(new_line)
     return
