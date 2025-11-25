@@ -47,10 +47,16 @@ local on_close_without_select = function()
   local last_query = fzf_lua.get_last_query()
 
   if last_query ~= "" then
-    local search_history_note_path = constants.latte_root .. "/Search History.md"
+    local search_history_note_path = constants.latte_root
+      .. "/Search History.md"
     local date_and_time = os.date("%c")
 
-    local append_command = string.format("echo '%s - %s' >> '%s'", date_and_time, last_query, search_history_note_path)
+    local append_command = string.format(
+      "echo '%s - %s' >> '%s'",
+      date_and_time,
+      last_query,
+      search_history_note_path
+    )
 
     os.execute(append_command)
   end
@@ -69,7 +75,12 @@ M.search_all_notes = function()
     winopts = {
       title = "All Notes",
       on_create = function(e)
-        vim.keymap.set({ "t", "n" }, "<Esc>", on_close_without_select, { buffer = e.bufnr, nowait = true })
+        vim.keymap.set(
+          { "t", "n" },
+          "<Esc>",
+          on_close_without_select,
+          { buffer = e.bufnr, nowait = true }
+        )
       end,
     },
     previewer = NotePreviewer,
@@ -88,7 +99,12 @@ M.stack_notes = function()
     winopts = {
       title = "Stack Notes",
       on_create = function(e)
-        vim.keymap.set({ "t", "n" }, "<Esc>", fzf_lua.hide, { buffer = e.bufnr, nowait = true })
+        vim.keymap.set(
+          { "t", "n" },
+          "<Esc>",
+          fzf_lua.hide,
+          { buffer = e.bufnr, nowait = true }
+        )
       end,
     },
     previewer = NotePreviewer,

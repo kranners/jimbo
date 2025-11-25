@@ -1,4 +1,5 @@
-local NotePreviewer = require("fzf-lua.previewer.builtin").buffer_or_file:extend()
+local NotePreviewer =
+  require("fzf-lua.previewer.builtin").buffer_or_file:extend()
 
 function NotePreviewer:new(o, opts, fzf_win)
   NotePreviewer.super.new(self, o, opts, fzf_win)

@@ -2,6 +2,7 @@ require("config.lazy")
 
 require("notes")
 require("terminals")
+require("checkboxes")
 
 vim.cmd([[colorscheme alabaster]])
 vim.diagnostic.config({ virtual_text = false })

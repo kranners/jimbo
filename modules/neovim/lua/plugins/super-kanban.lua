@@ -45,7 +45,8 @@ return {
         local project_name = vim.trim(project_name_handle:read("*a"))
         project_name_handle:close()
 
-        local project_board_path = string.format("%s/%s.md", board_root_path, project_name)
+        local project_board_path =
+          string.format("%s/%s.md", board_root_path, project_name)
 
         if vim.uv.fs_stat(project_board_path) ~= nil then
           return require("super-kanban").open(project_board_path)
