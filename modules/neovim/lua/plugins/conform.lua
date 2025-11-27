@@ -2,7 +2,7 @@ return {
   "stevearc/conform.nvim",
   opts = {
     format_on_save = {
-      -- lsp_fallback = false,
+      lsp_fallback = false,
       timeout_ms = 500,
       lsp_format = "first",
       filter = function(client)
@@ -12,6 +12,10 @@ return {
     formatters_by_ft = {
       ruby = { "rubocop" },
       lua = { "stylua" },
+      javascript = { "prettierd" },
+      javascriptreact = { "prettierd" },
+      typescript = { "prettierd" },
+      typescriptreact = { "prettierd" },
     },
   },
 }
