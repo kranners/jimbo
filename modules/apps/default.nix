@@ -9,6 +9,7 @@
         "visual-studio-code"
         "ghostty"
         "mysqlworkbench"
+        "browserstacklocal"
 
         "obsidian"
         "busycal"
@@ -22,6 +23,7 @@
 
         "ungoogled-chromium"
         "firefox"
+        "vivaldi"
 
         "plexamp"
         "spotify"
