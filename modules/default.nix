@@ -23,6 +23,7 @@ in
     ./ghostty
     ./preferences
     ./overlays
+    ./state-versions
   ];
 
   options = {

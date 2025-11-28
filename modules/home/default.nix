@@ -13,7 +13,6 @@ let
 in
 {
   darwinSystemModule = mkHome [
-    ../../darwin/home
     config.darwinHomeModule
     config.sharedHomeModule
   ];
