@@ -26,6 +26,7 @@ in
     ./autoraise
     ./users
     ./fonts
+    ./git
   ];
 
   options = {
