@@ -1,23 +1,10 @@
-{ pkgs, ... }:
-let
-  wine-local = pkgs.writeShellApplication {
-    name = "wine-local";
-
-    text = ''
-      WINEPREFIX="$PWD" wine "$@"
-    '';
-  };
-in
 {
   imports = [
     ./waybar.nix
     ./swaync.nix
     ./vesktop.nix
-    ./lutris.nix
     ./avizo.nix
     ./plexamp.nix
-    ./mangohud.nix
-    ./wayvnc.nix
     ./wpaperd.nix
     ./obsidian-service.nix
   ];
@@ -32,10 +19,6 @@ in
       enable = true;
     };
   };
-
-  home.packages = [
-    wine-local
-  ];
 
   home.sessionVariables = {
     # Force Qt applications to run through the Wayland platform plugin
