@@ -116,4 +116,4 @@
     pkgs.wl-clipboard # Clipboard manager
     pkgs.helvum # Multi-audio output
   ];
-               }
+}
