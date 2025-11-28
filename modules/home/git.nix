@@ -10,8 +10,8 @@ let
       DEFAULT_UPDATE_BRANCH="$(basename "$(git symbolic-ref refs/remotes/origin/HEAD)")"
       CURRENT_BRANCH="$(git symbolic-ref --short --quiet HEAD)"
 
-      UPDATE_BRANCH="''${1:-$DEFAULT_UPDATE_BRANCH}"
-      UPDATE_STRATEGY="''${2:-rebase}"
+      UPDATE_STRATEGY="''${1:-rebase}"
+      UPDATE_BRANCH="''${2:-$DEFAULT_UPDATE_BRANCH}"
 
       git switch "$UPDATE_BRANCH"
       git pull
@@ -151,7 +151,7 @@ in
       # show diffs in commit editor
       commit.verbose = true;
 
-      # record rebase resolutions.
+      # record rebase resolutions
       rerere.enabled = true;
       rerere.autoaupdate = true;
 
