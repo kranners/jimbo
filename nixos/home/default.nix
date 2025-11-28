@@ -15,9 +15,7 @@ in
     ./vesktop.nix
     ./lutris.nix
     ./avizo.nix
-    ./firefox.nix
     ./plexamp.nix
-    ./ungoogled-chromium.nix
     ./mangohud.nix
     ./wayvnc.nix
     ./wpaperd.nix
