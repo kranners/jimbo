@@ -98,7 +98,6 @@
 
   nixosHomeModule.home.packages = [
     pkgs.uv
-    pkgs.code-cursor
     pkgs.spotify
     pkgs.plexamp
     pkgs.nicotine-plus
@@ -110,10 +109,11 @@
     pkgs.pokemmo-installer
     pkgs.prismlauncher
 
-    pkgs.pavucontrol # Audio control
-    pkgs.mpv # Media playback
-    pkgs.blueberry # Bluetooth manager
-    pkgs.wl-clipboard # Clipboard manager
-    pkgs.helvum # Multi-audio output
+    pkgs.pavucontrol
+    pkgs.mpv
+    pkgs.blueberry
+    pkgs.wl-clipboard
+    pkgs.helvum
+    pkgs.vivaldi
   ];
 }
