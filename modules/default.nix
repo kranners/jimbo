@@ -13,7 +13,6 @@ in
     ./apps
     ./nixpkgs-config
     ./neovim
-    ./font-size
     ./launcher
     ./file-manager
     ./theme
@@ -24,6 +23,7 @@ in
     ./preferences
     ./overlays
     ./state-versions
+    ./autoraise
   ];
 
   options = {
