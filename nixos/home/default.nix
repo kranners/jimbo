@@ -10,7 +10,6 @@ let
 in
 {
   imports = [
-    ./git.nix
     ./waybar.nix
     ./swaync.nix
     ./vesktop.nix
