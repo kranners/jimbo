@@ -8,7 +8,6 @@
     ./security.nix
     ./xdg.nix
     ./locale.nix
-    ./nix-ld.nix
   ];
 
   # Enable networking
