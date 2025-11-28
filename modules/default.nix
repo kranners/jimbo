@@ -78,8 +78,6 @@ in
 
         modules = [
           inputs.home-manager.darwinModules.home-manager
-
-          ../darwin/system
           config.darwinSystemModule
           config.sharedSystemModule
         ];
