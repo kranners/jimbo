@@ -3,7 +3,6 @@
     ./boot.nix
     ./fonts.nix
     ./hardware.nix
-    ./users.nix
     ./steam.nix
     ./graphics.nix
     ./sound.nix
@@ -22,7 +21,7 @@
   # Required to prevent Home Manager crashing
   # https://github.com/nix-community/home-manager/issues/3113
   programs.dconf.enable = true;
-
+  programs.zsh.enable = true;
   programs.gnupg.agent.enable = true;
 
   services.openssh.enable = true;

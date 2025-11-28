@@ -3,6 +3,7 @@
 
   security = {
     polkit.enable = true;
+    sudo.wheelNeedsPassword = false;
 
     pam.services.swaylock = {
       text = ''
