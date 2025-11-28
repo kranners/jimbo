@@ -1,5 +1,7 @@
 {
   darwinSystemModule = {
+    # Must be enabled in Darwin system as well as home
+    programs.zsh.enable = true;
     programs.zsh.enableGlobalCompInit = false;
   };
 

@@ -1,5 +1,7 @@
 {
   darwinSystemModule = {
+    ids.gids.nixbld = 350;
+
     # stateVersion didn't need to be defined until 6th November, 2024 flake update
     # Hardcoding to v5
     # Hi Aaron updating to v6, new machine install. See you next time
