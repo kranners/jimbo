@@ -2,7 +2,6 @@
   ids.gids.nixbld = 350;
 
   imports = [
-    ./users.nix
     ./fonts.nix
   ];
 

@@ -24,6 +24,7 @@ in
     ./overlays
     ./state-versions
     ./autoraise
+    ./users
   ];
 
   options = {
