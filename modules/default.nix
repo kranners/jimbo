@@ -25,6 +25,7 @@ in
     ./state-versions
     ./autoraise
     ./users
+    ./fonts
   ];
 
   options = {
