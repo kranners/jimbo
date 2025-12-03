@@ -13,7 +13,7 @@ return {
       treesitter = true,
       trouble = true,
     },
-    theme = { variant = "dark" },
+    theme = { variant = "light" },
     transparent = true,
   },
 }

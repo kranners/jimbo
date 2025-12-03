@@ -13,7 +13,7 @@ in
     ./apps
     ./nixpkgs-config
     ./neovim
-    ./launcher
+    ./rofi
     ./file-manager
     ./theme
     ./eww
