@@ -3,29 +3,29 @@ return {
   opts = {
     enabled_servers = {
       yamlls = {},
-      ts_ls = {
-        filetypes = {
-          "javascript",
-          "javascriptreact",
-          "javascript.jsx",
-          "typescript",
-          "typescriptreact",
-          "typescript.tsx",
-        },
-        init_options = {
-          preferences = {
-            importModuleSpecifierPreference = "non-relative",
-            includeInlayEnumMemberValueHints = true,
-            includeInlayFunctionLikeReturnTypeHints = true,
-            includeInlayFunctionParameterTypeHints = true,
-            includeInlayParameterNameHints = "all",
-            includeInlayParameterNameHintsWhenArgumentMatchesName = true,
-            includeInlayPropertyDeclarationTypeHints = true,
-            includeInlayVariableTypeHints = true,
-            preferTypeOnlyAutoImports = true,
-          },
-        },
-      },
+      -- ts_ls = {
+      --   filetypes = {
+      --     "javascript",
+      --     "javascriptreact",
+      --     "javascript.jsx",
+      --     "typescript",
+      --     "typescriptreact",
+      --     "typescript.tsx",
+      --   },
+      --   init_options = {
+      --     preferences = {
+      --       importModuleSpecifierPreference = "non-relative",
+      --       includeInlayEnumMemberValueHints = true,
+      --       includeInlayFunctionLikeReturnTypeHints = true,
+      --       includeInlayFunctionParameterTypeHints = true,
+      --       includeInlayParameterNameHints = "all",
+      --       includeInlayParameterNameHintsWhenArgumentMatchesName = true,
+      --       includeInlayPropertyDeclarationTypeHints = true,
+      --       includeInlayVariableTypeHints = true,
+      --       preferTypeOnlyAutoImports = true,
+      --     },
+      --   },
+      -- },
       nixd = {
         settings = {
           nixd = {
