@@ -4,7 +4,7 @@ require("notes")
 require("terminals")
 require("checkboxes")
 
-vim.cmd([[colorscheme cyberdream]])
+vim.cmd([[colorscheme alabaster]])
 vim.diagnostic.config({ virtual_text = false })
 
 vim.opt.runtimepath:prepend(vim.fs.joinpath(vim.fn.stdpath("data"), "site"))
