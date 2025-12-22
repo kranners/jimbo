@@ -1,10 +1,9 @@
-{ pkgs, ... }: {
+{
   nixosHomeModule = {
     wayland.windowManager.hyprland.settings."$launcher" = "rofi -show drun -run-command 'uwsm app -- {cmd}'";
 
     programs.rofi = {
       enable = true;
-      package = pkgs.rofi-wayland;
 
       location = "center";
 

@@ -3,10 +3,11 @@
     programs.git = {
       enable = true;
 
-      userName = "Aaron Pierce";
-      userEmail = "aaron@cute.engineer";
-
-      extraConfig.user.signingkey = "53EAEA9DA697D60B";
+      config.user = {
+        signingkey = "53EAEA9DA697D60B";
+        name = "Aaron Pierce";
+        email = "aaron@cute.engineer";
+      };
     };
   };
 
