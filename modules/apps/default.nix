@@ -108,6 +108,7 @@
     pkgs.nurl
     pkgs.pokemmo-installer
     pkgs.prismlauncher
+    pkgs.bolt-launcher
 
     pkgs.pavucontrol
     pkgs.mpv
