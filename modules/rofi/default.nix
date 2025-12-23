@@ -16,7 +16,7 @@
 
         show-icons = true;
 
-        terminal = "alacritty";
+        terminal = "ghostty";
 
         location = 0;
         disable-history = false;

@@ -9,7 +9,6 @@ in
   imports = [
     ./home
     ./hyprland
-    ./cyberdream
     ./apps
     ./nixpkgs-config
     ./neovim
