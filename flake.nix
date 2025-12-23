@@ -15,11 +15,6 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    alacritty-themes = {
-      url = "github:Johnsoct/alacritty";
-      flake = false;
-    };
   };
 
   outputs = { nixpkgs, ... } @ inputs:
@@ -55,7 +50,6 @@
 
         modules = [
           ./modules
-          { cyberdream-theme = "light"; }
         ];
       };
 

@@ -27,7 +27,6 @@ in
     imports = [
       ./scripts.nix
       ./zoxide.nix
-      ./alacritty.nix
       ./krabby.nix
       ./uv
     ];
