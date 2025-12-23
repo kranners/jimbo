@@ -98,6 +98,8 @@ in
         layout = "master";
       };
 
+      ecosystem.no_update_news = true;
+
       master = {
         orientation = "center";
         slave_count_for_center_master = 0;
@@ -119,7 +121,7 @@ in
       ];
 
       windowrulev2 = lib.lists.flatten (
-        lib.lists.map (window_regex: make_game_window_rules (window_regex)) [
+        lib.lists.map (window_regex: make_game_window_rules window_regex) [
           "^gamescope$"
           "^steam_app_\\d+$"
           "^overwatch.exe$"
@@ -156,7 +158,7 @@ in
         "$mod, O, exec, obsidian"
         "$mod, S, exec, steam"
         "$mod, Y, exec, spotify"
-        "$mod, B, exec, firefox"
+        "$mod, B, exec, vivaldi"
         "$mod, V, exec, vesktop"
         "$mod, P, exec, plexamp"
         "$mod, C, exec, chromium"
