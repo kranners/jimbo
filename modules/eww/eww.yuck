@@ -457,9 +457,9 @@
         :hotkey "Mod+Enter"
       )
       (launcher
-        :onclick "uwsm app -- firefox &"
-        :icon "firefox"
-        :title "Firefox"
+        :onclick "uwsm app -- vivaldi &"
+        :icon "vivaldi"
+        :title "Vivaldi"
         :hotkey "Mod+B"
       )
       (launcher
