@@ -116,5 +116,7 @@
     pkgs.wl-clipboard
     pkgs.helvum
     pkgs.vivaldi
+
+    pkgs.lutris
   ];
 }

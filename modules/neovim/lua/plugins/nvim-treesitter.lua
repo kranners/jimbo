@@ -29,7 +29,4 @@ return {
     indent = { enable = true },
     parser_install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site"),
   },
-  config = function(_, opts)
-    require("nvim-treesitter.configs").setup(opts)
-  end,
 }
