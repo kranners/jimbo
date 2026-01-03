@@ -20,6 +20,8 @@ local shared_fd_opts = "--type file "
 return {
   {
     "elanmed/fzf-lua-frecency.nvim",
+    -- Checking out with its submodules currently failing
+    enabled = false,
     dependencies = { "ibhagwan/fzf-lua" },
     opts = {
       fzf_opts = vim.tbl_extend("force", shared_fzf_opts, {
@@ -67,9 +69,11 @@ return {
       {
         "<C-o>",
         function()
-          require("fzf-lua-frecency").frecency({
-            cwd_only = true,
-          })
+          require("fzf-lua").files()
+
+          -- require("fzf-lua-frecency").frecency({
+          --   cwd_only = true,
+          -- })
         end,
         desc = "Find files by name",
       },
