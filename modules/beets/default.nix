@@ -4,7 +4,6 @@
 
     programs.beets = {
       enable = true;
-
       settings = {
         plugins = [
           "badfiles"
@@ -28,6 +27,10 @@
 
         embedart = {
           remove_art_file = true;
+        };
+
+        lyrics = {
+          synced = true;
         };
 
         replaygain = {
@@ -58,10 +61,8 @@
           first_genre = "genre.split(', ')[0]";
         };
 
-        # import config, rewrite existing fields
         import = {
           set_fields = {
-            # https://github.com/beetbox/beets/pull/4743#issuecomment-2014092144
             albumartist = "%first{%first{$albumartists,1,0,␀},1,0,\\}";
           };
         };
