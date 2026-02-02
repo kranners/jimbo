@@ -17,10 +17,11 @@
       };
 
       sessionPath = [
+        "$HOME/.local/bin"
+
         # /scripts is intentionally not managed with Nix.
         "$HOME/scripts"
       ];
-
     };
 
     programs.starship.enable = true;
