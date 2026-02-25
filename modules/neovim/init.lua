@@ -29,6 +29,12 @@ local binds_not_related_to_a_plugin = {
     options = { desc = "Save all" },
   },
   {
+    action = "<CMD>noa wa<CR>",
+    key = "<Leader>S",
+    mode = "n",
+    options = { desc = "Force save all without running autocmds" },
+  },
+  {
     action = "<C-o>",
     key = "<C-[>",
     mode = "n",
