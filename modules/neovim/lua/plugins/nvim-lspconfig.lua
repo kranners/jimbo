@@ -45,14 +45,11 @@ return {
   },
   config = function(_, opts)
     local build_caps = function()
-      local base_caps = vim.lsp.protocol.make_client_capabilities()
-      base_caps.general.positionEncodings = { "utf-8" }
+      local capabilities = vim.lsp.protocol.make_client_capabilities()
+      capabilities = require("blink.cmp").get_lsp_capabilities(capabilities)
+      capabilities.general.positionEncodings = { "utf-8" }
 
-      -- if plugin_enabled("blink.cmp") then
-      -- 	base_caps = require("blink.cmp").get_lsp_capabilities(base_caps)
-      -- end
-
-      return base_caps
+      return capabilities
     end
 
     local default_config = {
