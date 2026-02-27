@@ -3,7 +3,7 @@ return {
   enabled = false,
   lazy = false,
   name = "ts-refactor",
-  dir = "/Users/aaron/git/ts-refactor.nvim",
+  dir = "/Users/aaron/workspace/ts-refactor.nvim",
   dev = {
     fallback = false,
   },

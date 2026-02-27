@@ -184,12 +184,12 @@
 
       includes = [
         {
-          condition = "gitdir:~/git/praxhub/";
+          condition = "gitdir:~/workspace/praxhub/";
           path = "~/.config/git/work-config";
         }
 
         {
-          condition = "gitdir:~/git/praxhub-web/";
+          condition = "gitdir:~/workspace/praxhub-web/";
           path = "~/.config/git/work-config";
         }
       ];
