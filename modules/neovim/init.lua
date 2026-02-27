@@ -138,12 +138,6 @@ local binds_not_related_to_a_plugin = {
     mode = "n",
   },
   {
-    key = "<Leader><CR>",
-    action = "<CMD>lua vim.lsp.buf.code_action()<CR>",
-    mode = "n",
-    desc = "Show code actions",
-  },
-  {
     key = "<Leader>r",
     action = "<CMD>lua vim.lsp.buf.rename()<CR>",
     mode = "n",

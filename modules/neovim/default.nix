@@ -2,7 +2,7 @@
   sharedHomeModule = { pkgs, config, ... }:
     let
       inherit (config.lib.file) mkOutOfStoreSymlink;
-      nvimSourceHome = "${config.home.homeDirectory}/git/jimbo/modules/neovim";
+      nvimSourceHome = "${config.home.homeDirectory}/workspace/jimbo/modules/neovim";
     in
     {
       programs.neovim = {
