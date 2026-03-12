@@ -114,7 +114,6 @@
     pkgs.mpv
     pkgs.blueberry
     pkgs.wl-clipboard
-    pkgs.helvum
     pkgs.vivaldi
 
     pkgs.lutris
