@@ -162,3 +162,6 @@ vim.api.nvim_create_user_command("Z", function()
 end, {})
 
 vim.cmd("cabbrev wqa Z")
+vim.cmd("cabbrev Wqa Z")
+vim.cmd("cabbrev WQa Z")
+vim.cmd("cabbrev WQA Z")
