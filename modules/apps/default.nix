@@ -112,7 +112,7 @@
 
     pkgs.pavucontrol
     pkgs.mpv
-    pkgs.blueberry
+    pkgs.blueman
     pkgs.wl-clipboard
     pkgs.vivaldi
 
