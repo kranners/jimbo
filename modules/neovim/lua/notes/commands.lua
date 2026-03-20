@@ -33,9 +33,6 @@ local create_new_note = function(title)
   -- Append the template to the file
   local template = get_note_template_contents(title)
   vim.api.nvim_put(template, "l", false, true)
-
-  -- Go into insert mode
-  vim.api.nvim_feedkeys("i", "t", false)
 end
 
 M.prompt_for_new_note = function()
