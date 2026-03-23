@@ -12,7 +12,6 @@
         "browserstacklocal"
 
         "obsidian"
-        "busycal"
 
         "docker-desktop"
         "microsoft-teams"
@@ -70,6 +69,7 @@
     pkgs.act
     pkgs.nh
     pkgs.ripgrep
+    pkgs.mariadb.client
   ];
 
   darwinHomeModule.home.packages = [
