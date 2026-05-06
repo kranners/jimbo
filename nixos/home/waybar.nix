@@ -161,7 +161,7 @@
 
         bluetooth = {
           format = "{status}";
-          on-click = "${pkgs.blueberry}/bin/blueberry";
+          on-click = "${pkgs.blueman}/bin/blueman";
         };
 
         network = {
