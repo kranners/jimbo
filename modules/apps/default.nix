@@ -76,7 +76,7 @@
     pkgs.nurl
     pkgs.nix-output-monitor
     pkgs.mas
-    pkgs.nodePackages.svgo
+    pkgs.svgo
   ];
 
   nixosSystemModule.environment.systemPackages = [
