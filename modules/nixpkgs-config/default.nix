@@ -1,4 +1,3 @@
-{ pkgs, ... }:
 let
   nixpkgs.config = {
     allowUnfree = true;
@@ -6,8 +5,6 @@ let
   };
 
   nix = {
-    package = pkgs.lix;
-
     settings = {
       # Enable Flakes
       experimental-features = [
