@@ -77,7 +77,8 @@
         inherit runtimeInputs;
 
         text = ''
-          UPDATE_BRANCH="$(basename "$(git symbolic-ref refs/remotes/origin/HEAD)")"
+          DEFAULT_UPDATE_BRANCH="$(basename "$(git symbolic-ref refs/remotes/origin/HEAD)")"
+          UPDATE_BRANCH="''${1:-''$DEFAULT_UPDATE_BRANCH}"
 
           git switch "$UPDATE_BRANCH"
           git pull --rebase
@@ -100,8 +101,9 @@
 
         text = ''
           NEW_BRANCH_NAME="$1"
+          UPDATE_BRANCH_NAME="$2"
 
-          git freshen
+          git freshen "$UPDATE_BRANCH_NAME"
           git switch --create "$NEW_BRANCH_NAME"
         '';
       };
