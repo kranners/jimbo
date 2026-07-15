@@ -35,7 +35,7 @@
       ];
 
       brews = [
-        "docker"
+        # "docker"
         "direnv"
         "gnupg"
         "jq"
