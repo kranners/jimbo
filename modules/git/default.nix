@@ -199,6 +199,11 @@
           condition = "gitdir:~/workspace/praxhub-web-stress-test/";
           path = "~/.config/git/work-config";
         }
+
+        {
+          condition = "gitdir:~/workspace/praxhub-test/";
+          path = "~/.config/git/work-config";
+        }
       ];
     };
 
