@@ -1,6 +1,6 @@
 {
   sharedHomeModule.xdg.configFile.cmux = {
-    target = "./cmux/config.json";
+    target = "./cmux/cmux.json";
 
     text = builtins.toJSON {
       shortcuts = {
