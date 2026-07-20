@@ -26,6 +26,7 @@ in
     ./users
     ./fonts
     ./git
+    ./cmux
   ];
 
   options = {
