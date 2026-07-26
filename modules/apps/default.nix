@@ -1,5 +1,10 @@
 { pkgs, ... }: {
   darwinSystemModule = {
+    environment.systemPath = [
+      "/opt/homebrew/bin"
+      "/opt/homebrew/sbin"
+    ];
+
     homebrew = {
       enable = true;
 
