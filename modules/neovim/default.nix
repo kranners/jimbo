@@ -42,6 +42,7 @@
         pkgs.stylua
         pkgs.cargo
         pkgs.tree-sitter
+        pkgs.yaml-language-server
       ];
     };
 }

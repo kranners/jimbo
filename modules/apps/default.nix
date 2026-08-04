@@ -26,7 +26,7 @@
         "readdle-spark"
 
         "ungoogled-chromium"
-        "firefox"
+        # "firefox"
         "vivaldi"
 
         "plexamp"
