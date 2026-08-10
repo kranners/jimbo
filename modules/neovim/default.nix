@@ -43,6 +43,7 @@
         pkgs.cargo
         pkgs.tree-sitter
         pkgs.yaml-language-server
+        pkgs.sqls
       ];
     };
 }
