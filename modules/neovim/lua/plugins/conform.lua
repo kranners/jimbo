@@ -6,7 +6,7 @@ return {
       timeout_ms = 500,
       lsp_format = "first",
       filter = function(client)
-        return client.name == "eslint"
+        return client.name == "eslint" or client.name == "sqls"
       end,
     },
     formatters_by_ft = {

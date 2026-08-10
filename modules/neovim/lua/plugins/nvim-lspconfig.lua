@@ -41,6 +41,7 @@ return {
       eslint = {},
       emmet_language_server = {},
       astro = {},
+      sqls = {},
     },
   },
   config = function(_, opts)
