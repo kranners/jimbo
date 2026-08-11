@@ -27,6 +27,7 @@ in
     ./fonts
     ./git
     ./cmux
+    ./claude
   ];
 
   options = {
