@@ -95,6 +95,49 @@
         '';
       };
 
+      git-tree = pkgs.writeShellApplication {
+        name = "git-tree";
+        inherit runtimeInputs;
+
+        text = ''
+          BRANCH="$1"
+          BASE="''${2:-HEAD}"
+
+          MAIN_WORKTREE="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
+          TREE_PATH="$(dirname "$MAIN_WORKTREE")/$(basename "$MAIN_WORKTREE")--trees/$BRANCH"
+
+          # reuse the existing worktree for this branch if there is one
+          EXISTING="$(git worktree list --porcelain | awk -v ref="refs/heads/$BRANCH" '
+            /^worktree / { wt = substr($0, 10) }
+            $0 == "branch " ref { print wt }
+          ')"
+
+          if [ -n "$EXISTING" ]; then
+            echo "$EXISTING"
+            exit 0
+          fi
+
+          if git show-ref --verify --quiet "refs/heads/$BRANCH" ||
+             git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+            git worktree add "$TREE_PATH" "$BRANCH" 1>&2
+          else
+            git worktree add -b "$BRANCH" "$TREE_PATH" "$BASE" 1>&2
+          fi
+
+          # carry gitignored env files over from the main worktree,
+          # collapsing ignored directories (node_modules etc) so we never copy from inside them
+          git -C "$MAIN_WORKTREE" ls-files --others --ignored --exclude-standard --directory -z \
+            -- ':(glob).env*' ':(glob)**/.env*' |
+            while IFS= read -r -d "" FILE; do
+              case "$FILE" in */) continue ;; esac
+              mkdir -p "$TREE_PATH/$(dirname "$FILE")"
+              cp "$MAIN_WORKTREE/$FILE" "$TREE_PATH/$FILE"
+            done
+
+          echo "$TREE_PATH"
+        '';
+      };
+
       git-new = pkgs.writeShellApplication {
         name = "git-new";
         inherit runtimeInputs;
@@ -118,6 +161,7 @@
         git-catchup
         git-new
         git-cram
+        git-tree
       ];
 
       shellAliases = {
@@ -178,6 +222,9 @@
         # automatically rebase on pull
         pull.rebase = true;
 
+        # create local tracking branch when worktree-adding a remote-only branch
+        worktree.guessRemote = true;
+
         user = {
           name = "Aaron";
           email = "aaron@cute.engineer";
@@ -220,6 +267,9 @@
     # Set TTY for GPG to do hardware signing on commits
     programs.zsh.initContent = lib.mkOrder 550 ''
       export GPG_TTY=$(tty)
+
+      # jump into a worktree made by git-tree (a subprocess cannot cd for us)
+      gt() { cd "$(git tree "$@")" || return }
     '';
   };
 }
