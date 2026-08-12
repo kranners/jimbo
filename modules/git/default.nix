@@ -95,6 +95,37 @@
         '';
       };
 
+      git-tree = pkgs.writeShellApplication {
+        name = "git-tree";
+        inherit runtimeInputs;
+
+        text = ''
+          BRANCH="$1"
+          BASE="''${2:-develop}"
+
+          MAIN="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
+          TREE="$MAIN--$BRANCH"
+
+          if [ ! -d "$TREE" ]; then
+            if git show-ref --quiet "$BRANCH"; then
+              git worktree add "$TREE" "$BRANCH" 1>&2
+            else
+              git worktree add -b "$BRANCH" "$TREE" "$BASE" 1>&2
+            fi
+
+            # Copy across .env files in unignored directories
+            git -C "$MAIN" ls-files -z --others --ignored --exclude-standard --directory -- ':(glob)**/.env*' |
+              while IFS= read -r -d "" FILE; do
+                case "$FILE" in */) continue ;; esac
+                mkdir -p "$TREE/$(dirname "$FILE")"
+                cp "$MAIN/$FILE" "$TREE/$FILE"
+              done
+          fi
+
+          echo "$TREE"
+        '';
+      };
+
       git-new = pkgs.writeShellApplication {
         name = "git-new";
         inherit runtimeInputs;
@@ -118,11 +149,8 @@
         git-catchup
         git-new
         git-cram
+        git-tree
       ];
-
-      shellAliases = {
-        g = "git";
-      };
     };
 
     programs.git = {
@@ -178,6 +206,9 @@
         # automatically rebase on pull
         pull.rebase = true;
 
+        # create local tracking branch when worktree-adding a remote-only branch
+        worktree.guessRemote = true;
+
         user = {
           name = "Aaron";
           email = "aaron@cute.engineer";
@@ -186,22 +217,7 @@
 
       includes = [
         {
-          condition = "gitdir:~/workspace/praxhub/";
-          path = "~/.config/git/work-config";
-        }
-
-        {
-          condition = "gitdir:~/workspace/praxhub-web/";
-          path = "~/.config/git/work-config";
-        }
-
-        {
-          condition = "gitdir:~/workspace/praxhub-web-stress-test/";
-          path = "~/.config/git/work-config";
-        }
-
-        {
-          condition = "gitdir:~/workspace/praxhub-test/";
+          condition = "gitdir:~/workspace/praxhub*/";
           path = "~/.config/git/work-config";
         }
       ];
@@ -220,6 +236,8 @@
     # Set TTY for GPG to do hardware signing on commits
     programs.zsh.initContent = lib.mkOrder 550 ''
       export GPG_TTY=$(tty)
+
+      tree() { cd "$(git tree "$@")" || return }
     '';
   };
 }
