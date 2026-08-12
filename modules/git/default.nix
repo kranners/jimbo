@@ -103,38 +103,30 @@
           BRANCH="$1"
           BASE="''${2:-HEAD}"
 
-          MAIN_WORKTREE="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
-          TREE_PATH="$(dirname "$MAIN_WORKTREE")/$(basename "$MAIN_WORKTREE")--trees/$BRANCH"
+          # the main worktree is always the first entry in `git worktree list`
+          MAIN="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
+          TREE="$MAIN--$BRANCH"
 
-          # reuse the existing worktree for this branch if there is one
-          EXISTING="$(git worktree list --porcelain | awk -v ref="refs/heads/$BRANCH" '
-            /^worktree / { wt = substr($0, 10) }
-            $0 == "branch " ref { print wt }
-          ')"
+          if [ ! -d "$TREE" ]; then
+            if git show-ref --verify --quiet "refs/heads/$BRANCH" ||
+               git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+              git worktree add "$TREE" "$BRANCH" 1>&2
+            else
+              git worktree add -b "$BRANCH" "$TREE" "$BASE" 1>&2
+            fi
 
-          if [ -n "$EXISTING" ]; then
-            echo "$EXISTING"
-            exit 0
+            # copy gitignored .env files over from the main worktree; --directory
+            # collapses ignored directories (node_modules etc) into a single entry
+            # ending in /, which the loop skips rather than copying from inside
+            git -C "$MAIN" ls-files -z --others --ignored --exclude-standard --directory -- ':(glob)**/.env*' |
+              while IFS= read -r -d "" FILE; do
+                case "$FILE" in */) continue ;; esac
+                mkdir -p "$TREE/$(dirname "$FILE")"
+                cp "$MAIN/$FILE" "$TREE/$FILE"
+              done
           fi
 
-          if git show-ref --verify --quiet "refs/heads/$BRANCH" ||
-             git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
-            git worktree add "$TREE_PATH" "$BRANCH" 1>&2
-          else
-            git worktree add -b "$BRANCH" "$TREE_PATH" "$BASE" 1>&2
-          fi
-
-          # carry gitignored env files over from the main worktree,
-          # collapsing ignored directories (node_modules etc) so we never copy from inside them
-          git -C "$MAIN_WORKTREE" ls-files --others --ignored --exclude-standard --directory -z \
-            -- ':(glob).env*' ':(glob)**/.env*' |
-            while IFS= read -r -d "" FILE; do
-              case "$FILE" in */) continue ;; esac
-              mkdir -p "$TREE_PATH/$(dirname "$FILE")"
-              cp "$MAIN_WORKTREE/$FILE" "$TREE_PATH/$FILE"
-            done
-
-          echo "$TREE_PATH"
+          echo "$TREE"
         '';
       };
 
@@ -233,22 +225,9 @@
 
       includes = [
         {
-          condition = "gitdir:~/workspace/praxhub/";
-          path = "~/.config/git/work-config";
-        }
-
-        {
-          condition = "gitdir:~/workspace/praxhub-web/";
-          path = "~/.config/git/work-config";
-        }
-
-        {
-          condition = "gitdir:~/workspace/praxhub-web-stress-test/";
-          path = "~/.config/git/work-config";
-        }
-
-        {
-          condition = "gitdir:~/workspace/praxhub-test/";
+          # trailing slash is required: git turns "praxhub*/" into "praxhub*/**",
+          # which also matches the gitdirs of linked worktrees (main/.git/worktrees/x)
+          condition = "gitdir:~/workspace/praxhub*/";
           path = "~/.config/git/work-config";
         }
       ];
