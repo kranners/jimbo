@@ -101,23 +101,19 @@
 
         text = ''
           BRANCH="$1"
-          BASE="''${2:-HEAD}"
+          BASE="''${2:-develop}"
 
-          # the main worktree is always the first entry in `git worktree list`
           MAIN="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
           TREE="$MAIN--$BRANCH"
 
           if [ ! -d "$TREE" ]; then
-            if git show-ref --verify --quiet "refs/heads/$BRANCH" ||
-               git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+            if git show-ref --quiet "$BRANCH"; then
               git worktree add "$TREE" "$BRANCH" 1>&2
             else
               git worktree add -b "$BRANCH" "$TREE" "$BASE" 1>&2
             fi
 
-            # copy gitignored .env files over from the main worktree; --directory
-            # collapses ignored directories (node_modules etc) into a single entry
-            # ending in /, which the loop skips rather than copying from inside
+            # Copy across .env files in unignored directories
             git -C "$MAIN" ls-files -z --others --ignored --exclude-standard --directory -- ':(glob)**/.env*' |
               while IFS= read -r -d "" FILE; do
                 case "$FILE" in */) continue ;; esac
@@ -155,10 +151,6 @@
         git-cram
         git-tree
       ];
-
-      shellAliases = {
-        g = "git";
-      };
     };
 
     programs.git = {
@@ -225,8 +217,6 @@
 
       includes = [
         {
-          # trailing slash is required: git turns "praxhub*/" into "praxhub*/**",
-          # which also matches the gitdirs of linked worktrees (main/.git/worktrees/x)
           condition = "gitdir:~/workspace/praxhub*/";
           path = "~/.config/git/work-config";
         }
@@ -247,8 +237,7 @@
     programs.zsh.initContent = lib.mkOrder 550 ''
       export GPG_TTY=$(tty)
 
-      # jump into a worktree made by git-tree (a subprocess cannot cd for us)
-      gt() { cd "$(git tree "$@")" || return }
+      tree() { cd "$(git tree "$@")" || return }
     '';
   };
 }
