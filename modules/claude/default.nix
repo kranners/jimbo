@@ -26,8 +26,8 @@
       # Disable prompt suggestions
       promptSuggestionsEnabled = false;
 
-      # See full tool usages
-      verbose = true;
+      # Allow editing of current working copy
+      worktree.bgIsolation = "none";
     };
   };
 }
