@@ -126,6 +126,18 @@
         '';
       };
 
+      git-untree = pkgs.writeShellApplication {
+        name = "git-untree";
+        inherit runtimeInputs;
+
+        text = ''
+          BRANCH="$1"
+
+          MAIN="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
+          git worktree remove "$MAIN--$BRANCH"
+        '';
+      };
+
       git-new = pkgs.writeShellApplication {
         name = "git-new";
         inherit runtimeInputs;
@@ -150,6 +162,7 @@
         git-new
         git-cram
         git-tree
+        git-untree
       ];
     };
 
@@ -237,7 +250,10 @@
     programs.zsh.initContent = lib.mkOrder 550 ''
       export GPG_TTY=$(tty)
 
-      tree() { cd "$(git tree "$@")" || return }
+      tree() {
+        cd "$(git tree "$@")" || return
+        cmux workspace-action --action rename --title "$1"
+      }
     '';
   };
 }
