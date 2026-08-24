@@ -5,7 +5,7 @@
       theme = "auto";
 
       # Model settings
-      model = "claude-fable-5[1m]";
+      model = "claude-opus-4-8";
       effortLevel = "high";
 
       # Plugins
