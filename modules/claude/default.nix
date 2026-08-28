@@ -5,8 +5,11 @@
       theme = "auto";
 
       # Model settings
-      model = "claude-opus-4-8";
+      model = "claude-opus-5";
       effortLevel = "high";
+
+      # Start in auto mode
+      permissions.defaultMode = "auto";
 
       # Plugins
       enabledPlugins = {
