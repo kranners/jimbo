@@ -134,7 +134,7 @@
           BRANCH="$1"
 
           MAIN="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
-          git worktree remove "$MAIN--$BRANCH"
+          git worktree remove "$MAIN--$BRANCH" "''${@:2}"
         '';
       };
 
