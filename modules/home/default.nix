@@ -18,10 +18,14 @@ in
   ];
 
   nixosSystemModule = mkHome [
-    ../../nixos/home
     config.nixosHomeModule
     config.sharedHomeModule
   ];
+
+  nixosHomeModule = {
+    # Give Home Manager the power to stop and start systemd services
+    systemd.user.startServices = "sd-switch";
+  };
 
   sharedHomeModule = {
     imports = [
@@ -35,5 +39,8 @@ in
       enable = true;
       enableZshIntegration = true;
     };
+
+    # Let Home Manager install and manage itself.
+    programs.home-manager.enable = true;
   };
 }

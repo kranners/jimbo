@@ -1,12 +1,14 @@
-{
+top@{ ... }: {
   sharedHomeModule = { pkgs, config, lib, ... }:
     let
       inherit (config.lib.file) mkOutOfStoreSymlink;
       inherit (lib) fileContents;
 
-      nvimLuaSourceHome = "${config.home.homeDirectory}/workspace/jimbo/modules/neovim/lua";
-      nvimAfterSourceHome = "${config.home.homeDirectory}/workspace/jimbo/modules/neovim/after";
-      nvimLazyLockSourceHome = "${config.home.homeDirectory}/workspace/jimbo/modules/neovim/lazy-lock.json";
+      repo = "${config.home.homeDirectory}/${top.config.repoPath}";
+
+      nvimLuaSourceHome = "${repo}/modules/neovim/lua";
+      nvimAfterSourceHome = "${repo}/modules/neovim/after";
+      nvimLazyLockSourceHome = "${repo}/modules/neovim/lazy-lock.json";
     in
     {
       programs.neovim = {

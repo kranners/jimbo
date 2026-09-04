@@ -8,9 +8,8 @@ Project structure:
 ```
 📁  assets/      <-- static assets
 📁  modules/     <-- config modules
+    📁  hosts/   <-- per-machine facts
     📁  neovim/  <-- neovim lua config
-📁  darwin/      <-- legacy nix-darwin modules
-📁  nixos/       <-- legacy nixos-modules
 ```
 
 Trying to emulate [`nix-config-modules`](https://github.com/chadac/nix-config-modules) using `lib` functions.

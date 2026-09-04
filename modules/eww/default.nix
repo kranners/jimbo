@@ -1,8 +1,8 @@
-{
+top@{ ... }: {
   nixosHomeModule = { config, pkgs, ... }:
     let
       inherit (config.lib.file) mkOutOfStoreSymlink;
-      ewwSourceHome = "${config.home.homeDirectory}/workspace/jimbo/modules/eww";
+      ewwSourceHome = "${config.home.homeDirectory}/${top.config.repoPath}/modules/eww";
 
       dashboard = pkgs.writeShellApplication {
         name = "dashboard";
