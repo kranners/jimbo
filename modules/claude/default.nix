@@ -5,8 +5,11 @@
       theme = "auto";
 
       # Model settings
-      model = "claude-fable-5[1m]";
+      model = "claude-opus-5";
       effortLevel = "high";
+
+      # Start in auto mode
+      permissions.defaultMode = "auto";
 
       # Plugins
       enabledPlugins = {
@@ -26,8 +29,8 @@
       # Disable prompt suggestions
       promptSuggestionsEnabled = false;
 
-      # See full tool usages
-      verbose = true;
+      # Allow editing of current working copy
+      worktree.bgIsolation = "none";
     };
   };
 }
