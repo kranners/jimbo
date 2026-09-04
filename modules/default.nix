@@ -7,6 +7,7 @@ let
 in
 {
   imports = [
+    ./hosts
     ./home
     ./hyprland
     ./apps
@@ -20,17 +21,37 @@ in
     ./zsh
     ./ghostty
     ./preferences
-    ./overlays
-    ./state-versions
     ./autoraise
     ./users
     ./fonts
     ./git
     ./cmux
     ./claude
+    ./graphics
+    ./sound
+    ./security
+    ./xdg
+    ./locale
+    ./networking
+    ./gnupg
+    ./gaming
+    ./waybar
+    ./wallpaper
+    ./avizo
+    ./obsidian
+    ./discord
+    ./plexamp
+    ./spotify
+    ./browser
   ];
 
   options = {
+    repoPath = mkOption {
+      description = "Location of this repository, relative to the user's home directory.";
+      type = types.str;
+      default = "workspace/jimbo";
+    };
+
     darwinSystemModule = mkOption {
       type = types.deferredModule;
       default = { };
@@ -94,7 +115,6 @@ in
         modules = [
           inputs.home-manager.nixosModules.home-manager
 
-          ../nixos/system
           config.nixosSystemModule
           config.sharedSystemModule
         ];

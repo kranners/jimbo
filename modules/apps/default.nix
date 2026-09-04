@@ -16,33 +16,20 @@
         "mysqlworkbench"
         "browserstacklocal"
 
-        "obsidian"
-
         "docker-desktop"
         "microsoft-teams"
         "microsoft-outlook"
         "onedrive"
-        "discord"
         "readdle-spark"
-
-        "ungoogled-chromium"
-        # "firefox"
-        "vivaldi"
-
-        "plexamp"
-        "spotify"
 
         "rectangle"
         "charmstone"
         "raycast"
-
-        "jagex"
       ];
 
       brews = [
         # "docker"
         "direnv"
-        "gnupg"
         "jq"
         "luajit"
 
@@ -87,14 +74,12 @@
   nixosSystemModule.environment.systemPackages = [
     pkgs.nixfmt-rfc-style
     pkgs.gnumake
-    pkgs.gnupg
     pkgs.manix
     pkgs.eza
     pkgs.btop
     pkgs.htop
     pkgs.gptfdisk
     pkgs.libnotify
-    pkgs.pipewire
     pkgs.home-manager
     pkgs.busybox
     pkgs.woeusb-ng
@@ -103,24 +88,12 @@
 
   nixosHomeModule.home.packages = [
     pkgs.uv
-    pkgs.spotify
-    pkgs.plexamp
     pkgs.nicotine-plus
-    pkgs.protonup-qt
-    pkgs.r2modman
-    pkgs.obsidian
     pkgs.jq
     pkgs.nurl
-    pkgs.pokemmo-installer
-    pkgs.prismlauncher
-    pkgs.bolt-launcher
 
     pkgs.pavucontrol
     pkgs.mpv
     pkgs.blueman
-    pkgs.wl-clipboard
-    pkgs.vivaldi
-
-    pkgs.lutris
   ];
 }

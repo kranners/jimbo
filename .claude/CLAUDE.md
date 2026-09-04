@@ -34,13 +34,13 @@ Every directory under `modules/` is a config module that contributes to one or m
 
 Modules receive `inputs` (flake inputs) and `host` (`{ system, hostname, username }`) via `specialArgs`, in addition to the usual `pkgs`/`lib`/`config`.
 
-### Legacy
+### Hosts
 
-`nixos/` holds legacy NixOS modules imported directly by `modules/default.nix` (`nixos/system`) and `modules/home/default.nix` (`nixos/home`).
+`modules/hosts/<host>/` holds facts about one machine only: hardware, bootloader, hostname, state versions.
 
 ### Neovim
 
-`modules/neovim/lua`, `after/`, and `lazy-lock.json` are symlinked into `~/.config/nvim` with `mkOutOfStoreSymlink`, hardcoded to the repo living at `~/workspace/jimbo`.
+`modules/neovim/lua`, `after/`, and `lazy-lock.json` are symlinked into `~/.config/nvim` with `mkOutOfStoreSymlink`, resolved through the `repoPath` option (relative to the home directory, default `workspace/jimbo`).
 
 Lua edits take effect immediately without a rebuild; only `init.lua` and the LSP/tool packages in `default.nix` require a rebuild.
 

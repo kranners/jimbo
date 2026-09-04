@@ -1,16 +1,4 @@
 {
-  nixosSystemModule = {
-    programs.git = {
-      enable = true;
-
-      config.user = {
-        signingkey = "53EAEA9DA697D60B";
-        name = "Aaron Pierce";
-        email = "aaron@cute.engineer";
-      };
-    };
-  };
-
   sharedHomeModule = { pkgs, lib, ... }:
     let
       runtimeInputs = [ pkgs.git ];
@@ -262,10 +250,7 @@
       '';
     };
 
-    # Set TTY for GPG to do hardware signing on commits
     programs.zsh.initContent = lib.mkOrder 550 ''
-      export GPG_TTY=$(tty)
-
       tree() {
         cd "$(git tree "$@")" || return
         cmux workspace-action --action rename --title "$1"
