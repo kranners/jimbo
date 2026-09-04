@@ -1,5 +1,28 @@
 {
-  sharedHomeModule = {
+  sharedHomeModule = { pkgs, ... }:
+    let
+      save-branch-context = pkgs.writeShellApplication {
+        name = "save-branch-context";
+        runtimeInputs = [ pkgs.git pkgs.gawk ];
+
+        text = ''
+          BRANCH="$(git symbolic-ref --short HEAD)"
+          NOTE="$HOME/Documents/Latte/Branches/$BRANCH.md"
+
+          # Branch context is the last h1 section, running to the end of file
+          awk '
+            /^# / { context = "" }
+            { context = context $0 "\n" }
+            END { printf "%s", context }
+          ' "$(git rev-parse --show-toplevel)/.claude/CLAUDE.md" >"$NOTE"
+
+          echo "Saved to $NOTE"
+        '';
+      };
+    in
+  {
+    home.packages = [ save-branch-context ];
+
     home.file.".claude/CLAUDE.md".source = ./CLAUDE.md;
     home.file.".claude/settings.json".text = builtins.toJSON {
       theme = "auto";

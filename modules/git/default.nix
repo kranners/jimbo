@@ -95,6 +95,17 @@
         '';
       };
 
+      switch-environment = pkgs.writeShellApplication {
+        name = "switch-environment";
+        runtimeInputs = runtimeInputs ++ [ pkgs.coreutils ];
+
+        text = ''
+          MAIN="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
+          cp -R "$HOME/workspace/.environments/$(basename "$MAIN")/$1/." "$(git rev-parse --show-toplevel)/"
+          echo "Switched $MAIN->$1"
+        '';
+      };
+
       git-tree = pkgs.writeShellApplication {
         name = "git-tree";
         inherit runtimeInputs;
@@ -112,14 +123,6 @@
             else
               git worktree add -b "$BRANCH" "$TREE" "$BASE" 1>&2
             fi
-
-            # Copy across .env files in unignored directories
-            git -C "$MAIN" ls-files -z --others --ignored --exclude-standard --directory -- ':(glob)**/.env*' |
-              while IFS= read -r -d "" FILE; do
-                case "$FILE" in */) continue ;; esac
-                mkdir -p "$TREE/$(dirname "$FILE")"
-                cp "$MAIN/$FILE" "$TREE/$FILE"
-              done
           fi
 
           echo "$TREE"
@@ -135,6 +138,17 @@
 
           MAIN="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
           git worktree remove "$MAIN--$BRANCH" "''${@:2}"
+        '';
+      };
+
+      git-rewrite = pkgs.writeShellApplication {
+        name = "git-rewrite";
+        inherit runtimeInputs;
+
+        text = ''
+          BASE="''${1:-develop}"
+
+          git rebase --interactive "$(git merge-base HEAD "$BASE")"
         '';
       };
 
@@ -163,6 +177,8 @@
         git-cram
         git-tree
         git-untree
+        switch-environment
+        git-rewrite
       ];
     };
 
