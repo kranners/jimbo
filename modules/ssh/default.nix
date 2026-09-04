@@ -1,4 +1,6 @@
 {
+  nixosSystemModule.services.openssh.enable = true;
+
   sharedHomeModule = {
     programs.ssh = {
       enable = true;
