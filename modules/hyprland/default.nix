@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 let
   exit-if-all-closed = pkgs.writeShellApplication {
     name = "exit-if-all-closed";
@@ -46,17 +46,6 @@ let
     '';
   };
 
-  make_game_window_rules = (
-    window_regex: [
-      "prop noborder,class:${window_regex}"
-      "prop noblur,class:${window_regex}"
-      "prop nodim,class:${window_regex}"
-      "prop noshadow,class:${window_regex}"
-      "prop noanim,class:${window_regex}"
-      "workspace 1,class:${window_regex}"
-      "immediate,class:${window_regex}"
-    ]
-  );
 in
 {
   nixosHomeModule.home.packages = [
@@ -120,19 +109,6 @@ in
         }
       ];
 
-      windowrulev2 = lib.lists.flatten (
-        lib.lists.map (window_regex: make_game_window_rules window_regex) [
-          "^gamescope$"
-          "^steam_app_\\d+$"
-          "^overwatch.exe$"
-        ]
-      );
-
-      exec-once = lib.lists.map (x: "app2unit -- " + x) [
-        "${pkgs.vesktop}/share/applications/vesktop.desktop"
-        "${pkgs.steam}/share/applications/steam.desktop"
-      ];
-
       bindm = [
         "$mod, mouse:272, movewindow"
         "$mod, mouse:273, resizewindow"
@@ -154,14 +130,6 @@ in
 
         "$mod, F, fullscreen"
         "$mod SHIFT, F, togglefloating"
-
-        "$mod, O, exec, obsidian"
-        "$mod, S, exec, steam"
-        "$mod, Y, exec, spotify"
-        "$mod, B, exec, vivaldi"
-        "$mod, V, exec, vesktop"
-        "$mod, P, exec, plexamp"
-        "$mod, C, exec, chromium"
 
         "$mod, H, movefocus, l"
         "$mod, J, movefocus, d"

@@ -1,4 +1,8 @@
 {
+  nixosSystemModule = {
+    programs.zsh.enable = true;
+  };
+
   darwinSystemModule = {
     # Must be enabled in Darwin system as well as home
     programs.zsh.enable = true;
