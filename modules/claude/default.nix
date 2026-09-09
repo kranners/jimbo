@@ -19,6 +19,15 @@
           echo "Saved to $NOTE"
         '';
       };
+
+      statusline = pkgs.writeShellApplication {
+        name = "claude-statusline";
+        runtimeInputs = [ pkgs.git pkgs.python3 ];
+
+        text = ''
+          exec python3 ${./statusline.py}
+        '';
+      };
     in
   {
     home.packages = [ save-branch-context ];
@@ -54,6 +63,12 @@
 
       # Allow editing of current working copy
       worktree.bgIsolation = "none";
+
+      # Status line
+      statusLine = {
+        type = "command";
+        command = "${statusline}/bin/claude-statusline";
+      };
     };
   };
 }
