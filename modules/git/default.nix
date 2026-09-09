@@ -21,18 +21,15 @@
 
         text = ''
           DEFAULT_UPDATE_BRANCH="$(basename "$(git symbolic-ref refs/remotes/origin/HEAD)")"
-          CURRENT_BRANCH="$(git symbolic-ref --short --quiet HEAD)"
 
           UPDATE_STRATEGY="''${1:-rebase}"
           UPDATE_BRANCH="''${2:-$DEFAULT_UPDATE_BRANCH}"
 
-          git switch "$UPDATE_BRANCH"
-          git pull
-          git switch "$CURRENT_BRANCH"
+          git fetch origin "$UPDATE_BRANCH"
 
           case "$UPDATE_STRATEGY" in
-            "rebase") git rebase "$UPDATE_BRANCH" "''${@:3}" ;;
-            "merge") git merge "$UPDATE_BRANCH" "''${@:3}" ;;
+            "rebase") git rebase FETCH_HEAD "''${@:3}" ;;
+            "merge") git merge FETCH_HEAD "''${@:3}" ;;
           esac
         '';
       };
