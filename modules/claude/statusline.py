@@ -3,12 +3,18 @@
 Reads the status line JSON on stdin and prints one line:
 
   Opus 5  jimbo:main  session 1.2M $4.31  turn 210k $0.68  today 8.4M $22.10  [###---] 61% left
+  ⛁⛁⛀⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛝  62k/967k 6%
 
 Session cost comes from Claude Code itself. Token counts and the daily cost are
 summed from the JSONL transcripts under ~/.claude/projects, priced with the same
 table Claude Code uses. The turn figure covers the most recent prompt and every
 request it triggered, so per prompt cost can be watched climbing as the context
 grows. The usage bar is the five hour rate limit window.
+
+The second line is the context window, scaled to the point autocompaction fires
+rather than to the raw window, with the reserved buffer drawn as a tail. Grey is
+the fixed overhead every request carries; purple is what the session has added
+since. Symbols and colours follow /context.
 """
 
 import json
@@ -63,12 +69,38 @@ FAST_TIERS = {
 WEB_SEARCH_USD = 0.01
 US_GEO_MULTIPLIER = 1.1
 
+# Context windows are absent from the status line payload, so this is a table
+# like the tiers above; /context reports the live figure. The default is
+# deliberately low. A window guessed too large hides autocompaction coming, and
+# window_for corrects itself upwards once a request proves the table stale.
+DEFAULT_WINDOW = 200_000
+MAX_WINDOW = 1_000_000
+MODEL_WINDOWS = {
+    "claude-opus-5": MAX_WINDOW,
+    "claude-fable-5-1": MAX_WINDOW,
+}
+
+# Autocompaction fires this far short of the window. Read off /context on a 1m
+# window; the figure on smaller windows has not been checked.
+AUTOCOMPACT_BUFFER = 33_000
+
+CONTEXT_WIDTH = 23
+
 DIM = "\033[2m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 GREEN = "\033[32m"
 YELLOW = "\033[33m"
 RED = "\033[31m"
+
+# /context's palette and cell symbols.
+CTX_OVERHEAD = "\033[38;2;136;136;136m"
+CTX_MESSAGES = "\033[38;2;130;125;189m"
+CTX_FREE = "\033[38;2;153;153;153m"
+CELL_FULL = "\u26c1"
+CELL_PART = "\u26c0"
+CELL_FREE = "\u26f6"
+CELL_BUFFER = "\u26dd"
 
 
 def normalise_model(model):
@@ -219,6 +251,56 @@ def last_prompt_time(transcript):
     return latest
 
 
+def context_use(transcript):
+    """Context size at the newest request, and at the session's first.
+
+    The first request carries the system prompt, tools, memory and skills plus
+    one short user turn, so it stands in for the overhead no pruning recovers.
+    Subagent turns are skipped; they have a context of their own.
+    """
+    if not transcript or not os.path.exists(transcript):
+        return None
+    try:
+        handle = open(transcript, "rb")
+    except OSError:
+        return None
+    first = last = model = None
+    with handle:
+        for raw in handle:
+            if b'"usage"' not in raw:
+                continue
+            try:
+                entry = json.loads(raw)
+            except ValueError:
+                continue
+            if entry.get("type") != "assistant" or entry.get("isSidechain"):
+                continue
+            message = entry.get("message") or {}
+            usage = message.get("usage")
+            name = message.get("model")
+            if not usage or not name or name.startswith("<"):
+                continue
+            total = sum(
+                usage.get(key) or 0
+                for key in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
+            )
+            if not total:
+                continue
+            if first is None:
+                first = total
+            last, model = total, name
+    return (first, last, model) if last else None
+
+
+def window_for(model, used):
+    window = MODEL_WINDOWS.get(normalise_model(model), DEFAULT_WINDOW)
+    # A request larger than the table allows means the table is stale, not that
+    # autocompaction failed to fire.
+    if used >= window - AUTOCOMPACT_BUFFER:
+        window = max(window, MAX_WINDOW)
+    return window
+
+
 def todays_files(midnight):
     root = os.path.expanduser("~/.claude/projects")
     found = []
@@ -273,6 +355,56 @@ def bar(remaining, width=10):
     return colour + "#" * filled + DIM + "-" * (width - filled) + RESET
 
 
+def context_bar(used, overhead, window, width=CONTEXT_WIDTH):
+    """Fill to the autocompaction point, with the reserved buffer as the tail."""
+    limit = max(1, window - AUTOCOMPACT_BUFFER)
+    tail = min(width - 1, max(1, int(round(width * AUTOCOMPACT_BUFFER / float(window)))))
+    span = width - tail
+    filled = max(0.0, min(float(span), used / float(limit) * span))
+    grey = max(0.0, min(filled, overhead / float(limit) * span))
+
+    cells = []
+    for index in range(span):
+        boundary = index == int(grey) and grey % 1
+        colour = CTX_OVERHEAD if index < int(grey) or boundary else CTX_MESSAGES
+        if index >= filled:
+            cells.append((CTX_FREE, CELL_FREE))
+        elif index >= int(filled) or boundary:
+            # A cell the fill, or the overhead it sits on, ends part way through.
+            cells.append((colour, CELL_PART))
+        else:
+            cells.append((colour, CELL_FULL))
+    cells += [(CTX_FREE, CELL_BUFFER)] * tail
+
+    out = []
+    current = None
+    for colour, symbol in cells:
+        if colour != current:
+            out.append(colour)
+            current = colour
+        out.append(symbol)
+    return "".join(out) + RESET
+
+
+def context_line(transcript):
+    seen = context_use(transcript)
+    if not seen:
+        return None
+    overhead, used, model = seen
+    window = window_for(model, used)
+    limit = window - AUTOCOMPACT_BUFFER
+    share = used / float(limit)
+    colour = RED if share > 0.9 else YELLOW if share > 0.7 else DIM
+    return "%s  %s/%s %s%d%%%s" % (
+        context_bar(used, overhead, window),
+        human(used),
+        human(limit),
+        colour,
+        round(share * 100),
+        RESET,
+    )
+
+
 def usage_left(status):
     five_hour = (status.get("rate_limits") or {}).get("five_hour")
     if not five_hour:
@@ -315,6 +447,10 @@ def main():
     if left:
         parts.append(left)
     print((DIM + "  ·  " + RESET).join(parts))
+
+    context = context_line(transcript)
+    if context:
+        print(context)
 
 
 if __name__ == "__main__":
