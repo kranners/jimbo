@@ -38,7 +38,7 @@
 
       # Model settings
       model = "claude-opus-5";
-      effortLevel = "high";
+      effortLevel = "medium";
 
       # Start in auto mode
       permissions.defaultMode = "auto";

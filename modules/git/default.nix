@@ -138,6 +138,55 @@
         '';
       };
 
+      git-tidy = pkgs.writeShellApplication {
+        name = "git-tidy";
+        runtimeInputs = runtimeInputs ++ [ pkgs.coreutils git-untree ];
+
+        text = ''
+          BASE="''${1:-$(basename "$(git symbolic-ref refs/remotes/origin/HEAD)")}"
+
+          git fetch --prune
+          git worktree prune
+
+          CURRENT="$(git branch --show-current)"
+
+          declare -A CANDIDATES=()
+
+          while read -r BRANCH; do
+            CANDIDATES["$BRANCH"]="merged into $BASE"
+          done < <(git for-each-ref --merged "$BASE" --format='%(refname:short)' refs/heads)
+
+          while read -r BRANCH TRACK; do
+            if [ "$TRACK" = "[gone]" ]; then
+              CANDIDATES["$BRANCH"]="upstream gone"
+            fi
+          done < <(git for-each-ref --format='%(refname:short) %(upstream:track)' refs/heads)
+
+          unset "CANDIDATES[$BASE]"
+
+          if [ -n "$CURRENT" ]; then
+            unset "CANDIDATES[$CURRENT]"
+          fi
+
+          if [ "''${#CANDIDATES[@]}" -eq 0 ]; then
+            echo "nothing to tidy"
+            exit 0
+          fi
+
+          for BRANCH in "''${!CANDIDATES[@]}"; do
+            if [ -n "$(git for-each-ref --format='%(worktreepath)' "refs/heads/$BRANCH")" ]; then
+              if ! git untree "$BRANCH"; then
+                echo "skipped $BRANCH: worktree not removable" >&2
+                continue
+              fi
+            fi
+
+            git branch --delete --force "$BRANCH"
+            echo "removed $BRANCH (''${CANDIDATES[$BRANCH]})"
+          done
+        '';
+      };
+
       git-rewrite = pkgs.writeShellApplication {
         name = "git-rewrite";
         inherit runtimeInputs;
@@ -176,6 +225,7 @@
         git-untree
         switch-environment
         git-rewrite
+        git-tidy
       ];
     };
 
