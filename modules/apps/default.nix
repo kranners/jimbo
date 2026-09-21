@@ -85,7 +85,7 @@
   ];
 
   nixosSystemModule.environment.systemPackages = [
-    pkgs.nixfmt-rfc-style
+    pkgs.nixfmt
     pkgs.gnumake
     pkgs.gnupg
     pkgs.manix
@@ -122,5 +122,6 @@
     pkgs.vivaldi
 
     pkgs.lutris
+    pkgs.claude-code
   ];
 }

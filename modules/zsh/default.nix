@@ -5,7 +5,7 @@
     programs.zsh.enableGlobalCompInit = false;
   };
 
-  sharedHomeModule = { lib, ... }: {
+  sharedHomeModule = { lib, config, ... }: {
     home = {
       shellAliases = {
         ns = "nix-shell --command zsh";
@@ -29,6 +29,7 @@
 
     programs.zsh = {
       enable = true;
+      dotDir = config.home.homeDirectory;
 
       syntaxHighlighting.enable = true;
       autosuggestion.enable = true;

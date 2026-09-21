@@ -10,7 +10,7 @@
   # Enable AMD GPU support
   boot.initrd.kernelModules = [ "amdgpu" ];
 
-  boot.kernelParams = [ "video=DP-1:2560x1440@165" "video=DP-3:1920x1080@144" ];
+  boot.kernelParams = [ "video=DP-1:2560x1440@165" "video=DP-3:1920x1080@144" "pcie_aspm=off" ];
 
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];

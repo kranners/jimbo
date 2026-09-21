@@ -17,6 +17,7 @@
     userDirs = {
       createDirectories = true;
       enable = true;
+      setSessionVariables = true;
     };
   };
 
