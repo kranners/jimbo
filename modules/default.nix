@@ -43,6 +43,7 @@ in
     ./plexamp
     ./spotify
     ./browser
+    ./llm
   ];
 
   options = {
