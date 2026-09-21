@@ -1,5 +1,5 @@
 { pkgs, ... }: {
-  nixosHomeModule = {
+  nixosHomeModule = { config, ... }: {
     gtk = {
       enable = true;
 
@@ -12,12 +12,15 @@
         name = "Papirus";
         package = pkgs.papirus-icon-theme;
       };
+
+      gtk4.theme = config.gtk.theme;
     };
 
     # Try to force Qt to behave like GTK so we can just theme that instead
     qt = { enable = true; };
 
     home.pointerCursor = {
+      enable = true;
       package = pkgs.hackneyed;
       gtk.enable = true;
       name = "Hackneyed";

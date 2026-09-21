@@ -1,11 +1,8 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, ... }: {
   programs.waybar = {
     enable = true;
 
-    systemd = {
-      enable = true;
-      target = config.wayland.systemd.target;
-    };
+    systemd.enable = true;
 
     settings.main =
       let
