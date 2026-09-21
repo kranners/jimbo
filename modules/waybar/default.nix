@@ -11,8 +11,8 @@ top@{ ... }: {
         let
           icons = {
             audio = "󰓃";
-            clock = "";
-            bluetooth = "";
+            clock = "";
+            bluetooth = "";
             tray = "󰇙";
 
             divider = "|";
@@ -23,19 +23,19 @@ top@{ ... }: {
 
           power-options = {
             shutdown = {
-              icon = "";
+              icon = "";
               action = "systemctl poweroff";
             };
             reboot = {
-              icon = "";
+              icon = "";
               action = "systemctl reboot";
             };
             logout = {
-              icon = "";
+              icon = "";
               action = "uwsm stop";
             };
             firmware = {
-              icon = "";
+              icon = "";
               action = "systemctl reboot --firmware-setup";
             };
           };
@@ -95,14 +95,14 @@ top@{ ... }: {
             tooltip = false;
             format = "{icon}";
             format-icons = {
-              notification = "";
-              none = "";
-              dnd-notification = "";
-              dnd-none = "";
-              inhibited-notification = "";
-              inhibited-none = "";
-              dnd-inhibited-notification = "";
-              dnd-inhibited-none = "";
+              notification = "";
+              none = "";
+              dnd-notification = "";
+              dnd-none = "";
+              inhibited-notification = "";
+              inhibited-none = "";
+              dnd-inhibited-notification = "";
+              dnd-inhibited-none = "";
             };
 
             return-type = "json";
@@ -166,7 +166,7 @@ top@{ ... }: {
 
           network = {
             format = "{ifname}";
-            format-wifi = " {essid} ({signalStrength}%)";
+            format-wifi = " {essid} ({signalStrength}%)";
             format-ethernet = "󰈀 {ipaddr}";
           };
         };
