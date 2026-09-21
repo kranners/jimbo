@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, host, ... }:
 let
   exit-if-all-closed = pkgs.writeShellApplication {
     name = "exit-if-all-closed";
@@ -69,7 +69,7 @@ in
       settings = {
         default_session = {
           command = "uwsm start hyprland-uwsm.desktop";
-          user = "aaron";
+          user = host.username;
         };
       };
     };
