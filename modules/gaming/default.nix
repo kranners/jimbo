@@ -2,13 +2,13 @@
 let
   make_game_window_rules = (
     window_regex: [
-      "prop noborder,class:${window_regex}"
-      "prop noblur,class:${window_regex}"
-      "prop nodim,class:${window_regex}"
-      "prop noshadow,class:${window_regex}"
-      "prop noanim,class:${window_regex}"
-      "workspace 1,class:${window_regex}"
-      "immediate,class:${window_regex}"
+      "border_size 0, match:class ${window_regex}"
+      "no_blur true, match:class ${window_regex}"
+      "no_dim true, match:class ${window_regex}"
+      "no_shadow true, match:class ${window_regex}"
+      "no_anim true, match:class ${window_regex}"
+      "workspace 1, match:class ${window_regex}"
+      "immediate true, match:class ${window_regex}"
     ]
   );
 in
@@ -37,7 +37,7 @@ in
     ];
 
     wayland.windowManager.hyprland.settings = {
-      windowrulev2 = lib.lists.flatten (
+      windowrule = lib.lists.flatten (
         lib.lists.map (window_regex: make_game_window_rules window_regex) [
           "^gamescope$"
           "^steam_app_\\d+$"
