@@ -25,3 +25,6 @@ quiet-Darwin:
 quiet-Linux:
 	git add .
 	sudo nixos-rebuild switch --flake .#jimbo
+
+fmt:
+	nix fmt
