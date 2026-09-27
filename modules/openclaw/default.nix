@@ -1,5 +1,6 @@
 {
   lib,
+  pkgs,
   config,
   host,
   ...
@@ -8,6 +9,8 @@ let
   inherit (lib) mkOption types;
 
   inherit (config) llm;
+
+  claudeModel = "claude-opus-4-8";
 in
 {
   options.openclaw = {
@@ -17,11 +20,19 @@ in
       default = "/home/${host.username}/.openclaw";
     };
 
+    owners = mkOption {
+      description = "Chat identities allowed to run owner commands, as <channel>:<id>.";
+      type = types.listOf types.str;
+      default = [ "discord:193903125994799114" ];
+    };
+
     settings = mkOption {
       description = "Contents of openclaw.json, rendered into the Nix store and read in Nix mode.";
       type = types.attrs;
 
       default = {
+        commands.ownerAllowFrom = config.openclaw.owners;
+
         gateway = {
           mode = "local";
           bind = "loopback";
@@ -35,6 +46,9 @@ in
         channels.discord = {
           enabled = true;
 
+          dmPolicy = "allowlist";
+          allowFrom = config.openclaw.owners;
+
           token = {
             source = "env";
             provider = "default";
@@ -43,8 +57,30 @@ in
         };
 
         agents.defaults = {
-          model.primary = "local/${llm.modelId}";
-          models."local/${llm.modelId}".alias = "Local";
+          model = {
+            primary = "local/${llm.modelId}";
+            fallbacks = [ "anthropic/${claudeModel}" ];
+          };
+
+          models = {
+            "local/${llm.modelId}".alias = "Local";
+
+            "anthropic/${claudeModel}" = {
+              alias = "Claude";
+              agentRuntime.id = "claude-cli";
+            };
+          };
+
+          # CLI backends are text-first and never call tools, so this fallback
+          # answers questions but cannot drive the browser or the shell. An
+          # Anthropic API key would be needed for that.
+          #
+          # The gateway runs with a minimal PATH, so point the bundled backend
+          # at the binary. Claude Code must already be logged in for the same
+          # user, and the CLI auth method selected once by hand:
+          #   claude auth login
+          #   openclaw models auth login --provider anthropic --method cli
+          cliBackends.claude-cli.command = "${pkgs.claude-code}/bin/claude";
         };
 
         models = {
@@ -91,6 +127,14 @@ in
     in
     {
       home.packages = [ pkgs.openclaw ];
+
+      # Point the CLI at the same generated config as the service, and keep it
+      # in Nix mode so it refuses to edit that config instead of shadowing it.
+      home.sessionVariables = {
+        OPENCLAW_NIX_MODE = "1";
+        OPENCLAW_STATE_DIR = config.openclaw.stateDir;
+        OPENCLAW_CONFIG_PATH = settingsFile;
+      };
 
       systemd.user.services.openclaw = {
         Unit = {
