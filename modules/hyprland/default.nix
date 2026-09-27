@@ -34,13 +34,13 @@ let
       PADDING_VALUE=10
 
       if systemctl --user --quiet is-active waybar; then
-        systemctl --user stop waybar
+        systemctl --user stop waybar dock
         hyprctl keyword general:gaps_in 0
         hyprctl keyword general:gaps_out 0
         exit 0
       fi
 
-      systemctl --user start waybar
+      systemctl --user start waybar dock
       hyprctl keyword general:gaps_in $PADDING_VALUE
       hyprctl keyword general:gaps_out $PADDING_VALUE
     '';
