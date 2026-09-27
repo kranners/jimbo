@@ -99,10 +99,10 @@ in
       "$mod" = "SUPER";
 
       # quick-wifi hands password prompts to nmtui in a terminal.
-      windowrulev2 = [
-        "float, class:quick-settings-tui"
-        "size 800 500, class:quick-settings-tui"
-        "center, class:quick-settings-tui"
+      windowrule = [
+        "float true, match:class ^quick-settings-tui$"
+        "size 800 500, match:class ^quick-settings-tui$"
+        "center true, match:class ^quick-settings-tui$"
       ];
 
       general = {
