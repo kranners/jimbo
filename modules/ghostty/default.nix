@@ -1,4 +1,14 @@
-{ pkgs, ... }: {
+{
+  pkgs,
+  lib,
+  host,
+  ...
+}:
+let
+  isLinux = lib.strings.hasSuffix "-linux" host.system;
+  fontSize = if isLinux then 12 else 16;
+in
+{
   darwinSystemModule.homebrew.casks = [
     "ghostty"
   ];
@@ -43,7 +53,7 @@
       background-blur = 20
 
       font-family = Iosevka Nerd Font Mono
-      font-size = 16
+      font-size = ${toString fontSize}
 
       cursor-style = block
 
