@@ -66,6 +66,10 @@ in
 
     services.greetd = {
       enable = true;
+
+      # Fail back to a console instead of looping the compositor forever.
+      restart = false;
+
       settings = {
         default_session = {
           command = "uwsm start hyprland-uwsm.desktop";
@@ -74,12 +78,22 @@ in
       };
     };
 
+    # greetd disables autovt@tty1, so hand VT1 back to a getty when greetd ends.
+    systemd.services.greetd.unitConfig = {
+      OnSuccess = [ "getty@tty1.service" ];
+      OnFailure = [ "getty@tty1.service" ];
+    };
+
     environment.sessionVariables.NIXOS_OZONE_WL = "1";
   };
 
   nixosHomeModule.wayland.windowManager.hyprland = {
     enable = true;
     configType = "hyprlang";
+
+    # uwsm owns the session; home-manager's target would stop it from Hyprland's
+    # own first exec-once.
+    systemd.enable = false;
 
     settings = {
       "$mod" = "SUPER";
