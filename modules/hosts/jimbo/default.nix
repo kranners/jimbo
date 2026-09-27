@@ -7,16 +7,12 @@
   nixosSystemModule = { pkgs, ... }: {
     networking.hostName = host.hostname;
 
-    # For GRUB autodetection
-    environment.systemPackages = [ pkgs.os-prober ];
+    environment.systemPackages = [ pkgs.efibootmgr ];
 
     boot.loader = {
       efi.canTouchEfiVariables = true;
-      grub = {
+      systemd-boot = {
         enable = true;
-        devices = [ "nodev" ];
-        efiSupport = true;
-        useOSProber = true;
         configurationLimit = 5;
       };
     };
