@@ -131,8 +131,8 @@ in
 
       bind = [
         "$mod, SPACE, exec, $launcher"
-        "$mod, D, exec, eww open dashboard --screen $(hyprctl monitors -j | jq '.[] | select(.focused) | .id')"
-        "$mod SHIFT, D, exec, eww close-all"
+        "$mod, D, exec, eww --no-daemonize open dashboard --screen $(hyprctl monitors -j | jq '.[] | select(.focused) | .id')"
+        "$mod SHIFT, D, exec, eww --no-daemonize close-all"
 
         "$mod, RETURN, exec, $terminal"
         "$mod, E, exec, $fileManager"
