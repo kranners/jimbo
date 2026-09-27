@@ -1,4 +1,9 @@
-{ lib, config, ... }:
+{
+  lib,
+  config,
+  host,
+  ...
+}:
 let
   inherit (lib) mkOption types;
 in
@@ -30,7 +35,12 @@ in
     };
   };
 
-  config.nixosHomeModule = { pkgs, ... }:
+  config.nixosSystemModule = {
+    users.users.${host.username}.linger = true;
+  };
+
+  config.nixosHomeModule =
+    { pkgs, ... }:
     let
       llama-cpp = pkgs.llama-cpp.override { vulkanSupport = true; };
 

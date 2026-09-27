@@ -1,4 +1,10 @@
-{ lib, inputs, config, host, ... }:
+{
+  lib,
+  inputs,
+  config,
+  host,
+  ...
+}:
 let
   inherit (lib) mkOption mkIf types;
   inherit (host) system;
@@ -44,6 +50,9 @@ in
     ./spotify
     ./browser
     ./llm
+    ./openclaw
+    ./tailscale
+    ./formatting
   ];
 
   options = {
