@@ -1,9 +1,82 @@
 top: {
   nixosHomeModule =
-    { config, pkgs, ... }:
+    {
+      lib,
+      config,
+      pkgs,
+      ...
+    }:
     let
       inherit (config.lib.file) mkOutOfStoreSymlink;
       ewwSourceHome = "${config.home.homeDirectory}/${top.config.repoPath}/modules/eww";
+
+      llmStatus = pkgs.writeShellApplication {
+        name = "llm-status";
+
+        runtimeInputs = [
+          pkgs.curl
+          pkgs.jq
+          pkgs.systemd
+        ];
+
+        text = ''
+          root="${lib.removeSuffix "/v1" top.config.llm.baseUrl}"
+
+          gateway_state=$(systemctl --user is-active openclaw.service || true)
+          server_state=$(systemctl --user is-active llama-server.service || true)
+
+          properties=$(curl --silent --fail --max-time 2 "$root/props" || true)
+          metrics=$(curl --silent --fail --max-time 2 "$root/metrics" | grep --invert-match '^#' || true)
+
+          metric() {
+            awk -v name="$1" '$1 == name { value = $2 } END { print value + 0 }' <<< "$metrics"
+          }
+
+          if [ -z "$properties" ]; then
+            jq --null-input --compact-output \
+              --arg gateway "$gateway_state" \
+              --arg server "$server_state" \
+              '{
+                online: false,
+                model: "",
+                slots_total: 0,
+                requests_processing: 0,
+                requests_deferred: 0,
+                context_used_percent: 0,
+                prompt_tokens_per_second: 0,
+                generated_tokens_per_second: 0,
+                gateway_state: $gateway,
+                server_state: $server
+              }'
+            exit 0
+          fi
+
+          jq --compact-output \
+            --arg gateway "$gateway_state" \
+            --arg server "$server_state" \
+            --argjson processing "$(metric llamacpp:requests_processing)" \
+            --argjson deferred "$(metric llamacpp:requests_deferred)" \
+            --argjson kvCacheRatio "$(metric llamacpp:kv_cache_usage_ratio)" \
+            --argjson promptTokens "$(metric llamacpp:prompt_tokens_total)" \
+            --argjson promptSeconds "$(metric llamacpp:prompt_seconds_total)" \
+            --argjson generatedTokens "$(metric llamacpp:predicted_tokens_total)" \
+            --argjson generatedSeconds "$(metric llamacpp:predicted_seconds_total)" \
+            '{
+              online: true,
+              model: .model_alias,
+              slots_total: .total_slots,
+              requests_processing: $processing,
+              requests_deferred: $deferred,
+              context_used_percent: ($kvCacheRatio * 100),
+              prompt_tokens_per_second:
+                (if $promptSeconds > 0 then $promptTokens / $promptSeconds else 0 end),
+              generated_tokens_per_second:
+                (if $generatedSeconds > 0 then $generatedTokens / $generatedSeconds else 0 end),
+              gateway_state: $gateway,
+              server_state: $server
+            }' <<< "$properties"
+        '';
+      };
 
       dashboard = pkgs.writeShellApplication {
         name = "dashboard";
@@ -51,6 +124,7 @@ top: {
       xdg.configFile.eww.source = mkOutOfStoreSymlink ewwSourceHome;
       home.packages = [
         pkgs.lm_sensors
+        llmStatus
         pkgs.eww
         dashboard
       ];

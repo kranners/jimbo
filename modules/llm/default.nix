@@ -68,6 +68,7 @@ in
             (toString config.llm.port)
             "--ctx-size"
             (toString config.llm.contextSize)
+            "--metrics"
           ];
 
           Restart = "on-failure";
