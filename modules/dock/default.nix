@@ -7,6 +7,7 @@ let
       pkgs.socat
       pkgs.hyprland
       pkgs.jq
+      pkgs.findutils
     ];
 
     bashOptions = [ ];
@@ -14,10 +15,19 @@ let
     text = ''
       SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
 
-      # Resolve a window class to an icon name through its desktop entry, so
-      # unknown classes fall back to a generic icon instead of rendering as a
-      # missing-image placeholder.
-      desktop_icon() {
+      icon_in_theme() {
+          local name="$1" dir
+          for dir in ''${XDG_DATA_DIRS//:/ }; do
+              if find -L "$dir"/icons/*/*/apps "$dir/pixmaps" \
+                  \( -name "$name.svg" -o -name "$name.png" \) \
+                  -print -quit 2>/dev/null | grep -q .; then
+                  return 0
+              fi
+          done
+          return 1
+      }
+
+      declared_icon() {
           local class="$1" dir entry
           for dir in ''${XDG_DATA_DIRS//:/ }; do
               for entry in "$dir/applications/$class.desktop" "$dir/applications/''${class,,}.desktop"; do
@@ -26,15 +36,45 @@ let
                   fi
               done
           done
+      }
+
+      # Resolve a window class to an icon name the theme actually ships, so
+      # unknown classes fall back to a generic icon instead of rendering as a
+      # missing-image placeholder. Desktop entries name their icon with their
+      # own casing, such as `Icon=Vesktop`, while themes ship it lowercased.
+      desktop_icon() {
+          local class="$1" declared candidate
+          declared="$(declared_icon "$class")"
+
+          for candidate in "$declared" "''${declared,,}" "''${class,,}"; do
+              if [[ -n "$candidate" ]] && icon_in_theme "$candidate"; then
+                  printf '%s\n' "$candidate"
+                  return
+              fi
+          done
+
           printf 'application-x-executable\n'
       }
 
+      # Searching the icon themes costs enough that repeating it on every
+      # Hyprland event is noticeable, and a class keeps its icon for as long as
+      # this process lives.
+      declare -A icon_cache
+
       icon_map() {
-          local class
-          hyprctl clients -j | jq -r '.[].class' | sort -u | while read -r class; do
+          local class entries=""
+
+          while read -r class; do
               [[ -n "$class" ]] || continue
-              printf '%s\t%s\n' "$class" "$(desktop_icon "$class")"
-          done | jq -Rn '[inputs | split("\t") | { key: .[0], value: .[1] }] | from_entries'
+
+              if [[ -z "''${icon_cache[$class]:-}" ]]; then
+                  icon_cache[$class]="$(desktop_icon "$class")"
+              fi
+
+              entries+="$class"$'\t'"''${icon_cache[$class]}"$'\n'
+          done < <(hyprctl clients -j | jq -r '.[].class' | sort -u)
+
+          printf '%s' "$entries" | jq -Rn '[inputs | split("\t") | { key: .[0], value: .[1] }] | from_entries'
       }
 
       emit() {
