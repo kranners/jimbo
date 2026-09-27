@@ -147,6 +147,42 @@
   )
 )
 
+;; Brightness controls
+
+(defpoll brightness
+  :interval "5s"
+  :initial 50
+  `brightness get`
+)
+
+(defwidget brightness_slider []
+  (scale
+    :hexpand true
+    :min 0
+    :max 100
+    :value brightness
+    :onchange "brightness set {} ; eww update brightness={}"
+  )
+)
+
+(defwidget brightness_controls []
+  (box
+    :halign "fill"
+    :space-evenly false
+    (icon_button
+      :onclick "brightness down ; eww update brightness=$(brightness get)"
+      :icon-size "large-toolbar"
+      :icon "display-brightness-low-symbolic"
+    )
+    (brightness_slider)
+    (icon_button
+      :onclick "brightness up ; eww update brightness=$(brightness get)"
+      :icon-size "large-toolbar"
+      :icon "display-brightness-high-symbolic"
+    )
+  )
+)
+
 ;; Power controls
 
 (defwidget power_controls []
@@ -377,6 +413,29 @@
       :icon "view-fullscreen-symbolic"
       :text "Toggle panel"
       :onclick "swaync-client --toggle-panel"
+    )
+  )
+)
+
+;; Night shift
+
+(defpoll night_shift
+  :interval "2s"
+  :initial `{"active":false,"temperature":6000,"text":"","class":"inactive","label":"Night shift off","tooltip":"Night shift off"}`
+  `night-shift status`
+)
+
+(defwidget night_shift_toggle []
+  (box
+    :halign "center"
+    (icon_label_button
+      :icon {
+        night_shift.active
+        ? "weather-clear-night-symbolic"
+        : "weather-clear-symbolic"
+      }
+      :text night_shift.label
+      :onclick "night-shift toggle ; eww update night_shift=\"$(night-shift status)\""
     )
   )
 )
@@ -615,6 +674,7 @@
         (datetime)
         (current_weather)
         (notifications)
+        (night_shift_toggle)
         (launcher_panel)
         (power_controls)
       )
@@ -628,6 +688,7 @@
       (hardware_info)
       (media_controls)
       (audio_controls)
+      (brightness_controls)
     )
   )
 )

@@ -1,4 +1,4 @@
-{
+top: {
   nixosHomeModule =
     { pkgs, ... }:
     let
@@ -55,8 +55,8 @@
           ",XF86AudioMute, exec, volumectl toggle-mute"
           ",XF86AudioMicMute, exec, volumectl -m toggle-mute"
           ",XF86AudioPlay, exec, play-pause"
-          ",XF86MonBrightnessUp, exec, lightctl up"
-          ",XF86MonBrightnessDown, exec, lightctl down"
+          ",XF86MonBrightnessUp, exec, ${top.config.brightness.command} up"
+          ",XF86MonBrightnessDown, exec, ${top.config.brightness.command} down"
         ];
       };
 

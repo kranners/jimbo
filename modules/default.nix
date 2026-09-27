@@ -44,6 +44,7 @@ in
     ./waybar
     ./wallpaper
     ./avizo
+    ./brightness
     ./obsidian
     ./discord
     ./plexamp
