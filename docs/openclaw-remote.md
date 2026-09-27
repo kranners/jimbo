@@ -137,3 +137,47 @@ be useful. Both need testing rather than assumption.
 - <https://docs.openclaw.ai/tools/browser>
 - <https://tailscale.com/blog/wake-on-lan-tailscale-upsnap>
 - <https://github.com/tailscale/tailscale/issues/306>
+
+## Build results
+
+Steps 1 to 3 of the planned changes are implemented and switched on jimbo. What
+the build proved, and what it corrected in the plan above:
+
+- `pkgs.openclaw` is marked insecure in nixpkgs, because it parses untrusted
+  content with an LLM that has full access to the system. It therefore needs
+  `nixpkgs.config.permittedInsecurePackages = [ "openclaw-2026.6.33" ]`, which
+  pins the version string and has to be bumped on every OpenClaw update.
+- OpenClaw is not in cache.nixos.org or either of the configured Cachix caches,
+  so it builds locally. The `tsdown` bundler step needs about 9 GiB resident,
+  which the OOM killer terminated on a 15 GiB machine with no swap. A 16 GiB
+  swapfile was added to the jimbo host config, and the build then succeeded.
+  Hibernation is disabled, so the swapfile does not need to fit RAM.
+- Setting `OPENCLAW_NIX_MODE=1` makes OpenClaw treat `openclaw.json` as
+  immutable and disables self-mutation. That removes the concern about the
+  config being a Nix store path: the rule against symlinked config only applies
+  to OpenClaw-owned writes, which Nix mode turns off. `OPENCLAW_CONFIG_PATH`
+  points straight at the generated store file, and `OPENCLAW_STATE_DIR` keeps
+  mutable state in `~/.openclaw`.
+- The gateway refuses to start unless `gateway.mode` is set, so the generated
+  config sets `gateway.mode = "local"`.
+- Without a gateway auth token, the gateway generates a fresh one on every
+  restart and CLI clients cannot connect. The token is read from
+  `OPENCLAW_GATEWAY_TOKEN` in `~/.openclaw/.env`, alongside
+  `DISCORD_BOT_TOKEN`, so neither secret reaches the Nix store.
+- An agent turn against the local model succeeded end to end: the gateway
+  cataloged 33 tools behind Tool Search and Qwen3.5-9B answered through
+  `http://127.0.0.1:8080/v1/chat/completions`. Tool-calling quality under real
+  jobs is still untested.
+- Suspend is blocked rather than merely unused: `IdleAction=ignore` plus masked
+  `sleep`, `suspend`, `hibernate` and `hybrid-sleep` targets. `systemctl
+  suspend` now fails with "Access denied".
+
+Remaining manual steps, which cannot be done from Nix:
+
+1. Write `~/.openclaw/.env` with `DISCORD_BOT_TOKEN` and
+   `OPENCLAW_GATEWAY_TOKEN`, mode 600. Until it exists, the gateway service
+   restarts every 10 seconds and logs a missing-secret error.
+2. Run `tailscale up`. `tailscaled` runs but is logged out.
+
+Steps 4 and 5 of the plan, the firewall and Playwright's browsers, are not
+done.
