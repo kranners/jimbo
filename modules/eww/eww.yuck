@@ -475,6 +475,23 @@
   )
 )
 
+(defvar app_columns '[
+  [
+    { "icon": "obsidian", "title": "Obsidian", "hotkey": "Mod+O", "command": "uwsm app -- obsidian &" },
+    { "icon": "steam", "title": "Steam", "hotkey": "Mod+S", "command": "uwsm app -- steam &" },
+    { "icon": "discord", "title": "Vesktop", "hotkey": "Mod+V", "command": "uwsm app -- vesktop &" }
+  ],
+  [
+    { "icon": "utilities-terminal", "title": "Ghostty", "hotkey": "Mod+Enter", "command": "uwsm app -- ghostty &" },
+    { "icon": "chromium", "title": "Chromium", "hotkey": "Mod+B", "command": "uwsm app -- chromium &" },
+    { "icon": "plexamp", "title": "Plexamp", "hotkey": "Mod+P", "command": "uwsm app -- plexamp &" }
+  ],
+  [
+    { "icon": "spotify", "title": "Spotify", "hotkey": "Mod+Y", "command": "uwsm app -- spotify &" },
+    { "icon": "system-file-manager", "title": "Nautilus", "hotkey": "Mod+E", "command": "uwsm app -- nautilus &" }
+  ]
+]')
+
 (defwidget launcher_panel []
   (box
     :halign "center"
@@ -482,73 +499,20 @@
     :orientation "horizontal"
     :class "launcher_panel"
     :spacing 8
-    (box
-      :spacing 8
-      :halign "start"
-      :orientation "vertical"
-      (launcher
-        :onclick "uwsm app -- obsidian &"
-        :icon "obsidian"
-        :title "Obsidian"
-        :hotkey "Mod+O"
-      )
-      (launcher
-        :onclick "uwsm app -- steam &"
-        :icon "steam"
-        :title "Steam"
-        :hotkey "Mod+S"
-      )
-      (launcher
-        :onclick "uwsm app -- vesktop &"
-        :icon "discord"
-        :title "Vesktop"
-        :hotkey "Mod+V"
-      )
-    )
-    (box
-      :spacing 8
-      :orientation "vertical"
-      :halign "start"
-      (launcher
-        :onclick "uwsm app -- ghostty &"
-        :icon "utilities-terminal"
-        :title "Ghostty"
-        :hotkey "Mod+Enter"
-      )
-      (launcher
-        :onclick "uwsm app -- chromium &"
-        :icon "chromium"
-        :title "Chromium"
-        :hotkey "Mod+B"
-      )
-      (launcher
-        :onclick "uwsm app -- plexamp &"
-        :icon "plexamp"
-        :title "Plexamp"
-        :hotkey "Mod+P"
-      )
-    )
-    (box
-      :spacing 8
-      :orientation "vertical"
-      :halign "start"
-      (launcher
-        :onclick "uwsm app -- spotify &"
-        :icon "spotify"
-        :title "Spotify"
-        :hotkey "Mod+Y"
-      )
-      (launcher
-        :onclick "uwsm app -- nautilus &"
-        :icon "system-file-manager"
-        :title "Nautilus"
-        :hotkey "Mod+E"
-      )
-      (launcher
-        :onclick "uwsm app -- chromium &"
-        :icon "chromium"
-        :title "Chromium"
-        :hotkey "Mod+C"
+    (for column in app_columns
+      (box
+        :spacing 8
+        :halign "start"
+        :orientation "vertical"
+        :space-evenly false
+        (for app in column
+          (launcher
+            :onclick {app.command}
+            :icon {app.icon}
+            :title {app.title}
+            :hotkey {app.hotkey}
+          )
+        )
       )
     )
   )
@@ -707,3 +671,161 @@
   (layout)
 )
 
+
+;; Dock
+
+(deflisten dock_clients
+  :initial "[]"
+  "dock-clients"
+)
+
+(defwidget dock_tile [onclick icon tooltip]
+  (button
+    :onclick onclick
+    :timeout 10000
+    :tooltip tooltip
+    :class "dock_tile"
+    (image
+      :icon icon
+      :icon-size "dialog"
+    )
+  )
+)
+
+(defwidget dock_apps []
+  (box
+    :orientation "horizontal"
+    :space-evenly false
+    :spacing 8
+    (for column in app_columns
+      (box
+        :orientation "horizontal"
+        :space-evenly false
+        :spacing 8
+        (for app in column
+          (dock_tile
+            :onclick {app.command}
+            :icon {app.icon}
+            :tooltip {app.title}
+          )
+        )
+      )
+    )
+  )
+)
+
+(defwidget dock_shortcuts []
+  (box
+    :orientation "horizontal"
+    :space-evenly false
+    :spacing 8
+    (dock_tile
+      :onclick "uwsm app -- nautilus --new-window ~ &"
+      :icon "user-home"
+      :tooltip "Home"
+    )
+    (dock_tile
+      :onclick "uwsm app -- nautilus --new-window ~/Downloads &"
+      :icon "folder-download"
+      :tooltip "Downloads"
+    )
+  )
+)
+
+(defwidget dock_tray_item [client]
+  (box
+    :orientation "vertical"
+    :space-evenly false
+    :spacing 2
+    (button
+      :onclick "hyprctl dispatch focuswindow address:${client.address}"
+      :timeout 10000
+      :tooltip {client.title}
+      :class "dock_tile"
+      (image
+        :icon {client.icon}
+        :icon-size "dialog"
+      )
+    )
+    (box
+      :class {client.focused ? "dock_running_dot focused" : "dock_running_dot"}
+      :halign "center"
+      :valign "end"
+    )
+  )
+)
+
+(defwidget dock_tray []
+  (box
+    :orientation "horizontal"
+    :space-evenly false
+    :spacing 8
+    :visible {arraylength(dock_clients) > 0}
+    (box :class "dock_separator" :width 1)
+    (for client in dock_clients
+      (dock_tray_item :client client)
+    )
+  )
+)
+
+(defwidget dock_workspaces []
+  (box
+    :orientation "horizontal"
+    :space-evenly false
+    :spacing 8
+    (box :class "dock_separator" :width 1)
+    (dock_tile
+      :onclick "hyprctl dispatch hyprtasking:toggle all"
+      :icon "view-grid"
+      :tooltip "Workspaces"
+    )
+  )
+)
+
+(defwidget dock []
+  (eventbox
+    :onhoverlost "eww close dock"
+    (box
+      :class "dock"
+      :orientation "horizontal"
+      :space-evenly false
+      :halign "center"
+      :valign "end"
+      :spacing 8
+      (dock_apps)
+      (box :class "dock_separator" :width 1)
+      (dock_shortcuts)
+      (dock_tray)
+      (dock_workspaces)
+    )
+  )
+)
+
+(defwindow dock
+  :monitor 0
+  :stacking "fg"
+  :exclusive false
+  :focusable "none"
+  :namespace "dock"
+  :geometry (geometry
+    :anchor "bottom center"
+  )
+  (dock)
+)
+
+(defwindow dock_trigger
+  :monitor 0
+  :stacking "fg"
+  :exclusive false
+  :focusable "none"
+  :namespace "dock-trigger"
+  :geometry (geometry
+    :width "100%"
+    :height "4"
+    :anchor "bottom center"
+  )
+  (eventbox
+    :onhover "dock-show"
+    :class "dock_trigger"
+  )
+)

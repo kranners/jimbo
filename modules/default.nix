@@ -23,6 +23,7 @@ in
     ./file-manager
     ./theme
     ./eww
+    ./dock
     ./ssh
     ./zsh
     ./ghostty
