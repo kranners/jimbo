@@ -17,7 +17,8 @@
     };
   };
 
-  outputs = { nixpkgs, ... } @ inputs:
+  outputs =
+    { nixpkgs, ... }@inputs:
     let
       inherit (nixpkgs) lib;
 
@@ -35,23 +36,25 @@
         }
       ];
 
-      flakeOutputPerHost = host: lib.evalModules {
-        specialArgs = {
-          inherit inputs host;
+      flakeOutputPerHost =
+        host:
+        lib.evalModules {
+          specialArgs = {
+            inherit inputs host;
 
-          pkgs = import nixpkgs {
-            system = host.system;
+            pkgs = import nixpkgs {
+              inherit (host) system;
 
-            config = {
-              allowUnfree = true;
+              config = {
+                allowUnfree = true;
+              };
             };
           };
-        };
 
-        modules = [
-          ./modules
-        ];
-      };
+          modules = [
+            ./modules
+          ];
+        };
 
       flakeOutputs = lib.forEach hosts flakeOutputPerHost;
 

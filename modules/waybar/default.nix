@@ -1,4 +1,4 @@
-top@{ ... }: {
+top: {
   nixosHomeModule = { pkgs, lib, ... }: {
     services.swaync.enable = true;
 
@@ -40,28 +40,29 @@ top@{ ... }: {
             };
           };
 
-          mkPowerModule = (key: option: {
+          mkPowerModule = key: option: {
             name = "custom/power-${key}";
             value = {
               format = " ${option.icon} ";
               tooltip = false;
               on-click = option.action;
             };
-          });
+          };
 
-          mkIconModule = (key: icon: {
+          mkIconModule = key: icon: {
             name = "custom/icon-${key}";
             value = {
               format = icon;
               tooltip = false;
             };
-          });
+          };
 
           icon-modules = lib.mapAttrs' mkIconModule icons;
           power-modules = lib.mapAttrs' mkPowerModule power-options;
         in
-        icon-modules // power-modules //
-        {
+        icon-modules
+        // power-modules
+        // {
           layer = "top";
 
           modules-left = [

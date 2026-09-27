@@ -42,7 +42,9 @@ in
       };
 
       # Try to force Qt to behave like GTK so we can just theme that instead
-      qt = { enable = true; };
+      qt = {
+        enable = true;
+      };
 
       home.pointerCursor = {
         enable = true;

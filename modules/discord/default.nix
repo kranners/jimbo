@@ -1,7 +1,8 @@
 {
   darwinSystemModule.homebrew.casks = [ "discord" ];
 
-  nixosHomeModule = { pkgs, ... }:
+  nixosHomeModule =
+    { pkgs, ... }:
     let
       vesktop-with-flags = pkgs.writeShellApplication {
         name = "vesktop";

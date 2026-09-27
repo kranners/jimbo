@@ -1,4 +1,9 @@
-{ config, host, inputs, ... }:
+{
+  config,
+  host,
+  inputs,
+  ...
+}:
 let
   mkHome = imports: {
     home-manager = {

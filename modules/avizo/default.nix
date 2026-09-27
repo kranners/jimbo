@@ -1,10 +1,14 @@
 {
-  nixosHomeModule = { pkgs, ... }:
+  nixosHomeModule =
+    { pkgs, ... }:
     let
       play-pause = pkgs.writeShellApplication {
         name = "play-pause";
 
-        runtimeInputs = [ pkgs.avizo pkgs.playerctl ];
+        runtimeInputs = [
+          pkgs.avizo
+          pkgs.playerctl
+        ];
 
         text = ''
           FALLBACK_PLAYER="spotify"
@@ -34,7 +38,11 @@
       };
     in
     {
-      home.packages = [ pkgs.avizo pkgs.playerctl play-pause ];
+      home.packages = [
+        pkgs.avizo
+        pkgs.playerctl
+        play-pause
+      ];
 
       services.avizo.enable = true;
 

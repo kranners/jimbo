@@ -1,5 +1,6 @@
 {
-  sharedHomeModule = { pkgs, lib, ... }:
+  sharedHomeModule =
+    { pkgs, lib, ... }:
     let
       runtimeInputs = [ pkgs.git ];
 
@@ -128,7 +129,10 @@
 
       git-tidy = pkgs.writeShellApplication {
         name = "git-tidy";
-        runtimeInputs = runtimeInputs ++ [ pkgs.coreutils git-untree ];
+        runtimeInputs = runtimeInputs ++ [
+          pkgs.coreutils
+          git-untree
+        ];
 
         text = ''
           BASE="''${1:-$(basename "$(git symbolic-ref refs/remotes/origin/HEAD)")}"
@@ -199,109 +203,109 @@
         '';
       };
     in
-  {
-    home = {
-      packages = [
-        git-update
-        git-shove
-        git-skip
-        git-freshen
-        git-catchup
-        git-new
-        git-cram
-        git-tree
-        git-untree
-        switch-environment
-        git-rewrite
-        git-tidy
-      ];
-    };
-
-    programs.git = {
-      enable = true;
-
-      settings = {
-        # show branches etc in table rather than list
-        column.ui = "auto";
-
-        # order branches by recent commits
-        # order tags by semver
-        branch.sort = "-committerdate";
-        tag.sort = "version:refname";
-
-        # dont make me pick a default branch
-        init.defaultBranch = "main";
-
-        # make diff smarter, especially with moves
-        diff.algorithm = "histogram";
-
-        # distinguish moves from add/remove in diffs
-        diff.colorMoved = "plain";
-
-        # replace a/b with i/w/c (index, worktree, commit)
-        diff.mnemonicPrefix = true;
-
-        # detect renamed files
-        diff.renames = true;
-
-        # create remote on push if not exist, and set tracking
-        push.autoSetupRemote = true;
-
-        # push local tags
-        push.followTags = true;
-
-        # delete local branches when deleted upstream
-        fetch.prune = true;
-        fetch.pruneTags = true;
-        fetch.all = true;
-
-        # show diffs in commit editor
-        commit.verbose = true;
-
-        # record rebase resolutions
-        rerere.enabled = true;
-        rerere.autoaupdate = true;
-
-        # auto everything for rebase
-        rebase.autoSquash = true;
-        rebase.autoStash = true;
-        rebase.updateRefs = true;
-
-        # automatically rebase on pull
-        pull.rebase = true;
-
-        # create local tracking branch when worktree-adding a remote-only branch
-        worktree.guessRemote = true;
-
-        user = {
-          name = "Aaron";
-          email = "aaron@cute.engineer";
-        };
+    {
+      home = {
+        packages = [
+          git-update
+          git-shove
+          git-skip
+          git-freshen
+          git-catchup
+          git-new
+          git-cram
+          git-tree
+          git-untree
+          switch-environment
+          git-rewrite
+          git-tidy
+        ];
       };
 
-      includes = [
-        {
-          condition = "gitdir:~/workspace/praxhub*/";
-          path = "~/.config/git/work-config";
+      programs.git = {
+        enable = true;
+
+        settings = {
+          # show branches etc in table rather than list
+          column.ui = "auto";
+
+          # order branches by recent commits
+          # order tags by semver
+          branch.sort = "-committerdate";
+          tag.sort = "version:refname";
+
+          # dont make me pick a default branch
+          init.defaultBranch = "main";
+
+          # make diff smarter, especially with moves
+          diff.algorithm = "histogram";
+
+          # distinguish moves from add/remove in diffs
+          diff.colorMoved = "plain";
+
+          # replace a/b with i/w/c (index, worktree, commit)
+          diff.mnemonicPrefix = true;
+
+          # detect renamed files
+          diff.renames = true;
+
+          # create remote on push if not exist, and set tracking
+          push.autoSetupRemote = true;
+
+          # push local tags
+          push.followTags = true;
+
+          # delete local branches when deleted upstream
+          fetch.prune = true;
+          fetch.pruneTags = true;
+          fetch.all = true;
+
+          # show diffs in commit editor
+          commit.verbose = true;
+
+          # record rebase resolutions
+          rerere.enabled = true;
+          rerere.autoaupdate = true;
+
+          # auto everything for rebase
+          rebase.autoSquash = true;
+          rebase.autoStash = true;
+          rebase.updateRefs = true;
+
+          # automatically rebase on pull
+          pull.rebase = true;
+
+          # create local tracking branch when worktree-adding a remote-only branch
+          worktree.guessRemote = true;
+
+          user = {
+            name = "Aaron";
+            email = "aaron@cute.engineer";
+          };
+        };
+
+        includes = [
+          {
+            condition = "gitdir:~/workspace/praxhub*/";
+            path = "~/.config/git/work-config";
+          }
+        ];
+      };
+
+      xdg.configFile.gitWorkProfile = {
+        target = "./git/work-config";
+
+        text = ''
+          [user]
+            name = Aaron Pierce
+            email = aaron@praxhub.com
+        '';
+      };
+
+      programs.zsh.initContent = lib.mkOrder 550 ''
+        tree() {
+          cd "$(git tree "$@")" || return
+          cmux workspace-action --action rename --title "$1"
         }
-      ];
-    };
-
-    xdg.configFile.gitWorkProfile = {
-      target = "./git/work-config";
-
-      text = ''
-        [user]
-          name = Aaron Pierce
-          email = aaron@praxhub.com
       '';
     };
-
-    programs.zsh.initContent = lib.mkOrder 550 ''
-      tree() {
-        cd "$(git tree "$@")" || return
-        cmux workspace-action --action rename --title "$1"
-      }
-    '';
-  };
 }
