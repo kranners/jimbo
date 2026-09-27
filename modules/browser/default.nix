@@ -2,15 +2,17 @@
   darwinSystemModule.homebrew.casks = [
     "ungoogled-chromium"
     # "firefox"
-    "vivaldi"
   ];
 
   nixosHomeModule = { pkgs, ... }: {
-    home.packages = [ pkgs.vivaldi ];
+    programs.chromium = {
+      enable = true;
+      package = pkgs.ungoogled-chromium;
+      extensions = import ./extensions.nix { inherit pkgs; };
+    };
 
     wayland.windowManager.hyprland.settings.bind = [
-      "$mod, B, exec, vivaldi"
-      "$mod, C, exec, chromium"
+      "$mod, B, exec, chromium"
     ];
   };
 }
