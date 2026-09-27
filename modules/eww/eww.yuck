@@ -434,7 +434,7 @@
         ? "weather-clear-night-symbolic"
         : "weather-clear-symbolic"
       }
-      :text night_shift.label
+      :text {night_shift.label}
       :onclick "night-shift toggle ; eww update night_shift=\"$(night-shift status)\""
     )
   )
