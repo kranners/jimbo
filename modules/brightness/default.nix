@@ -24,10 +24,32 @@ let
       step=5
       brightness_vcp_code=10
 
-      exec 9>"''${XDG_RUNTIME_DIR:-/tmp}/brightness.lock"
+      runtime_directory="''${XDG_RUNTIME_DIR:-/tmp}"
+      bus_file="$runtime_directory/brightness.bus"
+      target_file="$runtime_directory/brightness.target"
+
+      exec 9>"$runtime_directory/brightness.lock"
+
+      # Without an explicit bus, ddcutil probes every display on each call,
+      # which costs more than the DDC/CI exchange itself.
+      i2c_bus() {
+        if [ ! -s "$bus_file" ]; then
+          ddcutil detect --brief \
+            | awk -F- '/I2C bus:/ { print $NF; exit }' > "$bus_file"
+        fi
+
+        cat "$bus_file"
+      }
 
       ddc() {
-        ddcutil --noverify --sleep-multiplier 0.2 "$@"
+        local bus
+        bus=$(i2c_bus)
+
+        if [ -n "$bus" ]; then
+          ddcutil --noverify --bus "$bus" --sleep-multiplier 0.2 "$@"
+        else
+          ddcutil --noverify --sleep-multiplier 0.2 "$@"
+        fi
       }
 
       read_percent() {
@@ -70,10 +92,19 @@ let
           read_percent
           ;;
         set)
-          # Dragging a slider asks for far more writes than DDC/CI can carry,
-          # so drop the requests that arrive while one is still in flight.
+          # Dragging a slider asks for far more writes than DDC/CI can carry.
+          # Every request records where the slider is now, then one writer
+          # chases that target and the rest exit, so the monitor always lands
+          # on the position the finger stopped at instead of a stale one.
+          clamp "$(printf '%.0f' "$2")" > "$target_file"
+
           flock --nonblock 9 || exit 0
-          write_percent "$(clamp "$(printf '%.0f' "$2")")"
+
+          applied=
+          while target=$(cat "$target_file") && [ "$target" != "$applied" ]; do
+            write_percent "$target"
+            applied=$target
+          done
           ;;
         up | down)
           flock 9
@@ -85,6 +116,7 @@ let
             target=$(clamp "$((current - step))")
           fi
 
+          echo "$target" > "$target_file"
           write_percent "$target"
           show_notification "$target"
           ;;

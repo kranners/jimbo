@@ -51,6 +51,7 @@
       ];
 
       home.file.".claude/CLAUDE.md".source = ./CLAUDE.md;
+      home.file.".claude/skills/commit/SKILL.md".source = ./skills/commit/SKILL.md;
       home.file.".claude/settings.json".text = builtins.toJSON {
         theme = "auto";
 
@@ -78,9 +79,6 @@
 
         # Disable prompt suggestions
         promptSuggestionsEnabled = false;
-
-        # Allow editing of current working copy
-        worktree.bgIsolation = "none";
 
         # Status line
         statusLine = {

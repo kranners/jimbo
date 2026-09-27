@@ -102,6 +102,9 @@ top: {
             interval = 2;
             exec = "night-shift status";
             on-click = "night-shift toggle";
+            on-click-right = "eww open --toggle night_shift";
+            on-scroll-up = "night-shift step 250";
+            on-scroll-down = "night-shift step -250";
           };
 
           "custom/notifications" = {

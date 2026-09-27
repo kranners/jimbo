@@ -44,6 +44,35 @@
         '';
       };
 
+      git-wip = pkgs.writeShellApplication {
+        name = "git-wip";
+        runtimeInputs = runtimeInputs ++ [ pkgs.coreutils ];
+
+        text = ''
+          WIP_SUBJECT="WIP"
+
+          git add --all
+
+          if [ "$(git log -1 --format=%s 2>/dev/null || true)" != "$WIP_SUBJECT" ]; then
+            git commit --message "$WIP_SUBJECT" --no-verify
+            exit 0
+          fi
+
+          git commit --amend --no-edit --no-verify
+
+          DEFAULT="$(basename "$(git symbolic-ref --quiet refs/remotes/origin/HEAD || echo main)")"
+
+          if [ "$(git branch --show-current)" = "$DEFAULT" ]; then
+            echo "amended $WIP_SUBJECT on $DEFAULT, not force pushing" >&2
+            exit 0
+          fi
+
+          if git rev-parse --abbrev-ref '@{upstream}' >/dev/null 2>&1; then
+            git push --force-with-lease
+          fi
+        '';
+      };
+
       git-skip = pkgs.writeShellApplication {
         name = "git-skip";
         inherit runtimeInputs;
@@ -98,7 +127,7 @@
 
         text = ''
           BRANCH="$1"
-          BASE="''${2:-develop}"
+          BASE="''${2:-$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || git branch --show-current)}"
 
           MAIN="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
           TREE="$MAIN--$BRANCH"
@@ -209,6 +238,7 @@
           git-update
           git-shove
           git-skip
+          git-wip
           git-freshen
           git-catchup
           git-new
@@ -314,8 +344,13 @@
 
       programs.zsh.initContent = lib.mkOrder 550 ''
         tree() {
-          cd "$(git tree "$@")" || return
-          cmux workspace-action --action rename --title "$1"
+          local TREE
+          TREE="$(git tree "$@")" || return
+          cd "$TREE" || return
+          echo "$TREE"
+          if command -v cmux >/dev/null; then
+            cmux workspace-action --action rename --title "$1"
+          fi
         }
       '';
     };

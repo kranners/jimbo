@@ -98,6 +98,13 @@ in
     settings = {
       "$mod" = "SUPER";
 
+      # quick-wifi hands password prompts to nmtui in a terminal.
+      windowrulev2 = [
+        "float, class:quick-settings-tui"
+        "size 800 500, class:quick-settings-tui"
+        "center, class:quick-settings-tui"
+      ];
+
       general = {
         layout = "master";
       };
@@ -131,8 +138,9 @@ in
 
       bind = [
         "$mod, SPACE, exec, $launcher"
-        "$mod, D, exec, eww --no-daemonize open dashboard --screen $(hyprctl monitors -j | jq '.[] | select(.focused) | .id')"
-        "$mod SHIFT, D, exec, eww --no-daemonize close-all"
+        "$mod, D, exec, dashboard toggle"
+        "$mod SHIFT, D, exec, dashboard close"
+        "$mod, A, exec, dashboard toggle network"
 
         "$mod, RETURN, exec, $terminal"
         "$mod, E, exec, $fileManager"
