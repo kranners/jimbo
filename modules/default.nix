@@ -23,6 +23,7 @@ in
     ./file-manager
     ./theme
     ./eww
+    ./quick-settings
     ./ssh
     ./zsh
     ./ghostty
@@ -54,6 +55,7 @@ in
     ./openclaw
     ./tailscale
     ./formatting
+    ./night-shift
   ];
 
   options = {

@@ -147,6 +147,99 @@
   )
 )
 
+;; Brightness controls
+
+(defpoll brightness
+  :interval "5s"
+  :initial 50
+  `brightness get`
+)
+
+(defwidget brightness_slider []
+  (scale
+    :hexpand true
+    :min 0
+    :max 100
+    :value brightness
+    :onchange "brightness set {} ; eww update brightness={}"
+  )
+)
+
+(defwidget brightness_controls []
+  (box
+    :halign "fill"
+    :space-evenly false
+    (icon_button
+      :onclick "brightness down ; eww update brightness=$(brightness get)"
+      :icon-size "large-toolbar"
+      :icon "display-brightness-low-symbolic"
+    )
+    (brightness_slider)
+    (icon_button
+      :onclick "brightness up ; eww update brightness=$(brightness get)"
+      :icon-size "large-toolbar"
+      :icon "display-brightness-high-symbolic"
+    )
+  )
+)
+
+;; Wallpaper controls
+
+(defpoll wallpaper_monitors
+  :interval "30s"
+  :initial ""
+  `wpaperctl status --json | jq --raw-output '.[].display' | paste --serial --delimiters ' '`
+)
+
+(defpoll wallpaper_paused
+  :interval "5s"
+  :initial 0
+  `wpaperctl status --json | grep -q '"paused"' && echo 1 || echo 0`
+)
+
+(defpoll wallpaper_image
+  :interval "2s"
+  :initial ""
+  `wpaperctl get "$(wpaperctl status --json | jq --raw-output '.[0].display')"`
+)
+
+(defwidget wallpaper_controls []
+  (box
+    :space-evenly false
+    :halign "center"
+    :spacing 12
+    (image
+      :class "wallpaper_preview"
+      :path wallpaper_image
+      :image-width 96
+    )
+    (box
+      :space-evenly false
+      :valign "center"
+      :spacing 12
+      (icon_button
+        :icon "go-previous-symbolic"
+        :icon-size "large-toolbar"
+        :onclick "wpaperctl previous ${wallpaper_monitors}"
+      )
+      (icon_button
+        :icon {
+          wallpaper_paused == 1
+          ? "media-playback-start"
+          : "media-playback-pause"
+        }
+        :icon-size "large-toolbar"
+        :onclick "wpaperctl toggle-pause ; eww update wallpaper_paused=$(wpaperctl status --json | grep -q '\"paused\"' && echo 1 || echo 0)"
+      )
+      (icon_button
+        :icon "go-next-symbolic"
+        :icon-size "large-toolbar"
+        :onclick "wpaperctl next ${wallpaper_monitors}"
+      )
+    )
+  )
+)
+
 ;; Power controls
 
 (defwidget power_controls []
@@ -439,6 +532,48 @@
   )
 )
 
+;; Night shift
+
+(defpoll night_shift
+  :interval "2s"
+  :initial `{"active":false,"temperature":6000,"setpoint":4000,"minimum":2000,"maximum":6000,"text":"","class":"inactive","label":"Night shift off","tooltip":"Night shift off"}`
+  `night-shift status`
+)
+
+(defwidget night_shift_toggle []
+  (icon_label_button
+    :icon {
+      night_shift.active
+      ? "weather-clear-night-symbolic"
+      : "weather-clear-symbolic"
+    }
+    :text { night_shift.label }
+    :onclick "night-shift toggle ; eww update night_shift=\"$(night-shift status)\""
+  )
+)
+
+(defwidget night_shift_slider []
+  (scale
+    :hexpand true
+    :min { night_shift.minimum }
+    :max { night_shift.maximum }
+    :value { night_shift.setpoint }
+    :onchange "night-shift set {} ; eww update night_shift=\"$(night-shift status)\""
+  )
+)
+
+(defwidget night_shift_controls []
+  (box
+    :class "night_shift_controls"
+    :space-evenly false
+    :spacing 12
+    :halign "center"
+    :width 320
+    (night_shift_toggle)
+    (night_shift_slider)
+  )
+)
+
 ;; App launchers
 
 (defwidget launcher [onclick icon title hotkey]
@@ -648,6 +783,327 @@
   )
 )
 
+;; Quick settings tabs
+
+(defvar quick_tab "system")
+
+(defwidget tab_button [tab icon text]
+  (button
+    :class {quick_tab == tab ? "tab_button active" : "tab_button"}
+    :hexpand true
+    :onclick "eww update quick_tab=${tab}"
+    (box
+      :space-evenly false
+      :spacing 8
+      :halign "center"
+      (image
+        :icon icon
+        :icon-size "small-toolbar"
+      )
+      (label
+        :class "sm"
+        :text text
+      )
+    )
+  )
+)
+
+(defwidget tab_bar []
+  (box
+    :class "tab_bar"
+    :spacing 8
+    (tab_button
+      :tab "system"
+      :icon "computer-symbolic"
+      :text "System"
+    )
+    (tab_button
+      :tab "network"
+      :icon "network-wireless-symbolic"
+      :text "Network"
+    )
+    (tab_button
+      :tab "processes"
+      :icon "utilities-system-monitor-symbolic"
+      :text "Processes"
+    )
+  )
+)
+
+;; Wi-Fi
+
+(defpoll wifi_status
+  :interval "5s"
+  :run-while {quick_tab == "network"}
+  :initial `{"enabled":false,"connected":false,"ssid":"","signal":0,"label":"Not connected"}`
+  `quick-wifi status`
+)
+
+(defpoll wifi_list
+  :interval "10s"
+  :run-while {quick_tab == "network"}
+  :initial "[]"
+  `quick-wifi list`
+)
+
+(defwidget wifi_row [network]
+  (button
+    :class "list_row"
+    :onclick {"quick-wifi connect '" + network.ssid + "' ; eww poll wifi_status wifi_list"}
+    (box
+      :space-evenly false
+      :spacing 8
+      (image
+        :icon {network.signal >= 75 ? "network-wireless-signal-excellent-symbolic"
+             : network.signal >= 50 ? "network-wireless-signal-good-symbolic"
+             : network.signal >= 25 ? "network-wireless-signal-ok-symbolic"
+             : "network-wireless-signal-weak-symbolic"}
+        :icon-size "small-toolbar"
+      )
+      (label
+        :class {network.active ? "sm" : "xs"}
+        :halign "start"
+        :hexpand true
+        :limit-width 30
+        :text {network.ssid}
+      )
+      (image
+        :visible {network.secure}
+        :icon "channel-secure-symbolic"
+        :icon-size "small-toolbar"
+      )
+      (image
+        :visible {network.active}
+        :icon "object-select-symbolic"
+        :icon-size "small-toolbar"
+      )
+    )
+  )
+)
+
+(defwidget wifi_controls []
+  (box
+    :orientation "vertical"
+    :space-evenly false
+    :spacing 8
+    (box
+      :space-evenly false
+      :spacing 8
+      (label
+        :class "md"
+        :halign "start"
+        :hexpand true
+        :text {wifi_status.enabled ? wifi_status.label : "Wi-Fi off"}
+      )
+      (icon_button
+        :icon "view-refresh-symbolic"
+        :icon-size "small-toolbar"
+        :onclick "quick-wifi rescan ; eww poll wifi_status wifi_list"
+      )
+      (icon_button
+        :icon {wifi_status.enabled ? "network-wireless-symbolic" : "network-wireless-offline-symbolic"}
+        :icon-size "small-toolbar"
+        :onclick "quick-wifi toggle ; eww poll wifi_status wifi_list"
+      )
+    )
+    (scroll
+      :vscroll true
+      :height 170
+      (box
+        :orientation "vertical"
+        :space-evenly false
+        (for network in wifi_list
+          (wifi_row :network network)
+        )
+      )
+    )
+  )
+)
+
+;; Bluetooth
+
+(defpoll bluetooth_status
+  :interval "5s"
+  :run-while {quick_tab == "network"}
+  :initial `{"powered":false,"label":"Bluetooth off"}`
+  `quick-bluetooth status`
+)
+
+(defpoll bluetooth_list
+  :interval "5s"
+  :run-while {quick_tab == "network"}
+  :initial "[]"
+  `quick-bluetooth list`
+)
+
+(defwidget bluetooth_row [device]
+  (button
+    :class "list_row"
+    :onclick {(device.connected ? "quick-bluetooth disconnect " : "quick-bluetooth connect ")
+              + device.mac
+              + " ; eww poll bluetooth_status bluetooth_list"}
+    (box
+      :space-evenly false
+      :spacing 8
+      (image
+        :icon {device.connected ? "bluetooth-active-symbolic" : "bluetooth-disabled-symbolic"}
+        :icon-size "small-toolbar"
+      )
+      (label
+        :class {device.connected ? "sm" : "xs"}
+        :halign "start"
+        :hexpand true
+        :limit-width 30
+        :text {device.name}
+      )
+      (image
+        :visible {device.connected}
+        :icon "object-select-symbolic"
+        :icon-size "small-toolbar"
+      )
+    )
+  )
+)
+
+(defwidget bluetooth_controls []
+  (box
+    :orientation "vertical"
+    :space-evenly false
+    :spacing 8
+    (box
+      :space-evenly false
+      :spacing 8
+      (label
+        :class "md"
+        :halign "start"
+        :hexpand true
+        :text {bluetooth_status.label}
+      )
+      (icon_button
+        :icon "list-add-symbolic"
+        :icon-size "small-toolbar"
+        :onclick "quick-bluetooth pair"
+      )
+      (icon_button
+        :icon {bluetooth_status.powered ? "bluetooth-active-symbolic" : "bluetooth-disabled-symbolic"}
+        :icon-size "small-toolbar"
+        :onclick "quick-bluetooth toggle ; eww poll bluetooth_status bluetooth_list"
+      )
+    )
+    (scroll
+      :vscroll true
+      :height 130
+      (box
+        :orientation "vertical"
+        :space-evenly false
+        (for device in bluetooth_list
+          (bluetooth_row :device device)
+        )
+      )
+    )
+  )
+)
+
+(defwidget network_panel []
+  (box
+    :orientation "vertical"
+    :space-evenly false
+    :valign "center"
+    :spacing 24
+    (wifi_controls)
+    (bluetooth_controls)
+  )
+)
+
+;; Processes
+
+(defvar process_sort "cpu")
+
+;; defpoll scripts are static, so the script returns both orderings at once and
+;; the sort toggle just picks one.
+(defpoll processes
+  :interval "2s"
+  :run-while {quick_tab == "processes"}
+  :initial `{"cpu":[],"mem":[]}`
+  `quick-processes list`
+)
+
+(defwidget process_row [process]
+  (box
+    :class "list_row"
+    :space-evenly false
+    :spacing 8
+    (label
+      :class "sm"
+      :halign "start"
+      :hexpand true
+      :limit-width 28
+      :text {process.name}
+    )
+    (label
+      :class {process_sort == "cpu" ? "sm" : "xs"}
+      :width 80
+      :text "${round(process.cpu, 1)}%"
+    )
+    (label
+      :class {process_sort == "mem" ? "sm" : "xs"}
+      :width 80
+      :text "${round(process.mem, 1)}%"
+    )
+    (icon_button
+      :icon "window-close-symbolic"
+      :icon-size "small-toolbar"
+      :onclick {"quick-processes kill " + process.pid + " ; eww poll processes"}
+    )
+  )
+)
+
+(defwidget process_panel []
+  (box
+    :orientation "vertical"
+    :space-evenly false
+    :valign "center"
+    :spacing 8
+    (box
+      :space-evenly false
+      :spacing 8
+      (label
+        :class "md"
+        :halign "start"
+        :hexpand true
+        :text "Top processes"
+      )
+      (icon_label_button
+        :icon "utilities-system-monitor-symbolic"
+        :text {process_sort == "cpu" ? "By CPU" : "By memory"}
+        :onclick {"eww update process_sort=" + (process_sort == "cpu" ? "mem" : "cpu")}
+      )
+    )
+    (box
+      :orientation "vertical"
+      :space-evenly false
+      (for process in {process_sort == "cpu" ? processes.cpu : processes.mem}
+        (process_row :process process)
+      )
+    )
+  )
+)
+
+(defwidget system_panel []
+  (box
+    :orientation "vertical"
+    :space-evenly false
+    :valign "center"
+    :spacing 24
+    (hardware_info)
+    (llm_info)
+    (media_controls)
+    (audio_controls)
+    (brightness_controls)
+    (wallpaper_controls)
+  )
+)
+
 ;; Layout and window
 
 (defwidget layout []
@@ -667,6 +1123,7 @@
         (datetime)
         (current_weather)
         (notifications)
+        (night_shift_controls)
         (launcher_panel)
         (power_controls)
       )
@@ -675,12 +1132,17 @@
       :class "column"
       :orientation "vertical"
       :space-evenly false
-      :valign "center"
-      :spacing 24
-      (hardware_info)
-      (llm_info)
-      (media_controls)
-      (audio_controls)
+      :valign "fill"
+      :spacing 12
+      (tab_bar)
+      (stack
+        :selected {quick_tab == "system" ? 0 : quick_tab == "network" ? 1 : 2}
+        :transition "none"
+        :vexpand true
+        (system_panel)
+        (network_panel)
+        (process_panel)
+      )
     )
   )
 )
@@ -699,3 +1161,15 @@
   (layout)
 )
 
+
+(defwindow night_shift
+  :monitor 0
+  :stacking "overlay"
+  :geometry (geometry
+    :y "12px"
+    :width "360"
+    :anchor "top right"
+  )
+  :class "night_shift_popup"
+  (night_shift_controls)
+)

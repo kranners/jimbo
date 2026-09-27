@@ -89,6 +89,13 @@ top: {
         text = ''
           SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
           DASHBOARD_WINDOW="dashboard"
+          # A dashboard opened by keybind has to survive the workspace watcher
+          # below, which would otherwise close it on the very next window event.
+          PIN="$XDG_RUNTIME_DIR/dashboard-pinned"
+
+          open_dashboard() {
+              eww --no-daemonize open "$DASHBOARD_WINDOW" --screen "$(hyprctl monitors -j | jq '.[] | select(.focused) | .id')"
+          }
 
           is_workspace_empty() {
               local ws_id
@@ -97,12 +104,35 @@ top: {
           }
 
           update_dashboard() {
+              [ -e "$PIN" ] && return
+
               if is_workspace_empty; then
-                  eww --no-daemonize open "$DASHBOARD_WINDOW" --screen "$(hyprctl monitors -j | jq '.[] | select(.focused) | .id')"
+                  open_dashboard
               else
                   eww --no-daemonize close "$DASHBOARD_WINDOW"
               fi
           }
+
+          case "''${1:-watch}" in
+              toggle)
+                  if [ -e "$PIN" ]; then
+                      rm -f "$PIN"
+                      update_dashboard
+                  else
+                      touch "$PIN"
+                      [ -n "''${2:-}" ] && eww --no-daemonize update quick_tab="$2"
+                      open_dashboard
+                  fi
+                  exit 0
+                  ;;
+              close)
+                  rm -f "$PIN"
+                  eww --no-daemonize close-all
+                  exit 0
+                  ;;
+          esac
+
+          rm -f "$PIN"
 
           socat -U - UNIX-CONNECT:"$SOCKET" | while read -r line; do
               case "$line" in
@@ -121,6 +151,9 @@ top: {
       xdg.configFile.eww.source = mkOutOfStoreSymlink ewwSourceHome;
       home.packages = [
         pkgs.lm_sensors
+        # weather.py, network_speed.py and set_output_device.py are run straight
+        # off PATH by eww, so python3 has to be in the profile.
+        pkgs.python3
         llmStatus
         pkgs.eww
         dashboard

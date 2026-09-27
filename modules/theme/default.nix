@@ -39,11 +39,13 @@ in
         };
 
         gtk4.theme = config.gtk.theme;
+
+        colorScheme = "dark";
       };
 
-      # Try to force Qt to behave like GTK so we can just theme that instead
       qt = {
         enable = true;
+        platformTheme.name = "gtk3";
       };
 
       home.pointerCursor = {
