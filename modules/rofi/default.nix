@@ -6,11 +6,9 @@
     programs.rofi = {
       enable = true;
 
-      location = "center";
-
       theme = "material";
 
-      extraConfig = {
+      settings = {
         modi = "window,drun";
 
         icon-theme = "Oranchelo";
