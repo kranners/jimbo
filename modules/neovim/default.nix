@@ -1,5 +1,11 @@
-top@{ ... }: {
-  sharedHomeModule = { pkgs, config, lib, ... }:
+top: {
+  sharedHomeModule =
+    {
+      pkgs,
+      config,
+      lib,
+      ...
+    }:
     let
       inherit (config.lib.file) mkOutOfStoreSymlink;
       inherit (lib) fileContents;
@@ -49,4 +55,3 @@ top@{ ... }: {
       ];
     };
 }
-

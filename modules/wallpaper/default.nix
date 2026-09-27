@@ -14,7 +14,13 @@ let
   fetch-wallpapers = pkgs.writeShellApplication {
     name = "fetch-wallpapers";
 
-    runtimeInputs = [ pkgs.curl pkgs.jq pkgs.coreutils pkgs.findutils pkgs.systemd ];
+    runtimeInputs = [
+      pkgs.curl
+      pkgs.jq
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.systemd
+    ];
 
     text = ''
       directory="$HOME/${wallpaperDirectory}"

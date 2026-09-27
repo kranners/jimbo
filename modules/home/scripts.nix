@@ -27,7 +27,10 @@ let
   show-pkg = pkgs.writeShellApplication {
     name = "show-pkg";
 
-    runtimeInputs = [ pkgs.nix pkgs.eza ];
+    runtimeInputs = [
+      pkgs.nix
+      pkgs.eza
+    ];
 
     text = ''
       PATHS="$(nix build "nixpkgs#$1" --print-out-paths --no-link)"
@@ -47,5 +50,9 @@ let
   };
 in
 {
-  home.packages = [ kill-port show-pkg find-pkg ];
+  home.packages = [
+    kill-port
+    show-pkg
+    find-pkg
+  ];
 }

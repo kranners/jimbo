@@ -1,16 +1,14 @@
 { lib, ... }:
 let
-  make_game_window_rules = (
-    window_regex: [
-      "border_size 0, match:class ${window_regex}"
-      "no_blur true, match:class ${window_regex}"
-      "no_dim true, match:class ${window_regex}"
-      "no_shadow true, match:class ${window_regex}"
-      "no_anim true, match:class ${window_regex}"
-      "workspace 1, match:class ${window_regex}"
-      "immediate true, match:class ${window_regex}"
-    ]
-  );
+  make_game_window_rules = window_regex: [
+    "border_size 0, match:class ${window_regex}"
+    "no_blur true, match:class ${window_regex}"
+    "no_dim true, match:class ${window_regex}"
+    "no_shadow true, match:class ${window_regex}"
+    "no_anim true, match:class ${window_regex}"
+    "workspace 1, match:class ${window_regex}"
+    "immediate true, match:class ${window_regex}"
+  ];
 in
 {
   darwinSystemModule.homebrew.casks = [ "jagex" ];
@@ -38,7 +36,7 @@ in
 
     wayland.windowManager.hyprland.settings = {
       windowrule = lib.lists.flatten (
-        lib.lists.map (window_regex: make_game_window_rules window_regex) [
+        lib.lists.map make_game_window_rules [
           "^gamescope$"
           "^steam_app_\\d+$"
           "^overwatch.exe$"
