@@ -277,6 +277,17 @@
           # create local tracking branch when worktree-adding a remote-only branch
           worktree.guessRemote = true;
 
+          # answer https credential prompts with the gh token, so push works
+          credential =
+            lib.genAttrs
+              [
+                "https://github.com"
+                "https://gist.github.com"
+              ]
+              (_: {
+                helper = "!${lib.getExe pkgs.gh} auth git-credential";
+              });
+
           user = {
             name = "Aaron";
             email = "aaron@cute.engineer";
