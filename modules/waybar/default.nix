@@ -11,6 +11,7 @@ top: {
         let
           icons = {
             audio = "󰓃";
+            brightness = "󰃠";
             clock = "";
             bluetooth = "";
             tray = "󰇙";
@@ -77,6 +78,9 @@ top: {
           modules-right = [
             "custom/icon-space-left"
             "group/sys-tray"
+            "custom/night-shift"
+            "custom/icon-brightness"
+            "custom/brightness"
             "custom/icon-audio"
             "pulseaudio"
             "custom/icon-bluetooth"
@@ -90,6 +94,14 @@ top: {
 
           "hyprland/workspaces" = {
             format = "{name}";
+          };
+
+          "custom/night-shift" = {
+            format = "{}";
+            return-type = "json";
+            interval = 2;
+            exec = "night-shift status";
+            on-click = "night-shift toggle";
           };
 
           "custom/notifications" = {
@@ -112,6 +124,15 @@ top: {
             on-click = "swaync-client -t -sw";
             on-click-right = "swaync-client -d -sw";
             escape = true;
+          };
+
+          "custom/brightness" = {
+            format = "{}%";
+            tooltip = false;
+            interval = 5;
+            exec = "${top.config.brightness.command} get";
+            on-scroll-up = "${top.config.brightness.command} up";
+            on-scroll-down = "${top.config.brightness.command} down";
           };
 
           "group/power" = {
@@ -213,6 +234,7 @@ top: {
 
           #bluetooth,
           #clock,
+          #custom-brightness,
           #pulseaudio,
           #network,
           #workspaces {
@@ -262,6 +284,7 @@ top: {
 
           #bluetooth,
           #clock,
+          #custom-brightness,
           #custom-icon-tray,
           #pulseaudio {
               margin-bottom: ${space-sm};
@@ -271,6 +294,7 @@ top: {
 
           #custom-icon-audio,
           #custom-icon-bluetooth,
+          #custom-icon-brightness,
           #custom-icon-clock {
               padding-left: ${space-md};
               padding-right: ${space-md};
@@ -288,6 +312,7 @@ top: {
 
           #bluetooth,
           #clock,
+          #custom-brightness,
           #custom-icon-tray,
           #network,
           #pulseaudio {
@@ -314,6 +339,7 @@ top: {
 
           #custom-icon-audio,
           #custom-icon-bluetooth,
+          #custom-icon-brightness,
           #custom-icon-clock,
           #custom-icon-space {
               border-radius: ${space-sm} 0 0 ${space-sm};
@@ -339,8 +365,24 @@ top: {
               border-right: none;
           }
 
+          #custom-night-shift {
+              background-color: @bg-light;
+              border-radius: ${space-sm};
+              color: @accent;
+              margin-bottom: ${space-sm};
+              margin-right: ${space-lg};
+              margin-top: ${space-sm};
+              padding-left: ${space-md};
+              padding-right: ${space-md};
+          }
+
+          #custom-night-shift.inactive {
+              color: @inactive;
+          }
+
           #bluetooth,
           #clock,
+          #custom-brightness,
           #pulseaudio {
               padding-left: 0;
               color: @fg;
@@ -352,6 +394,7 @@ top: {
 
           #custom-icon-audio,
           #custom-icon-bluetooth,
+          #custom-icon-brightness,
           #custom-icon-clock,
           #custom-icon-divider,
           #custom-icon-tray,
