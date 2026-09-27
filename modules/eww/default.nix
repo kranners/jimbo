@@ -1,5 +1,6 @@
-top@{ ... }: {
-  nixosHomeModule = { config, pkgs, ... }:
+top: {
+  nixosHomeModule =
+    { config, pkgs, ... }:
     let
       inherit (config.lib.file) mkOutOfStoreSymlink;
       ewwSourceHome = "${config.home.homeDirectory}/${top.config.repoPath}/modules/eww";
@@ -27,9 +28,9 @@ top@{ ... }: {
 
           update_dashboard() {
               if is_workspace_empty; then
-                  eww open "$DASHBOARD_WINDOW" --screen "$(hyprctl monitors -j | jq '.[] | select(.focused) | .id')"
+                  eww --no-daemonize open "$DASHBOARD_WINDOW" --screen "$(hyprctl monitors -j | jq '.[] | select(.focused) | .id')"
               else
-                  eww close "$DASHBOARD_WINDOW"
+                  eww --no-daemonize close "$DASHBOARD_WINDOW"
               fi
           }
 
@@ -74,7 +75,10 @@ top@{ ... }: {
         Unit = {
           Description = "Auto dashboard opening and closing";
           Wants = [ "eww.service" ];
-          After = [ config.wayland.systemd.target "eww.service" ];
+          After = [
+            config.wayland.systemd.target
+            "eww.service"
+          ];
           ConditionEnvironment = "WAYLAND_DISPLAY";
         };
 
