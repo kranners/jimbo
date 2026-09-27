@@ -42,7 +42,6 @@ top: {
                 slots_total: 0,
                 requests_processing: 0,
                 requests_deferred: 0,
-                context_used_percent: 0,
                 prompt_tokens_per_second: 0,
                 generated_tokens_per_second: 0,
                 gateway_state: $gateway,
@@ -56,18 +55,16 @@ top: {
             --arg server "$server_state" \
             --argjson processing "$(metric llamacpp:requests_processing)" \
             --argjson deferred "$(metric llamacpp:requests_deferred)" \
-            --argjson kvCacheRatio "$(metric llamacpp:kv_cache_usage_ratio)" \
             --argjson promptTokens "$(metric llamacpp:prompt_tokens_total)" \
             --argjson promptSeconds "$(metric llamacpp:prompt_seconds_total)" \
-            --argjson generatedTokens "$(metric llamacpp:predicted_tokens_total)" \
-            --argjson generatedSeconds "$(metric llamacpp:predicted_seconds_total)" \
+            --argjson generatedTokens "$(metric llamacpp:tokens_predicted_total)" \
+            --argjson generatedSeconds "$(metric llamacpp:tokens_predicted_seconds_total)" \
             '{
               online: true,
               model: .model_alias,
               slots_total: .total_slots,
               requests_processing: $processing,
               requests_deferred: $deferred,
-              context_used_percent: ($kvCacheRatio * 100),
               prompt_tokens_per_second:
                 (if $promptSeconds > 0 then $promptTokens / $promptSeconds else 0 end),
               generated_tokens_per_second:

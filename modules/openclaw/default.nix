@@ -23,7 +23,7 @@ in
     owners = mkOption {
       description = "Chat identities allowed to run owner commands, as <channel>:<id>.";
       type = types.listOf types.str;
-      default = [ ];
+      default = [ "discord:193903125994799114" ];
     };
 
     settings = mkOption {
@@ -45,6 +45,9 @@ in
 
         channels.discord = {
           enabled = true;
+
+          dmPolicy = "allowlist";
+          allowFrom = config.openclaw.owners;
 
           token = {
             source = "env";
@@ -68,6 +71,10 @@ in
             };
           };
 
+          # CLI backends are text-first and never call tools, so this fallback
+          # answers questions but cannot drive the browser or the shell. An
+          # Anthropic API key would be needed for that.
+          #
           # The gateway runs with a minimal PATH, so point the bundled backend
           # at the binary. Claude Code must already be logged in for the same
           # user, and the CLI auth method selected once by hand:
@@ -107,8 +114,6 @@ in
     };
   };
 
-  config.openclaw.owners = [ "discord:193903125994799114" ];
-
   config.nixosSystemModule = {
     # nixpkgs marks OpenClaw insecure because it parses untrusted content with
     # an LLM that has full access to the system.
@@ -123,9 +128,13 @@ in
     {
       home.packages = [ pkgs.openclaw ];
 
-      # Keep the CLI in Nix mode too, so it refuses to edit the generated
-      # config instead of silently shadowing it.
-      home.sessionVariables.OPENCLAW_NIX_MODE = "1";
+      # Point the CLI at the same generated config as the service, and keep it
+      # in Nix mode so it refuses to edit that config instead of shadowing it.
+      home.sessionVariables = {
+        OPENCLAW_NIX_MODE = "1";
+        OPENCLAW_STATE_DIR = config.openclaw.stateDir;
+        OPENCLAW_CONFIG_PATH = settingsFile;
+      };
 
       systemd.user.services.openclaw = {
         Unit = {
@@ -149,13 +158,9 @@ in
           Environment = [
             "OPENCLAW_NIX_MODE=1"
             "OPENCLAW_STATE_DIR=${config.openclaw.stateDir}"
+            "OPENCLAW_CONFIG_PATH=${settingsFile}"
             "PATH=/run/wrappers/bin:/run/current-system/sw/bin"
           ];
-
-          # The CLI reads $OPENCLAW_STATE_DIR/openclaw.json, so the generated
-          # config is copied there rather than read from the store. Nix mode
-          # then refuses writes to it, and every restart restores it.
-          ExecStartPre = "${pkgs.coreutils}/bin/install -m 600 ${settingsFile} ${config.openclaw.stateDir}/openclaw.json";
 
           ExecStart = "${pkgs.openclaw}/bin/openclaw gateway run";
           Restart = "on-failure";
