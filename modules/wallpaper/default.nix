@@ -14,7 +14,7 @@ let
   fetch-wallpapers = pkgs.writeShellApplication {
     name = "fetch-wallpapers";
 
-    runtimeInputs = [ pkgs.curl pkgs.jq pkgs.coreutils pkgs.findutils ];
+    runtimeInputs = [ pkgs.curl pkgs.jq pkgs.coreutils pkgs.findutils pkgs.systemd ];
 
     text = ''
       directory="$HOME/${wallpaperDirectory}"
@@ -32,6 +32,10 @@ let
         | tail -zn "+$((${toString keptWallpapers} + 1))" \
         | cut -zd' ' -f2- \
         | xargs -0r rm --
+
+      # wpaperd scans its directory once at startup and gives up if it was
+      # empty, so it needs a restart after the directory is first filled.
+      systemctl --user try-restart wpaperd.service
     '';
   };
 in
