@@ -6,7 +6,7 @@
 }:
 let
   isLinux = lib.strings.hasSuffix "-linux" host.system;
-  fontSize = if isLinux then 12 else 16;
+  fontSize = if isLinux then 10 else 16;
 in
 {
   darwinSystemModule.homebrew.casks = [
