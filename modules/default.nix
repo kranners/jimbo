@@ -24,6 +24,7 @@ in
     ./theme
     ./eww
     ./quick-settings
+    ./dock
     ./ssh
     ./zsh
     ./ghostty
