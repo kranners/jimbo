@@ -23,6 +23,7 @@ in
     ./users
     ./git
     ./claude
+    ./zellij
     ./security
     ./locale
     ./networking

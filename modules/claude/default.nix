@@ -35,6 +35,17 @@
           exec python3 ${./statusline.py}
         '';
       };
+
+      agentStatusHook = status: [
+        {
+          hooks = [
+            {
+              type = "command";
+              command = "zellij-agent-status ${status}";
+            }
+          ];
+        }
+      ];
     in
     {
       home.packages = [
@@ -77,6 +88,14 @@
         statusLine = {
           type = "command";
           command = "${statusline}/bin/claude-statusline";
+        };
+
+        # Agent status in zellij tab names
+        hooks = {
+          UserPromptSubmit = agentStatusHook "running";
+          Notification = agentStatusHook "input";
+          Stop = agentStatusHook "idle";
+          SessionEnd = agentStatusHook "";
         };
       };
     };
