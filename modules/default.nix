@@ -53,7 +53,6 @@ in
     ./rectangle
     ./spotify
     ./browser
-    ./tailscale
     ./formatting
     ./night-shift
   ];
