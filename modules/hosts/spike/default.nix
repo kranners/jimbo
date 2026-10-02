@@ -60,5 +60,14 @@
 
   services.openssh.enable = true;
 
+  services.logind.settings.Login.IdleAction = "ignore";
+
+  systemd.targets = {
+    sleep.enable = false;
+    suspend.enable = false;
+    hibernate.enable = false;
+    hybrid-sleep.enable = false;
+  };
+
   system.stateVersion = "26.05";
 }
