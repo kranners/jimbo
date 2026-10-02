@@ -2,6 +2,7 @@
 {
   imports = [
     ./hardware.nix
+    ./dns.nix
     ./docker.nix
     ./monitoring.nix
     ./watchdog.nix
