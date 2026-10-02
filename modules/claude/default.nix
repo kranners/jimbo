@@ -56,7 +56,7 @@
         theme = "auto";
 
         # Model settings
-        model = "claude-opus-5";
+        model = "claude-opus-5-5";
         effortLevel = "medium";
 
         # Start in auto mode
@@ -67,9 +67,11 @@
           "typescript-lsp@claude-plugins-official" = true;
         };
 
-        # Disable builtin workflows eg code-review
+        # Workflows and builtin skills
         skipWorkflowUsageWarning = false;
-        disableBundledSkills = true;
+        disableBundledSkills = false;
+        disableWorkflows = false;
+        enableWorkflows = true;
 
         # Recaps
         awaySummaryEnabled = false;

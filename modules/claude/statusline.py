@@ -28,7 +28,9 @@ from datetime import datetime, timezone
 TIERS = {
     "tier_2_10": (2, 10, 2.5, 4, 0.2),
     "tier_3_15": (3, 15, 3.75, 6, 0.3),
+    "tier_4_20_cache_read_0_20": (4, 20, 5, 8, 0.2),
     "tier_5_25": (5, 25, 6.25, 10, 0.5),
+    "tier_8_40_cache_read_0_40": (8, 40, 10, 16, 0.4),
     "tier_10_50": (10, 50, 12.5, 20, 1),
     "tier_10_50_cache_read_0_25": (10, 50, 12.5, 20, 0.25),
     "tier_15_75": (15, 75, 18.75, 30, 1.5),
@@ -52,6 +54,7 @@ MODEL_TIERS = {
     "claude-opus-4-7": "tier_5_25",
     "claude-opus-4-8": "tier_5_25",
     "claude-opus-5": "tier_5_25",
+    "claude-opus-5-5": "tier_4_20_cache_read_0_20",
     "claude-sonnet-4-0": "tier_3_15",
     "claude-sonnet-4-5": "tier_3_15",
     "claude-sonnet-4-6": "tier_3_15",
@@ -64,6 +67,7 @@ FAST_TIERS = {
     "claude-opus-4-7": "tier_15_75",
     "claude-opus-4-8": "tier_10_50",
     "claude-opus-5": "tier_10_50",
+    "claude-opus-5-5": "tier_8_40_cache_read_0_40",
 }
 
 WEB_SEARCH_USD = 0.01
@@ -77,6 +81,7 @@ DEFAULT_WINDOW = 200_000
 MAX_WINDOW = 1_000_000
 MODEL_WINDOWS = {
     "claude-opus-5": MAX_WINDOW,
+    "claude-opus-5-5": MAX_WINDOW,
     "claude-fable-5-1": MAX_WINDOW,
 }
 
