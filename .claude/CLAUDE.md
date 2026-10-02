@@ -49,7 +49,7 @@ Modules receive `inputs` (flake inputs) and `host` (`{ system, hostname, usernam
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
 - Grafana on `:3000`, backed by Prometheus scraping node_exporter and cAdvisor.
 - Hardware watchdog (`wdat_wdt`) is armed by systemd, and the kernel reboots 10 s after a panic.
-- WireGuard `wg0` on UDP `51820`, spike is `10.100.0.1`. Its private key is generated on first boot at `/var/lib/wireguard/private`.
+- WireGuard `wg0` on UDP `51820` at `spike.cute.engineer` (kept current by cloudflare-dyndns, token in `/var/lib/secrets/cloudflare-dyndns-token`), spike is `10.100.0.1`. Its private key is generated on first boot at `/var/lib/wireguard/private`.
 
 ### Neovim
 
