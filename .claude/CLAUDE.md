@@ -72,15 +72,11 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - Claude Code Remote Control (`claude-remote-control.service`) serves sessions from `~/workspace` to claude.ai/code as `spike`.
 - Discord threads (`discord-threads.service`) runs `kranners/claude-discord-threads` as `aaron` from `~/workspace/claude-discord-threads`, giving each Discord thread its own Claude Code session through the Nix-managed `claude`.
   That repository is private, so the checkout pulls over SSH with a read-only deploy key, `~/.ssh/claude-discord-threads-deploy`, set as its `core.sshCommand` because home-manager owns `~/.ssh/config`.
-  It uses its own Discord bot, because OpenClaw's token would make both gateways answer every DM.
-  Its bot token lives in `~/.claude/channels/discord/.env` as `DISCORD_BOT_TOKEN`, mode 600, written by hand like OpenClaw's.
+  Its bot token lives in `~/.claude/channels/discord/.env` as `DISCORD_BOT_TOKEN`, mode 600, written by hand.
   Its allowlist is `~/.claude/channels/discord/access.json`, re-read on every message: `{"dmPolicy":"allowlist","allowFrom":["193903125994799114"],"groups":{"<channel id>":{"requireMention":false,"allowFrom":[]}}}`.
   `/project <path>` in an opted-in channel binds it to a repo, and each new thread there gets a worktree under `<repo>/.claude/worktrees/`.
   `/done` removes a thread's worktree unless something in it is uncommitted, keeps its branch, and posting in the thread again restores it.
   To deploy a new version, `git pull` in the checkout and `sudo systemctl restart discord-threads`; the restart runs `bun install --frozen-lockfile` first.
-- OpenClaw gateway (`openclaw.service`) runs as `aaron` on loopback, reached through Discord or `openclaw tui` over SSH.
-  Claude is its only model, through the `claude-cli` backend.
-  Secrets live in `~/.openclaw/.env`.
 
 ### Neovim
 
