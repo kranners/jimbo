@@ -21,14 +21,10 @@ just check    # nix flake check --show-trace (this is what CI runs)
 
 ## Workflow
 
-Each change is made on a short-lived local branch in a worktree of its own, holding one feature or fix.
-`claude -w <name>` starts a session in `.claude/worktrees/<name>` on a branch named `worktree-<name>`; the directory is gitignored so the `git add .` in `just` never stages it.
-
-A branch lands by fetching `origin`, rebasing onto `origin/main`, passing `just check`, then running `git push origin HEAD:main`.
-A rejected push means `main` moved, so landing starts again from the fetch.
-A landed branch is deleted, locally and on `origin`.
+The landing check is `just check`.
 The weekly `flake-update-*` branches are the exception: they land through the pull request the bot opens.
-CI runs `just check`'s `nix flake check` on every push to every branch, so a red `main` is fixed forward.
+CI runs `just check`'s `nix flake check` on every push to every branch.
+`.claude/worktrees/` is gitignored so the `git add .` in `just` never stages a worktree.
 
 Update this file in the same branch as any change that makes it wrong.
 It keeps one sentence per line, so git merges edits from two branches sentence by sentence.
