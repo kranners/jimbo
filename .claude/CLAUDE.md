@@ -46,6 +46,9 @@ Modules receive `inputs` (flake inputs) and `host` (`{ system, hostname, usernam
 - SSH: `ssh aaron@spike.local` (key auth, resolved over mDNS).
 - The repo is cloned at `~/workspace/jimbo` on `main`. To deploy, push to `main`, then on spike: `git pull && sudo nixos-rebuild switch --flake .#spike --option experimental-features "nix-command flakes"` (flakes are not enabled there).
 - SSH accepts keys only, declared in `modules/hosts/spike`. `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
+- Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
+- Grafana on `:3000`, backed by Prometheus scraping node_exporter and cAdvisor.
+- WireGuard `wg0` on UDP `51820`, spike is `10.100.0.1`. Its private key is generated on first boot at `/var/lib/wireguard/private`.
 
 ### Neovim
 
