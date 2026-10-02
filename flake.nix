@@ -61,5 +61,9 @@
       # [attrsets] -> attrset
       mergedOutput = lib.foldl' lib.recursiveUpdate { } flakeOutputs;
     in
-    mergedOutput.config;
+    lib.recursiveUpdate mergedOutput.config {
+      nixosConfigurations.spike = lib.nixosSystem {
+        modules = [ ./modules/hosts/spike ];
+      };
+    };
 }
