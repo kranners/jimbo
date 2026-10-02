@@ -22,7 +22,6 @@
         "onedrive"
         "readdle-spark"
 
-        "rectangle"
         "charmstone"
         "raycast"
       ];
@@ -64,12 +63,19 @@
     pkgs.mariadb.client
   ];
 
-  darwinHomeModule.home.packages = [
-    pkgs.nurl
-    pkgs.nix-output-monitor
-    pkgs.mas
-    pkgs.svgo
-  ];
+  darwinHomeModule = {
+    home.packages = [
+      pkgs.nurl
+      pkgs.nix-output-monitor
+      pkgs.mas
+      pkgs.svgo
+      pkgs.mermaid-cli
+      pkgs.viu
+    ];
+
+    # mermaid-cli on darwin ships no chromium; puppeteer needs an explicit path.
+    home.sessionVariables.PUPPETEER_EXECUTABLE_PATH = "/Applications/Chromium.app/Contents/MacOS/Chromium";
+  };
 
   nixosSystemModule.environment.systemPackages = [
     pkgs.nixfmt
