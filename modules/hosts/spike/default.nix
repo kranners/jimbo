@@ -10,7 +10,6 @@
         ./dns.nix
         ./docker.nix
         ./monitoring.nix
-        ./openclaw.nix
         ./watchdog.nix
         ./wireguard.nix
       ];
