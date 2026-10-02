@@ -4,6 +4,7 @@
     ./hardware.nix
     ./docker.nix
     ./monitoring.nix
+    ./watchdog.nix
     ./wireguard.nix
   ];
 

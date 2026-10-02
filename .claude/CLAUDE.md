@@ -48,6 +48,7 @@ Modules receive `inputs` (flake inputs) and `host` (`{ system, hostname, usernam
 - SSH accepts keys only, declared in `modules/hosts/spike`. `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
 - Grafana on `:3000`, backed by Prometheus scraping node_exporter and cAdvisor.
+- Hardware watchdog (`wdat_wdt`) is armed by systemd, and the kernel reboots 10 s after a panic.
 - WireGuard `wg0` on UDP `51820`, spike is `10.100.0.1`. Its private key is generated on first boot at `/var/lib/wireguard/private`.
 
 ### Neovim
