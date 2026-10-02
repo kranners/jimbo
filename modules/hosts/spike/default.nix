@@ -6,6 +6,7 @@
       imports = [
         ./hardware.nix
         ./claude.nix
+        ./discord-threads.nix
         ./dns.nix
         ./docker.nix
         ./monitoring.nix
