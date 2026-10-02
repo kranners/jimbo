@@ -1,77 +1,52 @@
-{ pkgs, ... }:
+{ host, ... }:
 {
-  imports = [
-    ./hardware.nix
-    ./claude.nix
-    ./dns.nix
-    ./docker.nix
-    ./monitoring.nix
-    ./openclaw.nix
-    ./watchdog.nix
-    ./wireguard.nix
-  ];
+  nixosSystemModule =
+    { pkgs, ... }:
+    {
+      imports = [
+        ./hardware.nix
+        ./claude.nix
+        ./dns.nix
+        ./docker.nix
+        ./monitoring.nix
+        ./openclaw.nix
+        ./watchdog.nix
+        ./wireguard.nix
+      ];
 
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+      boot.loader.systemd-boot.enable = true;
+      boot.loader.efi.canTouchEfiVariables = true;
 
-  networking.hostName = "spike";
-  networking.networkmanager.enable = true;
+      networking.hostName = host.hostname;
 
-  time.timeZone = "Australia/Melbourne";
+      users.users.${host.username}.openssh.authorizedKeys.keys = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFTgNyfuTRL/Kygs5zNODcjMpcT/69U91T7nrOOHrbju"
+      ];
 
-  i18n.defaultLocale = "en_AU.UTF-8";
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "en_AU.UTF-8";
-    LC_IDENTIFICATION = "en_AU.UTF-8";
-    LC_MEASUREMENT = "en_AU.UTF-8";
-    LC_MONETARY = "en_AU.UTF-8";
-    LC_NAME = "en_AU.UTF-8";
-    LC_NUMERIC = "en_AU.UTF-8";
-    LC_PAPER = "en_AU.UTF-8";
-    LC_TELEPHONE = "en_AU.UTF-8";
-    LC_TIME = "en_AU.UTF-8";
-  };
+      programs.git.enable = true;
 
-  security.sudo.wheelNeedsPassword = false;
+      environment.systemPackages = [ pkgs.vim ];
 
-  users.users.aaron = {
-    isNormalUser = true;
-    description = "aaron";
-    extraGroups = [
-      "networkmanager"
-      "wheel"
-    ];
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFTgNyfuTRL/Kygs5zNODcjMpcT/69U91T7nrOOHrbju"
-    ];
-  };
+      services.openssh.settings.PasswordAuthentication = false;
 
-  programs.git.enable = true;
+      services.avahi = {
+        enable = true;
+        openFirewall = true;
+        publish = {
+          enable = true;
+          addresses = true;
+        };
+      };
 
-  nixpkgs.config.allowUnfree = true;
+      systemd.targets = {
+        sleep.enable = false;
+        suspend.enable = false;
+        hibernate.enable = false;
+        hybrid-sleep.enable = false;
+      };
 
-  environment.systemPackages = [ pkgs.vim ];
-
-  services.openssh = {
-    enable = true;
-    settings.PasswordAuthentication = false;
-  };
-
-  services.avahi = {
-    enable = true;
-    openFirewall = true;
-    publish = {
-      enable = true;
-      addresses = true;
+      system.stateVersion = "26.05";
     };
-  };
 
-  systemd.targets = {
-    sleep.enable = false;
-    suspend.enable = false;
-    hibernate.enable = false;
-    hybrid-sleep.enable = false;
-  };
-
-  system.stateVersion = "26.05";
+  nixosHomeModule.home.stateVersion = "26.11";
 }
