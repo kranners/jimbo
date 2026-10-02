@@ -413,64 +413,6 @@
   )
 )
 
-;; Local LLM diagnostics
-
-(defpoll llm
-  :interval "2s"
-  :initial `{"online":false,"model":"","slots_total":0,"requests_processing":0,"requests_deferred":0,"prompt_tokens_per_second":0,"generated_tokens_per_second":0,"gateway_state":"unknown","server_state":"unknown"}`
-  `llm-status`
-)
-
-(defwidget llm_info []
-  (box
-    :orientation "horizontal"
-    :spacing 12
-    :halign "center"
-    (box
-      :orientation "vertical"
-      :spacing 12
-      (hardware_label
-        :icon {
-          llm.online
-          ? "emblem-ok-symbolic"
-          : "dialog-warning-symbolic"
-        }
-        :text { llm.online ? llm.model : "offline" }
-        :subtitle "Local model"
-      )
-      (hardware_label
-        :icon "network-server-symbolic"
-        :text { llm.server_state + " / " + llm.gateway_state }
-        :subtitle "llama.cpp / OpenClaw"
-      )
-      (hardware_label
-        :icon "system-run-symbolic"
-        :text {
-          llm.requests_processing + " / " + llm.slots_total
-          + (llm.requests_deferred > 0
-             ? " (+" + llm.requests_deferred + " queued)"
-             : "")
-        }
-        :subtitle "Busy slots"
-      )
-    )
-    (box
-      :orientation "vertical"
-      :spacing 12
-      (hardware_label
-        :icon "document-edit-symbolic"
-        :text { round(llm.prompt_tokens_per_second, 0) + " tok/s" }
-        :subtitle "Prompt throughput"
-      )
-      (hardware_label
-        :icon "media-playback-start-symbolic"
-        :text { round(llm.generated_tokens_per_second, 1) + " tok/s" }
-        :subtitle "Generation throughput"
-      )
-    )
-  )
-)
-
 ;; Notifications
 
 (defpoll total_notifications
@@ -1059,7 +1001,6 @@
     :valign "center"
     :spacing 24
     (hardware_info)
-    (llm_info)
     (media_controls)
     (audio_controls)
     (brightness_controls)
