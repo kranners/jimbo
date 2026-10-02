@@ -4,6 +4,13 @@
     # "firefox"
   ];
 
+  darwinHomeModule = { pkgs, lib, ... }: {
+    home.file.claude-extension-vivaldi-patched = {
+      source = import ./claude-vivaldi { inherit pkgs lib; };
+      recursive = true;
+    };
+  };
+
   nixosHomeModule = { pkgs, ... }: {
     programs.chromium = {
       enable = true;
