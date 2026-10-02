@@ -2,6 +2,7 @@
 {
   imports = [
     ./hardware.nix
+    ./claude.nix
     ./dns.nix
     ./docker.nix
     ./monitoring.nix
