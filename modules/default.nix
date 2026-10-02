@@ -50,6 +50,7 @@ in
     ./obsidian
     ./discord
     ./plexamp
+    ./rectangle
     ./spotify
     ./browser
     ./llm
