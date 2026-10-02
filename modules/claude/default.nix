@@ -35,19 +35,10 @@
           exec python3 ${./statusline.py}
         '';
       };
-
-      openclaw-new = pkgs.writeShellApplication {
-        name = "openclaw-new";
-
-        text = ''
-          openclaw tui --session "$(date +%s)"
-        '';
-      };
     in
     {
       home.packages = [
         save-branch-context
-        openclaw-new
       ];
 
       home.file.".claude/CLAUDE.md".source = ./CLAUDE.md;

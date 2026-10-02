@@ -22,7 +22,6 @@
 
       sessionPath = [
         "$HOME/.local/bin"
-        "$HOME/.openclaw/bin"
 
         # /scripts is intentionally not managed with Nix.
         "$HOME/scripts"

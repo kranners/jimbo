@@ -53,8 +53,6 @@ in
     ./rectangle
     ./spotify
     ./browser
-    ./llm
-    ./openclaw
     ./tailscale
     ./formatting
     ./night-shift
