@@ -7,7 +7,7 @@ Darwin:
 	git add . ; nh darwin switch . --hostname piggys-MBP
 
 Linux:
-	git add . ; nh os switch . --hostname jimbo
+	git add . ; nh os switch .
 
 check:
 	nix flake check --show-trace
@@ -24,7 +24,7 @@ quiet-Darwin:
 
 quiet-Linux:
 	git add .
-	sudo nixos-rebuild switch --flake .#jimbo
+	sudo nixos-rebuild switch --flake .
 
 fmt:
 	nix fmt

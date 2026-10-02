@@ -13,7 +13,7 @@ Nix flake configuring three machines for a single user (`aaron`):
 ## Commands
 
 ```sh
-just          # rebuild + switch for the current platform (runs `git add .` first, then nh)
+just          # rebuild + switch the current host (runs `git add .` first, then nh)
 just check    # nix flake check --show-trace (this is what CI runs)
 ```
 
@@ -46,21 +46,26 @@ Every directory under `modules/` is a config module that contributes to one or m
 `modules/default.nix` assembles these into the real `nixosConfigurations`/`darwinConfigurations` (guarded by platform, parsed from `host.system`).
 `modules/home/default.nix` wires the home modules into home-manager for `host.username`.
 
-**To add configuration:** create `modules/<name>/default.nix` returning an attrset with the relevant option keys above, and add `./<name>` to the `imports` list in `modules/default.nix`.
+`modules/default.nix` imports its first list of modules on every host, and its second list only when `host.desktop` is true.
 
-Modules receive `inputs` (flake inputs) and `host` (`{ system, hostname, username }`) via `specialArgs`, in addition to the usual `pkgs`/`lib`/`config`.
+**To add configuration:** create `modules/<name>/default.nix` returning an attrset with the relevant option keys above, and add `./<name>` to the `imports` list in `modules/default.nix`, in the `host.desktop` list if it only makes sense on a machine with a screen.
+
+Modules receive `inputs` (flake inputs) and `host` (`{ system, hostname, username, desktop }`) via `specialArgs`, in addition to the usual `pkgs`/`lib`/`config`.
+Because `host` is a `specialArg`, `imports` may depend on it, whereas depending on `config` there recurses infinitely.
 
 ### Hosts
 
 `modules/hosts/<host>/` holds facts about one machine only: hardware, bootloader, hostname, state versions.
+Only the directory named exactly `host.hostname` is imported, so it applies to that machine alone.
 
 ### spike
 
-`spike` is standalone: `flake.nix` builds `nixosConfigurations.spike` from `modules/hosts/spike` alone, a plain NixOS module that none of the shared modules touch.
+`spike` is headless (`desktop = false`), so it gets the shared modules and home-manager but none of the desktop ones.
+Its files under `modules/hosts/spike` are plain NixOS modules, imported through `nixosSystemModule`.
 
 - SSH: `ssh aaron@spike.local` (key auth, resolved over mDNS).
 - The repo is cloned at `~/workspace/jimbo` on `main`.
-  To deploy, push to `main`, then on spike: `git pull && sudo nixos-rebuild switch --flake .#spike --option experimental-features "nix-command flakes"` (flakes are not enabled there).
+  To deploy, push to `main`, then on spike: `git pull && just`.
 - SSH accepts keys only, declared in `modules/hosts/spike`.
   `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.

@@ -15,33 +15,36 @@ in
   imports = [
     ./hosts
     ./home
-    ./hyprland
     ./apps
     ./nixpkgs-config
     ./neovim
+    ./ssh
+    ./zsh
+    ./users
+    ./git
+    ./claude
+    ./security
+    ./locale
+    ./networking
+    ./gnupg
+    ./formatting
+  ]
+  ++ lib.optionals host.desktop [
+    ./hyprland
     ./rofi
     ./file-manager
     ./theme
     ./eww
     ./quick-settings
     ./dock
-    ./ssh
-    ./zsh
     ./ghostty
     ./preferences
     ./autoraise
-    ./users
     ./fonts
-    ./git
     ./cmux
-    ./claude
     ./graphics
     ./sound
-    ./security
     ./xdg
-    ./locale
-    ./networking
-    ./gnupg
     ./gaming
     ./waybar
     ./wallpaper
@@ -53,7 +56,6 @@ in
     ./rectangle
     ./spotify
     ./browser
-    ./formatting
     ./night-shift
   ];
 

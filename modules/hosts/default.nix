@@ -1,6 +1,4 @@
+{ host, ... }:
 {
-  imports = [
-    ./jimbo
-    ./piggys-mbp
-  ];
+  imports = [ ./${host.hostname} ];
 }

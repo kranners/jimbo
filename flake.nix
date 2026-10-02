@@ -27,12 +27,21 @@
           system = "x86_64-linux";
           hostname = "jimbo";
           username = "aaron";
+          desktop = true;
         }
 
         {
           system = "aarch64-darwin";
           hostname = "piggys-MBP";
           username = "aaron";
+          desktop = true;
+        }
+
+        {
+          system = "x86_64-linux";
+          hostname = "spike";
+          username = "aaron";
+          desktop = false;
         }
       ];
 
@@ -61,9 +70,5 @@
       # [attrsets] -> attrset
       mergedOutput = lib.foldl' lib.recursiveUpdate { } flakeOutputs;
     in
-    lib.recursiveUpdate mergedOutput.config {
-      nixosConfigurations.spike = lib.nixosSystem {
-        modules = [ ./modules/hosts/spike ];
-      };
-    };
+    mergedOutput.config;
 }
