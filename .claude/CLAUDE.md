@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Nix flake configuring two machines for a single user (`aaron`):
+Nix flake configuring three machines for a single user (`aaron`):
 
 - `jimbo`, NixOS PC, `x86_64-linux`
 - `piggys-MBP`, MacBook via nix-darwin, `aarch64-darwin`
+- `spike`, always-on NixOS box, `x86_64-linux`
 
 ## Commands
 
@@ -37,6 +38,14 @@ Modules receive `inputs` (flake inputs) and `host` (`{ system, hostname, usernam
 ### Hosts
 
 `modules/hosts/<host>/` holds facts about one machine only: hardware, bootloader, hostname, state versions.
+
+### spike
+
+`spike` is standalone: `flake.nix` builds `nixosConfigurations.spike` from `modules/hosts/spike` alone, a plain NixOS module that none of the shared modules touch.
+
+- SSH: `ssh aaron@spike.local` (key auth, resolved over mDNS).
+- The repo is cloned at `~/workspace/jimbo` on `main`. To deploy, push to `main`, then on spike: `git pull && sudo nixos-rebuild switch --flake .#spike --option experimental-features "nix-command flakes"` (flakes are not enabled there).
+- SSH accepts keys only, declared in `modules/hosts/spike`. `sudo` needs a password; ask the user for it.
 
 ### Neovim
 

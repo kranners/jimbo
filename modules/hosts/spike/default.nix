@@ -34,7 +34,10 @@
   services.printing.enable = true;
 
   services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
+  security = {
+    sudo.wheelNeedsPassword = false;
+    rtkit.enable = true;
+  };
   services.pipewire = {
     enable = true;
     alsa.enable = true;
@@ -49,6 +52,9 @@
       "networkmanager"
       "wheel"
     ];
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFTgNyfuTRL/Kygs5zNODcjMpcT/69U91T7nrOOHrbju"
+    ];
   };
 
   programs.firefox.enable = true;
@@ -58,7 +64,10 @@
 
   environment.systemPackages = [ pkgs.vim ];
 
-  services.openssh.enable = true;
+  services.openssh = {
+    enable = true;
+    settings.PasswordAuthentication = false;
+  };
 
   services.avahi = {
     enable = true;
