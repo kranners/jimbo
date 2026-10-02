@@ -45,7 +45,7 @@ Modules receive `inputs` (flake inputs) and `host` (`{ system, hostname, usernam
 
 - SSH: `ssh aaron@spike.local` (key auth, resolved over mDNS).
 - The repo is cloned at `~/workspace/jimbo` on `main`. To deploy, push to `main`, then on spike: `git pull && sudo nixos-rebuild switch --flake .#spike --option experimental-features "nix-command flakes"` (flakes are not enabled there).
-- SSH accepts keys only, declared in `modules/hosts/spike`. `sudo` needs a password; ask the user for it.
+- SSH accepts keys only, declared in `modules/hosts/spike`. `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
 
 ### Neovim
 
