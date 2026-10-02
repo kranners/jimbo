@@ -1,6 +1,11 @@
 { pkgs, ... }:
 {
-  imports = [ ./hardware.nix ];
+  imports = [
+    ./hardware.nix
+    ./docker.nix
+    ./monitoring.nix
+    ./wireguard.nix
+  ];
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -23,27 +28,7 @@
     LC_TIME = "en_AU.UTF-8";
   };
 
-  services.displayManager.gdm.enable = true;
-  services.desktopManager.gnome.enable = true;
-
-  services.xserver.xkb = {
-    layout = "au";
-    variant = "";
-  };
-
-  services.printing.enable = true;
-
-  services.pulseaudio.enable = false;
-  security = {
-    sudo.wheelNeedsPassword = false;
-    rtkit.enable = true;
-  };
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-  };
+  security.sudo.wheelNeedsPassword = false;
 
   users.users.aaron = {
     isNormalUser = true;
@@ -57,7 +42,6 @@
     ];
   };
 
-  programs.firefox.enable = true;
   programs.git.enable = true;
 
   nixpkgs.config.allowUnfree = true;
@@ -77,8 +61,6 @@
       addresses = true;
     };
   };
-
-  services.logind.settings.Login.IdleAction = "ignore";
 
   systemd.targets = {
     sleep.enable = false;
