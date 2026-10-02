@@ -69,7 +69,9 @@ Modules receive `inputs` (flake inputs) and `host` (`{ system, hostname, usernam
 - WireGuard `wg0` on UDP `51820` at `spike.cute.engineer` (kept current by cloudflare-dyndns, token in `/var/lib/secrets/cloudflare-dyndns-token`), spike is `10.100.0.1`.
   Its private key is generated on first boot at `/var/lib/wireguard/private`.
 - Claude Code Remote Control (`claude-remote-control.service`) serves sessions from `~/workspace` to claude.ai/code as `spike`.
-- OpenClaw gateway (`openclaw.service`) runs as `aaron` on loopback, reached through Discord or `openclaw tui` over SSH. Claude is its only model, through the `claude-cli` backend. Secrets live in `~/.openclaw/.env`.
+- OpenClaw gateway (`openclaw.service`) runs as `aaron` on loopback, reached through Discord or `openclaw tui` over SSH.
+  Claude is its only model, through the `claude-cli` backend.
+  Secrets live in `~/.openclaw/.env`.
 
 ### Neovim
 
