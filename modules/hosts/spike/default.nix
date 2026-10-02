@@ -60,6 +60,15 @@
 
   services.openssh.enable = true;
 
+  services.avahi = {
+    enable = true;
+    openFirewall = true;
+    publish = {
+      enable = true;
+      addresses = true;
+    };
+  };
+
   services.logind.settings.Login.IdleAction = "ignore";
 
   systemd.targets = {
