@@ -5,3 +5,4 @@
 - 2026-10-03: Claude Code enables experimental agent teams through `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` in the shared `settings.json`.
 - 2026-10-03: claude-discord-threads moves to a private repository that spike pulls with a read-only deploy key, and `/done` cleans up a thread's worktree.
 - 2026-10-03: OpenClaw is retired from spike; discord-threads replaces it.
+- 2026-10-03: spike runs Bowerbird: the `bowerbird` user, Compose, Xvfb, remote view, worker and nightly backup units from `/srv/bowerbird`, with Grafana moved to `:3001`.
