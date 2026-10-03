@@ -88,6 +88,8 @@ in
 
   fonts.enableDefaultPackages = true;
 
+  environment.systemPackages = [ pkgs.nodejs_24 ];
+
   networking.firewall.interfaces = lib.genAttrs lanInterfaces (_: {
     allowedTCPPorts = ports;
   });
