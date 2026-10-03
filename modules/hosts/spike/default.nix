@@ -5,6 +5,7 @@
     {
       imports = [
         ./hardware.nix
+        ./bowerbird.nix
         ./claude.nix
         ./discord-threads.nix
         ./dns.nix
