@@ -152,6 +152,7 @@ in
     path = [
       pkgs.nodejs_24
       pkgs.google-chrome
+      pkgs.procps
       pkgs.xdg-utils
       pkgs.bash
     ];
