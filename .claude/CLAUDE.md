@@ -71,6 +71,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `bowerbird-compose.service` runs `compose.production.yml` as root: Postgres on `127.0.0.1:5432` and the portal on `:3000`.
   `bowerbird-display.service` runs Xvfb `:99` with openbox, `bowerbird-remote-view.service` serves it through x11vnc and noVNC on `:6080`, and `bowerbird-worker.service` runs `jobs/src/worker.ts` on it, all as the system user `bowerbird` with state in `/var/lib/bowerbird`.
   The worker starts once the display is up and Postgres accepts connections, and every unit that needs the checkout is skipped while it is missing.
+  A stop signals the worker alone, `KillMode=mixed`, which finishes the runs it has going before it exits, and systemd waits 35 minutes, `TimeoutStopSec`, before `SIGKILL`, five more than the worker's own cap on that wait.
   `bowerbird-backup.timer` dumps the database nightly into `/var/lib/bowerbird-backups`, keeping 14 days.
   Ports `3000` and `6080` are open only on `wlp2s0` and `wg0`.
   `nodejs_24`, the Node the worker unit runs, is also on the system path so `npm ci` works for `aaron`.

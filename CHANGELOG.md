@@ -9,3 +9,4 @@
 - 2026-10-03: Give the Bowerbird worker procps, since it measures its memory with ps.
 - 2026-10-03: The Bowerbird remote view waits for the display before starting x11vnc, and restarts whenever x11vnc exits.
 - 2026-10-03: spike's system path carries `nodejs_24`, the worker's Node, so `npm ci` works for `aaron`, and the Bowerbird deploy command is `ssh aaron@spike.local /srv/bowerbird/bin/deploy`.
+- 2026-10-03: `bowerbird-worker` stops with `KillMode=mixed`, so systemd signals the worker alone and it finishes its running children, and `TimeoutStopSec=35min`, five minutes past the worker's own 30 minute cap on that wait.
