@@ -18,8 +18,7 @@ in
     enableTCPIP = true;
     settings.port = port;
     authentication = ''
-      host all bowerbird 192.168.4.0/22 scram-sha-256
-      host all bowerbird 10.100.0.0/24 scram-sha-256
+      host all bowerbird samenet scram-sha-256
     '';
     initialScript = pkgs.writeText "bowerbird-environments.sql" ''
       create role bowerbird superuser login password 'bowerbird';
