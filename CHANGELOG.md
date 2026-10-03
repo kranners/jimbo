@@ -13,3 +13,4 @@
 - 2026-10-03: The Claude statusline reads plan limits live from the usage endpoint, adds the weekly and Fable limits, redraws every 30 s, and splits into three lines of plain bars.
 - 2026-10-03: GitHub Actions deploys Bowerbird to spike: the `github-actions` WireGuard peer at `10.100.0.3` logs in as `aaron` with a key forced to run `/srv/bowerbird/bin/deploy`.
 - 2026-10-04: spike runs PostgreSQL 18 on port 5433 for Bowerbird's branch databases, open on the LAN and WireGuard, and `bowerbird-template` clones production into `bowerbird_template` at 03:30.
+- 2026-10-04: The branch database Postgres accepts `bowerbird` from any subnet spike is on, so `spike.local`'s IPv6 addresses connect too.
