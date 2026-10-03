@@ -170,6 +170,8 @@ in
       WorkingDirectory = "${checkout}/jobs";
       ExecStartPre = "${bowerbird-wait-for-postgres}/bin/bowerbird-wait-for-postgres";
       ExecStart = "${pkgs.nodejs_24}/bin/node --env-file-if-exists=${checkout}/.env src/worker.ts";
+      KillMode = "mixed";
+      TimeoutStopSec = "35min";
       Restart = "on-failure";
       RestartSec = 60;
     };
