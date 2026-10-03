@@ -65,7 +65,15 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - SSH accepts keys only, declared in `modules/hosts/spike`.
   `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
-- Grafana on `:3000`, backed by Prometheus scraping node_exporter and cAdvisor.
+- Grafana on `:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
+- Bowerbird (`modules/hosts/spike/bowerbird.nix`) runs the job application pipeline from a clone of `kranners/bowerbird` at `/srv/bowerbird`, made by hand as `aaron` with `npm ci` run in it.
+  Its secrets and settings live in `/srv/bowerbird/.env`, owner `bowerbird`, mode 600, written by hand.
+  `bowerbird-compose.service` runs `compose.production.yml` as root: Postgres on `127.0.0.1:5432` and the portal on `:3000`.
+  `bowerbird-display.service` runs Xvfb `:99` with openbox, `bowerbird-remote-view.service` serves it through x11vnc and noVNC on `:6080`, and `bowerbird-worker.service` runs `jobs/src/worker.ts` on it, all as the system user `bowerbird` with state in `/var/lib/bowerbird`.
+  The worker starts once the display is up and Postgres accepts connections, and every unit that needs the checkout is skipped while it is missing.
+  `bowerbird-backup.timer` dumps the database nightly into `/var/lib/bowerbird-backups`, keeping 14 days.
+  Ports `3000` and `6080` are open only on `wlp2s0` and `wg0`.
+  To deploy: `ssh aaron@spike.local 'cd /srv/bowerbird && git pull && npm ci && sudo systemctl restart bowerbird-compose bowerbird-worker'`.
 - Hardware watchdog (`wdat_wdt`) is armed by systemd, and the kernel reboots 10 s after a panic.
 - WireGuard `wg0` on UDP `51820` at `spike.cute.engineer` (kept current by cloudflare-dyndns, token in `/var/lib/secrets/cloudflare-dyndns-token`), spike is `10.100.0.1`.
   Its private key is generated on first boot at `/var/lib/wireguard/private`.
