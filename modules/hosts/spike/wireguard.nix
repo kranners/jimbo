@@ -11,6 +11,11 @@
         publicKey = "1nyyas9dwolxY1nGyU9hGTtZ8SnOvKLW35ZOgu6+Y1U=";
         allowedIPs = [ "10.100.0.2/32" ];
       }
+      {
+        name = "github-actions";
+        publicKey = "Gbu5Ha59gru26iir0S+qkwBOLNDTz/YQRCA0PPfRglg=";
+        allowedIPs = [ "10.100.0.3/32" ];
+      }
     ];
   };
 

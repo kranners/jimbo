@@ -80,6 +80,10 @@ in
   };
   users.groups.bowerbird = { };
 
+  users.users.aaron.openssh.authorizedKeys.keys = [
+    ''restrict,command="${checkout}/bin/deploy" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINT4kcEV+h7YOOgCnRftVu+KaZJ8o1mM6rtRoOeshOGx github-actions@bowerbird''
+  ];
+
   systemd.tmpfiles.rules = [
     "d ${checkout} 0755 aaron users -"
     "d ${home} 0750 bowerbird bowerbird -"
