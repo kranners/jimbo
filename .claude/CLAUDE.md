@@ -26,7 +26,7 @@ The weekly `flake-update-*` branches are the exception: they land through the pu
 CI runs `just check`'s `nix flake check` on every push to every branch.
 `.claude/worktrees/` is gitignored so the `git add .` in `just` never stages a worktree.
 
-Update this file in the same branch as any change that makes it wrong.
+Update this file, or `modules/hosts/spike/CLAUDE.md`, in the same branch as any change that makes it wrong.
 It keeps one sentence per line, so git merges edits from two branches sentence by sentence.
 
 ## Architecture
@@ -58,6 +58,7 @@ Only the directory named exactly `host.hostname` is imported, so it applies to t
 
 `spike` is headless (`desktop = false`), so it gets the shared modules and home-manager but none of the desktop ones.
 Its files under `modules/hosts/spike` are plain NixOS modules, imported through `nixosSystemModule`.
+`modules/hosts/spike/CLAUDE.md` is appended to the personal `CLAUDE.md` on spike alone, so every Claude Code session there knows it is on production and how the host is run.
 
 - SSH: `ssh aaron@spike.local` (key auth, resolved over mDNS).
 - The repo is cloned at `~/workspace/jimbo` on `main`.

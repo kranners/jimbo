@@ -52,7 +52,7 @@
         save-branch-context
       ];
 
-      home.file.".claude/CLAUDE.md".source = ./CLAUDE.md;
+      home.file.".claude/CLAUDE.md".text = builtins.readFile ./CLAUDE.md;
       home.file.".claude/skills/commit/SKILL.md".source = ./skills/commit/SKILL.md;
       home.file.".claude/settings.json".text = builtins.toJSON {
         theme = "auto";

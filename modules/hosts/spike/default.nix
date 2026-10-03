@@ -1,4 +1,4 @@
-{ host, ... }:
+{ host, lib, ... }:
 {
   nixosSystemModule =
     { pkgs, ... }:
@@ -51,4 +51,5 @@
     };
 
   nixosHomeModule.home.stateVersion = "26.11";
+  nixosHomeModule.home.file.".claude/CLAUDE.md".text = lib.mkAfter (builtins.readFile ./CLAUDE.md);
 }
