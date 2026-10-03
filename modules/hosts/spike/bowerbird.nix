@@ -39,12 +39,14 @@ let
     name = "bowerbird-remote-view";
     runtimeInputs = [
       pkgs.x11vnc
+      pkgs.xorg.xdpyinfo
       pkgs.python3Packages.websockify
     ];
     text = ''
-      x11vnc -display ${display} -localhost -rfbport 5900 -nopw -forever -shared -quiet &
+      until xdpyinfo -display ${display} > /dev/null 2>&1; do sleep 0.2; done
+      websockify --web ${pkgs.novnc}/share/webapps/novnc 6080 localhost:5900 &
       trap 'kill $!' EXIT
-      websockify --web ${pkgs.novnc}/share/webapps/novnc 6080 localhost:5900
+      x11vnc -display ${display} -localhost -rfbport 5900 -nopw -forever -shared -quiet
     '';
   };
 
