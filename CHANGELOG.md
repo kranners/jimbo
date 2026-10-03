@@ -11,3 +11,4 @@
 - 2026-10-03: spike's system path carries `nodejs_24`, the worker's Node, so `npm ci` works for `aaron`, and the Bowerbird deploy command is `ssh aaron@spike.local /srv/bowerbird/bin/deploy`.
 - 2026-10-03: `bowerbird-worker` stops with `KillMode=mixed`, so systemd signals the worker alone and it finishes its running children, and `TimeoutStopSec=35min`, five minutes past the worker's own 30 minute cap on that wait.
 - 2026-10-03: The Claude statusline reads plan limits live from the usage endpoint, adds the weekly and Fable limits, redraws every 30 s, and splits into three lines of plain bars.
+- 2026-10-03: GitHub Actions deploys Bowerbird to spike: the `github-actions` WireGuard peer at `10.100.0.3` logs in as `aaron` with a key forced to run `/srv/bowerbird/bin/deploy`.
