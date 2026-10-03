@@ -1,20 +1,21 @@
 """Claude Code status line.
 
-Reads the status line JSON on stdin and prints one line:
+Reads the status line JSON on stdin and prints three lines:
 
-  Opus 5  jimbo:main  session 1.2M $4.31  turn 210k $0.68  today 8.4M $22.10  [###---] 61% left
-  ⛁⛁⛀⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛝  62k/967k 6%
+  Opus 5.5  ·  jimbo:main  ·  jimbo-50
+  turn 210k $0.68  ·  session 1.2M $4.31  ·  today 8.4M $22.10  ·  week 51M $310.20
+  context ########-- 84% left  ·  session ######---- 61% left 2h10m  ·  week ####------ 43% left 1d3h  ·  Fable ...
 
-Session cost comes from Claude Code itself. Token counts and the daily cost are
+Session cost comes from Claude Code itself. Token counts and the other costs are
 summed from the JSONL transcripts under ~/.claude/projects, priced with the same
 table Claude Code uses. The turn figure covers the most recent prompt and every
 request it triggered, so per prompt cost can be watched climbing as the context
-grows. The usage bar is the five hour rate limit window.
+grows. The week figure runs from the start of the weekly limit's window.
 
-The second line is the context window, scaled to the point autocompaction fires
-rather than to the raw window, with the reserved buffer drawn as a tail. Grey is
-the fixed overhead every request carries; purple is what the session has added
-since. Symbols and colours follow /context.
+Context is scaled to the point autocompaction fires rather than to the raw
+window. Plan limits come from the endpoint behind /usage, shared between
+sessions through a short lived cache, because the status line payload only
+carries the five hour and weekly windows as of this session's own last request.
 """
 
 import json
@@ -22,7 +23,8 @@ import os
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+import urllib.request
+from datetime import datetime, timedelta, timezone
 
 # Dollars per million tokens, lifted from the Claude Code model catalog.
 TIERS = {
@@ -89,7 +91,9 @@ MODEL_WINDOWS = {
 # window; the figure on smaller windows has not been checked.
 AUTOCOMPACT_BUFFER = 33_000
 
-CONTEXT_WIDTH = 23
+USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
+USAGE_CACHE = os.path.expanduser("~/.cache/claude-statusline/usage.json")
+USAGE_TTL = 60
 
 DIM = "\033[2m"
 BOLD = "\033[1m"
@@ -97,15 +101,6 @@ RESET = "\033[0m"
 GREEN = "\033[32m"
 YELLOW = "\033[33m"
 RED = "\033[31m"
-
-# /context's palette and cell symbols.
-CTX_OVERHEAD = "\033[38;2;136;136;136m"
-CTX_MESSAGES = "\033[38;2;130;125;189m"
-CTX_FREE = "\033[38;2;153;153;153m"
-CELL_FULL = "\u26c1"
-CELL_PART = "\u26c0"
-CELL_FREE = "\u26f6"
-CELL_BUFFER = "\u26dd"
 
 
 def normalise_model(model):
@@ -154,13 +149,14 @@ def tokens(usage):
     )
 
 
-def scan(paths, seen, on_date=None, since=None):
-    """Sum tokens and cost over transcript files, deduplicating repeated blocks.
+def scan(paths, starts):
+    """Sum tokens and cost over transcript files once per start, in one read.
 
-    ``since`` narrows the sum to entries written at or after that moment.
+    Each sum covers the entries written at or after its start; a start of None
+    covers them all. Repeated blocks are counted once.
     """
-    total_tokens = 0.0
-    total_cost = 0.0
+    totals = [[0.0, 0.0] for _ in starts]
+    seen = set()
     for path in paths:
         try:
             handle = open(path, "rb")
@@ -185,15 +181,12 @@ def scan(paths, seen, on_date=None, since=None):
                 if key in seen:
                     continue
                 seen.add(key)
-                if on_date and local_date(entry.get("timestamp")) != on_date:
-                    continue
-                if since:
-                    stamp = parse_time(entry.get("timestamp"))
-                    if stamp is None or stamp < since:
-                        continue
-                total_tokens += tokens(usage)
-                total_cost += price(model, usage)
-    return total_tokens, total_cost
+                stamp = parse_time(entry.get("timestamp"))
+                for total, start in zip(totals, starts):
+                    if start is None or (stamp is not None and stamp >= start):
+                        total[0] += tokens(usage)
+                        total[1] += price(model, usage)
+    return totals
 
 
 def parse_time(stamp):
@@ -206,11 +199,6 @@ def parse_time(stamp):
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed
-
-
-def local_date(stamp):
-    parsed = parse_time(stamp)
-    return parsed.astimezone().date() if parsed else None
 
 
 def session_files(transcript):
@@ -257,19 +245,14 @@ def last_prompt_time(transcript):
 
 
 def context_use(transcript):
-    """Context size at the newest request, and at the session's first.
-
-    The first request carries the system prompt, tools, memory and skills plus
-    one short user turn, so it stands in for the overhead no pruning recovers.
-    Subagent turns are skipped; they have a context of their own.
-    """
+    """Context size and model at the newest request, skipping subagent turns."""
     if not transcript or not os.path.exists(transcript):
         return None
     try:
         handle = open(transcript, "rb")
     except OSError:
         return None
-    first = last = model = None
+    last = model = None
     with handle:
         for raw in handle:
             if b'"usage"' not in raw:
@@ -289,12 +272,9 @@ def context_use(transcript):
                 usage.get(key) or 0
                 for key in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
             )
-            if not total:
-                continue
-            if first is None:
-                first = total
-            last, model = total, name
-    return (first, last, model) if last else None
+            if total:
+                last, model = total, name
+    return (last, model) if last else None
 
 
 def window_for(model, used):
@@ -306,7 +286,7 @@ def window_for(model, used):
     return window
 
 
-def todays_files(midnight):
+def files_since(start):
     root = os.path.expanduser("~/.claude/projects")
     found = []
     for dirpath, _, names in os.walk(root):
@@ -315,7 +295,7 @@ def todays_files(midnight):
                 continue
             path = os.path.join(dirpath, name)
             try:
-                if os.stat(path).st_mtime >= midnight:
+                if os.stat(path).st_mtime >= start:
                     found.append(path)
             except OSError:
                 pass
@@ -347,6 +327,8 @@ def repo_name(status, cwd):
 
 
 def human(count):
+    if count >= 1e9:
+        return "%.1fB" % (count / 1e9)
     if count >= 1e6:
         return "%.1fM" % (count / 1e6)
     if count >= 1e3:
@@ -356,106 +338,163 @@ def human(count):
 
 def bar(remaining, width=10):
     filled = max(0, min(width, int(round(remaining * width))))
-    colour = GREEN if remaining > 0.5 else YELLOW if remaining > 0.2 else RED
-    return colour + "#" * filled + DIM + "-" * (width - filled) + RESET
+    return colour_for(remaining) + "#" * filled + DIM + "-" * (width - filled) + RESET
 
 
-def context_bar(used, overhead, window, width=CONTEXT_WIDTH):
-    """Fill to the autocompaction point, with the reserved buffer as the tail."""
-    limit = max(1, window - AUTOCOMPACT_BUFFER)
-    tail = min(width - 1, max(1, int(round(width * AUTOCOMPACT_BUFFER / float(window)))))
-    span = width - tail
-    filled = max(0.0, min(float(span), used / float(limit) * span))
-    grey = max(0.0, min(filled, overhead / float(limit) * span))
-
-    cells = []
-    for index in range(span):
-        boundary = index == int(grey) and grey % 1
-        colour = CTX_OVERHEAD if index < int(grey) or boundary else CTX_MESSAGES
-        if index >= filled:
-            cells.append((CTX_FREE, CELL_FREE))
-        elif index >= int(filled) or boundary:
-            # A cell the fill, or the overhead it sits on, ends part way through.
-            cells.append((colour, CELL_PART))
-        else:
-            cells.append((colour, CELL_FULL))
-    cells += [(CTX_FREE, CELL_BUFFER)] * tail
-
-    out = []
-    current = None
-    for colour, symbol in cells:
-        if colour != current:
-            out.append(colour)
-            current = colour
-        out.append(symbol)
-    return "".join(out) + RESET
+def colour_for(remaining):
+    return GREEN if remaining > 0.5 else YELLOW if remaining > 0.2 else RED
 
 
-def context_line(transcript):
+def remaining_label(label, remaining, resets=None):
+    text = "%s %s %s%d%% left%s" % (label, bar(remaining), colour_for(remaining), round(remaining * 100), RESET)
+    if resets:
+        text += DIM + " " + until(resets) + RESET
+    return text
+
+
+def context_left(transcript):
     seen = context_use(transcript)
     if not seen:
         return None
-    overhead, used, model = seen
-    window = window_for(model, used)
-    limit = window - AUTOCOMPACT_BUFFER
-    share = used / float(limit)
-    colour = RED if share > 0.9 else YELLOW if share > 0.7 else DIM
-    return "%s  %s/%s %s%d%%%s" % (
-        context_bar(used, overhead, window),
-        human(used),
-        human(limit),
-        colour,
-        round(share * 100),
-        RESET,
+    used, model = seen
+    limit = window_for(model, used) - AUTOCOMPACT_BUFFER
+    return remaining_label("context", max(0.0, 1.0 - used / float(limit)))
+
+
+def oauth_token():
+    if sys.platform == "darwin":
+        raw = subprocess.run(
+            ("security", "find-generic-password", "-s", "Claude Code-credentials", "-w"),
+            capture_output=True,
+            text=True,
+            timeout=2,
+        ).stdout
+    else:
+        with open(os.path.expanduser("~/.claude/.credentials.json")) as handle:
+            raw = handle.read()
+    return json.loads(raw)["claudeAiOauth"]["accessToken"]
+
+
+def fetch_usage():
+    request = urllib.request.Request(
+        USAGE_URL,
+        headers={
+            "Authorization": "Bearer " + oauth_token(),
+            "anthropic-beta": "oauth-2025-04-20",
+        },
     )
+    with urllib.request.urlopen(request, timeout=2) as response:
+        return json.load(response)
 
 
-def usage_left(status):
-    five_hour = (status.get("rate_limits") or {}).get("five_hour")
-    if not five_hour:
+def account_usage():
+    """The /usage reading, fetched at most once a minute across every session."""
+    try:
+        if time.time() - os.stat(USAGE_CACHE).st_mtime < USAGE_TTL:
+            with open(USAGE_CACHE) as handle:
+                return json.load(handle)
+    except (OSError, ValueError):
+        pass
+    try:
+        usage = fetch_usage()
+    except Exception:
         return None
-    remaining = max(0.0, 1.0 - (five_hour.get("used_percentage") or 0) / 100.0)
-    resets = five_hour.get("resets_at")
-    label = "%s %d%% left" % (bar(remaining), round(remaining * 100))
+    os.makedirs(os.path.dirname(USAGE_CACHE), exist_ok=True)
+    partial = "%s.%d" % (USAGE_CACHE, os.getpid())
+    with open(partial, "w") as handle:
+        json.dump(usage, handle)
+    os.replace(partial, USAGE_CACHE)
+    return usage
+
+
+def epoch(resets):
+    if isinstance(resets, (int, float)):
+        return resets
+    parsed = parse_time(resets)
+    return parsed.timestamp() if parsed else None
+
+
+def limits(status):
+    """(label, percent used, reset epoch) for the five hour session window, then the weekly ones."""
+    usage = account_usage()
+    if usage and usage.get("limits"):
+        found = []
+        for row in usage["limits"]:
+            kind = row.get("kind")
+            model = ((row.get("scope") or {}).get("model") or {}).get("display_name")
+            if kind == "session":
+                label = "session"
+            elif kind == "weekly_all":
+                label = "week"
+            elif kind == "weekly_scoped" and model:
+                label = model
+            else:
+                continue
+            found.append((label, row.get("percent") or 0, epoch(row.get("resets_at"))))
+        return found
+    windows = status.get("rate_limits") or {}
+    return [
+        (label, window.get("used_percentage") or 0, epoch(window.get("resets_at")))
+        for label, window in (("session", windows.get("five_hour")), ("week", windows.get("seven_day")))
+        if window
+    ]
+
+
+def until(resets):
+    minutes = max(0, int((resets - time.time()) // 60))
+    if minutes >= 24 * 60:
+        return "%dd%dh" % (minutes // (24 * 60), minutes // 60 % 24)
+    return "%dh%02dm" % (minutes // 60, minutes % 60)
+
+
+def week_start(plan_limits):
+    resets = next((resets for label, _, resets in plan_limits if label == "week" and resets), None)
     if resets:
-        minutes = max(0, int((resets - time.time()) // 60))
-        label += DIM + " resets in %dh%02dm" % (minutes // 60, minutes % 60) + RESET
-    return label
+        return datetime.fromtimestamp(resets, timezone.utc) - timedelta(days=7)
+    return datetime.now(timezone.utc) - timedelta(days=7)
+
+
+def spend(label, totals):
+    count, cost = totals
+    return "%s %s %s$%.2f%s" % (label, human(count), DIM, cost, RESET)
 
 
 def main():
     status = json.load(sys.stdin)
     cwd = (status.get("workspace") or {}).get("current_dir") or status.get("cwd") or os.getcwd()
+    separator = DIM + "  ·  " + RESET
 
     model = (status.get("model") or {}).get("display_name") or "?"
     branch = git(cwd, "branch", "--show-current") or git(cwd, "rev-parse", "--short", "HEAD") or "-"
+    header = [BOLD + model + RESET, "%s%s:%s%s" % (repo_name(status, cwd), DIM, RESET, branch)]
+    if status.get("session_name"):
+        header.append(status["session_name"])
+    print(separator.join(header))
 
     transcript = status.get("transcript_path")
     files = session_files(transcript)
-    session_tokens, _ = scan(files, set())
-    session_cost = (status.get("cost") or {}).get("total_cost_usd") or 0.0
-
     turn_start = last_prompt_time(transcript)
-    turn_tokens, turn_cost = scan(files, set(), since=turn_start) if turn_start else (0.0, 0.0)
+    session, turn = scan(files, (None, turn_start or datetime.max.replace(tzinfo=timezone.utc)))
+    session[1] = (status.get("cost") or {}).get("total_cost_usd") or 0.0
 
+    plan_limits = limits(status)
     midnight = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
-    day_tokens, day_cost = scan(todays_files(midnight.timestamp()), set(), on_date=midnight.date())
+    week = week_start(plan_limits)
+    today, this_week = scan(files_since(min(midnight, week).timestamp()), (midnight, week))
+    print(
+        separator.join(
+            [spend("turn", turn), spend("session", session), spend("today", today), spend("week", this_week)]
+        )
+    )
 
-    parts = [
-        BOLD + model + RESET,
-        "%s%s:%s%s" % (repo_name(status, cwd), DIM, RESET, branch),
-        "session %s %s$%.2f%s" % (human(session_tokens), DIM, session_cost, RESET),
-        "turn %s %s$%.2f%s" % (human(turn_tokens), DIM, turn_cost, RESET),
-        "today %s %s$%.2f%s" % (human(day_tokens), DIM, day_cost, RESET),
+    remaining = [
+        remaining_label(label, max(0.0, 1.0 - used / 100.0), resets) for label, used, resets in plan_limits
     ]
-    left = usage_left(status)
-    if left:
-        parts.append(left)
-    print((DIM + "  ·  " + RESET).join(parts))
-
-    context = context_line(transcript)
+    context = context_left(transcript)
     if context:
-        print(context)
+        remaining.insert(0, context)
+    if remaining:
+        print(separator.join(remaining))
 
 
 if __name__ == "__main__":

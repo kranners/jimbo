@@ -91,6 +91,7 @@
         statusLine = {
           type = "command";
           command = "${statusline}/bin/claude-statusline";
+          refreshInterval = 30;
         };
 
         # Agent status in zellij tab names
