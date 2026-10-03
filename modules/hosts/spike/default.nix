@@ -10,6 +10,7 @@
         ./discord-threads.nix
         ./dns.nix
         ./docker.nix
+        ./environments.nix
         ./monitoring.nix
         ./watchdog.nix
         ./wireguard.nix
