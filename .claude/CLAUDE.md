@@ -96,7 +96,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Three runners, `workaholic@1` to `workaholic@3`, are instances of the oneshot `workaholic@.service`, each started by its own timer 5, 7 or 9 minutes after boot and 5 minutes after its last run ends, so at most three issues are worked at once, at `Nice=10` and low CPU and IO weights so production stays ahead of it.
   Each run is `src/run.ts` under the `mixed` profile, which runs the gate, then claims one issue no other runner holds and works it with `claude -p`, with `git`, `claude-code` and `nodejs_24` on its path, so sessions can run npm landing checks, and `SHELL` set to bash, because the user's own shell is `nologin`.
   Its Claude token from `claude setup-token`, its GitHub token and its copy of the Discord bot token live in `/var/lib/workaholic/.config/workaholic/` as `claude-token`, `github-token` and `discord-token`, owner `workaholic`, mode 600, written by hand.
-  The user lingers, so its runs can leave each issue's preview running as a transient user unit, and `~/.config` is its own, apart from the root-owned token directory, because Chrome cannot start without writing there.
+  The user lingers, so its runs can leave each issue's preview running as a transient user unit on `4000` plus the issue number, with ports 4000 to 4999 open on `wlp2s0` and `wg0` alone, and `~/.config` is its own, apart from the root-owned token directory, because Chrome cannot start without writing there.
   `TEST_CHROMIUM_PATH` names nixpkgs' Google Chrome, because Playwright's downloaded Chromium cannot run on NixOS, so sessions can run browser tests and record their changes.
   To deploy a new version, `git pull` in `/srv/workaholic`; the next run picks it up.
 
