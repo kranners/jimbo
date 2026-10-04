@@ -92,7 +92,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Its allowlist is `~/.claude/channels/discord/access.json`, re-read on every message: `{"dmPolicy":"allowlist","allowFrom":["193903125994799114"],"groups":{"<channel id>":{"requireMention":false,"allowFrom":[]}}}`.
   `/project <path>` in an opted-in channel binds it to a repo, and each new thread there gets a worktree under `<repo>/.claude/worktrees/`.
   `/done` removes a thread's worktree unless something in it is uncommitted, keeps its branch, and posting in the thread again restores it.
-  To deploy a new version, `git pull` in the checkout and `sudo systemctl restart discord-threads`; the restart runs `bun install --frozen-lockfile` first.
+  To deploy a new version, `git pull` in the checkout and `sudo systemctl restart discord-threads`; the restart runs `npm ci --omit=dev` first.
 - workaholic (`modules/hosts/spike/workaholic.nix`) runs `kranners/workaholic` from `/srv/workaholic`, cloned by hand as `aaron`, as the system user `workaholic` with no `sudo` and its home in `/var/lib/workaholic`.
   Three runners, `workaholic@1` to `workaholic@3`, are instances of the oneshot `workaholic@.service`, each started by its own timer 5, 7 or 9 minutes after boot and 5 minutes after its last run ends, so at most three issues are worked at once, at `Nice=10` and low CPU and IO weights so production stays ahead of it.
   Each run is `src/run.ts` under the `mixed` profile, which runs the gate, then claims one issue no other runner holds and works it with `claude -p`, with `git`, `claude-code` and `nodejs_24` on its path, so sessions can run npm landing checks, and `SHELL` set to bash, because the user's own shell is `nologin`.

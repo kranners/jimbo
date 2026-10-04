@@ -3,7 +3,7 @@ let
   home = "/home/aaron";
 in
 {
-  environment.systemPackages = [ pkgs.bun ];
+  environment.systemPackages = [ pkgs.nodejs_24 ];
 
   systemd.services.discord-threads = {
     description = "Discord threads for Claude Code";
@@ -26,8 +26,8 @@ in
     serviceConfig = {
       User = "aaron";
       WorkingDirectory = "${home}/workspace/claude-discord-threads";
-      ExecStartPre = "${pkgs.bun}/bin/bun install --frozen-lockfile";
-      ExecStart = "${pkgs.bun}/bin/bun run src/daemon.ts";
+      ExecStartPre = "${pkgs.nodejs_24}/bin/npm ci --omit=dev";
+      ExecStart = "${pkgs.nodejs_24}/bin/node src/daemon.ts";
       Restart = "always";
       RestartSec = 10;
       TimeoutStopSec = 20;
