@@ -15,3 +15,4 @@
 - 2026-10-04: spike runs PostgreSQL 18 on port 5433 for Bowerbird's branch databases, open on the LAN and WireGuard, and `bowerbird-template` clones production into `bowerbird_template` at 03:30.
 - 2026-10-04: The branch database Postgres accepts `bowerbird` from any subnet spike is on, so `spike.local`'s IPv6 addresses connect too.
 - 2026-10-04: spike appends `modules/hosts/spike/CLAUDE.md` to the personal `CLAUDE.md`, so every Claude Code session there knows it is on production and how the host is run.
+- 2026-10-04: spike runs the workaholic gate as the `workaholic` user every 15 minutes from `/srv/workaholic`.

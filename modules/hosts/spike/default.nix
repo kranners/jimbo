@@ -13,6 +13,7 @@
         ./environments.nix
         ./monitoring.nix
         ./watchdog.nix
+        ./workaholic.nix
         ./wireguard.nix
       ];
 
