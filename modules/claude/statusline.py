@@ -12,6 +12,9 @@ table Claude Code uses. The turn figure covers the most recent prompt and every
 request it triggered, so per prompt cost can be watched climbing as the context
 grows. The week figure runs from the start of the weekly limit's window.
 
+With CLAUDE_STATUSLINE_PLAIN=1 it drops the first line, the bars and the colours,
+for the footer discord-threads posts under each reply.
+
 Context is scaled to the point autocompaction fires rather than to the raw
 window. Plan limits come from the endpoint behind /usage, shared between
 sessions through a short lived cache, because the status line payload only
@@ -95,12 +98,11 @@ USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
 USAGE_CACHE = os.path.expanduser("~/.cache/claude-statusline/usage.json")
 USAGE_TTL = 60
 
-DIM = "\033[2m"
-BOLD = "\033[1m"
-RESET = "\033[0m"
-GREEN = "\033[32m"
-YELLOW = "\033[33m"
-RED = "\033[31m"
+PLAIN = os.environ.get("CLAUDE_STATUSLINE_PLAIN") == "1"
+
+DIM, BOLD, RESET, GREEN, YELLOW, RED = (
+    ("",) * 6 if PLAIN else ("\033[2m", "\033[1m", "\033[0m", "\033[32m", "\033[33m", "\033[31m")
+)
 
 
 def normalise_model(model):
@@ -346,7 +348,8 @@ def colour_for(remaining):
 
 
 def remaining_label(label, remaining, resets=None):
-    text = "%s %s %s%d%% left%s" % (label, bar(remaining), colour_for(remaining), round(remaining * 100), RESET)
+    gauge = "" if PLAIN else bar(remaining) + " "
+    text = "%s %s%s%d%% left%s" % (label, gauge, colour_for(remaining), round(remaining * 100), RESET)
     if resets:
         text += DIM + " " + until(resets) + RESET
     return text
@@ -469,7 +472,8 @@ def main():
     header = [BOLD + model + RESET, "%s%s:%s%s" % (repo_name(status, cwd), DIM, RESET, branch)]
     if status.get("session_name"):
         header.append(status["session_name"])
-    print(separator.join(header))
+    if not PLAIN:
+        print(separator.join(header))
 
     transcript = status.get("transcript_path")
     files = session_files(transcript)
