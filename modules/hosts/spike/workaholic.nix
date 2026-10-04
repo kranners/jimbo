@@ -22,6 +22,7 @@ in
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
     unitConfig.ConditionPathExists = "${checkout}/package.json";
+    environment.SHELL = "${pkgs.bashInteractive}/bin/bash";
     path = [
       pkgs.git
       pkgs.claude-code
