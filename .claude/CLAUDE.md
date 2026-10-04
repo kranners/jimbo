@@ -93,8 +93,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   To deploy a new version, `git pull` in the checkout and `sudo systemctl restart discord-threads`; the restart runs `bun install --frozen-lockfile` first.
 - workaholic (`modules/hosts/spike/workaholic.nix`) runs `kranners/workaholic` from `/srv/workaholic`, cloned by hand as `aaron`, as the system user `workaholic` with no `sudo` and its home in `/var/lib/workaholic`.
   `workaholic.timer` starts the oneshot `workaholic.service` 5 minutes after boot and 15 minutes after each run ends, at `Nice=10` and low CPU and IO weights so production stays ahead of it.
-  For now the run is the gate alone under the `mixed` profile, which logs whether a run would go and fails the unit when it would not.
-  Its Claude token from `claude setup-token` lives in `/var/lib/workaholic/.config/workaholic/claude-token`, owner `workaholic`, mode 600, written by hand.
+  Each run is `src/run.ts` under the `mixed` profile, which runs the gate, then claims one issue and works it with `claude -p`, with `git` and `claude-code` on its path.
+  Its Claude token from `claude setup-token`, its GitHub token and its copy of the Discord bot token live in `/var/lib/workaholic/.config/workaholic/` as `claude-token`, `github-token` and `discord-token`, owner `workaholic`, mode 600, written by hand.
   To deploy a new version, `git pull` in `/srv/workaholic`; the next run picks it up.
 
 ### Neovim
