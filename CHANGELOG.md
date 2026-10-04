@@ -18,3 +18,4 @@
 - 2026-10-04: spike runs the workaholic gate as the `workaholic` user every 15 minutes from `/srv/workaholic`.
 - 2026-10-04: spike runs workaholic's runner, which claims and works one issue per run, instead of its gate alone.
 - 2026-10-04: workaholic's sessions run their commands in bash, since the `workaholic` user's shell is `nologin`.
+- 2026-10-04: The Claude statusline has a plain mode, `CLAUDE_STATUSLINE_PLAIN=1`, without its header, bars or colours, for the usage footer discord-threads posts under each reply.
