@@ -64,6 +64,11 @@
         # Start in auto mode
         permissions.defaultMode = "auto";
 
+        # Deploy workaholic on spike
+        permissions.allow = [
+          "Bash(git -C /srv/workaholic pull --ff-only)"
+        ];
+
         # Plugins
         enabledPlugins = {
           "typescript-lsp@claude-plugins-official" = true;
