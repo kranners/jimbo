@@ -1,8 +1,13 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 let
   checkout = "/srv/workaholic";
   home = "/var/lib/workaholic";
   profile = "mixed";
+  runners = [
+    1
+    2
+    3
+  ];
 in
 {
   users.users.workaholic = {
@@ -17,8 +22,8 @@ in
     "d ${home} 0750 workaholic workaholic -"
   ];
 
-  systemd.services.workaholic = {
-    description = "workaholic, works GitHub issues within spare compute and Claude Max usage";
+  systemd.services."workaholic@" = {
+    description = "workaholic runner %i, works GitHub issues within spare compute and Claude Max usage";
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
     unitConfig.ConditionPathExists = "${checkout}/package.json";
@@ -40,11 +45,16 @@ in
     };
   };
 
-  systemd.timers.workaholic = {
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnBootSec = "5min";
-      OnUnitInactiveSec = "15min";
-    };
-  };
+  systemd.timers = lib.listToAttrs (
+    map (runner: {
+      name = "workaholic@${toString runner}";
+      value = {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnBootSec = "${toString (3 + 2 * runner)}min";
+          OnUnitInactiveSec = "5min";
+        };
+      };
+    }) runners
+  );
 }
