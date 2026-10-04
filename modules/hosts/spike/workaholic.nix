@@ -26,6 +26,7 @@ in
     path = [
       pkgs.git
       pkgs.claude-code
+      pkgs.nodejs_24
     ];
 
     serviceConfig = {
