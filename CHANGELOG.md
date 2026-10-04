@@ -23,3 +23,4 @@
 - 2026-10-04: The discord-threads checkout pushes over HTTPS with the `gh` login, keeping its deploy key read-only.
 - 2026-10-04: workaholic runs three runners at once, each checking for work 5 minutes after its last run ends.
 - 2026-10-04: workaholic lingers so issue previews outlive its runs, serves them on ports 4000 to 4999 over the LAN and WireGuard, owns its ~/.config, and points TEST_CHROMIUM_PATH at nixpkgs' Chrome.
+- 2026-10-05: Claude Code may fast-forward /srv/workaholic to deploy workaholic without a prompt.
