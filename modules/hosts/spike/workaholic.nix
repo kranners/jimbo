@@ -22,12 +22,16 @@ in
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
     unitConfig.ConditionPathExists = "${checkout}/package.json";
+    path = [
+      pkgs.git
+      pkgs.claude-code
+    ];
 
     serviceConfig = {
       Type = "oneshot";
       User = "workaholic";
       WorkingDirectory = checkout;
-      ExecStart = "${pkgs.nodejs_24}/bin/node src/gate.ts --profile ${profile}";
+      ExecStart = "${pkgs.nodejs_24}/bin/node src/run.ts --profile ${profile}";
       Nice = 10;
       CPUWeight = 20;
       IOWeight = 20;
