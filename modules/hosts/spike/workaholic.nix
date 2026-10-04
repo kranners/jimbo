@@ -3,6 +3,10 @@ let
   checkout = "/srv/workaholic";
   home = "/var/lib/workaholic";
   profile = "mixed";
+  lanInterfaces = [
+    "wlp2s0"
+    "wg0"
+  ];
   runners = [
     1
     2
@@ -49,6 +53,15 @@ in
       IOWeight = 20;
     };
   };
+
+  networking.firewall.interfaces = lib.genAttrs lanInterfaces (_: {
+    allowedTCPPortRanges = [
+      {
+        from = 4000;
+        to = 4999;
+      }
+    ];
+  });
 
   systemd.timers = lib.listToAttrs (
     map (runner: {
