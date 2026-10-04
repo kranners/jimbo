@@ -12,5 +12,6 @@ The system changes only through jimbo: a branch lands on its `main`, then `git p
 Grafana on `:3001` charts Prometheus on `:9090`, which scrapes node_exporter and cAdvisor.
 spike is `spike.local` on the LAN, `10.100.0.1` on WireGuard `wg0`, and `spike.cute.engineer` publicly, where WireGuard listens on UDP `51820`.
 Claude Code runs here as `claude-remote-control`, serving `~/workspace` to claude.ai/code as `spike`, and as `discord-threads`, a session per Discord thread from the live checkout `~/workspace/claude-discord-threads`, so restarting either, or a switch that changes `claude-code`, ends the sessions it hosts.
-Secrets are written by hand and never printed, committed or sent anywhere: `/srv/bowerbird/.env`, `~/.claude/.credentials.json`, `~/.claude/channels/discord/.env`, `~/.ssh/claude-discord-threads-deploy`, `/var/lib/secrets/` and `/var/lib/wireguard/private`.
+`workaholic.timer` runs `workaholic` from `/srv/workaholic` as the `workaholic` user every 15 minutes, working GitHub issues within spare compute and Claude Max usage.
+Secrets are written by hand and never printed, committed or sent anywhere: `/srv/bowerbird/.env`, `~/.claude/.credentials.json`, `~/.claude/channels/discord/.env`, `~/.ssh/claude-discord-threads-deploy`, `/var/lib/workaholic/.config/workaholic/claude-token`, `/var/lib/secrets/` and `/var/lib/wireguard/private`.
 It has 8 threads, 15 GiB of memory and a 233 GB NVMe disk, never sleeps, and reboots itself through a hardware watchdog when it hangs and 10 s after a kernel panic.
