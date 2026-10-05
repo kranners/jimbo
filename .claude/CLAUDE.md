@@ -78,7 +78,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   The worker starts once the display is up and Postgres accepts connections, and every unit that needs the checkout is skipped while it is missing.
   A stop signals the worker alone, `KillMode=mixed`, which finishes the runs it has going before it exits, and systemd waits 35 minutes, `TimeoutStopSec`, before `SIGKILL`, five more than the worker's own cap on that wait.
   `bowerbird-backup.timer` dumps the database nightly into `/var/lib/bowerbird-backups`, keeping 14 days.
-  Caddy serves the portal at `https://app.bowerbird.cute.engineer` and noVNC under its `/vnc/`, so `REMOTE_VIEW_URL` points there with `path=vnc/websockify`.
+  Caddy serves the portal at `https://app.bowerbird.cute.engineer` and noVNC under its `/vnc/`, where `REMOTE_VIEW_URL` points, and noVNC finds `/vnc/websockify` relative to its page.
   The name's DNS-only A record points at `10.100.0.1`, so the portal is reached over WireGuard alone, and ports `3000` and `6080` are closed to everything but localhost.
   `nodejs_24`, the Node the worker unit runs, is also on the system path so `npm ci` works for `aaron`.
   To deploy by hand: `ssh aaron@spike.local /srv/bowerbird/bin/deploy`, the repository's script, which pulls `main`, runs `npm ci` and restarts only the units whose code changed.

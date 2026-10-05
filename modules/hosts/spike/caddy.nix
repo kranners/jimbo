@@ -1,6 +1,6 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 let
-  cloudflareToken = "cloudflare-token";
+  credential = "cloudflare-token";
 in
 {
   services.caddy = {
@@ -10,12 +10,12 @@ in
       hash = "sha256-dQvk6ezY6TQ1J7PjhCXnThF/SqVgPwBO8/RXzHCY+js=";
     };
     globalConfig = ''
-      acme_dns cloudflare {file./run/credentials/caddy.service/${cloudflareToken}}
+      acme_dns cloudflare {file./run/credentials/caddy.service/${credential}}
     '';
   };
 
   systemd.services.caddy.serviceConfig.LoadCredential = [
-    "${cloudflareToken}:/var/lib/secrets/cloudflare-dyndns-token"
+    "${credential}:${config.services.cloudflare-dyndns.apiTokenFile}"
   ];
 
   networking.firewall.interfaces.wg0.allowedTCPPorts = [ 443 ];
