@@ -300,6 +300,32 @@ let
 
     claude = dashboard "spike-claude" "Spike / Claude" [
       (stat {
+        title = "Session limit used";
+        unit = "percent";
+        targets = [ (target ''claude_limit_percent{kind="session"}'' "session") ];
+      })
+      (stat {
+        title = "Session limit resets";
+        unit = "dateTimeFromNow";
+        targets = [ (target ''claude_limit_resets_at_seconds{kind="session"} * 1000'' "session") ];
+      })
+      (stat {
+        title = "Weekly limit used";
+        unit = "percent";
+        targets = [ (target ''claude_limit_percent{kind="weekly_all"}'' "weekly") ];
+      })
+      (stat {
+        title = "Weekly limit resets";
+        unit = "dateTimeFromNow";
+        targets = [ (target ''claude_limit_resets_at_seconds{kind="weekly_all"} * 1000'' "weekly") ];
+      })
+      (timeseries {
+        title = "Plan limits used";
+        unit = "percent";
+        w = 24;
+        targets = [ (target "claude_limit_percent" "{{kind}} {{model}}") ];
+      })
+      (stat {
         title = "Live sessions";
         targets = [ (target "count(${liveSessions}) or vector(0)" "sessions") ];
       })
