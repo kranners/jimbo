@@ -10,7 +10,11 @@ in
       hash = "sha256-dQvk6ezY6TQ1J7PjhCXnThF/SqVgPwBO8/RXzHCY+js=";
     };
     globalConfig = ''
-      acme_dns cloudflare {file./run/credentials/caddy.service/${credential}}
+      cert_issuer acme {
+        dns cloudflare {file./run/credentials/caddy.service/${credential}}
+        propagation_delay 30s
+        propagation_timeout -1
+      }
     '';
   };
 
