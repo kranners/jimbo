@@ -71,6 +71,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
   Its dashboards, Hardware, Services, Containers and Claude, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
   Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions through `~/.claude/settings.json` on spike alone and from `workaholic`'s through its unit, each labelled `job` by `OTEL_SERVICE_NAME`.
+  `claude-limits.timer` writes the plan's session and weekly limits every 2 minutes for node_exporter's textfile collector, read as `aaron` from `/api/oauth/usage`, the undocumented endpoint behind `/usage`, with the token in `~/.claude/.credentials.json`.
 - Caddy (`modules/hosts/spike/caddy.nix`) serves HTTPS on `443`, open only on `wg0`.
   Its certificates come from Let's Encrypt by DNS-01, through the `caddy-dns/cloudflare` plugin built in with `pkgs.caddy.withPlugins`.
   It reads the cloudflare-dyndns token as the systemd credential `cloudflare-token`, through Caddy's `{file.*}` placeholder, so the token never reaches the Nix store.
