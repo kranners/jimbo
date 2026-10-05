@@ -114,7 +114,7 @@ in
       "network-online.target"
     ];
     unitConfig.ConditionPathExists = composeFile;
-    environment.REMOTE_VIEW_URL = "https://${portal}/vnc/vnc.html?autoconnect=1&resize=scale";
+    environment.REMOTE_VIEW_URL = "https://${portal}/vnc/vnc.html?autoconnect=1&resize=scale&path=/vnc/";
     serviceConfig = {
       WorkingDirectory = checkout;
       ExecStart = "${compose} up --build";
