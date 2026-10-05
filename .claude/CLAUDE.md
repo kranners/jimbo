@@ -99,7 +99,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Its Claude token from `claude setup-token`, its GitHub token and its copy of the Discord bot token live in `/var/lib/workaholic/.config/workaholic/` as `claude-token`, `github-token` and `discord-token`, owner `workaholic`, mode 600, written by hand.
   The user lingers, so its runs can leave each issue's preview running as a transient user unit on `4000` plus the issue number, with ports 4000 to 4999 open on `wlp2s0` and `wg0` alone, and `~/.config` is its own, apart from the root-owned token directory, because Chrome cannot start without writing there.
   `TEST_CHROMIUM_PATH` names nixpkgs' Google Chrome, because Playwright's downloaded Chromium cannot run on NixOS, so sessions can run browser tests and record their changes.
-  To deploy a new version, `git pull` in `/srv/workaholic`; the next run picks it up.
+  Each run first starts the oneshot `workaholic-pull`, which runs `git pull --ff-only` in `/srv/workaholic` as `aaron`, so every run works from the newest `main` with no restart, and a failed pull leaves the run on the code already there.
 
 ### framer
 
