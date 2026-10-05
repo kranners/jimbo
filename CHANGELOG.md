@@ -36,4 +36,4 @@
 - 2026-10-05: Run workaholic's Discord listener as `workaholic-listen`.
 - 2026-10-05: Restart `workaholic-listen` whenever `workaholic-pull` moves `/srv/workaholic`'s `HEAD`, so listener changes deploy like runner changes.
 - 2026-10-05: Add a `phone` WireGuard peer at `10.100.0.4`.
-- 2026-10-05: Provision Grafana dashboards for spike's hardware, services, containers and Claude Code usage, with Claude Code metrics from every session on spike.
+- 2026-10-05: Provision Grafana dashboards for spike's hardware, services, containers and Claude Code usage, with Claude Code metrics from every session on spike. Serve Grafana at `https://grafana.spike.cute.engineer` over WireGuard alone.

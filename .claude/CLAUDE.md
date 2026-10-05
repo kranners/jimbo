@@ -67,7 +67,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - SSH accepts keys only, declared in `modules/hosts/spike`.
   `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
-- Grafana on `:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
+- Grafana listens on `127.0.0.1:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
+  Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
   Its dashboards, Hardware, Services, Containers and Claude, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
   Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions through `~/.claude/settings.json` on spike alone and from `workaholic`'s through its unit, each labelled `job` by `OTEL_SERVICE_NAME`.
 - Caddy (`modules/hosts/spike/caddy.nix`) serves HTTPS on `443`, open only on `wg0`.

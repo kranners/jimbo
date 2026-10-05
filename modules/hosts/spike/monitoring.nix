@@ -2,6 +2,7 @@
 let
   inherit (config.services) cadvisor grafana prometheus;
   grafanaSecretKey = "${grafana.dataDir}/secret_key";
+  grafanaDomain = "grafana.spike.cute.engineer";
 in
 {
   imports = [ ./dashboards.nix ];
@@ -42,10 +43,13 @@ in
 
   services.grafana = {
     enable = true;
-    openFirewall = true;
     settings = {
-      server.http_addr = "0.0.0.0";
-      server.http_port = 3001;
+      server = {
+        http_addr = "127.0.0.1";
+        http_port = 3001;
+        domain = grafanaDomain;
+        root_url = "https://${grafanaDomain}/";
+      };
       security.secret_key = "$__file{${grafanaSecretKey}}";
     };
 
@@ -59,6 +63,10 @@ in
       }
     ];
   };
+
+  services.caddy.virtualHosts.${grafanaDomain}.extraConfig = ''
+    reverse_proxy ${grafana.settings.server.http_addr}:${toString grafana.settings.server.http_port}
+  '';
 
   systemd.services.grafana.preStart = ''
     [ -f ${grafanaSecretKey} ] || (umask 077 && ${pkgs.openssl}/bin/openssl rand -hex 32 > ${grafanaSecretKey})
