@@ -1,4 +1,4 @@
-{ host, ... }:
+{ host, lib, ... }:
 {
   darwinSystemModule = {
     users.users.${host.username} = {
@@ -9,20 +9,24 @@
     system.primaryUser = host.username;
   };
 
-  nixosSystemModule = { pkgs, ... }: {
-    users.defaultUserShell = pkgs.zsh;
+  nixosSystemModule =
+    { config, pkgs, ... }:
+    {
+      users.defaultUserShell = pkgs.zsh;
 
-    users.users.${host.username} = {
-      isNormalUser = true;
-      description = "Aaron";
+      users.users.${host.username} = {
+        isNormalUser = true;
+        description = "Aaron";
 
-      shell = pkgs.zsh;
+        shell = pkgs.zsh;
 
-      extraGroups = [
-        "networkmanager"
-        "wheel"
-        "docker"
-      ];
+        extraGroups = [
+          "networkmanager"
+          "wheel"
+        ]
+        # The group only exists on hosts that run Docker, and naming one that
+        # does not is a warning from useradd on every switch.
+        ++ lib.optional config.virtualisation.docker.enable "docker";
+      };
     };
-  };
 }

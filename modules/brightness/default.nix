@@ -7,14 +7,22 @@
 let
   inherit (lib) mkOption types;
 
-  # jimbo drives a desktop monitor over DisplayPort, so there is no
-  # /sys/class/backlight device and avizo's own lightctl cannot work.
-  # Brightness has to travel over DDC/CI instead.
+  # Brightness reaches a built-in panel and an external monitor by different
+  # roads, so the command picks one at run time by whether the machine has a
+  # /sys/class/backlight device.
+  #
+  # framer has one, its laptop panel, which brightnessctl drives through
+  # systemd-logind, so no udev rule or group membership is needed for it.
+  #
+  # jimbo drives a desktop monitor over DisplayPort, which has no backlight
+  # device at all, so avizo's own lightctl cannot work and brightness has to
+  # travel over DDC/CI instead.
   brightness = pkgs.writeShellApplication {
     name = "brightness";
 
     runtimeInputs = [
       pkgs.avizo
+      pkgs.brightnessctl
       pkgs.ddcutil
       pkgs.gawk
       pkgs.util-linux
@@ -29,6 +37,16 @@ let
       target_file="$runtime_directory/brightness.target"
 
       exec 9>"$runtime_directory/brightness.lock"
+
+      # An empty or absent directory leaves the glob unmatched, which fails the
+      # test and leaves the DDC/CI road the only one.
+      backlight_device=
+      for device in /sys/class/backlight/*; do
+        if [ -e "$device/brightness" ]; then
+          backlight_device=''${device##*/}
+          break
+        fi
+      done
 
       # Without an explicit bus, ddcutil probes every display on each call,
       # which costs more than the DDC/CI exchange itself.
@@ -52,12 +70,25 @@ let
         fi
       }
 
+      backlight() {
+        brightnessctl --device="$backlight_device" --machine-readable "$@"
+      }
+
       read_percent() {
-        ddc getvcp --brief "$brightness_vcp_code" | awk '{ print $4 }'
+        if [ -n "$backlight_device" ]; then
+          # intel_backlight,backlight,2065,28%,7500
+          backlight info | awk -F, '{ sub(/%$/, "", $4); print $4 }'
+        else
+          ddc getvcp --brief "$brightness_vcp_code" | awk '{ print $4 }'
+        fi
       }
 
       write_percent() {
-        ddc setvcp "$brightness_vcp_code" "$1"
+        if [ -n "$backlight_device" ]; then
+          backlight --quiet set "$1%"
+        else
+          ddc setvcp "$brightness_vcp_code" "$1"
+        fi
       }
 
       clamp() {
@@ -130,13 +161,15 @@ let
 in
 {
   options.brightness.command = mkOption {
-    description = "Command that reads and changes the monitor brightness over DDC/CI.";
+    description = "Command that reads and changes the screen brightness.";
     type = types.str;
     default = "${brightness}/bin/brightness";
   };
 
   config = {
     nixosSystemModule = {
+      # Only the DDC/CI road needs these, and whether a host takes it is known
+      # at run time, not here, so every Linux host gets them.
       hardware.i2c.enable = true;
 
       users.users.${host.username}.extraGroups = [ "i2c" ];
