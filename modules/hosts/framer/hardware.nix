@@ -33,8 +33,11 @@
 
   # A Surface Book 2, so it has a battery and no wired network, and needs the
   # power daemons a desktop does not.
-  hardware.bluetooth.enable = true;
-  hardware.bluetooth.powerOnBoot = true;
+  #
+  # Bluetooth stays off: linux-surface documents the Marvell wifi as
+  # unreliable while it is on.
+  hardware.bluetooth.enable = false;
+  hardware.bluetooth.powerOnBoot = false;
 
   services.thermald.enable = true;
   services.upower.enable = true;

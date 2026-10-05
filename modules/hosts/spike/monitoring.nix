@@ -32,7 +32,16 @@ in
     scrapeConfigs = [
       {
         job_name = "node";
-        static_configs = [ { targets = [ "localhost:${toString prometheus.exporters.node.port}" ]; } ];
+        static_configs = [
+          {
+            targets = [ "localhost:${toString prometheus.exporters.node.port}" ];
+            labels.host = "spike";
+          }
+          {
+            targets = [ "10.100.0.4:9100" ];
+            labels.host = "framer";
+          }
+        ];
       }
       {
         job_name = "cadvisor";
