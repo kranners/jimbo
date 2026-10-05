@@ -28,3 +28,4 @@
 - 2026-10-05: The `docker` group is only added to `aaron` on hosts that run Docker, since naming a group that does not exist warns on every switch.
 - 2026-10-05: The `brightness` command picks its backend at run time: brightnessctl through systemd-logind where `/sys/class/backlight` has a device, DDC/CI where it does not.
 - 2026-10-05: discord-threads runs on Node 24 instead of Bun.
+- 2026-10-05: The default Claude Code effort level is high again; xhigh is opted into per session with /effort.
