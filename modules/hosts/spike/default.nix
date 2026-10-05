@@ -12,6 +12,7 @@
         ./dns.nix
         ./docker.nix
         ./environments.nix
+        ./home-assistant.nix
         ./monitoring.nix
         ./watchdog.nix
         ./workaholic.nix

@@ -71,6 +71,11 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
   Its dashboards, Hardware, Services, Containers and Claude, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
   Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions through `~/.claude/settings.json` on spike alone and from `workaholic`'s through its unit, each labelled `job` by `OTEL_SERVICE_NAME`.
+- Home Assistant (`modules/hosts/spike/home-assistant.nix`) runs as the NixOS `home-assistant` module, serving `:8123` open on `wlp2s0` and `wg0` alone.
+  Its secrets, `latitude`, `longitude`, `elevation`, `panel_user_id` and `unsplash_image_url`, live in `/var/lib/hass/secrets.yaml`, owner `hass`, mode 600, written by hand.
+  Trusted-network auth skips the login screen for `10.100.0.4`, the `phone` peer, so the panel at `http://spike.local:8123/panel` never shows one while every other client still logs in.
+  That panel is a Lovelace dashboard the module provisions, a WallPanel screensaver of the time, Open-Meteo's forecast, today's calendar and Prometheus-backed hardware stats for framer and spike.
+  Open-Meteo, Remote Calendar and Wyoming are set up by hand through their config flows and persist under `/var/lib/hass`.
 - Caddy (`modules/hosts/spike/caddy.nix`) serves HTTPS on `443`, open only on `wg0`.
   Its certificates come from Let's Encrypt by DNS-01, through the `caddy-dns/cloudflare` plugin built in with `pkgs.caddy.withPlugins`.
   It reads the cloudflare-dyndns token as the systemd credential `cloudflare-token`, through Caddy's `{file.*}` placeholder, so the token never reaches the Nix store.
