@@ -17,7 +17,10 @@
       "/run/current-system/sw"
     ];
 
-    environment.DISABLE_AUTOUPDATER = "1";
+    environment = {
+      DISABLE_AUTOUPDATER = "1";
+      OTEL_SERVICE_NAME = "remote-control";
+    };
 
     serviceConfig = {
       User = "aaron";

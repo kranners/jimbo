@@ -68,6 +68,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
 - Grafana on `:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
+  Its dashboards, Hardware, Services, Containers and Claude, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
+  Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions through `~/.claude/settings.json` on spike alone and from `workaholic`'s through its unit, each labelled `job` by `OTEL_SERVICE_NAME`.
 - Caddy (`modules/hosts/spike/caddy.nix`) serves HTTPS on `443`, open only on `wg0`.
   Its certificates come from Let's Encrypt by DNS-01, through the `caddy-dns/cloudflare` plugin built in with `pkgs.caddy.withPlugins`.
   It reads the cloudflare-dyndns token as the systemd credential `cloudflare-token`, through Caddy's `{file.*}` placeholder, so the token never reaches the Nix store.
@@ -108,7 +110,6 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `TEST_CHROMIUM_PATH` names nixpkgs' Google Chrome, because Playwright's downloaded Chromium cannot run on NixOS, so sessions can run browser tests and record their changes.
   Each run first starts the oneshot `workaholic-pull`, which runs `git pull --ff-only` in `/srv/workaholic` as `aaron`, so every run works from the newest `main` with no restart, and a failed pull leaves the run on the code already there.
   When the pull moves `HEAD`, it also restarts `workaholic-listen`, which keeps `src/listen.ts` connected to Discord as that bot, restarting it 10 s after it exits, to answer its slash commands in issue threads.
-  `workaholic-listen` gets the runners' environment and path, since its `/pickup` starts a run itself as a transient user unit.
 
 ### framer
 
