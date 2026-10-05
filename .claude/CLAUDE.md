@@ -111,6 +111,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `TEST_CHROMIUM_PATH` names nixpkgs' Google Chrome, because Playwright's downloaded Chromium cannot run on NixOS, so sessions can run browser tests and record their changes.
   Each run first starts the oneshot `workaholic-pull`, which runs `git pull --ff-only` in `/srv/workaholic` as `aaron`, so every run works from the newest `main` with no restart, and a failed pull leaves the run on the code already there.
   When the pull moves `HEAD`, it also restarts `workaholic-listen`, which keeps `src/listen.ts` connected to Discord as that bot, restarting it 10 s after it exits, to answer its slash commands in issue threads.
+  `workaholic-listen` has the runners' path and environment, because `/pickup` starts a run as a transient user unit that takes `PATH`, `SHELL` and `TEST_CHROMIUM_PATH` from it.
 
 ### framer
 
