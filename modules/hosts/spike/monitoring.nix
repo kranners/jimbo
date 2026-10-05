@@ -4,11 +4,29 @@ let
   grafanaSecretKey = "${grafana.dataDir}/secret_key";
 in
 {
-  services.cadvisor.enable = true;
+  imports = [ ./dashboards.nix ];
+
+  # Docker runs its own containerd, so point cAdvisor at it to label containers by name and image.
+  services.cadvisor = {
+    enable = true;
+    extraOptions = [ "--containerd=/run/docker/containerd/containerd.sock" ];
+  };
 
   services.prometheus = {
     enable = true;
-    exporters.node.enable = true;
+
+    # Accepts Claude Code telemetry at /api/v1/otlp/v1/metrics.
+    extraFlags = [
+      "--web.enable-otlp-receiver"
+      "--enable-feature=created-timestamp-zero-ingestion"
+    ];
+
+    globalConfig.scrape_interval = "1m";
+
+    exporters.node = {
+      enable = true;
+      enabledCollectors = [ "systemd" ];
+    };
 
     scrapeConfigs = [
       {
@@ -37,6 +55,7 @@ in
         type = "prometheus";
         url = "http://localhost:${toString prometheus.port}";
         isDefault = true;
+        jsonData.timeInterval = prometheus.globalConfig.scrape_interval;
       }
     ];
   };

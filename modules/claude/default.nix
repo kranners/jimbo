@@ -1,6 +1,7 @@
+{ host, ... }:
 {
   sharedHomeModule =
-    { pkgs, ... }:
+    { pkgs, lib, ... }:
     let
       save-branch-context = pkgs.writeShellApplication {
         name = "save-branch-context";
@@ -81,7 +82,16 @@
         enableWorkflows = true;
 
         # Agent teams
-        env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1";
+        env = {
+          CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1";
+        }
+        // lib.optionalAttrs (host.hostname == "spike") {
+          CLAUDE_CODE_ENABLE_TELEMETRY = "1";
+          OTEL_METRICS_EXPORTER = "otlp";
+          OTEL_EXPORTER_OTLP_METRICS_PROTOCOL = "http/protobuf";
+          OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = "http://localhost:9090/api/v1/otlp/v1/metrics";
+          OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE = "cumulative";
+        };
 
         # Recaps
         awaySummaryEnabled = false;
