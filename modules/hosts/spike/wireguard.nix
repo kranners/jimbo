@@ -16,6 +16,11 @@
         publicKey = "Gbu5Ha59gru26iir0S+qkwBOLNDTz/YQRCA0PPfRglg=";
         allowedIPs = [ "10.100.0.3/32" ];
       }
+      {
+        name = "phone";
+        publicKey = "ZdVqfKi5uQksmXgfy8Q4fC2171Sba3JMMMGkWUCyWDg=";
+        allowedIPs = [ "10.100.0.4/32" ];
+      }
     ];
   };
 
