@@ -18,7 +18,8 @@ The plan behind it is the [members plan](https://claude.ai/artifact/6hP7NKKVxcNJ
 
 - Caddy on spike, built with `caddy-dns/cloudflare`, serves `app.bowerbird.cute.engineer` with a Let's Encrypt certificate by DNS-01.
 - `/vnc/*` goes to noVNC on `6080` with the prefix stripped, everything else to the portal on `3000`.
-- `REMOTE_VIEW_URL` is `https://app.bowerbird.cute.engineer/vnc/vnc.html?autoconnect=1&resize=scale&path=vnc/websockify`.
+- `REMOTE_VIEW_URL` is `https://app.bowerbird.cute.engineer/vnc/vnc.html?autoconnect=1&resize=scale`.
+  noVNC 1.7.0 defaults `host` to empty and `path` to `websockify`, resolved with `new URL(path, location.href)`, so from `/vnc/vnc.html` it already reaches `/vnc/websockify`; the issue's `path=vnc/websockify` would ask for `/vnc/vnc/websockify`.
 - `443` is open on `wg0` alone; `3000` and `6080` are closed to everything but localhost.
 - The token reaches Caddy only as the credential `cloudflare-token`, never through the Nix store, git or the unit's environment.
 - `.claude/CLAUDE.md` describes Caddy and the name.
@@ -62,4 +63,6 @@ flowchart LR
 
 - Before the first friend's peer is added: `wg0` is treated as the LAN, so a friend peer would reach branch Postgres on `5433` (superuser `bowerbird`, password `bowerbird`, allowed from `samenet`), the previews on `4000` to `4999`, and SSH.
   Friend peers want their own address range with `443` alone.
-- Step 3: `forward_auth` on the `/vnc/*` handle once `GET /api/auth/ok` is on bowerbird's `main`.
+- Step 3: `forward_auth` on the `/vnc/*` handle once `GET /api/auth/ok` is on bowerbird's `main`; `REMOTE_VIEW_URL` is already under the name and needs no `path`.
+- Step 2: `BETTER_AUTH_URL` must be `https://app.bowerbird.cute.engineer`, not `http://spike.local:3000`, since this branch closes `3000` off the box.
+- From inside the LAN the name works only with WireGuard up, which depends on the router hairpinning to `spike.cute.engineer`.

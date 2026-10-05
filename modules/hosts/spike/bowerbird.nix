@@ -10,7 +10,7 @@ let
   display = ":99";
   composeFile = "${checkout}/compose.production.yml";
   compose = "${config.virtualisation.docker.package}/bin/docker compose --project-name bowerbird --file ${composeFile}";
-  name = "app.bowerbird.cute.engineer";
+  portal = "app.bowerbird.cute.engineer";
 
   bowerbird-display = pkgs.writeShellApplication {
     name = "bowerbird-display";
@@ -86,7 +86,7 @@ in
 
   environment.systemPackages = [ pkgs.nodejs_24 ];
 
-  services.caddy.virtualHosts.${name}.extraConfig = ''
+  services.caddy.virtualHosts.${portal}.extraConfig = ''
     handle_path /vnc/* {
       reverse_proxy 127.0.0.1:6080
     }
@@ -104,7 +104,7 @@ in
       "network-online.target"
     ];
     unitConfig.ConditionPathExists = composeFile;
-    environment.REMOTE_VIEW_URL = "https://${name}/vnc/vnc.html?autoconnect=1&resize=scale&path=vnc/websockify";
+    environment.REMOTE_VIEW_URL = "https://${portal}/vnc/vnc.html?autoconnect=1&resize=scale";
     serviceConfig = {
       WorkingDirectory = checkout;
       ExecStart = "${compose} up --build";
