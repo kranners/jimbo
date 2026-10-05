@@ -8,7 +8,7 @@
     peers = [
       {
         name = "piggys-MBP";
-        publicKey = "1nyyas9dwolxY1nGyU9hGTtZ8SnOvKLW35ZOgu6+Y1U=";
+        publicKey = "KX06Fz1PeoPnrSAnAqOiYOXVkEOjEjFmRBqsxIP6pDk=";
         allowedIPs = [ "10.100.0.2/32" ];
       }
       {
