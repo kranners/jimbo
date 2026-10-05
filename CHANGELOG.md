@@ -27,4 +27,4 @@
 - 2026-10-05: framer, a NixOS Surface Book 2, joins the flake as a desktop host with its hardware, systemd-boot, mDNS, key-only SSH and a hardware watchdog.
 - 2026-10-05: The `docker` group is only added to `aaron` on hosts that run Docker, since naming a group that does not exist warns on every switch.
 - 2026-10-05: The `brightness` command picks its backend at run time: brightnessctl through systemd-logind where `/sys/class/backlight` has a device, DDC/CI where it does not.
-2026-10-05 Run discord-threads on Node 24 instead of Bun.
+- 2026-10-05: discord-threads runs on Node 24 instead of Bun.
