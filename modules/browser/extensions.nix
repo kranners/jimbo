@@ -24,8 +24,8 @@ map fetchExtension [
   {
     # Bitwarden
     id = "nngceckbapebfimnlniiiahkandclblb";
-    version = "2026.9.2";
-    hash = "sha256-bTCH2rMNIVSUgFja6OTH5BQg0qyBaFHnxoyqkyQWyTA=";
+    version = "2026.9.3";
+    hash = "sha256-mWT2YKEQI8sZpzC3+Qg1PsHa53oCfIGSMV0Kfz2O+SE=";
   }
   {
     # uBlock Origin Lite, the store no longer serves the Manifest V2 uBlock
@@ -43,8 +43,8 @@ map fetchExtension [
   {
     # Refined GitHub
     id = "hlepfoohegkhhmjieoechaddaejaokhf";
-    version = "26.9.12";
-    hash = "sha256-6nU91pne+T/1bYhL92cn+aJbXlOyF/Pr3s+iWuJ3EXo=";
+    version = "26.10.0";
+    hash = "sha256-Ua3DlSiSkXx7VefXwbdG7M95wTf3qe3lVmSdQOu3Q58=";
   }
   {
     # Claude in Chrome
