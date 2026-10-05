@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Nix flake configuring three machines for a single user (`aaron`):
+Nix flake configuring four machines for a single user (`aaron`):
 
 - `jimbo`, NixOS PC, `x86_64-linux`
 - `piggys-MBP`, MacBook via nix-darwin, `aarch64-darwin`
 - `spike`, always-on NixOS box, `x86_64-linux`
+- `framer`, NixOS Surface Book 2 laptop, `x86_64-linux`
 
 ## Commands
 
@@ -99,6 +100,19 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   The user lingers, so its runs can leave each issue's preview running as a transient user unit on `4000` plus the issue number, with ports 4000 to 4999 open on `wlp2s0` and `wg0` alone, and `~/.config` is its own, apart from the root-owned token directory, because Chrome cannot start without writing there.
   `TEST_CHROMIUM_PATH` names nixpkgs' Google Chrome, because Playwright's downloaded Chromium cannot run on NixOS, so sessions can run browser tests and record their changes.
   To deploy a new version, `git pull` in `/srv/workaholic`; the next run picks it up.
+
+### framer
+
+`framer` is a Microsoft Surface Book 2 laptop running NixOS, a desktop host (`desktop = true`), so it gets the same shared and desktop modules as `jimbo`.
+Its files under `modules/hosts/framer` are plain NixOS modules, imported through `nixosSystemModule`, the same shape as spike's.
+
+- SSH: `ssh aaron@framer.local` (key auth, resolved over mDNS), keys only, declared in `modules/hosts/framer`.
+- Hardware: Intel i5-7300U, one 119 GB NVMe disk with a 1 GB ESP, wifi (`wlp1s0`) and no wired network, two batteries and an `intel_backlight` panel.
+  `boot.loader.systemd-boot.configurationLimit` is 5, because that ESP only has room for a few generations.
+  `thermald` and `upower` run for the laptop's thermals and battery, and Bluetooth is on at boot.
+- Hardware watchdog (`iTCO_wdt`) is armed by systemd, and the kernel reboots 10 s after a panic, the same as spike's.
+- It keeps the default sleep and suspend targets, unlike spike, which disables them.
+- The `brightness` command from `modules/brightness` drives framer's built-in panel, `intel_backlight`, with brightnessctl, which it picks over DDC/CI because `/sys/class/backlight` has a device here.
 
 ### Neovim
 

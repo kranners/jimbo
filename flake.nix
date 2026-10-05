@@ -48,6 +48,13 @@
           username = "aaron";
           desktop = false;
         }
+
+        {
+          system = "x86_64-linux";
+          hostname = "framer";
+          username = "aaron";
+          desktop = true;
+        }
       ];
 
       flakeOutputPerHost =

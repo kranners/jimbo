@@ -24,3 +24,6 @@
 - 2026-10-04: workaholic runs three runners at once, each checking for work 5 minutes after its last run ends.
 - 2026-10-04: workaholic lingers so issue previews outlive its runs, serves them on ports 4000 to 4999 over the LAN and WireGuard, owns its ~/.config, and points TEST_CHROMIUM_PATH at nixpkgs' Chrome.
 - 2026-10-05: Claude Code may fast-forward /srv/workaholic to deploy workaholic without a prompt.
+- 2026-10-05: framer, a NixOS Surface Book 2, joins the flake as a desktop host with its hardware, systemd-boot, mDNS, key-only SSH and a hardware watchdog.
+- 2026-10-05: The `docker` group is only added to `aaron` on hosts that run Docker, since naming a group that does not exist warns on every switch.
+- 2026-10-05: The `brightness` command picks its backend at run time: brightnessctl through systemd-logind where `/sys/class/backlight` has a device, DDC/CI where it does not.
