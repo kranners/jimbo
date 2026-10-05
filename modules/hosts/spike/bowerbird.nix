@@ -1,5 +1,6 @@
 {
   config,
+  lib,
   pkgs,
   ...
 }:
@@ -11,6 +12,11 @@ let
   composeFile = "${checkout}/compose.production.yml";
   compose = "${config.virtualisation.docker.package}/bin/docker compose --project-name bowerbird --file ${composeFile}";
   portal = "app.bowerbird.cute.engineer";
+
+  lanInterfaces = [
+    "wlp2s0"
+    "wg0"
+  ];
 
   bowerbird-display = pkgs.writeShellApplication {
     name = "bowerbird-display";
@@ -94,6 +100,10 @@ in
       reverse_proxy 127.0.0.1:3000
     }
   '';
+
+  networking.firewall.interfaces = lib.genAttrs lanInterfaces (_: {
+    allowedTCPPorts = [ 3000 ];
+  });
 
   systemd.services.bowerbird-compose = {
     description = "Bowerbird Postgres and portal";
