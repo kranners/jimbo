@@ -13,6 +13,16 @@ let
     3
   ];
 
+  runnerEnvironment = {
+    SHELL = "${pkgs.bashInteractive}/bin/bash";
+    TEST_CHROMIUM_PATH = "${pkgs.google-chrome}/bin/google-chrome-stable";
+  };
+  runnerPath = [
+    pkgs.git
+    pkgs.claude-code
+    pkgs.nodejs_24
+  ];
+
   workaholic-pull = pkgs.writeShellApplication {
     name = "workaholic-pull";
     runtimeInputs = [
@@ -65,15 +75,8 @@ in
       "workaholic-pull.service"
     ];
     unitConfig.ConditionPathExists = "${checkout}/package.json";
-    environment = {
-      SHELL = "${pkgs.bashInteractive}/bin/bash";
-      TEST_CHROMIUM_PATH = "${pkgs.google-chrome}/bin/google-chrome-stable";
-    };
-    path = [
-      pkgs.git
-      pkgs.claude-code
-      pkgs.nodejs_24
-    ];
+    environment = runnerEnvironment;
+    path = runnerPath;
 
     serviceConfig = {
       Type = "oneshot";
@@ -92,6 +95,8 @@ in
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
     unitConfig.ConditionPathExists = "${checkout}/src/listen.ts";
+    environment = runnerEnvironment;
+    path = runnerPath;
     serviceConfig = {
       User = "workaholic";
       WorkingDirectory = checkout;
