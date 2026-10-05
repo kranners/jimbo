@@ -68,6 +68,9 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
 - Grafana on `:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
+- Caddy (`modules/hosts/spike/caddy.nix`) serves HTTPS on `443`, open only on `wg0`.
+  Its certificates come from Let's Encrypt by DNS-01, through the `caddy-dns/cloudflare` plugin built in with `pkgs.caddy.withPlugins`.
+  It reads the cloudflare-dyndns token as the systemd credential `cloudflare-token`, through Caddy's `{file.*}` placeholder, so the token never reaches the Nix store.
 - Bowerbird (`modules/hosts/spike/bowerbird.nix`) runs the job application pipeline from a clone of `kranners/bowerbird` at `/srv/bowerbird`, made by hand as `aaron` with `npm ci` run in it.
   Its secrets and settings live in `/srv/bowerbird/.env`, owner `bowerbird`, mode 600, written by hand.
   `bowerbird-compose.service` runs `compose.production.yml` as root: Postgres on `127.0.0.1:5432` and the portal on `:3000`.
@@ -75,7 +78,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   The worker starts once the display is up and Postgres accepts connections, and every unit that needs the checkout is skipped while it is missing.
   A stop signals the worker alone, `KillMode=mixed`, which finishes the runs it has going before it exits, and systemd waits 35 minutes, `TimeoutStopSec`, before `SIGKILL`, five more than the worker's own cap on that wait.
   `bowerbird-backup.timer` dumps the database nightly into `/var/lib/bowerbird-backups`, keeping 14 days.
-  Ports `3000` and `6080` are open only on `wlp2s0` and `wg0`.
+  Caddy serves the portal at `https://app.bowerbird.cute.engineer` and noVNC under its `/vnc/`, so `REMOTE_VIEW_URL` points there with `path=vnc/websockify`.
+  The name's DNS-only A record points at `10.100.0.1`, so the portal is reached over WireGuard alone, and ports `3000` and `6080` are closed to everything but localhost.
   `nodejs_24`, the Node the worker unit runs, is also on the system path so `npm ci` works for `aaron`.
   To deploy by hand: `ssh aaron@spike.local /srv/bowerbird/bin/deploy`, the repository's script, which pulls `main`, runs `npm ci` and restarts only the units whose code changed.
   GitHub Actions runs the same script on every push to Bowerbird's `main`: it joins `wg0` as the peer `github-actions` and logs in as `aaron@10.100.0.1` with a key whose forced command is `/srv/bowerbird/bin/deploy`.
