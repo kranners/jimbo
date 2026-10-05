@@ -1,6 +1,5 @@
 {
   config,
-  lib,
   pkgs,
   ...
 }:
@@ -11,14 +10,7 @@ let
   display = ":99";
   composeFile = "${checkout}/compose.production.yml";
   compose = "${config.virtualisation.docker.package}/bin/docker compose --project-name bowerbird --file ${composeFile}";
-  lanInterfaces = [
-    "wlp2s0"
-    "wg0"
-  ];
-  ports = [
-    3000
-    6080
-  ];
+  name = "app.bowerbird.cute.engineer";
 
   bowerbird-display = pkgs.writeShellApplication {
     name = "bowerbird-display";
@@ -94,9 +86,14 @@ in
 
   environment.systemPackages = [ pkgs.nodejs_24 ];
 
-  networking.firewall.interfaces = lib.genAttrs lanInterfaces (_: {
-    allowedTCPPorts = ports;
-  });
+  services.caddy.virtualHosts.${name}.extraConfig = ''
+    handle_path /vnc/* {
+      reverse_proxy 127.0.0.1:6080
+    }
+    handle {
+      reverse_proxy 127.0.0.1:3000
+    }
+  '';
 
   systemd.services.bowerbird-compose = {
     description = "Bowerbird Postgres and portal";
@@ -107,7 +104,7 @@ in
       "network-online.target"
     ];
     unitConfig.ConditionPathExists = composeFile;
-    environment.REMOTE_VIEW_URL = "http://spike.local:6080/vnc.html?autoconnect=1&resize=scale";
+    environment.REMOTE_VIEW_URL = "https://${name}/vnc/vnc.html?autoconnect=1&resize=scale&path=vnc/websockify";
     serviceConfig = {
       WorkingDirectory = checkout;
       ExecStart = "${compose} up --build";

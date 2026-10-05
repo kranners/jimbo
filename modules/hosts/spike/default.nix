@@ -6,6 +6,7 @@
       imports = [
         ./hardware.nix
         ./bowerbird.nix
+        ./caddy.nix
         ./claude.nix
         ./discord-threads.nix
         ./dns.nix
