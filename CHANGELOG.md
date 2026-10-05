@@ -30,3 +30,4 @@
 - 2026-10-05: discord-threads runs on Node 24 instead of Bun.
 - 2026-10-05: The default Claude Code effort level is high again; xhigh is opted into per session with /effort.
 - 2026-10-05: Each workaholic run pulls `main` into `/srv/workaholic` first, so changes deploy without a manual pull.
+- 2026-10-05: discord-threads deploys every push to its `main` within 2 minutes through `discord-threads-pull.timer`.
