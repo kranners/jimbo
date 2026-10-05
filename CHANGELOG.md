@@ -40,3 +40,4 @@
 - 2026-10-05: Give workaholic-listen the runners' path and environment, so `/pickup` runs find `git`.
 - 2026-10-05: Run eight workaholic runners instead of three, leaving how many work at once to their gate on load, memory and Max usage.
 - 2026-10-05: Cap workaholic's runners together at 8 GiB of memory, so concurrent runs are OOM-killed before production.
+- 2026-10-06: framer becomes a kiosk host: `cage` runs the Home Assistant dashboard full screen in Chromium on tty1, with wayvnc and noVNC for a remote view, WireGuard to spike, node_exporter, and brightness timers that dim `intel_backlight` overnight.

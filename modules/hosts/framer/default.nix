@@ -1,11 +1,16 @@
 { host, ... }:
 {
+  kiosk.url = "http://10.100.0.1:8123/panel";
+  kiosk.lanInterface = "wlp1s0";
+
   nixosSystemModule =
     { pkgs, ... }:
     {
       imports = [
         ./hardware.nix
         ./watchdog.nix
+        ./wireguard.nix
+        ./monitoring.nix
       ];
 
       boot.loader.systemd-boot.enable = true;
