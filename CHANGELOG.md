@@ -35,3 +35,4 @@
 - 2026-10-05: Caddy skips its DNS propagation check and waits 30 seconds instead, since the home network answers DNS itself and never showed it the challenge record.
 - 2026-10-05: Run workaholic's Discord listener as `workaholic-listen`.
 - 2026-10-05: Restart `workaholic-listen` whenever `workaholic-pull` moves `/srv/workaholic`'s `HEAD`, so listener changes deploy like runner changes.
+- 2026-10-05: Add a `phone` WireGuard peer at `10.100.0.4`.
