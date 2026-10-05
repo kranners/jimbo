@@ -28,10 +28,30 @@ in
     "d ${home}/.config 0755 workaholic workaholic -"
   ];
 
-  systemd.services."workaholic@" = {
-    description = "workaholic runner %i, works GitHub issues within spare compute and Claude Max usage";
+  systemd.services.workaholic-pull = {
+    description = "Pull workaholic's main into ${checkout} before a run";
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
+    unitConfig.ConditionPathExists = "${checkout}/.git";
+    path = [ pkgs.openssh ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "aaron";
+      WorkingDirectory = checkout;
+      ExecStart = "${pkgs.git}/bin/git pull --ff-only";
+    };
+  };
+
+  systemd.services."workaholic@" = {
+    description = "workaholic runner %i, works GitHub issues within spare compute and Claude Max usage";
+    wants = [
+      "network-online.target"
+      "workaholic-pull.service"
+    ];
+    after = [
+      "network-online.target"
+      "workaholic-pull.service"
+    ];
     unitConfig.ConditionPathExists = "${checkout}/package.json";
     environment = {
       SHELL = "${pkgs.bashInteractive}/bin/bash";
