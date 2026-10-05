@@ -74,6 +74,21 @@ in
     };
   };
 
+  systemd.services.workaholic-listen = {
+    description = "workaholic's Discord listener, for /approve and /pass in issue threads";
+    wantedBy = [ "multi-user.target" ];
+    wants = [ "network-online.target" ];
+    after = [ "network-online.target" ];
+    unitConfig.ConditionPathExists = "${checkout}/src/listen.ts";
+    serviceConfig = {
+      User = "workaholic";
+      WorkingDirectory = checkout;
+      ExecStart = "${pkgs.nodejs_24}/bin/node src/listen.ts";
+      Restart = "always";
+      RestartSec = 10;
+    };
+  };
+
   networking.firewall.interfaces = lib.genAttrs lanInterfaces (_: {
     allowedTCPPortRanges = [
       {
