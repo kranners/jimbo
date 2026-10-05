@@ -12,6 +12,19 @@ let
     2
     3
   ];
+
+  workaholic-pull = pkgs.writeShellApplication {
+    name = "workaholic-pull";
+    runtimeInputs = [
+      pkgs.git
+      pkgs.openssh
+    ];
+    text = ''
+      before=$(git rev-parse HEAD)
+      git pull --ff-only
+      [ "$(git rev-parse HEAD)" = "$before" ] || /run/wrappers/bin/sudo systemctl try-restart workaholic-listen
+    '';
+  };
 in
 {
   users.users.workaholic = {
@@ -29,16 +42,15 @@ in
   ];
 
   systemd.services.workaholic-pull = {
-    description = "Pull workaholic's main into ${checkout} before a run";
+    description = "Pull workaholic's main into ${checkout} before a run and restart workaholic-listen when it moved";
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
     unitConfig.ConditionPathExists = "${checkout}/.git";
-    path = [ pkgs.openssh ];
     serviceConfig = {
       Type = "oneshot";
       User = "aaron";
       WorkingDirectory = checkout;
-      ExecStart = "${pkgs.git}/bin/git pull --ff-only";
+      ExecStart = "${workaholic-pull}/bin/workaholic-pull";
     };
   };
 
@@ -75,7 +87,7 @@ in
   };
 
   systemd.services.workaholic-listen = {
-    description = "workaholic's Discord listener, for /approve and /pass in issue threads";
+    description = "workaholic's Discord listener, for its slash commands in issue threads";
     wantedBy = [ "multi-user.target" ];
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
