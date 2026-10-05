@@ -65,6 +65,11 @@ in
     };
   };
 
+  systemd.slices.system-workaholic.sliceConfig = {
+    MemoryHigh = "7G";
+    MemoryMax = "8G";
+  };
+
   systemd.services."workaholic@" = {
     description = "workaholic runner %i, works GitHub issues within spare compute and Claude Max usage";
     wants = [
