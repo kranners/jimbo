@@ -7,11 +7,7 @@ let
     "wlp2s0"
     "wg0"
   ];
-  runners = [
-    1
-    2
-    3
-  ];
+  runners = lib.range 1 8;
   runEnvironment = {
     SHELL = "${pkgs.bashInteractive}/bin/bash";
     TEST_CHROMIUM_PATH = "${pkgs.google-chrome}/bin/google-chrome-stable";

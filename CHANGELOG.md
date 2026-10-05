@@ -38,3 +38,4 @@
 - 2026-10-05: Add a `phone` WireGuard peer at `10.100.0.4`.
 - 2026-10-05: Provision Grafana dashboards for spike's hardware, services, containers and Claude Code usage, with Claude Code metrics from every session on spike. Serve Grafana at `https://grafana.spike.cute.engineer` over WireGuard alone.
 - 2026-10-05: Give workaholic-listen the runners' path and environment, so `/pickup` runs find `git`.
+- 2026-10-05: Run eight workaholic runners instead of three, leaving how many work at once to their gate on load, memory and Max usage.
