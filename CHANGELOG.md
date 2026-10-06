@@ -44,3 +44,4 @@
 - 2026-10-06: Chart the Claude plan's session and weekly limits on spike's Claude dashboard, polled every 2 minutes by `claude-limits.timer` from the endpoint behind `/usage`.
 - 2026-10-06: Stop a switch restarting workaholic's runners, so it no longer kills the sessions they are working.
 - 2026-10-06: Show how old spike's plan limit readings are on the Claude dashboard, red after 10 minutes, so a stale token shows instead of a frozen graph.
+- 2026-10-06: Gate the Bowerbird remote view behind the portal's sign-in, so `/vnc/*` needs a session cookie, and close 3000 on the LAN interfaces it no longer needs to answer on.
