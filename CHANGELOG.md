@@ -43,3 +43,4 @@
 - 2026-10-06: Put `curl` on workaholic's path, so sessions waiting on their preview with it stop looping forever.
 - 2026-10-06: Chart the Claude plan's session and weekly limits on spike's Claude dashboard, polled every 2 minutes by `claude-limits.timer` from the endpoint behind `/usage`.
 - 2026-10-06: Stop a switch restarting workaholic's runners, so it no longer kills the sessions they are working.
+- 2026-10-06: Show how old spike's plan limit readings are on the Claude dashboard, red after 10 minutes, so a stale token shows instead of a frozen graph.

@@ -322,8 +322,31 @@ let
       (timeseries {
         title = "Plan limits used";
         unit = "percent";
-        w = 24;
+        w = 18;
         targets = [ (target "claude_limit_percent" "{{kind}} {{model}}") ];
+      })
+      (stat {
+        title = "Plan limits age";
+        h = 8;
+        targets = [
+          (target ''time() - node_textfile_mtime_seconds{file=~".*/claude-limits[.]prom"}'' "age")
+        ];
+        extra.fieldConfig.defaults = {
+          unit = "s";
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "red";
+                value = 600;
+              }
+            ];
+          };
+        };
       })
       (stat {
         title = "Live sessions";
