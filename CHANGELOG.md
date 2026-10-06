@@ -40,3 +40,4 @@
 - 2026-10-05: Give workaholic-listen the runners' path and environment, so `/pickup` runs find `git`.
 - 2026-10-05: Run eight workaholic runners instead of three, leaving how many work at once to their gate on load, memory and Max usage.
 - 2026-10-05: Cap workaholic's runners together at 8 GiB of memory, so concurrent runs are OOM-killed before production.
+- 2026-10-06: Put `curl` on workaholic's path, so sessions waiting on their preview with it stop looping forever.

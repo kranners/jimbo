@@ -22,6 +22,7 @@ let
     pkgs.git
     pkgs.claude-code
     pkgs.nodejs_24
+    pkgs.curl
   ];
 
   workaholic-pull = pkgs.writeShellApplication {
