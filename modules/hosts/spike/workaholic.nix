@@ -84,6 +84,7 @@ in
     unitConfig.ConditionPathExists = "${checkout}/package.json";
     environment = runEnvironment;
     path = runPath;
+    restartIfChanged = false;
 
     serviceConfig = {
       Type = "oneshot";
