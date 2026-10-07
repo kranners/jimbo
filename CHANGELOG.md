@@ -47,3 +47,4 @@
 - 2026-10-06: Gate the Bowerbird remote view behind the portal's sign-in, so `/vnc/*` needs a session cookie, and close 3000 on the LAN interfaces it no longer needs to answer on.
 - 2026-10-07: Add workaholic to the `bowerbird` group on spike, so its sessions can read Bowerbird's state in `/var/lib/bowerbird`.
 - 2026-10-07: Install Slack on piggys-MBP through Homebrew.
+- 2026-10-07: Fix the Claude dashboard's plan limit panels to a 0 to 100% scale instead of fitting it to the data.
