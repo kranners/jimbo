@@ -22,6 +22,7 @@ let
     pkgs.git
     pkgs.claude-code
     pkgs.nodejs_24
+    pkgs.curl
   ];
 
   workaholic-pull = pkgs.writeShellApplication {
@@ -41,6 +42,7 @@ in
   users.users.workaholic = {
     isSystemUser = true;
     group = "workaholic";
+    extraGroups = [ "bowerbird" ];
     inherit home;
     linger = true;
   };
@@ -83,6 +85,7 @@ in
     unitConfig.ConditionPathExists = "${checkout}/package.json";
     environment = runEnvironment;
     path = runPath;
+    restartIfChanged = false;
 
     serviceConfig = {
       Type = "oneshot";

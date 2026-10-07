@@ -7,7 +7,8 @@ The system changes only through jimbo: a branch lands on its `main`, then `git p
 `sudo` asks for no password, so nothing stands between a mistaken command and the live system.
 `/srv/bowerbird` is Bowerbird's production checkout, which `bin/deploy` updates on every push to its `main`; checking out another branch there pauses deploys until `main` is checked out again.
 `~/workspace/bowerbird` is a separate development checkout, and its branch databases live on the `postgresql` unit on `:5433`, beside `bowerbird_template`, which `bowerbird-template` clones from production at 03:30.
-`bowerbird-compose` runs production Postgres on `127.0.0.1:5432` and the portal on `:3000` in Docker, and `bowerbird-display`, `bowerbird-remote-view` (noVNC on `:6080`) and `bowerbird-worker` run as the `bowerbird` user with state in `/var/lib/bowerbird`.
+`bowerbird-compose` runs production Postgres on `127.0.0.1:5432` and the portal on `:3000` in Docker, and `bowerbird-display` (the house's own `:99`, unwatched), `bowerbird-display@<N>` (one per signed-in member, its own display and VNC port), `bowerbird-vnc-proxy` (noVNC on `:6080`, routed per member by `?token=`) and `bowerbird-worker` run as the `bowerbird` user with state in `/var/lib/bowerbird`.
+`bowerbird-sync-displays` keeps the proxy's token file and which `bowerbird-display@` instances run in sync with Postgres every minute.
 `bowerbird-backup` dumps production into `/var/lib/bowerbird-backups` at 03:00.
 Grafana, at `https://grafana.spike.cute.engineer` over WireGuard and `127.0.0.1:3001` locally, charts Prometheus on `:9090`, which scrapes node_exporter and cAdvisor and takes Claude Code metrics over OTLP, and its dashboards are provisioned from `modules/hosts/spike/dashboards.nix`, so any made in the UI are lost on the next switch.
 spike is `spike.local` on the LAN, `10.100.0.1` on WireGuard `wg0`, and `spike.cute.engineer` publicly, where WireGuard listens on UDP `51820`.
