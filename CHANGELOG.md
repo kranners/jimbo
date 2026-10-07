@@ -48,3 +48,4 @@
 - 2026-10-07: Add workaholic to the `bowerbird` group on spike, so its sessions can read Bowerbird's state in `/var/lib/bowerbird`.
 - 2026-10-07: Install Slack on piggys-MBP through Homebrew.
 - 2026-10-07: Fix the Claude dashboard's plan limit panels to a 0 to 100% scale instead of fitting it to the data.
+- 2026-10-07: Give each signed-in Bowerbird member their own X11 display and VNC port, routed by their own token through one shared noVNC proxy, synced from Postgres every minute; the house cycle's `:99` keeps running unwatched.
