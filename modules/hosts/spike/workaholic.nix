@@ -42,6 +42,7 @@ in
   users.users.workaholic = {
     isSystemUser = true;
     group = "workaholic";
+    extraGroups = [ "bowerbird" ];
     inherit home;
     linger = true;
   };
