@@ -51,3 +51,4 @@
 - 2026-10-07: Fix the Claude dashboard's plan limit panels to a 0 to 100% scale instead of fitting it to the data.
 - 2026-10-07: Give each signed-in Bowerbird member their own X11 display and VNC port, routed by their own token through one shared noVNC proxy, synced from Postgres every minute; the house cycle's `:99` keeps running unwatched.
 - 2026-10-08: spike runs faster-whisper and Piper for Home Assistant's Assist pipeline, loopback only on `:10300` and `:10200`.
+- 2026-10-08: Run the Slack threads daemon on spike as `slack-threads`, deployed from `kranners/claude-slack-threads` main with its own read-only deploy key.
