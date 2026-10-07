@@ -18,6 +18,7 @@
 
         "docker-desktop"
         "microsoft-teams"
+        "slack"
         "microsoft-outlook"
         "onedrive"
         "readdle-spark"

@@ -41,3 +41,12 @@
 - 2026-10-05: Run eight workaholic runners instead of three, leaving how many work at once to their gate on load, memory and Max usage.
 - 2026-10-05: Cap workaholic's runners together at 8 GiB of memory, so concurrent runs are OOM-killed before production.
 - 2026-10-06: framer becomes a kiosk host: `cage` runs the Home Assistant dashboard full screen in Chromium on tty1, with wayvnc and noVNC for a remote view, WireGuard to spike, node_exporter, and brightness timers that dim `intel_backlight` overnight.
+- 2026-10-06: Put `curl` on workaholic's path, so sessions waiting on their preview with it stop looping forever.
+- 2026-10-06: Chart the Claude plan's session and weekly limits on spike's Claude dashboard, polled every 2 minutes by `claude-limits.timer` from the endpoint behind `/usage`.
+- 2026-10-06: Stop a switch restarting workaholic's runners, so it no longer kills the sessions they are working.
+- 2026-10-06: Show how old spike's plan limit readings are on the Claude dashboard, red after 10 minutes, so a stale token shows instead of a frozen graph.
+- 2026-10-06: Gate the Bowerbird remote view behind the portal's sign-in, so `/vnc/*` needs a session cookie, and close 3000 on the LAN interfaces it no longer needs to answer on.
+- 2026-10-07: Add workaholic to the `bowerbird` group on spike, so its sessions can read Bowerbird's state in `/var/lib/bowerbird`.
+- 2026-10-07: Install Slack on piggys-MBP through Homebrew.
+- 2026-10-07: Fix the Claude dashboard's plan limit panels to a 0 to 100% scale instead of fitting it to the data.
+- 2026-10-07: Give each signed-in Bowerbird member their own X11 display and VNC port, routed by their own token through one shared noVNC proxy, synced from Postgres every minute; the house cycle's `:99` keeps running unwatched.

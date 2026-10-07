@@ -1,6 +1,5 @@
 {
   config,
-  lib,
   pkgs,
   ...
 }:
@@ -9,14 +8,12 @@ let
   home = "/var/lib/bowerbird";
   backups = "/var/lib/bowerbird-backups";
   display = ":99";
+  houseDisplayNumber = 99;
+  tokenFile = "${home}/vnc-tokens";
+  databaseUrl = "postgres://bowerbird:bowerbird@127.0.0.1:5432/bowerbird";
   composeFile = "${checkout}/compose.production.yml";
   compose = "${config.virtualisation.docker.package}/bin/docker compose --project-name bowerbird --file ${composeFile}";
   portal = "app.bowerbird.cute.engineer";
-
-  lanInterfaces = [
-    "wlp2s0"
-    "wg0"
-  ];
 
   bowerbird-display = pkgs.writeShellApplication {
     name = "bowerbird-display";
@@ -33,18 +30,86 @@ let
     '';
   };
 
-  bowerbird-remote-view = pkgs.writeShellApplication {
-    name = "bowerbird-remote-view";
+  # One instance per signed-in member, each its own Xvfb, openbox and
+  # x11vnc, so two members' handoffs never share a display; the VNC port
+  # is derived from the display number so it never collides with another
+  # member's or the house's own `5900`, which nothing watches any more.
+  bowerbird-member-display = pkgs.writeShellApplication {
+    name = "bowerbird-member-display";
     runtimeInputs = [
-      pkgs.x11vnc
+      pkgs.xorg.xorgserver
       pkgs.xorg.xdpyinfo
-      pkgs.python3Packages.websockify
+      pkgs.openbox
+      pkgs.x11vnc
     ];
     text = ''
-      until xdpyinfo -display ${display} > /dev/null 2>&1; do sleep 0.2; done
-      websockify --web ${pkgs.novnc}/share/webapps/novnc 6080 localhost:5900 &
-      trap 'kill $!' EXIT
-      x11vnc -display ${display} -localhost -rfbport 5900 -nopw -forever -shared -quiet
+      display_number="$1"
+      vnc_port=$((5900 + display_number - ${toString houseDisplayNumber}))
+
+      Xvfb ":$display_number" -screen 0 1440x900x24 -nolisten tcp &
+      xvfb_pid=$!
+      until xdpyinfo -display ":$display_number" > /dev/null 2>&1; do sleep 0.2; done
+
+      DISPLAY=":$display_number" openbox &
+      openbox_pid=$!
+      trap 'kill "$xvfb_pid" "$openbox_pid"' EXIT
+
+      x11vnc -display ":$display_number" -localhost -rfbport "$vnc_port" -nopw -forever -shared -quiet
+    '';
+  };
+
+  # One shared proxy rather than one per member: websockify's own
+  # `TokenFile` plugin picks the target by the `?token=` a member's own
+  # remote view URL already carries, read fresh from `tokenFile` on every
+  # connection, so a rotated token or a new member needs no restart.
+  bowerbird-vnc-proxy = pkgs.writeShellApplication {
+    name = "bowerbird-vnc-proxy";
+    runtimeInputs = [ pkgs.python3Packages.websockify ];
+    text = ''
+      websockify --web ${pkgs.novnc}/share/webapps/novnc \
+        --token-plugin TokenFile --token-source ${tokenFile} \
+        6080
+    '';
+  };
+
+  # Keeps `tokenFile` and the set of running `bowerbird-display@` instances
+  # in sync with `members.displayNumber`/`vncToken` in Postgres; runs on the
+  # host, on a timer, since Postgres is reachable from here but a schema
+  # change or a rotated token has nothing on the portal side to notify it.
+  bowerbird-sync-displays = pkgs.writeShellApplication {
+    name = "bowerbird-sync-displays";
+    runtimeInputs = [
+      pkgs.postgresql
+      pkgs.systemd
+    ];
+    text = ''
+      mapfile -t rows < <(psql ${databaseUrl} --no-align --tuples-only --field-separator=' ' \
+        -c 'select display_number, vnc_token from members')
+
+      declare -A wanted
+      tmp="$(mktemp)"
+      for row in "''${rows[@]}"; do
+        read -r display_number vnc_token <<< "$row"
+        [ -z "$display_number" ] && continue
+        vnc_port=$((5900 + display_number - ${toString houseDisplayNumber}))
+        echo "$vnc_token: 127.0.0.1:$vnc_port" >> "$tmp"
+        wanted[$display_number]=1
+      done
+      install -m 640 -o bowerbird -g bowerbird "$tmp" ${tokenFile}
+      rm -f "$tmp"
+
+      mapfile -t units < <(systemctl list-units --all --plain --no-legend 'bowerbird-display@*.service' | awk '{print $1}')
+      for unit in "''${units[@]}"; do
+        instance="''${unit#bowerbird-display@}"
+        instance="''${instance%.service}"
+        if [ -z "''${wanted[$instance]:-}" ]; then
+          systemctl stop "$unit"
+        fi
+      done
+
+      for display_number in "''${!wanted[@]}"; do
+        systemctl start "bowerbird-display@$display_number.service"
+      done
     '';
   };
 
@@ -85,6 +150,7 @@ in
   systemd.tmpfiles.rules = [
     "d ${checkout} 0755 aaron users -"
     "d ${home} 0750 bowerbird bowerbird -"
+    "f ${tokenFile} 0640 bowerbird bowerbird -"
     "d ${backups} 0750 root root -"
   ];
 
@@ -94,16 +160,15 @@ in
 
   services.caddy.virtualHosts.${portal}.extraConfig = ''
     handle_path /vnc/* {
+      forward_auth 127.0.0.1:3000 {
+        uri /api/auth/ok
+      }
       reverse_proxy 127.0.0.1:6080
     }
     handle {
       reverse_proxy 127.0.0.1:3000
     }
   '';
-
-  networking.firewall.interfaces = lib.genAttrs lanInterfaces (_: {
-    allowedTCPPorts = [ 3000 ];
-  });
 
   systemd.services.bowerbird-compose = {
     description = "Bowerbird Postgres and portal";
@@ -134,16 +199,49 @@ in
     };
   };
 
-  systemd.services.bowerbird-remote-view = {
-    description = "Bowerbird remote view of the virtual display";
-    wantedBy = [ "multi-user.target" ];
-    requires = [ "bowerbird-display.service" ];
-    after = [ "bowerbird-display.service" ];
+  # Instanced per member by display number, starting and stopping under
+  # bowerbird-sync-displays rather than wantedBy, since which members exist
+  # is a fact in Postgres rather than something known at switch time.
+  systemd.services."bowerbird-display@" = {
+    description = "Bowerbird virtual display and remote view for member %i";
     serviceConfig = {
       User = "bowerbird";
-      ExecStart = "${bowerbird-remote-view}/bin/bowerbird-remote-view";
+      ExecStart = "${bowerbird-member-display}/bin/bowerbird-member-display %i";
       Restart = "always";
       RestartSec = 5;
+    };
+  };
+
+  systemd.services.bowerbird-vnc-proxy = {
+    description = "Bowerbird remote view proxy, routed per member by VNC token";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      User = "bowerbird";
+      ExecStart = "${bowerbird-vnc-proxy}/bin/bowerbird-vnc-proxy";
+      Restart = "always";
+      RestartSec = 5;
+    };
+  };
+
+  systemd.services.bowerbird-sync-displays = {
+    description = "Sync per-member VNC tokens and displays from Postgres";
+    requires = [ "docker.service" ];
+    after = [
+      "docker.service"
+      "bowerbird-compose.service"
+    ];
+    unitConfig.ConditionPathExists = composeFile;
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${bowerbird-sync-displays}/bin/bowerbird-sync-displays";
+    };
+  };
+
+  systemd.timers.bowerbird-sync-displays = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "1min";
+      OnUnitActiveSec = "1min";
     };
   };
 
