@@ -13,6 +13,7 @@
         ./docker.nix
         ./environments.nix
         ./monitoring.nix
+        ./voice.nix
         ./watchdog.nix
         ./workaholic.nix
         ./wireguard.nix
