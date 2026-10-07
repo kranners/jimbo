@@ -37,6 +37,12 @@ let
       // args
     );
 
+  limitPercent = {
+    unit = "percent";
+    min = 0;
+    max = 100;
+  };
+
   instantTable =
     {
       title,
@@ -301,7 +307,7 @@ let
     claude = dashboard "spike-claude" "Spike / Claude" [
       (stat {
         title = "Session limit used";
-        unit = "percent";
+        extra.fieldConfig.defaults = limitPercent;
         targets = [ (target ''claude_limit_percent{kind="session"}'' "session") ];
       })
       (stat {
@@ -311,7 +317,7 @@ let
       })
       (stat {
         title = "Weekly limit used";
-        unit = "percent";
+        extra.fieldConfig.defaults = limitPercent;
         targets = [ (target ''claude_limit_percent{kind="weekly_all"}'' "weekly") ];
       })
       (stat {
@@ -321,7 +327,7 @@ let
       })
       (timeseries {
         title = "Plan limits used";
-        unit = "percent";
+        extra.fieldConfig.defaults = limitPercent;
         w = 18;
         targets = [ (target "claude_limit_percent" "{{kind}} {{model}}") ];
       })
