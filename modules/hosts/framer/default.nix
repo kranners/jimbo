@@ -1,6 +1,6 @@
 { host, ... }:
 {
-  kiosk.url = "http://spike.local:8123/panel";
+  kiosk.url = "http://spike.local:8123/lovelace/panel";
   kiosk.output = "eDP-1";
   kiosk.scale = 2;
   kiosk.lanInterface = "wlp1s0";
