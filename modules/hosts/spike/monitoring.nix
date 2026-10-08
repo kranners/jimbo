@@ -62,7 +62,7 @@ in
             labels.host = "spike";
           }
           {
-            targets = [ "10.100.0.4:9100" ];
+            targets = [ "10.100.0.5:9100" ];
             labels.host = "framer";
           }
         ];

@@ -1,6 +1,6 @@
 {
   networking.wireguard.interfaces.wg0 = {
-    ips = [ "10.100.0.4/24" ];
+    ips = [ "10.100.0.5/24" ];
     privateKeyFile = "/var/lib/wireguard/private";
     generatePrivateKeyFile = true;
 
