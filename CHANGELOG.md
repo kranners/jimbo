@@ -63,3 +63,4 @@
 - 2026-10-08: Note workaholic's eight runners on spike.
 - 2026-10-08: Generate workaholic's `config.json` on spike instead of writing it by hand.
 - 2026-10-08: Graph spike's hardware stats on the Home Assistant panel and add graphs of Claude's plan limits used, live sessions and busy workaholic runners.
+- 2026-10-08: Give workaholic its `~/.config/workaholic`, so systemd-tmpfiles stops refusing to link the generated `config.json` into a root-owned directory.
