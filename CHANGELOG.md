@@ -60,3 +60,4 @@
 - 2026-10-08: Tidy the Home Assistant panel: drop the calendar and framer's stats, round spike's stats and fix its load per core, and point the weather cards at Open-Meteo's `weather.forecast_home`.
 - 2026-10-08: Restart framer's kiosk within a minute of spike's Home Assistant dashboard changing, through a hash spike publishes at `/local/panel-version`.
 - 2026-10-08: Point the panel's weather cards at `weather.home`, the entity Open-Meteo created for the home zone.
+- 2026-10-08: Note workaholic's eight runners on spike.
