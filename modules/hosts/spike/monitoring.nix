@@ -7,6 +7,7 @@
 let
   inherit (config.services) cadvisor grafana prometheus;
   grafanaSecretKey = "${grafana.dataDir}/secret_key";
+  grafanaGithubToken = "${grafana.dataDir}/github-token";
   grafanaDomain = "grafana.spike.cute.engineer";
   textfileDir = "/var/lib/claude-limits";
 
@@ -46,6 +47,7 @@ in
     ];
 
     globalConfig.scrape_interval = "1m";
+    retentionTime = "1y";
 
     exporters.node = {
       enable = true;
@@ -94,6 +96,13 @@ in
 
   services.grafana = {
     enable = true;
+    declarativePlugins = with pkgs.grafanaPlugins; [
+      grafana-github-datasource
+      grafana-exploretraces-app
+      grafana-lokiexplore-app
+      grafana-metricsdrilldown-app
+      grafana-pyroscope-app
+    ];
     settings = {
       server = {
         http_addr = "127.0.0.1";
@@ -111,6 +120,16 @@ in
         url = "http://localhost:${toString prometheus.port}";
         isDefault = true;
         jsonData.timeInterval = prometheus.globalConfig.scrape_interval;
+      }
+      {
+        name = "GitHub";
+        uid = "github";
+        type = "grafana-github-datasource";
+        jsonData = {
+          selectedAuthType = "personal-access-token";
+          cachingEnabled = true;
+        };
+        secureJsonData.accessToken = "$__file{${grafanaGithubToken}}";
       }
     ];
   };

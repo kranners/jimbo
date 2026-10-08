@@ -67,3 +67,4 @@
 - 2026-10-08: Load Home Assistant's `default_config` on spike, so the recorder and history behind the panel's graphs start.
 - 2026-10-08: Enable spike's faster-whisper and Piper servers, which were masked because each `services.wyoming.*.servers.<name>` defaults to disabled.
 - 2026-10-08: Install Home Assistant's `apple_tv`, `thread` and `google_translate` on spike, so discovery and the Google Translate entry stop logging missing modules.
+- 2026-10-08: Add a Workaholic and threads Grafana dashboard on spike, of GitHub issue counts and tokens and Claude active time per issue and thread session, and keep a year of Prometheus samples.
