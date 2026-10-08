@@ -86,6 +86,7 @@ in
     "d ${checkout} 0755 aaron users -"
     "d ${home} 0750 workaholic workaholic -"
     "d ${home}/.config 0755 workaholic workaholic -"
+    "d ${home}/.config/workaholic 0700 workaholic workaholic -"
     "L+ ${home}/.config/workaholic/config.json - - - - ${config}"
   ];
 
