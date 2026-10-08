@@ -66,3 +66,4 @@
 - 2026-10-08: Give workaholic its `~/.config/workaholic`, so systemd-tmpfiles stops refusing to link the generated `config.json` into a root-owned directory.
 - 2026-10-08: Load Home Assistant's `default_config` on spike, so the recorder and history behind the panel's graphs start.
 - 2026-10-08: Enable spike's faster-whisper and Piper servers, which were masked because each `services.wyoming.*.servers.<name>` defaults to disabled.
+- 2026-10-08: Install Home Assistant's `apple_tv`, `thread` and `google_translate` on spike, so discovery and the Google Translate entry stop logging missing modules.
