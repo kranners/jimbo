@@ -62,3 +62,4 @@
 - 2026-10-08: Point the panel's weather cards at `weather.home`, the entity Open-Meteo created for the home zone.
 - 2026-10-08: Note workaholic's eight runners on spike.
 - 2026-10-08: Generate workaholic's `config.json` on spike instead of writing it by hand.
+- 2026-10-08: Graph spike's hardware stats on the Home Assistant panel and add graphs of Claude's plan limits used, live sessions and busy workaholic runners.
