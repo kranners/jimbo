@@ -8,6 +8,40 @@ let
     "wg0"
   ];
   runners = lib.range 1 8;
+  config = pkgs.writeText "workaholic-config.json" (
+    builtins.toJSON {
+      operator = {
+        name = "Aaron";
+        slackId = "U0C7EC38RA8";
+      };
+      projects = [
+        {
+          repo = "kranners/bowerbird";
+          slackChannel = "C0C7G8EA66M";
+        }
+        {
+          repo = "kranners/jimbo";
+          slackChannel = "C0C88M61B4G";
+        }
+        {
+          repo = "kranners/workaholic";
+          slackChannel = "C0C7J4Y8GGL";
+        }
+        {
+          repo = "kranners/claude-slack-threads";
+          slackChannel = "C0C7G8F1WAD";
+        }
+      ];
+      previewHosts = [
+        "spike.local"
+        "10.100.0.1"
+      ];
+      gitAuthor = {
+        name = "workaholic";
+        email = "workaholic@spike.local";
+      };
+    }
+  );
   runEnvironment = {
     SHELL = "${pkgs.bashInteractive}/bin/bash";
     TEST_CHROMIUM_PATH = "${pkgs.google-chrome}/bin/google-chrome-stable";
@@ -52,6 +86,7 @@ in
     "d ${checkout} 0755 aaron users -"
     "d ${home} 0750 workaholic workaholic -"
     "d ${home}/.config 0755 workaholic workaholic -"
+    "L+ ${home}/.config/workaholic/config.json - - - - ${config}"
   ];
 
   systemd.services.workaholic-pull = {

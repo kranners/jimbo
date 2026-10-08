@@ -61,3 +61,4 @@
 - 2026-10-08: Restart framer's kiosk within a minute of spike's Home Assistant dashboard changing, through a hash spike publishes at `/local/panel-version`.
 - 2026-10-08: Point the panel's weather cards at `weather.home`, the entity Open-Meteo created for the home zone.
 - 2026-10-08: Note workaholic's eight runners on spike.
+- 2026-10-08: Generate workaholic's `config.json` on spike instead of writing it by hand.
