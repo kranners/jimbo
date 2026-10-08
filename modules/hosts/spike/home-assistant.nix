@@ -202,6 +202,8 @@ in
     ];
 
     config = {
+      default_config = { };
+
       homeassistant = {
         name = "Home";
         unit_system = "metric";
