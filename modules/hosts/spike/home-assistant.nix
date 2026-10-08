@@ -190,6 +190,9 @@ in
       "wyoming"
       "llama_cpp"
       "rest"
+      "apple_tv"
+      "thread"
+      "google_translate"
     ];
 
     customComponents = [ pkgs.home-assistant-custom-components.prometheus_sensor ];
