@@ -130,6 +130,97 @@ let
   tokens = "claude_code_token_usage_tokens_total";
   cost = "claude_code_cost_usage_USD_total";
   liveSessions = "count by (job, session_id) (claude_code_session_count_total)";
+  activeTime = "claude_code_active_time_seconds_total";
+  threads = ''job=~"discord-threads|slack-threads"'';
+
+  inRange = by: metric: "sum by (${by}) (increase(${metric}[$__range])) > 0";
+  perIssue = metric: inRange "issue" ''${metric}{job="workaholic",issue!=""}'';
+  perSession = job: metric: inRange "session_id" ''${metric}{job="${job}"}'';
+
+  instantTableTarget = expr: {
+    inherit expr;
+    legendFormat = "";
+    instant = true;
+    format = "table";
+  };
+
+  named =
+    names:
+    lib.mapAttrsToList (refId: displayName: {
+      matcher = {
+        id = "byFrameRefID";
+        options = refId;
+      };
+      properties = [
+        {
+          id = "displayName";
+          value = displayName;
+        }
+      ];
+    }) names;
+
+  histogram =
+    {
+      title,
+      unit ? "short",
+      targets,
+      names ? { },
+    }:
+    panel "histogram" {
+      inherit title unit;
+      targets = map instantTableTarget targets;
+      extra.fieldConfig = {
+        defaults.unit = unit;
+        overrides = named names;
+      };
+    };
+
+  github = {
+    type = "grafana-github-datasource";
+    uid = "github";
+  };
+  workaholicRepos = [
+    "kranners/bowerbird"
+    "kranners/jimbo"
+    "kranners/workaholic"
+    "kranners/claude-slack-threads"
+  ];
+  issueTimeField = {
+    created = 0;
+    closed = 1;
+  };
+  issues = timeField: query: {
+    datasource = github;
+    queryType = "Issues";
+    owner = "kranners";
+    repository = "";
+    options = {
+      timeField = issueTimeField.${timeField};
+      query = lib.concatMapStringsSep " " (repo: "repo:${repo}") workaholicRepos + " " + query;
+    };
+  };
+  completed = "reason:completed";
+  withoutChange = "is:closed -reason:completed";
+
+  issueStat =
+    {
+      title,
+      target,
+      extra ? { },
+    }:
+    stat {
+      inherit title;
+      targets = [ target ];
+      extra = {
+        datasource = github;
+        fieldConfig.defaults.noValue = "0";
+        options.reduceOptions = {
+          calcs = [ "count" ];
+          fields = "/^number$/";
+        };
+      }
+      // extra;
+    };
 
   dashboards = {
     hardware = dashboard "spike-hardware" "Spike / Hardware" [
@@ -399,6 +490,196 @@ let
         targets = [ (target "sum by (job) (${rate cost}) * 3600" "{{job}}") ];
       })
     ];
+
+    agents =
+      dashboard "spike-agents" "Spike / Workaholic and threads" [
+        (issueStat {
+          title = "Open issues";
+          target = issues "created" "is:open";
+          extra.timeFrom = "10y";
+        })
+        (issueStat {
+          title = "Completed in range";
+          target = issues "closed" completed;
+        })
+        (issueStat {
+          title = "Closed without change in range";
+          target = issues "closed" withoutChange;
+        })
+        (stat {
+          title = "Issues worked in range";
+          targets = [ (target "count(${perIssue tokens}) or vector(0)" "issues") ];
+        })
+        (panel "timeseries" {
+          title = "Issues closed per day";
+          w = 24;
+          targets = [
+            (issues "closed" completed)
+            (issues "closed" withoutChange)
+          ];
+          extra = {
+            datasource = github;
+            fieldConfig = {
+              defaults.custom = {
+                drawStyle = "bars";
+                fillOpacity = 80;
+                stacking.mode = "normal";
+              };
+              overrides = named {
+                A = "completed";
+                B = "closed without change";
+              };
+            };
+            transformations = [
+              {
+                id = "formatTime";
+                options = {
+                  timeField = "closed_at";
+                  outputFormat = "YYYY-MM-DD";
+                };
+              }
+              {
+                id = "groupBy";
+                options.fields = {
+                  closed_at = {
+                    aggregations = [ ];
+                    operation = "groupby";
+                  };
+                  number = {
+                    aggregations = [ "count" ];
+                    operation = "aggregate";
+                  };
+                };
+              }
+              {
+                id = "convertFieldType";
+                options.conversions = [
+                  {
+                    targetField = "closed_at";
+                    destinationType = "time";
+                    dateFormat = "YYYY-MM-DD";
+                  }
+                ];
+              }
+            ];
+          };
+        })
+        (histogram {
+          title = "Tokens per issue";
+          targets = [ (perIssue tokens) ];
+        })
+        (histogram {
+          title = "Claude active time per issue";
+          unit = "s";
+          targets = [ (perIssue activeTime) ];
+        })
+        (panel "table" {
+          title = "Tokens and time per issue";
+          w = 24;
+          targets = map instantTableTarget [
+            (perIssue tokens)
+            (perIssue activeTime)
+            (perIssue cost)
+          ];
+          extra = {
+            transformations = [
+              {
+                id = "merge";
+                options = { };
+              }
+              {
+                id = "organize";
+                options = {
+                  excludeByName.Time = true;
+                  renameByName = {
+                    "Value #A" = "tokens";
+                    "Value #B" = "active time";
+                    "Value #C" = "API-equivalent cost";
+                  };
+                };
+              }
+              {
+                id = "sortBy";
+                options.sort = [
+                  {
+                    field = "tokens";
+                    desc = true;
+                  }
+                ];
+              }
+            ];
+            fieldConfig = {
+              defaults = { };
+              overrides =
+                lib.mapAttrsToList
+                  (name: unit: {
+                    matcher = {
+                      id = "byName";
+                      options = name;
+                    };
+                    properties = [
+                      {
+                        id = "unit";
+                        value = unit;
+                      }
+                    ];
+                  })
+                  {
+                    tokens = "short";
+                    "active time" = "s";
+                    "API-equivalent cost" = "currencyUSD";
+                  };
+            };
+          };
+        })
+        (stat {
+          title = "Discord sessions in range";
+          targets = [ (target "count(${perSession "discord-threads" tokens}) or vector(0)" "sessions") ];
+        })
+        (stat {
+          title = "Slack sessions in range";
+          targets = [ (target "count(${perSession "slack-threads" tokens}) or vector(0)" "sessions") ];
+        })
+        (stat {
+          title = "Thread tokens in range";
+          targets = [ (target "sum(increase(${tokens}{${threads}}[$__range]))" "tokens") ];
+        })
+        (stat {
+          title = "Thread active time in range";
+          unit = "s";
+          targets = [ (target "sum(increase(${activeTime}{${threads}}[$__range]))" "time") ];
+        })
+        (histogram {
+          title = "Tokens per thread session";
+          targets = [
+            (perSession "discord-threads" tokens)
+            (perSession "slack-threads" tokens)
+          ];
+          names = {
+            A = "discord-threads";
+            B = "slack-threads";
+          };
+        })
+        (histogram {
+          title = "Claude active time per thread session";
+          unit = "s";
+          targets = [
+            (perSession "discord-threads" activeTime)
+            (perSession "slack-threads" activeTime)
+          ];
+          names = {
+            A = "discord-threads";
+            B = "slack-threads";
+          };
+        })
+      ]
+      // {
+        time = {
+          from = "now-30d";
+          to = "now";
+        };
+        refresh = "5m";
+      };
   };
 
   dashboardsDir = pkgs.linkFarm "grafana-dashboards" (

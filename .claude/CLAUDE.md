@@ -69,7 +69,11 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
 - Grafana listens on `127.0.0.1:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
   Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
-  Its dashboards, Hardware, Services, Containers and Claude, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
+  Its dashboards, Hardware, Services, Containers, Claude, and Workaholic and threads, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
+  Prometheus keeps a year of samples, so the Workaholic and threads dashboard can chart tokens and Claude active time per issue, from the `issue` label workaholic tags its sessions with, and per thread session, by `session_id`.
+  That dashboard also counts the issues of workaholic's repos through the `grafana-github-datasource` plugin, which searches GitHub, so it covers each issue's whole history, and reads closed without change as any close reason other than `completed`.
+  The plugin's token is a fine-grained GitHub token with read access to those repos' issues, in `/var/lib/grafana/github-token`, owner `grafana`, mode 600, written by hand.
+  Grafana's plugins are declared, so the drilldown apps it otherwise installs itself are declared beside it.
   Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions through `~/.claude/settings.json` on spike alone and from `workaholic`'s through its unit, each labelled `job` by `OTEL_SERVICE_NAME`.
   `claude-limits.timer` writes the plan's session and weekly limits every 2 minutes for node_exporter's textfile collector, read as `aaron` from `/api/oauth/usage`, the undocumented endpoint behind `/usage`, with the token in `~/.claude/.credentials.json`.
 - Home Assistant (`modules/hosts/spike/home-assistant.nix`) runs as the NixOS `home-assistant` module, serving `:8123` open on `wlp2s0` and `wg0` alone.
