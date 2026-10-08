@@ -58,6 +58,13 @@ in
     ./spotify
     ./browser
     ./night-shift
+  ]
+  ++ lib.optionals host.kiosk [
+    ./kiosk
+    ./sound
+    ./fonts
+    ./graphics
+    ./brightness
   ];
 
   options = {

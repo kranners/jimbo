@@ -33,6 +33,7 @@
           hostname = "jimbo";
           username = "aaron";
           desktop = true;
+          kiosk = false;
         }
 
         {
@@ -40,6 +41,7 @@
           hostname = "piggys-MBP";
           username = "aaron";
           desktop = true;
+          kiosk = false;
         }
 
         {
@@ -47,13 +49,15 @@
           hostname = "spike";
           username = "aaron";
           desktop = false;
+          kiosk = false;
         }
 
         {
           system = "x86_64-linux";
           hostname = "framer";
           username = "aaron";
-          desktop = true;
+          desktop = false;
+          kiosk = true;
         }
       ];
 

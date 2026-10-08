@@ -37,6 +37,12 @@ let
       // args
     );
 
+  limitPercent = {
+    unit = "percent";
+    min = 0;
+    max = 100;
+  };
+
   instantTable =
     {
       title,
@@ -299,6 +305,55 @@ let
     ];
 
     claude = dashboard "spike-claude" "Spike / Claude" [
+      (stat {
+        title = "Session limit used";
+        extra.fieldConfig.defaults = limitPercent;
+        targets = [ (target ''claude_limit_percent{kind="session"}'' "session") ];
+      })
+      (stat {
+        title = "Session limit resets";
+        unit = "dateTimeFromNow";
+        targets = [ (target ''claude_limit_resets_at_seconds{kind="session"} * 1000'' "session") ];
+      })
+      (stat {
+        title = "Weekly limit used";
+        extra.fieldConfig.defaults = limitPercent;
+        targets = [ (target ''claude_limit_percent{kind="weekly_all"}'' "weekly") ];
+      })
+      (stat {
+        title = "Weekly limit resets";
+        unit = "dateTimeFromNow";
+        targets = [ (target ''claude_limit_resets_at_seconds{kind="weekly_all"} * 1000'' "weekly") ];
+      })
+      (timeseries {
+        title = "Plan limits used";
+        extra.fieldConfig.defaults = limitPercent;
+        w = 18;
+        targets = [ (target "claude_limit_percent" "{{kind}} {{model}}") ];
+      })
+      (stat {
+        title = "Plan limits age";
+        h = 8;
+        targets = [
+          (target ''time() - node_textfile_mtime_seconds{file=~".*/claude-limits[.]prom"}'' "age")
+        ];
+        extra.fieldConfig.defaults = {
+          unit = "s";
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "red";
+                value = 600;
+              }
+            ];
+          };
+        };
+      })
       (stat {
         title = "Live sessions";
         targets = [ (target "count(${liveSessions}) or vector(0)" "sessions") ];
