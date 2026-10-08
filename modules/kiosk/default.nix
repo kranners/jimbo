@@ -19,6 +19,17 @@ in
       type = types.str;
     };
 
+    output = mkOption {
+      description = "Wayland output name of the panel's screen, as wlr-randr lists it.";
+      type = types.str;
+    };
+
+    scale = mkOption {
+      description = "Scale cage renders the panel's screen at, so a HiDPI panel is legible.";
+      type = types.numbers.positive;
+      default = 1;
+    };
+
     lanInterface = mkOption {
       description = "Network interface, besides wg0, the panel's VNC ports are reachable from.";
       type = types.str;
@@ -99,15 +110,16 @@ in
         name = "kiosk-panel";
         runtimeInputs = [
           pkgs.wayvnc
+          pkgs.wlr-randr
           pkgs.ungoogled-chromium
         ];
         text = ''
+          wlr-randr --output ${cfg.output} --scale ${toString cfg.scale}
           wayvnc 0.0.0.0 5900 &
           trap 'kill $!' EXIT
           exec chromium \
             --kiosk \
             --ozone-platform=wayland \
-            --force-device-scale-factor=2 \
             --noerrdialogs \
             --disable-session-crashed-bubble \
             --disable-infobars \
