@@ -265,6 +265,28 @@ in
     };
   };
 
+  # Framer's kiosk polls this file, needing no login, and reloads when it changes,
+  # because WallPanel builds its screensaver once per page load.
+  systemd.tmpfiles.settings.panel-version = {
+    "${config.services.home-assistant.configDir}/www".d = {
+      user = "hass";
+      group = "hass";
+      mode = "0755";
+    };
+    "${config.services.home-assistant.configDir}/www/panel-version"."f+" = {
+      user = "hass";
+      group = "hass";
+      mode = "0644";
+      argument = builtins.hashString "sha256" (
+        builtins.toJSON {
+          inherit (config.services.home-assistant) lovelaceConfig;
+          frontend = config.services.home-assistant.package.version;
+          modules = map (module: module.name) config.services.home-assistant.customLovelaceModules;
+        }
+      );
+    };
+  };
+
   systemd.services.panel-wallpapers = {
     description = "wallhaven wallpaper fetcher for the Home Assistant panel";
     after = [ "network-online.target" ];
