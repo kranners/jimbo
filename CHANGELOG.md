@@ -58,3 +58,4 @@
 - 2026-10-08: Scale the kiosk output in cage with `wlr-randr` instead of Chromium's `--force-device-scale-factor`, which drew into a quarter of framer's screen.
 - 2026-10-08: Point framer's kiosk at `/lovelace/panel`, the panel view's real path, instead of `/panel`, which Home Assistant answers with a 404.
 - 2026-10-08: Tidy the Home Assistant panel: drop the calendar and framer's stats, round spike's stats and fix its load per core, and point the weather cards at Open-Meteo's `weather.forecast_home`.
+- 2026-10-08: Restart framer's kiosk within a minute of spike's Home Assistant dashboard changing, through a hash spike publishes at `/local/panel-version`.

@@ -77,6 +77,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Trusted-network auth skips the login screen for framer's DHCP-reserved LAN address, `192.168.4.25`, logging it in as the user `panel_user_id` names, so the panel at `http://spike.local:8123/lovelace/panel` never shows one while every other client still logs in.
   `panel-wallpapers.timer` fetches a random page of wallhaven wallpapers daily into the media folder `/var/lib/hass/media/wallpapers`, keeping the newest 60, the same search jimbo's `modules/wallpaper` runs, and WallPanel's screensaver shows them.
   That panel is a Lovelace dashboard the module provisions, a WallPanel screensaver of the time, Open-Meteo's forecast for `weather.forecast_home` and spike's Prometheus-backed hardware stats, rounded in PromQL.
+  Every switch writes a hash of that dashboard, Home Assistant's version and its Lovelace modules to `/var/lib/hass/www/panel-version`, served without a login at `/local/panel-version`, for the kiosk to watch.
   Open-Meteo, Remote Calendar and Wyoming are set up by hand through their config flows and persist under `/var/lib/hass`.
 - Voice (`modules/hosts/spike/voice.nix`) runs `wyoming-faster-whisper-en` on `127.0.0.1:10300` and `wyoming-piper-en` on `127.0.0.1:10200` for Home Assistant's Assist pipeline, loopback only because Home Assistant runs on the same box.
   Both are niced to `10` so a transcription never competes with Bowerbird, and both download their model from Hugging Face into the unit's state directory on first start, so that start needs the internet and a minute.
@@ -141,6 +142,7 @@ Its cage unit restarts always, so a Chromium crash brings the dashboard back.
 noVNC bridges wayvnc through websockify on `6080`; it and wayvnc's own `5900` are open on `kiosk.lanInterface`, which framer sets to `wlp1s0`, and `wg0` alone, with no VNC password, so the panel is a browser tab on the MacBook.
 `kiosk.schedule` drives `intel_backlight` through the `brightness` command: 60% from 07:30, 15% from 18:00, 0% from 23:30, back to 15% at 06:30.
 Its `panel-wake` command jumps to the schedule's brightest level, then arms a 2 minute `systemd-run` timer back to whatever the schedule says for now; a later voice satellite issue calls it on the wake word.
+`kiosk-reload-on-change.timer` fetches `kiosk.versionUrl` every minute and restarts `cage-tty1` when it differs from the last fetch, because WallPanel builds its screensaver once per page load and never picks up a changed dashboard on its own.
 Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and the power key, because the clipboard sits docked backwards on its base.
 
 - SSH: `ssh aaron@framer.local` (key auth, resolved over mDNS), keys only, declared in `modules/hosts/framer`.

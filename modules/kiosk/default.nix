@@ -19,6 +19,11 @@ in
       type = types.str;
     };
 
+    versionUrl = mkOption {
+      description = "Address whose contents change whenever the page at `url` does, so the kiosk reloads it.";
+      type = types.str;
+    };
+
     output = mkOption {
       description = "Wayland output name of the panel's screen, as wlr-randr lists it.";
       type = types.str;
@@ -127,6 +132,24 @@ in
         '';
       };
 
+      kioskReloadOnChange = pkgs.writeShellApplication {
+        name = "kiosk-reload-on-change";
+        runtimeInputs = [
+          pkgs.curl
+          pkgs.systemd
+        ];
+        text = ''
+          seen="$STATE_DIRECTORY/version"
+          version=$(curl -fsS --max-time 10 ${cfg.versionUrl})
+
+          if [ -e "$seen" ] && [ "$(cat "$seen")" != "$version" ]; then
+            systemctl restart cage-tty1.service
+          fi
+
+          printf '%s' "$version" > "$seen"
+        '';
+      };
+
       kioskRemoteView = pkgs.writeShellApplication {
         name = "kiosk-remote-view";
         runtimeInputs = [ pkgs.python3Packages.websockify ];
@@ -169,6 +192,15 @@ in
       };
 
       systemd.services = scheduleServices // {
+        kiosk-reload-on-change = {
+          description = "Restart the kiosk when its page changes";
+          serviceConfig = {
+            Type = "oneshot";
+            StateDirectory = "kiosk-reload-on-change";
+            ExecStart = lib.getExe kioskReloadOnChange;
+          };
+        };
+
         cage-tty1.serviceConfig.Restart = "always";
 
         kiosk-remote-view = {
@@ -183,7 +215,15 @@ in
         };
       };
 
-      systemd.timers = scheduleTimers;
+      systemd.timers = scheduleTimers // {
+        kiosk-reload-on-change = {
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnBootSec = "1min";
+            OnUnitActiveSec = "1min";
+          };
+        };
+      };
 
       environment.systemPackages = [ panelWake ];
 
