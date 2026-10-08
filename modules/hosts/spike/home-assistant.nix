@@ -77,71 +77,45 @@ let
     };
   };
 
-  # Prometheus labels node_exporter's series by host once the framer kiosk issue lands;
-  # until then the framer sensors below have no data, which is fine.
-  statHosts = [
-    "framer"
-    "spike"
-  ];
-
   statMetrics = [
     {
       key = "cpu_busy";
       name = "cpu busy";
       unit = "%";
-      expr =
-        host: ''100 - avg by (host) (rate(node_cpu_seconds_total{mode="idle",host="${host}"}[5m])) * 100'';
+      expr = ''round(100 - avg(rate(node_cpu_seconds_total{mode="idle",host="spike"}[5m])) * 100, 0.1)'';
     }
     {
       key = "memory_used";
       name = "memory used";
       unit = "%";
-      expr =
-        host:
-        ''(1 - node_memory_MemAvailable_bytes{host="${host}"} / node_memory_MemTotal_bytes{host="${host}"}) * 100'';
+      expr = ''round((1 - node_memory_MemAvailable_bytes{host="spike"} / node_memory_MemTotal_bytes{host="spike"}) * 100, 0.1)'';
     }
     {
       key = "disk_used";
       name = "disk used";
       unit = "%";
-      expr =
-        host:
-        ''(1 - node_filesystem_avail_bytes{mountpoint="/",host="${host}"} / node_filesystem_size_bytes{mountpoint="/",host="${host}"}) * 100'';
+      expr = ''round((1 - node_filesystem_avail_bytes{mountpoint="/",host="spike"} / node_filesystem_size_bytes{mountpoint="/",host="spike"}) * 100, 0.1)'';
     }
     {
       key = "temperature";
       name = "temperature";
       unit = "°C";
-      expr = host: ''max by (host) (node_hwmon_temp_celsius{host="${host}"})'';
+      expr = ''round(max(node_hwmon_temp_celsius{host="spike"}), 0.1)'';
     }
     {
       key = "load_per_core";
       name = "load per core";
       unit = "";
-      expr =
-        host:
-        ''node_load5{host="${host}"} / count by (host) (node_cpu_seconds_total{mode="idle",host="${host}"})'';
+      expr = ''round(node_load5{host="spike"} / on (host) count by (host) (node_cpu_seconds_total{mode="idle",host="spike"}), 0.01)'';
     }
   ];
 
-  hostQueries = lib.concatMap (
-    host:
-    map (metric: {
-      name = "${host} ${metric.name}";
-      unique_id = "${host}_${metric.key}";
-      expr = metric.expr host;
-      unit_of_measurement = metric.unit;
-    }) statMetrics
-  ) statHosts;
-
-  batteryQuery = {
-    name = "framer battery";
-    unique_id = "framer_battery";
-    expr = ''avg(node_power_supply_capacity{host="framer"})'';
-    unit_of_measurement = "%";
-  };
-
-  statEntities = host: map (metric: "sensor.${host}_${metric.key}") statMetrics;
+  statQueries = map (metric: {
+    name = "spike ${metric.name}";
+    unique_id = "spike_${metric.key}";
+    inherit (metric) expr;
+    unit_of_measurement = metric.unit;
+  }) statMetrics;
 
   infoCards = [
     {
@@ -149,27 +123,18 @@ let
     }
     {
       type = "weather-forecast";
-      entity = "weather.home";
+      entity = "weather.forecast_home";
       forecast_type = "hourly";
     }
     {
       type = "weather-forecast";
-      entity = "weather.home";
+      entity = "weather.forecast_home";
       forecast_type = "daily";
-    }
-    {
-      type = "calendar";
-      entities = [ "calendar.personal" ];
-    }
-    {
-      type = "entities";
-      title = "framer";
-      entities = statEntities "framer" ++ [ "sensor.framer_battery" ];
     }
     {
       type = "entities";
       title = "spike";
-      entities = statEntities "spike";
+      entities = map (metric: "sensor.spike_${metric.key}") statMetrics;
     }
   ];
 in
@@ -220,7 +185,7 @@ in
         {
           platform = "prometheus_sensor";
           url = "http://localhost:9090";
-          queries = hostQueries ++ [ batteryQuery ];
+          queries = statQueries;
         }
       ];
 
