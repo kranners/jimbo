@@ -123,12 +123,12 @@ let
     }
     {
       type = "weather-forecast";
-      entity = "weather.forecast_home";
+      entity = "weather.home";
       forecast_type = "hourly";
     }
     {
       type = "weather-forecast";
-      entity = "weather.forecast_home";
+      entity = "weather.home";
       forecast_type = "daily";
     }
     {
