@@ -10,6 +10,47 @@ let
     "wg0"
   ];
 
+  framerAddress = "192.168.4.25";
+
+  wallpaperDirectory = "${config.services.home-assistant.configDir}/media/wallpapers";
+  keptWallpapers = 60;
+
+  wallpaperSearchParameters = [
+    "sorting=random"
+    "atleast=2560x1440"
+    "ratios=landscape"
+    "categories=100"
+    "purity=100"
+  ];
+
+  fetch-panel-wallpapers = pkgs.writeShellApplication {
+    name = "fetch-panel-wallpapers";
+
+    runtimeInputs = [
+      pkgs.curl
+      pkgs.jq
+      pkgs.coreutils
+      pkgs.findutils
+    ];
+
+    text = ''
+      mkdir -p "${wallpaperDirectory}"
+
+      curl -fsS "https://wallhaven.cc/api/v1/search?${builtins.concatStringsSep "&" wallpaperSearchParameters}" \
+        | jq -r '.data[].path' \
+        | while read -r url; do
+            destination="${wallpaperDirectory}/$(basename "$url")"
+            [ -e "$destination" ] || curl -fsS -o "$destination" "$url"
+          done
+
+      find "${wallpaperDirectory}" -maxdepth 1 -type f -printf '%T@ %p\0' \
+        | sort -zrn \
+        | tail -zn "+$((${toString keptWallpapers} + 1))" \
+        | cut -zd' ' -f2- \
+        | xargs -0r rm --
+    '';
+  };
+
   # j-a-n/lovelace-wallpanel ships its built lovelace card as a release asset,
   # so this skips the build step nixpkgs' own custom-lovelace-modules packages have.
   wallpanelVersion = "4.67.2";
@@ -162,13 +203,14 @@ in
         latitude = "!secret latitude";
         longitude = "!secret longitude";
         elevation = "!secret elevation";
+        media_dirs.wallpapers = wallpaperDirectory;
 
         auth_providers = [
           { type = "homeassistant"; }
           {
             type = "trusted_networks";
-            trusted_networks = [ "10.100.0.4/32" ];
-            trusted_users."10.100.0.4" = [ "!secret panel_user_id" ];
+            trusted_networks = [ "${framerAddress}/32" ];
+            trusted_users.${framerAddress} = [ "!secret panel_user_id" ];
             allow_bypass_login = true;
           }
         ];
@@ -241,9 +283,7 @@ in
         media_order = "random";
         image_animation_ken_burns = true;
         image_fit_landscape = "cover";
-        image_url = "!secret unsplash_image_url";
-        show_image_info = true;
-        image_info_template = "Photo by \${user.name} on Unsplash";
+        image_url = "/wallpapers";
         stop_screensaver_on_mouse_click = true;
         profile_entity = "input_text.wallpanel_profile";
         cards = infoCards;
@@ -257,6 +297,28 @@ in
           };
         };
       };
+    };
+  };
+
+  systemd.services.panel-wallpapers = {
+    description = "wallhaven wallpaper fetcher for the Home Assistant panel";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      User = "hass";
+      ExecStart = lib.getExe fetch-panel-wallpapers;
+    };
+  };
+
+  systemd.timers.panel-wallpapers = {
+    wantedBy = [ "timers.target" ];
+
+    timerConfig = {
+      OnBootSec = "2m";
+      OnUnitActiveSec = "1d";
+      Persistent = true;
     };
   };
 
