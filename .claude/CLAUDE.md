@@ -76,7 +76,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Its secrets, `latitude`, `longitude`, `elevation` and `panel_user_id`, live in `/var/lib/hass/secrets.yaml`, owner `hass`, mode 600, written by hand.
   Trusted-network auth skips the login screen for framer's DHCP-reserved LAN address, `192.168.4.25`, logging it in as the user `panel_user_id` names, so the panel at `http://spike.local:8123/lovelace/panel` never shows one while every other client still logs in.
   `panel-wallpapers.timer` fetches a random page of wallhaven wallpapers daily into the media folder `/var/lib/hass/media/wallpapers`, keeping the newest 60, the same search jimbo's `modules/wallpaper` runs, and WallPanel's screensaver shows them.
-  That panel is a Lovelace dashboard the module provisions, a WallPanel screensaver of the time, Open-Meteo's forecast, today's calendar and Prometheus-backed hardware stats for framer and spike.
+  That panel is a Lovelace dashboard the module provisions, a WallPanel screensaver of the time, Open-Meteo's forecast for `weather.forecast_home` and spike's Prometheus-backed hardware stats, rounded in PromQL.
   Open-Meteo, Remote Calendar and Wyoming are set up by hand through their config flows and persist under `/var/lib/hass`.
 - Voice (`modules/hosts/spike/voice.nix`) runs `wyoming-faster-whisper-en` on `127.0.0.1:10300` and `wyoming-piper-en` on `127.0.0.1:10200` for Home Assistant's Assist pipeline, loopback only because Home Assistant runs on the same box.
   Both are niced to `10` so a transcription never competes with Bowerbird, and both download their model from Hugging Face into the unit's state directory on first start, so that start needs the internet and a minute.
