@@ -1,5 +1,6 @@
 {
   services.wyoming.faster-whisper.servers.en = {
+    enable = true;
     model = "small-int8";
     language = "en";
     device = "cpu";
@@ -7,6 +8,7 @@
   };
 
   services.wyoming.piper.servers.en = {
+    enable = true;
     # No Australian voice exists; samples at https://rhasspy.github.io/piper-samples/.
     voice = "en_GB-alan-medium";
     uri = "tcp://127.0.0.1:10200";

@@ -65,3 +65,4 @@
 - 2026-10-08: Graph spike's hardware stats on the Home Assistant panel and add graphs of Claude's plan limits used, live sessions and busy workaholic runners.
 - 2026-10-08: Give workaholic its `~/.config/workaholic`, so systemd-tmpfiles stops refusing to link the generated `config.json` into a root-owned directory.
 - 2026-10-08: Load Home Assistant's `default_config` on spike, so the recorder and history behind the panel's graphs start.
+- 2026-10-08: Enable spike's faster-whisper and Piper servers, which were masked because each `services.wyoming.*.servers.<name>` defaults to disabled.
