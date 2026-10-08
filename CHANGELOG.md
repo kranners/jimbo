@@ -53,3 +53,4 @@
 - 2026-10-07: Give each signed-in Bowerbird member their own X11 display and VNC port, routed by their own token through one shared noVNC proxy, synced from Postgres every minute; the house cycle's `:99` keeps running unwatched.
 - 2026-10-08: spike runs faster-whisper and Piper for Home Assistant's Assist pipeline, loopback only on `:10300` and `:10200`.
 - 2026-10-08: Run the Slack threads daemon on spike as `slack-threads`, deployed from `kranners/claude-slack-threads` main with its own read-only deploy key.
+- 2026-10-08: Point framer's kiosk at Home Assistant over the LAN through mDNS, trust framer's LAN address `192.168.4.25` for the panel login, and show wallhaven wallpapers instead of Unsplash.

@@ -1,6 +1,6 @@
 { host, ... }:
 {
-  kiosk.url = "http://10.100.0.1:8123/panel";
+  kiosk.url = "http://spike.local:8123/panel";
   kiosk.lanInterface = "wlp1s0";
 
   nixosSystemModule =
@@ -29,6 +29,7 @@
 
       services.avahi = {
         enable = true;
+        nssmdns4 = true;
         openFirewall = true;
         publish = {
           enable = true;
