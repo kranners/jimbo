@@ -56,3 +56,4 @@
 - 2026-10-08: Point framer's kiosk at Home Assistant over the LAN through mDNS, trust framer's LAN address `192.168.4.25` for the panel login, and show wallhaven wallpapers instead of Unsplash.
 - 2026-10-08: Move framer to `10.100.0.5` on WireGuard, off the `phone` peer's address, and add it as a peer on spike.
 - 2026-10-08: Scale the kiosk output in cage with `wlr-randr` instead of Chromium's `--force-device-scale-factor`, which drew into a quarter of framer's screen.
+- 2026-10-08: Point framer's kiosk at `/lovelace/panel`, the panel view's real path, instead of `/panel`, which Home Assistant answers with a 404.
