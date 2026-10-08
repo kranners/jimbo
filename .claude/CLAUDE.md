@@ -103,7 +103,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - Hardware watchdog (`wdat_wdt`) is armed by systemd, and the kernel reboots 10 s after a panic.
 - WireGuard `wg0` on UDP `51820` at `spike.cute.engineer` (kept current by cloudflare-dyndns, token in `/var/lib/secrets/cloudflare-dyndns-token`), spike is `10.100.0.1`.
   Its private key is generated on first boot at `/var/lib/wireguard/private`.
-  Its peers are `piggys-MBP` at `10.100.0.2`, `phone` at `10.100.0.4`, and `github-actions` at `10.100.0.3`, whose private key lives only in Bowerbird's GitHub secrets.
+  Its peers are `piggys-MBP` at `10.100.0.2`, `phone` at `10.100.0.4`, `framer` at `10.100.0.5`, and `github-actions` at `10.100.0.3`, whose private key lives only in Bowerbird's GitHub secrets.
 - Claude Code Remote Control (`claude-remote-control.service`) serves sessions from `~/workspace` to claude.ai/code as `spike`.
 - Discord threads (`discord-threads.service`) runs `kranners/claude-discord-threads` as `aaron` from `~/workspace/claude-discord-threads`, giving each Discord thread its own Claude Code session through the Nix-managed `claude`.
   That repository is private, so the checkout pulls over SSH with a read-only deploy key, `~/.ssh/claude-discord-threads-deploy`, set as its `core.sshCommand` because home-manager owns `~/.ssh/config`.
@@ -149,9 +149,9 @@ Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and
   Bluetooth is off: linux-surface documents the Marvell wifi as unreliable while it is on.
 - Hardware watchdog (`iTCO_wdt`) is armed by systemd, and the kernel reboots 10 s after a panic, the same as spike's.
 - The `brightness` command from `modules/brightness` drives framer's built-in panel, `intel_backlight`, with brightnessctl, which it picks over DDC/CI because `/sys/class/backlight` has a device here.
-- WireGuard client `wg0` at `10.100.0.4`, one peer, spike, over UDP `51820` at `spike.cute.engineer`.
+- WireGuard client `wg0` at `10.100.0.5`, one peer, spike, over UDP `51820` at `spike.cute.engineer`.
   Its private key is generated on first boot at `/var/lib/wireguard/private`, the same as spike's.
-  Spike's own peer entry for framer needs framer's public key, which exists only after framer's first switch, a hand step: `sudo wg show wg0 public-key` on framer, add it as the `framer` peer at `10.100.0.4/32` in `modules/hosts/spike/wireguard.nix`, then `git pull && just` on spike.
+  Spike's `framer` peer holds the public key of that private key, so regenerating it means updating the peer in `modules/hosts/spike/wireguard.nix` from `sudo wg show wg0 public-key` on framer.
 - `node_exporter` is open on `wlp1s0` and `wg0`; `modules/hosts/spike/monitoring.nix` scrapes it as the `framer` target, beside spike's own.
 - UEFI's Enable Battery Limit (Power + Volume Up at boot, Boot configuration, Advanced Options), present since the Surface Book 2's July 2020 firmware, holds both batteries at 50%; a hand step, since it is not something NixOS can set.
 - A USB Ethernet adapter in the base beats the wifi for an always-on box; if one is used, its interface joins `modules/hosts/framer`'s firewall lists, a hand step alongside plugging it in.

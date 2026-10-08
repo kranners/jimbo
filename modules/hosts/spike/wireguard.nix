@@ -21,6 +21,11 @@
         publicKey = "ZdVqfKi5uQksmXgfy8Q4fC2171Sba3JMMMGkWUCyWDg=";
         allowedIPs = [ "10.100.0.4/32" ];
       }
+      {
+        name = "framer";
+        publicKey = "5wlH0AO617/X46akfNolE0HZjOf+NYHcJOKffYfVhww=";
+        allowedIPs = [ "10.100.0.5/32" ];
+      }
     ];
   };
 
