@@ -135,7 +135,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 
 `framer` is a Microsoft Surface Book 2 laptop running NixOS, a kiosk host (`desktop = false; kiosk = true;`), an always-on wall panel with no desktop environment.
 Its files under `modules/hosts/framer` are plain NixOS modules, imported through `nixosSystemModule`, the same shape as spike's.
-`modules/kiosk` is the generic appliance role: `services.cage` logs `host.username` into tty1 running a script that starts `wayvnc` in the background and execs the `ungoogled-chromium` the browser module uses, full screen on `kiosk.url`, which framer's host module sets to `http://10.100.0.1:8123/panel`, Home Assistant's dashboard on spike.
+`modules/kiosk` is the generic appliance role: `services.cage` logs `host.username` into tty1 running a script that starts `wayvnc` in the background and execs the `ungoogled-chromium` the browser module uses, full screen on `kiosk.url`, which framer's host module sets to `http://spike.local:8123/panel`, Home Assistant's dashboard on spike, reached over the LAN so its trusted-network login matches framer's LAN address.
 Its cage unit restarts always, so a Chromium crash brings the dashboard back.
 noVNC bridges wayvnc through websockify on `6080`; it and wayvnc's own `5900` are open on `kiosk.lanInterface`, which framer sets to `wlp1s0`, and `wg0` alone, with no VNC password, so the panel is a browser tab on the MacBook.
 `kiosk.schedule` drives `intel_backlight` through the `brightness` command: 60% from 07:30, 15% from 18:00, 0% from 23:30, back to 15% at 06:30.
