@@ -9,11 +9,13 @@
         ./caddy.nix
         ./claude.nix
         ./discord-threads.nix
+        ./slack-threads.nix
         ./dns.nix
         ./docker.nix
         ./environments.nix
         ./home-assistant.nix
         ./monitoring.nix
+        ./voice.nix
         ./watchdog.nix
         ./workaholic.nix
         ./wireguard.nix

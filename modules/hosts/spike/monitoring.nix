@@ -1,8 +1,31 @@
-{ config, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (config.services) cadvisor grafana prometheus;
   grafanaSecretKey = "${grafana.dataDir}/secret_key";
   grafanaDomain = "grafana.spike.cute.engineer";
+  textfileDir = "/var/lib/claude-limits";
+
+  # Reads the undocumented endpoint behind Claude Code's /usage, with the token Claude Code keeps refreshed.
+  claudeLimits = pkgs.writeShellApplication {
+    name = "claude-limits";
+    runtimeInputs = [
+      pkgs.curl
+      pkgs.jq
+    ];
+    text = ''
+      token=$(jq -r .claudeAiOauth.accessToken ~/.claude/.credentials.json)
+      curl --silent --fail https://api.anthropic.com/api/oauth/usage \
+        --header "Authorization: Bearer $token" \
+        --header "anthropic-beta: oauth-2025-04-20" |
+        jq -r -f ${./claude-limits.jq} > ${textfileDir}/claude-limits.prom.tmp
+      mv ${textfileDir}/claude-limits.prom.tmp ${textfileDir}/claude-limits.prom
+    '';
+  };
 in
 {
   imports = [ ./dashboards.nix ];
@@ -27,18 +50,46 @@ in
     exporters.node = {
       enable = true;
       enabledCollectors = [ "systemd" ];
+      extraFlags = [ "--collector.textfile.directory=${textfileDir}" ];
     };
 
     scrapeConfigs = [
       {
         job_name = "node";
-        static_configs = [ { targets = [ "localhost:${toString prometheus.exporters.node.port}" ]; } ];
+        static_configs = [
+          {
+            targets = [ "localhost:${toString prometheus.exporters.node.port}" ];
+            labels.host = "spike";
+          }
+          {
+            targets = [ "10.100.0.4:9100" ];
+            labels.host = "framer";
+          }
+        ];
       }
       {
         job_name = "cadvisor";
         static_configs = [ { targets = [ "localhost:${toString cadvisor.port}" ]; } ];
       }
     ];
+  };
+
+  systemd.services.claude-limits = {
+    description = "Write Claude plan limits for node_exporter";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "aaron";
+      StateDirectory = "claude-limits";
+      ExecStart = lib.getExe claudeLimits;
+    };
+  };
+
+  systemd.timers.claude-limits = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "1m";
+      OnUnitActiveSec = "2m";
+    };
   };
 
   services.grafana = {

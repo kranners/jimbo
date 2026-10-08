@@ -43,11 +43,11 @@ Every directory under `modules/` is a config module that contributes to one or m
 `modules/default.nix` assembles these into the real `nixosConfigurations`/`darwinConfigurations` (guarded by platform, parsed from `host.system`).
 `modules/home/default.nix` wires the home modules into home-manager for `host.username`.
 
-`modules/default.nix` imports its first list of modules on every host, and its second list only when `host.desktop` is true.
+`modules/default.nix` imports its first list of modules on every host, its second list only when `host.desktop` is true, and a third list, after the desktop one, only when `host.kiosk` is true, for a machine that runs as an appliance instead of a desktop.
 
-**To add configuration:** create `modules/<name>/default.nix` returning an attrset with the relevant option keys above, and add `./<name>` to the `imports` list in `modules/default.nix`, in the `host.desktop` list if it only makes sense on a machine with a screen.
+**To add configuration:** create `modules/<name>/default.nix` returning an attrset with the relevant option keys above, and add `./<name>` to the `imports` list in `modules/default.nix`, in the `host.desktop` list if it only makes sense on a machine with a screen, or the `host.kiosk` list if it only makes sense on an appliance.
 
-Modules receive `inputs` (flake inputs) and `host` (`{ system, hostname, username, desktop }`) via `specialArgs`, in addition to the usual `pkgs`/`lib`/`config`.
+Modules receive `inputs` (flake inputs) and `host` (`{ system, hostname, username, desktop, kiosk }`) via `specialArgs`, in addition to the usual `pkgs`/`lib`/`config`.
 Because `host` is a `specialArg`, `imports` may depend on it, whereas depending on `config` there recurses infinitely.
 
 ### Hosts
@@ -71,11 +71,14 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
   Its dashboards, Hardware, Services, Containers and Claude, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
   Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions through `~/.claude/settings.json` on spike alone and from `workaholic`'s through its unit, each labelled `job` by `OTEL_SERVICE_NAME`.
+  `claude-limits.timer` writes the plan's session and weekly limits every 2 minutes for node_exporter's textfile collector, read as `aaron` from `/api/oauth/usage`, the undocumented endpoint behind `/usage`, with the token in `~/.claude/.credentials.json`.
 - Home Assistant (`modules/hosts/spike/home-assistant.nix`) runs as the NixOS `home-assistant` module, serving `:8123` open on `wlp2s0` and `wg0` alone.
   Its secrets, `latitude`, `longitude`, `elevation`, `panel_user_id` and `unsplash_image_url`, live in `/var/lib/hass/secrets.yaml`, owner `hass`, mode 600, written by hand.
   Trusted-network auth skips the login screen for `10.100.0.4`, the `phone` peer, so the panel at `http://spike.local:8123/panel` never shows one while every other client still logs in.
   That panel is a Lovelace dashboard the module provisions, a WallPanel screensaver of the time, Open-Meteo's forecast, today's calendar and Prometheus-backed hardware stats for framer and spike.
   Open-Meteo, Remote Calendar and Wyoming are set up by hand through their config flows and persist under `/var/lib/hass`.
+- Voice (`modules/hosts/spike/voice.nix`) runs `wyoming-faster-whisper-en` on `127.0.0.1:10300` and `wyoming-piper-en` on `127.0.0.1:10200` for Home Assistant's Assist pipeline, loopback only because Home Assistant runs on the same box.
+  Both are niced to `10` so a transcription never competes with Bowerbird, and both download their model from Hugging Face into the unit's state directory on first start, so that start needs the internet and a minute.
 - Caddy (`modules/hosts/spike/caddy.nix`) serves HTTPS on `443`, open only on `wg0`.
   Its certificates come from Let's Encrypt by DNS-01, through the `caddy-dns/cloudflare` plugin built in with `pkgs.caddy.withPlugins`.
   It reads the cloudflare-dyndns token as the systemd credential `cloudflare-token`, through Caddy's `{file.*}` placeholder, so the token never reaches the Nix store.
@@ -84,8 +87,10 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - Bowerbird (`modules/hosts/spike/bowerbird.nix`) runs the job application pipeline from a clone of `kranners/bowerbird` at `/srv/bowerbird`, made by hand as `aaron` with `npm ci` run in it.
   Its secrets and settings live in `/srv/bowerbird/.env`, owner `bowerbird`, mode 600, written by hand.
   `bowerbird-compose.service` runs `compose.production.yml` as root: Postgres on `127.0.0.1:5432` and the portal on `:3000`.
-  `bowerbird-display.service` runs Xvfb `:99` with openbox, `bowerbird-remote-view.service` serves it through x11vnc and noVNC on `:6080`, and `bowerbird-worker.service` runs `jobs/src/worker.ts` on it, all as the system user `bowerbird` with state in `/var/lib/bowerbird`.
-  The worker starts once the display is up and Postgres accepts connections, and every unit that needs the checkout is skipped while it is missing.
+  `bowerbird-display.service` runs Xvfb `:99` with openbox for the house cycle alone, unwatched since nothing needs to see it, and `bowerbird-worker.service` runs `jobs/src/worker.ts` on it, both as the system user `bowerbird` with state in `/var/lib/bowerbird`.
+  Each signed-in member gets their own `bowerbird-display@<display number>.service`, running Xvfb, openbox and x11vnc together on their own display number and VNC port, `5900` plus their number past the house's own `99`; one shared `bowerbird-vnc-proxy.service` (websockify, `--token-plugin TokenFile`) on `:6080` picks a connection's target by the member's own `vncToken` in its `?token=`, read fresh from `/var/lib/bowerbird/vnc-tokens` on every connection.
+  `bowerbird-sync-displays.timer` writes that file and starts or stops each member's display unit every minute, from `members.displayNumber`/`vncToken` in Postgres, read directly since nothing on the portal side notifies it of a new member or a rotated token.
+  The worker starts once the house display is up and Postgres accepts connections, and every unit that needs the checkout is skipped while it is missing.
   A stop signals the worker alone, `KillMode=mixed`, which finishes the runs it has going before it exits, and systemd waits 35 minutes, `TimeoutStopSec`, before `SIGKILL`, five more than the worker's own cap on that wait.
   `bowerbird-backup.timer` dumps the database nightly into `/var/lib/bowerbird-backups`, keeping 14 days.
   Caddy serves the portal at `https://app.bowerbird.cute.engineer` and noVNC under its `/vnc/`, where `REMOTE_VIEW_URL` points, and noVNC finds `/vnc/websockify` relative to its page.
@@ -108,11 +113,16 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `/done` removes a thread's worktree unless something in it is uncommitted, keeps its branch, and posting in the thread again restores it.
   `discord-threads-pull.timer` deploys every push to its `main` within 2 minutes: as `aaron` it runs `git pull --ff-only` in the checkout and, when `HEAD` moved, restarts `discord-threads`, which runs `npm ci --omit=dev` first and ends every live thread session, whose unfinished turns replay from the ledger on boot.
   It skips the pull while the checkout is on a branch other than `main`, so checking one out there pauses deploys.
+- Slack threads (`slack-threads.service`, `modules/hosts/spike/slack-threads.nix`) runs `kranners/claude-slack-threads` the same way from `~/workspace/claude-slack-threads`, giving each Slack thread its own Claude Code session.
+  It pulls with its own read-only deploy key, `~/.ssh/claude-slack-threads-deploy`, set as the checkout's `core.sshCommand`, and pushes over HTTPS through `remote.origin.pushurl`.
+  Its tokens live in `~/.claude/channels/slack/.env` as `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN`, mode 600, written by hand, and its allowlist and opted-in channels in `~/.claude/channels/slack/access.json`, edited with `/slack-threads:access`.
+  `slack-threads-pull.timer` deploys every push to its `main` within 2 minutes, skipping the pull while the checkout is on another branch.
 - workaholic (`modules/hosts/spike/workaholic.nix`) runs `kranners/workaholic` from `/srv/workaholic`, cloned by hand as `aaron`, as the system user `workaholic` with no `sudo` and its home in `/var/lib/workaholic`.
-  Eight runners, one per thread, `workaholic@1` to `workaholic@8`, are instances of the oneshot `workaholic@.service`, each started by its own timer 3 plus twice its number minutes after boot and 5 minutes after its last run ends, at `Nice=10` and low CPU and IO weights so production stays ahead of it.
+  It is in the `bowerbird` group, so its sessions can read Bowerbird's state in `/var/lib/bowerbird`, all but `.config`, and still not `/srv/bowerbird/.env`.
+  Eight runners, one per thread, `workaholic@1` to `workaholic@8`, are instances of the oneshot `workaholic@.service`, each started by its own timer 3 plus twice its number minutes after boot and 5 minutes after its last run ends, at `Nice=10` and low CPU and IO weights so production stays ahead of it, and a switch leaves them running rather than killing their sessions, so each picks up a changed unit on its next run.
   How many issues are worked at once is left to each run's gate on load, memory and Max usage, with eight as the ceiling.
   The runners share `system-workaholic.slice`, capped at `MemoryHigh=7G` and `MemoryMax=8G`, because one run peaks at up to about 4 GiB and spike has no swap, so runs that overrun it are OOM-killed inside the slice rather than production.
-  Each run is `src/run.ts` under the `mixed` profile, which runs the gate, then claims one issue no other runner holds and works it with `claude -p`, with `git`, `claude-code` and `nodejs_24` on its path, so sessions can run npm landing checks, and `SHELL` set to bash, because the user's own shell is `nologin`.
+  Each run is `src/run.ts` under the `mixed` profile, which runs the gate, then claims one issue no other runner holds and works it with `claude -p`, with `git`, `claude-code`, `nodejs_24` and `curl` on its path, so sessions can run npm landing checks and probe their previews, and `SHELL` set to bash, because the user's own shell is `nologin`.
   Its Claude token from `claude setup-token`, its GitHub token and the token of its own Discord bot, apart from the one `discord-threads` runs as, live in `/var/lib/workaholic/.config/workaholic/` as `claude-token`, `github-token` and `discord-token`, owner `workaholic`, mode 600, written by hand.
   The user lingers, so its runs can leave each issue's preview running as a transient user unit on `4000` plus the issue number, with ports 4000 to 4999 open on `wlp2s0` and `wg0` alone, and `~/.config` is its own, apart from the root-owned token directory, because Chrome cannot start without writing there.
   `TEST_CHROMIUM_PATH` names nixpkgs' Google Chrome, because Playwright's downloaded Chromium cannot run on NixOS, so sessions can run browser tests and record their changes.
@@ -122,16 +132,28 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 
 ### framer
 
-`framer` is a Microsoft Surface Book 2 laptop running NixOS, a desktop host (`desktop = true`), so it gets the same shared and desktop modules as `jimbo`.
+`framer` is a Microsoft Surface Book 2 laptop running NixOS, a kiosk host (`desktop = false; kiosk = true;`), an always-on wall panel with no desktop environment.
 Its files under `modules/hosts/framer` are plain NixOS modules, imported through `nixosSystemModule`, the same shape as spike's.
+`modules/kiosk` is the generic appliance role: `services.cage` logs `host.username` into tty1 running a script that starts `wayvnc` in the background and execs the `ungoogled-chromium` the browser module uses, full screen on `kiosk.url`, which framer's host module sets to `http://10.100.0.1:8123/panel`, Home Assistant's dashboard on spike.
+Its cage unit restarts always, so a Chromium crash brings the dashboard back.
+noVNC bridges wayvnc through websockify on `6080`; it and wayvnc's own `5900` are open on `kiosk.lanInterface`, which framer sets to `wlp1s0`, and `wg0` alone, with no VNC password, so the panel is a browser tab on the MacBook.
+`kiosk.schedule` drives `intel_backlight` through the `brightness` command: 60% from 07:30, 15% from 18:00, 0% from 23:30, back to 15% at 06:30.
+Its `panel-wake` command jumps to the schedule's brightest level, then arms a 2 minute `systemd-run` timer back to whatever the schedule says for now; a later voice satellite issue calls it on the wake word.
+Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and the power key, because the clipboard sits docked backwards on its base.
 
 - SSH: `ssh aaron@framer.local` (key auth, resolved over mDNS), keys only, declared in `modules/hosts/framer`.
 - Hardware: Intel i5-7300U, one 119 GB NVMe disk with a 1 GB ESP, wifi (`wlp1s0`) and no wired network, two batteries and an `intel_backlight` panel.
   `boot.loader.systemd-boot.configurationLimit` is 5, because that ESP only has room for a few generations.
-  `thermald` and `upower` run for the laptop's thermals and battery, and Bluetooth is on at boot.
+  `thermald` and `upower` run for the laptop's thermals and battery.
+  Bluetooth is off: linux-surface documents the Marvell wifi as unreliable while it is on.
 - Hardware watchdog (`iTCO_wdt`) is armed by systemd, and the kernel reboots 10 s after a panic, the same as spike's.
-- It keeps the default sleep and suspend targets, unlike spike, which disables them.
 - The `brightness` command from `modules/brightness` drives framer's built-in panel, `intel_backlight`, with brightnessctl, which it picks over DDC/CI because `/sys/class/backlight` has a device here.
+- WireGuard client `wg0` at `10.100.0.4`, one peer, spike, over UDP `51820` at `spike.cute.engineer`.
+  Its private key is generated on first boot at `/var/lib/wireguard/private`, the same as spike's.
+  Spike's own peer entry for framer needs framer's public key, which exists only after framer's first switch, a hand step: `sudo wg show wg0 public-key` on framer, add it as the `framer` peer at `10.100.0.4/32` in `modules/hosts/spike/wireguard.nix`, then `git pull && just` on spike.
+- `node_exporter` is open on `wlp1s0` and `wg0`; `modules/hosts/spike/monitoring.nix` scrapes it as the `framer` target, beside spike's own.
+- UEFI's Enable Battery Limit (Power + Volume Up at boot, Boot configuration, Advanced Options), present since the Surface Book 2's July 2020 firmware, holds both batteries at 50%; a hand step, since it is not something NixOS can set.
+- A USB Ethernet adapter in the base beats the wifi for an always-on box; if one is used, its interface joins `modules/hosts/framer`'s firewall lists, a hand step alongside plugging it in.
 
 ### Neovim
 
