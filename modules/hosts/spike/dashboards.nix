@@ -202,6 +202,21 @@ let
   completed = "reason:completed";
   withoutChange = "is:closed -reason:completed";
 
+  tally =
+    args:
+    stat (
+      args
+      // {
+        extra.fieldConfig.defaults = {
+          unit = args.unit or "short";
+          color = {
+            mode = "fixed";
+            fixedColor = "green";
+          };
+        };
+      }
+    );
+
   issueStat =
     {
       title,
@@ -506,7 +521,7 @@ let
           title = "Closed without change in range";
           target = issues "closed" withoutChange;
         })
-        (stat {
+        (tally {
           title = "Issues worked in range";
           targets = [ (target "count(${perIssue tokens}) or vector(0)" "issues") ];
         })
@@ -567,11 +582,13 @@ let
         (histogram {
           title = "Tokens per issue";
           targets = [ (perIssue tokens) ];
+          names.A = "issues";
         })
         (histogram {
           title = "Claude active time per issue";
           unit = "s";
           targets = [ (perIssue activeTime) ];
+          names.A = "issues";
         })
         (panel "table" {
           title = "Tokens and time per issue";
@@ -632,19 +649,19 @@ let
             };
           };
         })
-        (stat {
+        (tally {
           title = "Discord sessions in range";
           targets = [ (target "count(${perSession "discord-threads" tokens}) or vector(0)" "sessions") ];
         })
-        (stat {
+        (tally {
           title = "Slack sessions in range";
           targets = [ (target "count(${perSession "slack-threads" tokens}) or vector(0)" "sessions") ];
         })
-        (stat {
+        (tally {
           title = "Thread tokens in range";
           targets = [ (target "sum(increase(${tokens}{${threads}}[$__range]))" "tokens") ];
         })
-        (stat {
+        (tally {
           title = "Thread active time in range";
           unit = "s";
           targets = [ (target "sum(increase(${activeTime}{${threads}}[$__range]))" "time") ];
