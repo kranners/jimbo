@@ -28,6 +28,27 @@
     };
   };
 
-  darwinHomeModule.programs.ssh.settings."github.com".IdentityFile = "~/.ssh/id_rsa";
+  darwinHomeModule.programs.ssh.settings = {
+    "github.com".IdentityFile = "~/.ssh/id_rsa";
+
+    "tower" = {
+      HostName = "tower";
+      User = "root";
+      IdentityFile = "~/.ssh/id_rsa";
+      IdentitiesOnly = true;
+      ControlMaster = "auto";
+      ControlPersist = "10m";
+    };
+
+    "router" = {
+      HostName = "192.168.168.1";
+      Port = 22222;
+      User = "root";
+      IdentityFile = "~/.ssh/id_rsa";
+      IdentitiesOnly = true;
+      ControlMaster = "auto";
+      ControlPersist = "10m";
+    };
+  };
   nixosHomeModule.programs.ssh.settings."github.com".IdentityFile = "~/.ssh/id_ed25519";
 }
