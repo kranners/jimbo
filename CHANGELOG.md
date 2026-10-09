@@ -71,3 +71,4 @@
 - 2026-10-09: Start Grafana on spike with an empty GitHub token when none was written, since a missing one stopped it.
 - 2026-10-09: Colour the Workaholic and threads dashboard's counts green whatever their size, and name its per-issue histograms' series.
 - 2026-10-09: Teach the auto mode classifier on spike that its production is a home server, so routine reads, restarts and deploys there stop being denied.
+- 2026-10-09: Let auto mode on every host but spike pipe the clipboard into a secret file on spike over SSH, unread, so tokens made in the browser reach it without passing through the transcript.

@@ -137,6 +137,13 @@
             "Local working-tree discards (`git reset --hard`, `git rebase --skip`, `git checkout --theirs`, `git clean`) (not `git clean -x`/`-X`) targeting the worktree this session runs in or created with `git worktree add`, never another session's; not `git stash drop`/`clear`, branch deletion or force-push."
           ];
         }
+        // lib.optionalAttrs (host.hostname != "spike") {
+          # Let secrets copied in the browser reach spike without passing through the transcript
+          autoMode.allow = [
+            "$defaults"
+            "Piping the clipboard straight into a command on spike (`pbpaste | ssh 10.100.0.1 '...'`) that writes a secret there, such as `sudo install ... /dev/stdin <path>` followed by restarting the service that reads it, when Aaron asked for that secret to be written there; never printing, echoing, measuring or otherwise reading the clipboard into the transcript."
+          ];
+        }
       );
     };
 }
