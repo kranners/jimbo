@@ -73,3 +73,4 @@
 - 2026-10-09: Teach the auto mode classifier on spike that its production is a home server, so routine reads, restarts and deploys there stop being denied.
 - 2026-10-09: Let auto mode on every host but spike pipe the clipboard into a secret file on spike over SSH, unread, so tokens made in the browser reach it without passing through the transcript.
 - 2026-10-09: Ready the MacBook for the homelab tools in ~/homelab: ssh tower and router aliases, root over id_rsa with IdentitiesOnly and a shared control socket, plus rtk, flock and GNU sed, awk, find, xargs and grep under their g names so the BSD ones stay first on PATH.
+- 2026-10-09: Point the ssh tower alias at tower's reserved LAN address, because the MacBook resolves names through Cloudflare over WireGuard and never sees the router's DNS.

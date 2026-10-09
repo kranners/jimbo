@@ -32,7 +32,7 @@
     "github.com".IdentityFile = "~/.ssh/id_rsa";
 
     "tower" = {
-      HostName = "tower";
+      HostName = "192.168.168.10";
       User = "root";
       IdentityFile = "~/.ssh/id_rsa";
       IdentitiesOnly = true;
