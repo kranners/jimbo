@@ -68,3 +68,4 @@
 - 2026-10-08: Enable spike's faster-whisper and Piper servers, which were masked because each `services.wyoming.*.servers.<name>` defaults to disabled.
 - 2026-10-08: Install Home Assistant's `apple_tv`, `thread` and `google_translate` on spike, so discovery and the Google Translate entry stop logging missing modules.
 - 2026-10-08: Add a Workaholic and threads Grafana dashboard on spike, of GitHub issue counts and tokens and Claude active time per issue and thread session, and keep a year of Prometheus samples.
+- 2026-10-09: Start Grafana on spike with an empty GitHub token when none was written, since a missing one stopped it.
