@@ -70,3 +70,4 @@
 - 2026-10-08: Add a Workaholic and threads Grafana dashboard on spike, of GitHub issue counts and tokens and Claude active time per issue and thread session, and keep a year of Prometheus samples.
 - 2026-10-09: Start Grafana on spike with an empty GitHub token when none was written, since a missing one stopped it.
 - 2026-10-09: Colour the Workaholic and threads dashboard's counts green whatever their size, and name its per-issue histograms' series.
+- 2026-10-09: Teach the auto mode classifier on spike that its production is a home server, so routine reads, restarts and deploys there stop being denied.
