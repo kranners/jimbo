@@ -73,6 +73,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Prometheus keeps a year of samples, so the Workaholic and threads dashboard can chart tokens and Claude active time per issue, from the `issue` label workaholic tags its sessions with, and per thread session, by `session_id`.
   That dashboard also counts the issues of workaholic's repos through the `grafana-github-datasource` plugin, which searches GitHub, so it covers each issue's whole history, and reads closed without change as any close reason other than `completed`.
   The plugin's token is a fine-grained GitHub token with read access to those repos' issues, in `/var/lib/grafana/github-token`, owner `grafana`, mode 600, written by hand.
+  Grafana starts with an empty one there when none was written, because a missing file fails its provisioning and stops it, and the GitHub panels show errors until the token is filled in.
   Grafana's plugins are declared, so the drilldown apps it otherwise installs itself are declared beside it.
   Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions through `~/.claude/settings.json` on spike alone and from `workaholic`'s through its unit, each labelled `job` by `OTEL_SERVICE_NAME`.
   `claude-limits.timer` writes the plan's session and weekly limits every 2 minutes for node_exporter's textfile collector, read as `aaron` from `/api/oauth/usage`, the undocumented endpoint behind `/usage`, with the token in `~/.claude/.credentials.json`.

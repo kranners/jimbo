@@ -140,5 +140,6 @@ in
 
   systemd.services.grafana.preStart = ''
     [ -f ${grafanaSecretKey} ] || (umask 077 && ${pkgs.openssl}/bin/openssl rand -hex 32 > ${grafanaSecretKey})
+    [ -f ${grafanaGithubToken} ] || (umask 077 && touch ${grafanaGithubToken})
   '';
 }
