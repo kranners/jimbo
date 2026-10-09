@@ -237,6 +237,177 @@ let
       // extra;
     };
 
+  # Workaholic's pick order: a label earlier in this list outranks every label after it,
+  # whatever else an issue is also labelled, so the weights are powers of two no combination
+  # of lower-ranked labels can sum past.
+  stateLabels = [
+    {
+      label = "waiting-on-operator";
+      text = "waiting on you";
+      color = "red";
+      weight = 8;
+    }
+    {
+      label = "approved";
+      text = "approved";
+      color = "blue";
+      weight = 4;
+    }
+    {
+      label = "in-progress";
+      text = "working";
+      color = "orange";
+      weight = 2;
+    }
+    {
+      label = "ready";
+      text = "ready";
+      color = "green";
+      weight = 1;
+    }
+  ];
+  queuedState = {
+    text = "queued";
+    color = "grey";
+  };
+
+  flagField = i: "flag${toString i}";
+  weightField = i: "weight${toString i}";
+
+  # Extracts one boolean field per state label from the plugin's JSON-encoded labels column
+  # (independent lookaheads, so a row can set more than one), weights each by its pick-order
+  # rank, and sums them into "rank" so a table can both sort and colour issues by state.
+  issueStateTransformations = [
+    {
+      id = "extractFields";
+      options = {
+        source = "labels";
+        format = "regexp";
+        regExp =
+          "/^"
+          + lib.concatStrings (lib.imap0 (i: s: ''(?:(?=.*(?<${flagField i}>"${s.label}")))?'') stateLabels)
+          + "/";
+        replace = false;
+      };
+    }
+    {
+      id = "convertFieldType";
+      options.conversions = lib.imap0 (i: _: {
+        targetField = flagField i;
+        destinationType = "boolean";
+      }) stateLabels;
+    }
+  ]
+  ++ lib.imap0 (i: s: {
+    id = "calculateField";
+    options = {
+      mode = "binary";
+      binary = {
+        left.matcher = {
+          id = "byName";
+          options = flagField i;
+        };
+        operator = "*";
+        right.fixed = toString s.weight;
+      };
+      alias = weightField i;
+    };
+  }) stateLabels
+  ++ [
+    {
+      id = "calculateField";
+      options = {
+        mode = "reduceRow";
+        reduce = {
+          reducer = "sum";
+          include = lib.imap0 (i: _: weightField i) stateLabels;
+        };
+        alias = "rank";
+        timeSeries = false;
+      };
+    }
+    {
+      id = "calculateField";
+      options = {
+        mode = "binary";
+        binary = {
+          left.matcher = {
+            id = "byName";
+            options = "number";
+          };
+          operator = "+";
+          right.fixed = "4000";
+        };
+        alias = "preview";
+      };
+    }
+    {
+      id = "organize";
+      options = {
+        excludeByName = {
+          state = true;
+          author = true;
+          author_company = true;
+          closed = true;
+          created_at = true;
+          closed_at = true;
+          assignees = true;
+          milestone = true;
+          labels = true;
+        }
+        // lib.genAttrs (lib.imap0 (i: _: flagField i) stateLabels) (_: true)
+        // lib.genAttrs (lib.imap0 (i: _: weightField i) stateLabels) (_: true);
+        indexByName = {
+          rank = 0;
+          repo = 1;
+          number = 2;
+          title = 3;
+          preview = 4;
+          updated_at = 5;
+        };
+        renameByName = {
+          rank = "state";
+          updated_at = "updated";
+        };
+      };
+    }
+    {
+      id = "sortBy";
+      options.sort = [
+        {
+          field = "state";
+          desc = true;
+        }
+      ];
+    }
+  ];
+
+  # A range mapping per state, each from its weight up to one short of the next rank's
+  # weight, so any combination of lower-ranked labels still falls under the right one.
+  issueStateMappings =
+    (map (s: {
+      type = "range";
+      options = {
+        from = s.weight;
+        to = s.weight * 2 - 1;
+        result = {
+          inherit (s) text color;
+        };
+      };
+    }) stateLabels)
+    ++ [
+      {
+        type = "range";
+        options = {
+          from = 0;
+          to = 0;
+          result = {
+            inherit (queuedState) text color;
+          };
+        };
+      }
+    ];
+
   dashboards = {
     hardware = dashboard "spike-hardware" "Spike / Hardware" [
       (stat {
@@ -508,6 +679,199 @@ let
 
     agents =
       dashboard "spike-agents" "Spike / Workaholic and threads" [
+        (panel "table" {
+          title = "Issues by state";
+          w = 24;
+          targets = [ (issues "created" "is:open") ];
+          extra = {
+            datasource = github;
+            timeFrom = "10y";
+            transformations = issueStateTransformations;
+            fieldConfig.overrides = [
+              {
+                matcher = {
+                  id = "byName";
+                  options = "state";
+                };
+                properties = [
+                  {
+                    id = "mappings";
+                    value = issueStateMappings;
+                  }
+                ];
+              }
+              {
+                matcher = {
+                  id = "byName";
+                  options = "title";
+                };
+                properties = [
+                  {
+                    id = "links";
+                    value = [
+                      {
+                        title = "Issue";
+                        url = "https://github.com/\${__data.fields.repo}/issues/\${__data.fields.number}";
+                        targetBlank = true;
+                      }
+                    ];
+                  }
+                ];
+              }
+              {
+                matcher = {
+                  id = "byName";
+                  options = "preview";
+                };
+                properties = [
+                  {
+                    id = "links";
+                    value = [
+                      {
+                        title = "Preview";
+                        url = "http://10.100.0.1:\${__data.fields.preview}";
+                        targetBlank = true;
+                      }
+                    ];
+                  }
+                ];
+              }
+            ];
+          };
+        })
+        (panel "table" {
+          title = "Live sessions";
+          w = 24;
+          targets = map instantTableTarget [
+            "count by (job, session_id, issue) (claude_code_session_count_total)"
+            "sum by (job, session_id, issue) (${rate activeTime})"
+          ];
+          extra = {
+            transformations = [
+              {
+                id = "merge";
+                options = { };
+              }
+              {
+                id = "extractFields";
+                options = {
+                  source = "issue";
+                  format = "regexp";
+                  regExp = ''/^(?<repo>[^#]+)#(?<number>\d+)$/'';
+                  replace = false;
+                };
+              }
+              {
+                id = "organize";
+                options = {
+                  excludeByName = {
+                    Time = true;
+                    "Value #A" = true;
+                  };
+                  renameByName = {
+                    session_id = "session";
+                    "Value #B" = "working";
+                  };
+                  indexByName = {
+                    job = 0;
+                    issue = 1;
+                    session = 2;
+                    working = 3;
+                  };
+                };
+              }
+            ];
+            fieldConfig.overrides = [
+              {
+                matcher = {
+                  id = "byName";
+                  options = "repo";
+                };
+                properties = [
+                  {
+                    id = "custom.hideFrom.viz";
+                    value = true;
+                  }
+                ];
+              }
+              {
+                matcher = {
+                  id = "byName";
+                  options = "number";
+                };
+                properties = [
+                  {
+                    id = "custom.hideFrom.viz";
+                    value = true;
+                  }
+                ];
+              }
+              {
+                matcher = {
+                  id = "byName";
+                  options = "issue";
+                };
+                properties = [
+                  {
+                    id = "links";
+                    value = [
+                      {
+                        title = "Issue";
+                        url = "https://github.com/\${__data.fields.repo}/issues/\${__data.fields.number}";
+                        targetBlank = true;
+                      }
+                    ];
+                  }
+                ];
+              }
+              {
+                matcher = {
+                  id = "byName";
+                  options = "working";
+                };
+                properties = [
+                  {
+                    id = "mappings";
+                    value = [
+                      {
+                        type = "special";
+                        options = {
+                          match = "null+nan";
+                          result = {
+                            text = "idle";
+                            color = "grey";
+                          };
+                        };
+                      }
+                      {
+                        type = "range";
+                        options = {
+                          from = 0;
+                          to = 0;
+                          result = {
+                            text = "idle";
+                            color = "grey";
+                          };
+                        };
+                      }
+                      {
+                        type = "range";
+                        options = {
+                          from = 0.0000001;
+                          to = 1000000;
+                          result = {
+                            text = "working";
+                            color = "green";
+                          };
+                        };
+                      }
+                    ];
+                  }
+                ];
+              }
+            ];
+          };
+        })
         (issueStat {
           title = "Open issues";
           target = issues "created" "is:open";
@@ -695,7 +1059,7 @@ let
           from = "now-30d";
           to = "now";
         };
-        refresh = "5m";
+        refresh = "30s";
       };
   };
 
