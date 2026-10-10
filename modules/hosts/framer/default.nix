@@ -16,6 +16,7 @@
         ./monitoring.nix
         ./voice.nix
         ./openclaw
+        ./remote-builder.nix
         ./email.nix
         ./google-calendar.nix
         ./google-tasks.nix

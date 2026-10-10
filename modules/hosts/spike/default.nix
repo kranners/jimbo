@@ -18,6 +18,7 @@
         ./voice.nix
         ./watchdog.nix
         ./workaholic.nix
+        ./remote-builder.nix
         ./wireguard.nix
       ];
 
