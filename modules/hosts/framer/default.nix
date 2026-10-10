@@ -17,6 +17,7 @@
         ./voice.nix
         ./openclaw
         ./email.nix
+        ./google-calendar.nix
       ];
 
       boot.loader.systemd-boot.enable = true;
