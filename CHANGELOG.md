@@ -99,3 +99,4 @@
 - 2026-10-10: Point framer's kiosk at `/nixos-lovelace/panel`, where NixOS now serves the provisioned dashboard, because `/lovelace/panel` redirected the panel to Home Assistant's default overview and hid the voice card.
 - 2026-10-10: Hold framer's voice card at the bottom of the panel through the whole conversation and 30 s after.
 - 2026-10-10: Rotate framer's panel to portrait with a new `kiosk.transform`, and fetch portrait wallpapers for it.
+- 2026-10-10: Limit the panel's wallpapers to wallhaven's `nature` and `aerial view` searches, excluding any tagged with people.
