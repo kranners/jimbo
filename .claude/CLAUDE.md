@@ -151,7 +151,8 @@ It starts only after `network-online.target`, because Chromium never retries a p
 The kiosk overrides `NetworkManager-wait-online` to `nm-online -q -t 60`, which waits up to a minute for a connection, because NixOS's `nm-online -s` returns as soon as NetworkManager starts, seconds before framer's Marvell wifi connects.
 noVNC bridges wayvnc through websockify on `6080`; it and wayvnc's own `5900` are open on `kiosk.lanInterface`, which framer sets to `wlp1s0`, and `wg0` alone, with no VNC password, so the panel is a browser tab on the MacBook.
 `kiosk.schedule` drives `intel_backlight` through the `brightness` command: 60% from 07:30, 15% from 18:00, 0% from 23:30, back to 15% at 06:30.
-Its `panel-wake` command jumps to the schedule's brightest level, then arms a 2 minute `systemd-run` timer back to whatever the schedule says for now; a later voice satellite issue calls it on the wake word.
+Its `panel-wake` command jumps to the schedule's brightest level, then arms a 2 minute `systemd-run --user` timer back to whatever the schedule says for now.
+brightnessctl's udev rule gives the `video` group write access to the backlight, and `host.username` is in it, so `panel-wake` works for that user from any service, with no logind session or sudo.
 `kiosk-reload-on-change.timer` fetches `kiosk.versionUrl` every minute and restarts `cage-tty1` when it differs from the last fetch, because WallPanel builds its screensaver once per page load and never picks up a changed dashboard on its own.
 Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and the power key, because the clipboard sits docked backwards on its base.
 
@@ -166,6 +167,9 @@ Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and
   The peer re-resolves that name every 5 minutes, `dynamicEndpointRefreshSeconds`, so a boot that failed to resolve it recovers and it follows spike's dyndns address, as `wireguard-wg0-peer-spike-refresh.service`.
   Its private key is generated on first boot at `/var/lib/wireguard/private`, the same as spike's.
   Spike's `framer` peer holds the public key of that private key, so regenerating it means updating the peer in `modules/hosts/spike/wireguard.nix` from `sudo wg show wg0 public-key` on framer.
+- Voice (`modules/hosts/framer/voice.nix`) runs `wyoming-satellite` as `aaron`, named `framer`, on `:10700`, open on `wlp1s0` and `wg0` alone, for Home Assistant's Wyoming integration to find over zeroconf.
+  It runs as `aaron` so `arecord` and `aplay` reach the PipeWire session cage's login starts, and it starts after `cage-tty1`.
+  `wyoming-openwakeword` listens on `127.0.0.1:10400` alone for the wake word `hey_jarvis`, and each detection runs `panel-wake`.
 - `node_exporter` is open on `wlp1s0` and `wg0`; `modules/hosts/spike/monitoring.nix` scrapes it as the `framer` target, beside spike's own.
 - UEFI's Enable Battery Limit (Power + Volume Up at boot, Boot configuration, Advanced Options), present since the Surface Book 2's July 2020 firmware, holds both batteries at 50%; a hand step, since it is not something NixOS can set.
 - A USB Ethernet adapter in the base beats the wifi for an always-on box; if one is used, its interface joins `modules/hosts/framer`'s firewall lists, a hand step alongside plugging it in.

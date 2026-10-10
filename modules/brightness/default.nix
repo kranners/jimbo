@@ -11,8 +11,8 @@ let
   # roads, so the command picks one at run time by whether the machine has a
   # /sys/class/backlight device.
   #
-  # framer has one, its laptop panel, which brightnessctl drives through
-  # systemd-logind, so no udev rule or group membership is needed for it.
+  # framer has one, its laptop panel, which brightnessctl writes directly,
+  # through the video group the kiosk module grants.
   #
   # jimbo drives a desktop monitor over DisplayPort, which has no backlight
   # device at all, so avizo's own lightctl cannot work and brightness has to

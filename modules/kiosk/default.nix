@@ -107,7 +107,7 @@ in
         runtimeInputs = [ pkgs.systemd ];
         text = ''
           ${brightness} set ${toString dayPercent}
-          systemd-run --unit=panel-wake-restore --on-active=2min -- ${lib.getExe panelScheduleApply}
+          systemd-run --user --unit=panel-wake-restore --on-active=2min -- ${lib.getExe panelScheduleApply}
         '';
       };
 
@@ -235,6 +235,10 @@ in
       };
 
       environment.systemPackages = [ panelWake ];
+
+      services.udev.packages = [ pkgs.brightnessctl ];
+
+      users.users.${host.username}.extraGroups = [ "video" ];
 
       networking.firewall.interfaces = lib.genAttrs [ cfg.lanInterface "wg0" ] (_: {
         allowedTCPPorts = [
