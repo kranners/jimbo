@@ -88,3 +88,4 @@
 - 2026-10-10: Give framer a read-only `mail` command over himalaya for Fastmail and Gmail, and an OpenClaw skill that reads email aloud with it.
 - 2026-10-10: Connect Home Assistant to Google Calendar and give OpenClaw on framer a skill to read and add its events.
 - 2026-10-10: Replace reminders with Google Tasks through Home Assistant on spike, and give OpenClaw on framer a skill that reads and writes them.
+- 2026-10-10: Show a listening card on framer's panel, with what was heard and the reply, and lift the screensaver while it talks.

@@ -13,6 +13,21 @@ let
     ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SOURCE@ ${micVolumeBelowClipping}
     ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ ${speakerVolumeFull}
   '';
+
+  panelVoiceWebhook = "http://spike.local:8123/api/webhook/framer-voice";
+
+  postToPanel = "${lib.getExe pkgs.curl} -fsS --max-time 2 -H 'Content-Type: application/json' -d @- ${panelVoiceWebhook}";
+
+  showOnPanel =
+    field:
+    pkgs.writeShellScript "show-${field}-on-panel" ''
+      ${lib.getExe pkgs.jq} -Rs '{${field}: .}' | ${postToPanel} || true
+    '';
+
+  wakeAndClearPanel = pkgs.writeShellScript "wake-and-clear-panel" ''
+    /run/current-system/sw/bin/panel-wake
+    echo '{"heard": "", "reply": ""}' | ${postToPanel} || true
+  '';
 in
 {
   services.wyoming.openwakeword = {
@@ -36,7 +51,11 @@ in
       "--wake-word-name"
       "okay_nabu"
       "--detection-command"
-      "/run/current-system/sw/bin/panel-wake"
+      "${wakeAndClearPanel}"
+      "--transcript-command"
+      "${showOnPanel "heard"}"
+      "--synthesize-command"
+      "${showOnPanel "reply"}"
     ];
   };
 
