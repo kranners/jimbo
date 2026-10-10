@@ -96,3 +96,4 @@
 - 2026-10-10: Let framer's `mail` archive messages, into Fastmail's `Archive` and Gmail's `[Gmail]/All Mail`, so OpenClaw can archive email by voice.
 - 2026-10-10: Speed up OpenClaw on framer: thinking at `low`, and a `mail unread-counts` that counts every account's unread mail at once, instead of the model guessing searches.
 - 2026-10-10: Wake framer with hey_mycroft.
+- 2026-10-10: Point framer's kiosk at `/nixos-lovelace/panel`, where NixOS now serves the provisioned dashboard, because `/lovelace/panel` redirected the panel to Home Assistant's default overview and hid the voice card.
