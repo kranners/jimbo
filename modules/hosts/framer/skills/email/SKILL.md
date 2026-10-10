@@ -6,6 +6,7 @@ metadata: { "openclaw": { "requires": { "bins": ["mail"] } } }
 
 Use the `mail` command for anything about Aaron's email. It can read and archive: it cannot send, reply, delete, flag or move a message anywhere but its account's archive, so never offer to.
 
+- `mail unread-counts` prints every account's number of unread messages in one go; use it for any question about how much unread mail there is.
 - `mail accounts` lists the account names, such as `fastmail` and `gmail`.
 - `mail <account> unread [count]` lists the newest unread messages, 10 unless a count is given.
 - `mail <account> list [count]` lists the newest messages, read or not.

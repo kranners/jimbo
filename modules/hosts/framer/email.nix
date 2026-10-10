@@ -33,11 +33,15 @@ let
   mail = pkgs.writeShellApplication {
     name = "mail";
 
-    runtimeInputs = [ pkgs.himalaya ];
+    runtimeInputs = [
+      pkgs.himalaya
+      pkgs.jq
+    ];
 
     text = ''
       usage() {
         echo "usage: mail accounts" >&2
+        echo "       mail unread-counts" >&2
         echo "       mail <account> mailboxes" >&2
         echo "       mail <account> unread [count]" >&2
         echo "       mail <account> list [count]" >&2
@@ -55,6 +59,14 @@ let
 
       if [ "$1" = accounts ]; then
         himalaya account list
+        exit
+      fi
+
+      if [ "$1" = unread-counts ]; then
+        for account in ${lib.escapeShellArgs (lib.attrNames accounts)}; do
+          echo "$account $(himalaya --json --account "$account" envelope search --page-size 1000 not flag seen | jq '.envelopes | length')" &
+        done
+        wait
         exit
       fi
 

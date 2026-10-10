@@ -79,6 +79,7 @@ let
     agents.defaults = {
       inherit workspace;
       model.primary = "claude-cli/sonnet";
+      thinkingDefault = "low";
       cliBackends.claude-cli = {
         command = lib.getExe pkgs.claude-code;
         args = claudeArgs;
