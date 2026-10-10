@@ -160,6 +160,62 @@ let
     entities = map (metric: "sensor.spike_${metric.key}") metrics;
   };
 
+  framerSatellite = "assist_satellite.framer";
+  framerVoice = "sensor.framer_voice";
+  panelScreensaver = "input_boolean.panel_screensaver";
+
+  voiceCard = {
+    type = "conditional";
+    conditions = [
+      {
+        condition = "state";
+        entity = framerSatellite;
+        state = [
+          "listening"
+          "processing"
+          "responding"
+        ];
+      }
+    ];
+    card = {
+      type = "markdown";
+      content = ''
+        {% set satellite = states('${framerSatellite}') %}
+        {% set heard = state_attr('${framerVoice}', 'heard') or "" %}
+        {% set reply = state_attr('${framerVoice}', 'reply') or "" %}
+        {% if satellite == 'listening' %}
+        # <ha-icon icon="mdi:microphone"></ha-icon> Listening…
+        {% elif satellite == 'processing' %}
+        # <ha-icon icon="mdi:dots-horizontal"></ha-icon> Thinking…
+        {% else %}
+        # <ha-icon icon="mdi:account-voice"></ha-icon>
+        {% endif %}
+        {% if heard %}
+        > {{ heard }}
+        {% endif %}
+
+        {{ reply }}
+      '';
+      card_mod.style = ''
+        ha-card {
+          position: fixed;
+          left: 50%;
+          bottom: 8vh;
+          transform: translateX(-50%);
+          width: min(80vw, 900px);
+          z-index: 10;
+          font-size: 1.5em;
+          {% if is_state('${framerSatellite}', 'listening') %}
+          animation: listening 1.2s ease-in-out infinite;
+          {% endif %}
+        }
+        @keyframes listening {
+          50% { box-shadow: 0 0 0 1.5vh var(--primary-color); }
+        }
+      '';
+    };
+  };
+
   infoCards = [
     {
       type = "clock";
@@ -237,12 +293,59 @@ in
         }
       ];
 
+      template = [
+        {
+          trigger = [
+            {
+              platform = "webhook";
+              webhook_id = "framer-voice";
+              allowed_methods = [ "POST" ];
+              local_only = true;
+            }
+          ];
+          sensor = [
+            {
+              name = "framer voice";
+              unique_id = "framer_voice";
+              device_class = "timestamp";
+              state = "{{ now().isoformat() }}";
+              attributes = {
+                heard = "{{ trigger.json.heard if 'heard' in trigger.json else this.attributes.get('heard', '') }}";
+                reply = "{{ trigger.json.reply if 'reply' in trigger.json else this.attributes.get('reply', '') }}";
+              };
+            }
+          ];
+        }
+      ];
+
+      input_boolean.panel_screensaver.name = "Panel screensaver";
+
       input_text.wallpanel_profile = {
         name = "Wallpanel profile";
         initial = "day";
       };
 
       automation = [
+        {
+          alias = "Wake the panel while framer is in a conversation";
+          trigger = [
+            {
+              platform = "state";
+              entity_id = framerSatellite;
+              to = [
+                "listening"
+                "processing"
+                "responding"
+              ];
+            }
+          ];
+          action = [
+            {
+              service = "input_boolean.turn_off";
+              target.entity_id = panelScreensaver;
+            }
+          ];
+        }
         {
           alias = "Wallpanel night profile";
           trigger = [
@@ -283,7 +386,7 @@ in
         {
           path = "panel";
           title = "Panel";
-          cards = infoCards;
+          cards = [ voiceCard ] ++ infoCards;
         }
       ];
 
@@ -299,6 +402,7 @@ in
         image_url = "/wallpapers";
         stop_screensaver_on_mouse_click = true;
         profile_entity = "input_text.wallpanel_profile";
+        screensaver_entity = panelScreensaver;
         cards = infoCards;
 
         profiles = {
