@@ -23,6 +23,11 @@ let
     "purity=100"
   ];
 
+  wallpaperQueries = [
+    "nature -women -men -people"
+    "aerial view -women -men -people"
+  ];
+
   fetch-panel-wallpapers = pkgs.writeShellApplication {
     name = "fetch-panel-wallpapers";
 
@@ -36,12 +41,14 @@ let
     text = ''
       mkdir -p "${wallpaperDirectory}"
 
-      curl -fsS "https://wallhaven.cc/api/v1/search?${builtins.concatStringsSep "&" wallpaperSearchParameters}" \
-        | jq -r '.data[].path' \
-        | while read -r url; do
-            destination="${wallpaperDirectory}/$(basename "$url")"
-            [ -e "$destination" ] || curl -fsS -o "$destination" "$url"
-          done
+      for query in ${lib.escapeShellArgs wallpaperQueries}; do
+        curl -fsSG --data-urlencode "q=$query" "https://wallhaven.cc/api/v1/search?${builtins.concatStringsSep "&" wallpaperSearchParameters}" \
+          | jq -r '.data[].path' \
+          | while read -r url; do
+              destination="${wallpaperDirectory}/$(basename "$url")"
+              [ -e "$destination" ] || curl -fsS -o "$destination" "$url"
+            done
+      done
 
       find "${wallpaperDirectory}" -maxdepth 1 -type f -printf '%T@ %p\0' \
         | sort -zrn \
