@@ -15,6 +15,7 @@
         ./wireguard.nix
         ./monitoring.nix
         ./voice.nix
+        ./openclaw
       ];
 
       boot.loader.systemd-boot.enable = true;
