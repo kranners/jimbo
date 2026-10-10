@@ -194,6 +194,7 @@ in
       "thread"
       "google_translate"
       "google"
+      "google_tasks"
     ];
 
     customComponents = [ pkgs.home-assistant-custom-components.prometheus_sensor ];

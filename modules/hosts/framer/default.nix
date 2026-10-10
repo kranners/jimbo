@@ -18,6 +18,7 @@
         ./openclaw
         ./email.nix
         ./google-calendar.nix
+        ./google-tasks.nix
       ];
 
       boot.loader.systemd-boot.enable = true;
