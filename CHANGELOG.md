@@ -87,3 +87,4 @@
 - 2026-10-10: Run OpenClaw on framer as the voice assistant's brain, through Claude Code's own login, with its browser in front of the panel's dashboard.
 - 2026-10-10: Give framer a read-only `mail` command over himalaya for Fastmail and Gmail, and an OpenClaw skill that reads email aloud with it.
 - 2026-10-10: Connect Home Assistant to Google Calendar and give OpenClaw on framer a skill to read and add its events.
+- 2026-10-10: Replace reminders with Google Tasks through Home Assistant on spike, and give OpenClaw on framer a skill that reads and writes them.
