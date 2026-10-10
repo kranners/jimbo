@@ -1,7 +1,7 @@
 {
   services.wyoming.faster-whisper.servers.en = {
     enable = true;
-    model = "small-int8";
+    model = "base-int8";
     language = "en";
     device = "cpu";
     uri = "tcp://127.0.0.1:10300";
