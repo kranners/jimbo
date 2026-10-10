@@ -17,8 +17,8 @@ let
 
   wallpaperSearchParameters = [
     "sorting=random"
-    "atleast=2560x1440"
-    "ratios=landscape"
+    "atleast=1440x2560"
+    "ratios=portrait"
     "categories=100"
     "purity=100"
   ];
@@ -459,7 +459,7 @@ in
         display_time = 600;
         media_order = "random";
         image_animation_ken_burns = true;
-        image_fit_landscape = "cover";
+        image_fit_portrait = "cover";
         image_url = "/wallpapers";
         stop_screensaver_on_mouse_click = true;
         profile_entity = "sensor.panel_profile";

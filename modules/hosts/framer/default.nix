@@ -4,6 +4,7 @@
   kiosk.versionUrl = "http://spike.local:8123/local/panel-version";
   kiosk.output = "eDP-1";
   kiosk.scale = 2;
+  kiosk.transform = "90";
   kiosk.lanInterface = "wlp1s0";
 
   nixosSystemModule =
