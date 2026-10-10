@@ -100,3 +100,4 @@
 - 2026-10-10: Hold framer's voice card at the bottom of the panel through the whole conversation and 30 s after.
 - 2026-10-10: Rotate framer's panel to portrait with a new `kiosk.transform`, and fetch portrait wallpapers for it.
 - 2026-10-10: Limit the panel's wallpapers to wallhaven's `nature` and `aerial view` searches, excluding any tagged with people.
+- 2026-10-10: Let framer's voice assistant turn the panel's screen on or off or set its brightness until the schedule's next step, and make each schedule step apply the level for now, so a late `Persistent` replay no longer sets the wrong one.

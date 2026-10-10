@@ -92,6 +92,7 @@ in
   config.nixosSystemModule =
     { pkgs, ... }@nixos:
     let
+      overrideFile = "/run/panel-brightness/override";
       sortedSchedule = lib.sort (a: b: a.time < b.time) cfg.schedule;
       wrapPercent = (lib.last sortedSchedule).percent;
       dayPercent = lib.foldl' lib.max 0 (map (entry: entry.percent) cfg.schedule);
@@ -109,7 +110,59 @@ in
               percent=${toString entry.percent}
             fi
           '') sortedSchedule}
+          if [ -e ${overrideFile} ]; then
+            percent=$(cat ${overrideFile})
+          fi
           ${brightness} set "$percent"
+        '';
+      };
+
+      panel = pkgs.writeShellApplication {
+        name = "panel";
+        runtimeInputs = [ pkgs.coreutils ];
+        text = ''
+          usage() {
+            echo "usage: panel [status | brightness PERCENT | off | on | schedule]" >&2
+            exit 2
+          }
+
+          override() {
+            echo "$1" > ${overrideFile}
+            ${lib.getExe panelScheduleApply}
+          }
+
+          next_step() {
+            now=$((10#$(date +%H%M)))
+            ${lib.concatMapStrings (entry: ''
+              if [ "$now" -lt $((10#${timeDigits entry.time})) ]; then
+                echo "${entry.time} at ${toString entry.percent}%"
+                return
+              fi
+            '') sortedSchedule}
+            echo "${(lib.head sortedSchedule).time} at ${toString (lib.head sortedSchedule).percent}%"
+          }
+
+          case "''${1:-status}" in
+            status)
+              echo "brightness $(${brightness} get)%"
+              if [ -e ${overrideFile} ]; then
+                echo "overridden at $(cat ${overrideFile})% until the next scheduled step, $(next_step)"
+              else
+                echo "following the schedule, next step $(next_step)"
+              fi
+              ;;
+            brightness)
+              [ $# -eq 2 ] && [[ $2 =~ ^[0-9]+$ ]] && [ "$2" -le 100 ] || usage
+              override "$((10#$2))"
+              ;;
+            off) override 0 ;;
+            on) override ${toString dayPercent} ;;
+            schedule)
+              rm -f ${overrideFile}
+              ${lib.getExe panelScheduleApply}
+              ;;
+            *) usage ;;
+          esac
         '';
       };
 
@@ -173,10 +226,11 @@ in
         map (entry: {
           name = "panel-brightness-${timeDigits entry.time}";
           value = {
-            description = "Step the panel's backlight to ${toString entry.percent}% for ${entry.time}";
+            description = "Return the panel's backlight to its schedule at ${entry.time}";
             serviceConfig = {
               Type = "oneshot";
-              ExecStart = "${brightness} set ${toString entry.percent}";
+              ExecStartPre = "${pkgs.coreutils}/bin/rm -f ${overrideFile}";
+              ExecStart = lib.getExe panelScheduleApply;
             };
           };
         }) cfg.schedule
@@ -248,7 +302,24 @@ in
         };
       };
 
-      environment.systemPackages = [ panelWake ];
+      environment.systemPackages = [
+        panelWake
+        panel
+      ];
+
+      imports = [
+        {
+          options.kiosk.panelCommand = mkOption {
+            description = "Command that overrides the panel's backlight schedule until its next step.";
+            type = types.package;
+            readOnly = true;
+          };
+        }
+      ];
+
+      kiosk.panelCommand = panel;
+
+      systemd.tmpfiles.rules = [ "d ${dirOf overrideFile} 0755 ${host.username} - -" ];
 
       services.udev.packages = [ pkgs.brightnessctl ];
 

@@ -161,7 +161,9 @@ It starts only after `network-online.target`, because Chromium never retries a p
 The kiosk overrides `NetworkManager-wait-online` to `nm-online -q -t 60`, which waits up to a minute for a connection, because NixOS's `nm-online -s` returns as soon as NetworkManager starts, seconds before framer's Marvell wifi connects.
 noVNC bridges wayvnc through websockify on `6080`; it and wayvnc's own `5900` are open on `kiosk.lanInterface`, which framer sets to `wlp1s0`, and `wg0` alone, with no VNC password, so the panel is a browser tab on the MacBook.
 `kiosk.schedule` drives `intel_backlight` through the `brightness` command: 60% from 07:30, 15% from 18:00, 0% from 23:30, back to 15% at 06:30.
-Its `panel-wake` command jumps to the schedule's brightest level, then arms a 2 minute `systemd-run --user` timer back to whatever the schedule says for now.
+Each step clears any override and applies whatever the schedule says for now, so a step `Persistent` replays late after a boot or switch still sets the right level.
+Its `panel` command, `kiosk.panelCommand`, overrides the schedule until its next step, with `panel brightness <percent>`, `panel off`, `panel on` or `panel schedule`, through `/run/panel-brightness/override`.
+Its `panel-wake` command jumps to the schedule's brightest level, then arms a 2 minute `systemd-run --user` timer back to the override, or else whatever the schedule says for now.
 brightnessctl's udev rule gives the `video` group write access to the backlight, and `host.username` is in it, so `panel-wake` works for that user from any service, with no logind session or sudo.
 `kiosk-reload-on-change.timer` fetches `kiosk.versionUrl` every minute and restarts `cage-tty1` when it differs from the last fetch, because WallPanel builds its screensaver once per page load and never picks up a changed dashboard on its own.
 Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and the power key, because the clipboard sits docked backwards on its base.
@@ -200,6 +202,7 @@ Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and
   It adds `mail` to `openclaw.commands` and the OpenClaw skill `email`, telling the agent how to use `mail` and how to read mail aloud.
 - `modules/hosts/framer/google-calendar.nix` adds the OpenClaw skill `google-calendar`, which lists, reads and adds Google Calendar events through `home-assistant-api`.
 - `modules/hosts/framer/google-tasks.nix` adds the OpenClaw skill `google-tasks`, which reads and writes Google Tasks through Home Assistant's `todo` services with `home-assistant-api`.
+- `modules/hosts/framer/panel.nix` adds the OpenClaw skill `panel` and the kiosk's `panel` command, so a voice command turns the screen on or off or sets its brightness until the schedule's next step.
 - `node_exporter` is open on `wlp1s0` and `wg0`; `modules/hosts/spike/monitoring.nix` scrapes it as the `framer` target, beside spike's own.
 - UEFI's Enable Battery Limit (Power + Volume Up at boot, Boot configuration, Advanced Options), present since the Surface Book 2's July 2020 firmware, holds both batteries at 50%; a hand step, since it is not something NixOS can set.
 - A USB Ethernet adapter in the base beats the wifi for an always-on box; if one is used, its interface joins `modules/hosts/framer`'s firewall lists, a hand step alongside plugging it in.
