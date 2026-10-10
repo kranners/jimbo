@@ -189,6 +189,7 @@ in
         enable = true;
         user = host.username;
         program = lib.getExe kioskPanel;
+        restartIfChanged = true;
       };
 
       systemd.services = scheduleServices // {

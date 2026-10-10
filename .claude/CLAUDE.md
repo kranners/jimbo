@@ -146,7 +146,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 Its files under `modules/hosts/framer` are plain NixOS modules, imported through `nixosSystemModule`, the same shape as spike's.
 `modules/kiosk` is the generic appliance role: `services.cage` logs `host.username` into tty1 running a script that starts `wayvnc` in the background and execs the `ungoogled-chromium` the browser module uses, full screen on `kiosk.url`, which framer's host module sets to `http://spike.local:8123/lovelace/panel`, Home Assistant's dashboard on spike, reached over the LAN so its trusted-network login matches framer's LAN address.
 The script first scales `kiosk.output` by `kiosk.scale` with `wlr-randr`, `eDP-1` by 2 on framer, so Chromium takes its HiDPI scale from cage, because its own `--force-device-scale-factor` under cage drew into the top-left quarter of the screen.
-Its cage unit restarts always, so a Chromium crash brings the dashboard back.
+Its cage unit restarts always, so a Chromium crash brings the dashboard back, and restarts on a switch that changes it, because nixpkgs otherwise leaves it stopped.
 It starts only after `network-online.target`, because Chromium never retries a page that failed to resolve.
 The kiosk overrides `NetworkManager-wait-online` to `nm-online -q -t 60`, which waits up to a minute for a connection, because NixOS's `nm-online -s` returns as soon as NetworkManager starts, seconds before framer's Marvell wifi connects.
 noVNC bridges wayvnc through websockify on `6080`; it and wayvnc's own `5900` are open on `kiosk.lanInterface`, which framer sets to `wlp1s0`, and `wg0` alone, with no VNC password, so the panel is a browser tab on the MacBook.

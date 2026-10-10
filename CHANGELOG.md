@@ -76,3 +76,4 @@
 - 2026-10-09: Point the ssh tower alias at tower's reserved LAN address, because the MacBook resolves names through Cloudflare over WireGuard and never sees the router's DNS.
 - 2026-10-10: Hold the kiosk until wifi has actually connected, overriding NetworkManager-wait-online to nm-online -q -t 60, and have framer's WireGuard peer re-resolve spike every 5 minutes, because a boot raced the Marvell wifi and left the panel on a DNS error page and wg0 without a peer.
 - 2026-10-10: Make framer a Wyoming voice satellite on 10700 with openWakeWord listening for hey_jarvis and waking the panel, and let panel-wake run from a service through brightnessctl's video-group udev rule and a user-manager restore timer.
+- 2026-10-10: Restart framer's kiosk on a switch that changes it, because nixpkgs' cage left it stopped and the panel blank.
