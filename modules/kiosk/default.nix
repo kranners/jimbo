@@ -213,6 +213,8 @@ in
           serviceConfig.Restart = "always";
         };
 
+        "getty@tty1".enable = false;
+
         kiosk-remote-view = {
           description = "Panel noVNC bridge to wayvnc";
           wantedBy = [ "graphical.target" ];
