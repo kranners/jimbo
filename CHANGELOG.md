@@ -79,3 +79,4 @@
 - 2026-10-10: Restart framer's kiosk on a switch that changes it, because nixpkgs' cage left it stopped and the panel blank.
 - 2026-10-10: Turn framer's mic down to 0.2 before the satellite starts, because at full gain it clipped on background noise alone.
 - 2026-10-10: Add rylee's laptop as WireGuard peer 10.100.0.6 on spike.
+- 2026-10-10: Wake framer with hey_rhasspy instead of hey_jarvis, and answer in Piper's en_GB-cori-high voice instead of en_GB-alan-medium.

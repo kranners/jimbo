@@ -10,7 +10,7 @@
   services.wyoming.piper.servers.en = {
     enable = true;
     # No Australian voice exists; samples at https://rhasspy.github.io/piper-samples/.
-    voice = "en_GB-alan-medium";
+    voice = "en_GB-cori-high";
     uri = "tcp://127.0.0.1:10200";
   };
 
