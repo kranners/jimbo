@@ -21,6 +21,7 @@
         ./email.nix
         ./google-calendar.nix
         ./google-tasks.nix
+        ./panel.nix
       ];
 
       boot.loader.systemd-boot.enable = true;
