@@ -8,10 +8,12 @@ let
     fastmail = {
       address = "aaron@cute.engineer";
       imapServer = "imap.fastmail.com:993";
+      archiveMailbox = "Archive";
     };
     gmail = {
       address = "aaronpierce114@gmail.com";
       imapServer = "imap.gmail.com:993";
+      archiveMailbox = "[Gmail]/All Mail";
     };
   };
 
@@ -22,12 +24,13 @@ let
       default = name == "fastmail";
       imap.server = account.imapServer;
       mailbox.alias.inbox = "INBOX";
+      mailbox.alias.archive = account.archiveMailbox;
       imap.sasl.plain.username = account.address;
       imap.sasl.plain.password.command = "cat ${passwordFile name}";
     }) accounts;
   };
 
-  readOnlyMail = pkgs.writeShellApplication {
+  mail = pkgs.writeShellApplication {
     name = "mail";
 
     runtimeInputs = [ pkgs.himalaya ];
@@ -40,6 +43,7 @@ let
         echo "       mail <account> list [count]" >&2
         echo "       mail <account> search <query>..." >&2
         echo "       mail <account> read <id>" >&2
+        echo "       mail <account> archive <id>..." >&2
         exit 2
       }
 
@@ -65,14 +69,15 @@ let
         list) himalaya --account "$account" envelope list --page-size "''${1:-10}" ;;
         search) himalaya --account "$account" envelope search "$@" ;;
         read) [ $# -eq 1 ] || usage; himalaya --account "$account" message read "$1" ;;
+        archive) [ $# -ge 1 ] || usage; himalaya --account "$account" message move --to archive "$@" ;;
         *) usage ;;
       esac
     '';
   };
 in
 {
-  environment.systemPackages = [ readOnlyMail ];
+  environment.systemPackages = [ mail ];
 
   openclaw.skills.email = ./skills/email;
-  openclaw.commands = [ readOnlyMail ];
+  openclaw.commands = [ mail ];
 }

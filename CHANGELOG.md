@@ -93,3 +93,4 @@
 - 2026-10-10: Default framer's Google Tasks skill to Aaron's real list, `todo.aaron_s_list`, instead of Google's `My Tasks`, which his account does not have.
 - 2026-10-10: Make spike framer's remote builder, so a `just` on framer builds OpenClaw on spike instead of running out of memory.
 - 2026-10-10: Name IMAP's `INBOX` as each mail account's inbox, which himalaya 2.0 needs before `mail` can list or read anything.
+- 2026-10-10: Let framer's `mail` archive messages, into Fastmail's `Archive` and Gmail's `[Gmail]/All Mail`, so OpenClaw can archive email by voice.
