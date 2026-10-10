@@ -77,6 +77,35 @@ let
     };
   };
 
+  spokenConditions = {
+    clear-night = "clear";
+    partlycloudy = "partly cloudy";
+    lightning-rainy = "storms";
+    snowy-rainy = "sleet";
+    windy-variant = "windy";
+  };
+
+  dailyForecastIntent = dayName: forecastIndex: {
+    action = [
+      {
+        action = "weather.get_forecasts";
+        target.entity_id = "weather.home";
+        data.type = "daily";
+        response_variable = "forecasts";
+      }
+      {
+        stop = "";
+        response_variable = "forecasts";
+      }
+    ];
+    speech.text = ''
+      {% set day = action_response['weather.home'].forecast[${toString forecastIndex}] %}
+      {% set spoken = ${builtins.toJSON spokenConditions} %}
+      ${dayName}, {{ spoken.get(day.condition, day.condition) }}, a high of {{ day.temperature | round }} and a low of {{ day.templow | round }} degrees
+      {%- if day.precipitation %}, with {{ day.precipitation }} millimetres of rain{% endif %}.
+    '';
+  };
+
   hardwareMetrics = [
     {
       key = "cpu_busy";
@@ -319,6 +348,25 @@ in
       ];
 
       input_boolean.panel_screensaver.name = "Panel screensaver";
+      conversation.intents = {
+        WeatherForecastToday = [
+          "(what is|what's) the forecast [for today]"
+          "(what is|what's) the weather [going to be] [like] today"
+          "(what is|what's) today's (weather|forecast)"
+          "(will|is) it [going to] rain today"
+        ];
+        WeatherForecastTomorrow = [
+          "(what is|what's) the forecast for tomorrow"
+          "(what is|what's) the weather [going to be] [like] tomorrow"
+          "(what is|what's) tomorrow's (weather|forecast)"
+          "(will|is) it [going to] rain tomorrow"
+        ];
+      };
+
+      intent_script = {
+        WeatherForecastToday = dailyForecastIntent "Today" 0;
+        WeatherForecastTomorrow = dailyForecastIntent "Tomorrow" 1;
+      };
 
       input_text.wallpanel_profile = {
         name = "Wallpanel profile";
