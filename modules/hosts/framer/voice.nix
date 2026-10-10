@@ -32,7 +32,7 @@ in
       "--wake-uri"
       "tcp://127.0.0.1:10400"
       "--wake-word-name"
-      "hey_jarvis"
+      "hey_rhasspy"
       "--detection-command"
       "/run/current-system/sw/bin/panel-wake"
     ];
