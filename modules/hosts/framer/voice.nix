@@ -37,6 +37,9 @@ in
 
   services.wyoming.satellite = {
     enable = true;
+    package = pkgs.wyoming-satellite.overridePythonAttrs (old: {
+      patches = (old.patches or [ ]) ++ [ ./wyoming-satellite-reset-wake-on-transcript.patch ];
+    });
     user = host.username;
     name = "framer";
     uri = "tcp://0.0.0.0:10700";

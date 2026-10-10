@@ -1,0 +1,11 @@
+--- a/wyoming_satellite/satellite.py
++++ b/wyoming_satellite/satellite.py
+@@ -1244,6 +1244,8 @@
+             # Stop streaming before event_from_server is called because it will
+             # play the "done" WAV.
+             self.is_streaming = False
++            if is_transcript:
++                await self._send_wake_detect()
+ 
+             # Stop debug recording (stt)
+             if self.stt_audio_writer is not None:

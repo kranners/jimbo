@@ -104,3 +104,4 @@
 - 2026-10-10: Reconnect framer's satellite when it is stuck listening, and let panel-wake rearm its restore timer.
 - 2026-10-10: Give Rylee an admin user, `rylee`, on spike, logging in with her key from noodlebook.
 - 2026-10-10: Show framer's voice conversation as large white text over a full-screen bottom gradient.
+- 2026-10-10: Patch framer's wyoming-satellite to reset openwakeword on a transcript, so a long request no longer wakes it again and aborts the answer.
