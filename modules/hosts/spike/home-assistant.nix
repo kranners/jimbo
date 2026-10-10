@@ -193,6 +193,7 @@ in
       "apple_tv"
       "thread"
       "google_translate"
+      "google"
     ];
 
     customComponents = [ pkgs.home-assistant-custom-components.prometheus_sensor ];

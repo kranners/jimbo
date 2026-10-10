@@ -86,6 +86,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   That panel is a Lovelace dashboard the module provisions, a WallPanel screensaver of the time, Open-Meteo's forecast for `weather.home` and 24-hour history graphs of spike's Prometheus-backed hardware stats, rounded in PromQL, Claude's plan limits used, live Claude sessions and busy workaholic runners.
   Every switch writes a hash of that dashboard, Home Assistant's version and its Lovelace modules to `/var/lib/hass/www/panel-version`, served without a login at `/local/panel-version`, for the kiosk to watch.
   Open-Meteo, Remote Calendar and Wyoming are set up by hand through their config flows and persist under `/var/lib/hass`.
+  Google Calendar is set up the same way, from an OAuth client of type Web application in Google Cloud with the Calendar API enabled and `https://my.home-assistant.io/redirect/oauth` as its redirect URI, entered under Application Credentials, with read-write access chosen in its options.
 - Voice (`modules/hosts/spike/voice.nix`) runs `wyoming-faster-whisper-en` on `127.0.0.1:10300` and `wyoming-piper-en` on `127.0.0.1:10200` for Home Assistant's Assist pipeline, loopback only because Home Assistant runs on the same box.
   Both are niced to `10` so a transcription never competes with Bowerbird, and both download their model from Hugging Face into the unit's state directory on first start, so that start needs the internet and a minute.
 - Caddy (`modules/hosts/spike/caddy.nix`) serves HTTPS on `443`, open only on `wg0`.
@@ -185,6 +186,7 @@ Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and
 - Email (`modules/hosts/framer/email.nix`) puts a read-only `mail` command on the path, a wrapper over himalaya that only lists, searches and reads, so OpenClaw can read Fastmail and Gmail aloud but never send, move or delete.
   Its accounts are an attrset of address and IMAP server in that file, each logging in with an app password from `/var/lib/secrets/email-<account>-password`, owner `aaron`, mode 600, written by hand.
   It adds `mail` to `openclaw.commands` and the OpenClaw skill `email`, telling the agent how to use `mail` and how to read mail aloud.
+- `modules/hosts/framer/google-calendar.nix` adds the OpenClaw skill `google-calendar`, which lists, reads and adds Google Calendar events through `home-assistant-api`.
 - `node_exporter` is open on `wlp1s0` and `wg0`; `modules/hosts/spike/monitoring.nix` scrapes it as the `framer` target, beside spike's own.
 - UEFI's Enable Battery Limit (Power + Volume Up at boot, Boot configuration, Advanced Options), present since the Surface Book 2's July 2020 firmware, holds both batteries at 50%; a hand step, since it is not something NixOS can set.
 - A USB Ethernet adapter in the base beats the wifi for an always-on box; if one is used, its interface joins `modules/hosts/framer`'s firewall lists, a hand step alongside plugging it in.
