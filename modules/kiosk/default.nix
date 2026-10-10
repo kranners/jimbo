@@ -35,6 +35,17 @@ in
       default = 1;
     };
 
+    transform = mkOption {
+      description = "Rotation cage renders the panel's screen at, as wlr-randr's --transform takes it.";
+      type = types.enum [
+        "normal"
+        "90"
+        "180"
+        "270"
+      ];
+      default = "normal";
+    };
+
     lanInterface = mkOption {
       description = "Network interface, besides wg0, the panel's VNC ports are reachable from.";
       type = types.str;
@@ -119,7 +130,7 @@ in
           pkgs.ungoogled-chromium
         ];
         text = ''
-          wlr-randr --output ${cfg.output} --scale ${toString cfg.scale}
+          wlr-randr --output ${cfg.output} --scale ${toString cfg.scale} --transform ${cfg.transform}
           wayvnc 0.0.0.0 5900 &
           trap 'kill $!' EXIT
           exec chromium \
