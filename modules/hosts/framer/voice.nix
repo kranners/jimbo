@@ -27,7 +27,6 @@
       "hey_jarvis"
       "--detection-command"
       "/run/current-system/sw/bin/panel-wake"
-      "--zeroconf"
     ];
   };
 
