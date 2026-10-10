@@ -81,3 +81,4 @@
 - 2026-10-10: Add rylee's laptop as WireGuard peer 10.100.0.6 on spike.
 - 2026-10-10: Wake framer with hey_rhasspy instead of hey_jarvis, and answer in Piper's en_GB-cori-high voice instead of en_GB-alan-medium.
 - 2026-10-10: Turn framer's speaker up to full before the satellite starts, because at 0.4 its answers were too quiet.
+- 2026-10-10: Wake framer with okay_nabu instead of hey_rhasspy.
