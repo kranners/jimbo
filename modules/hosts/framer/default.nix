@@ -14,6 +14,7 @@
         ./watchdog.nix
         ./wireguard.nix
         ./monitoring.nix
+        ./voice.nix
       ];
 
       boot.loader.systemd-boot.enable = true;
