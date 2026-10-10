@@ -191,19 +191,18 @@ let
 
   framerSatellite = "assist_satellite.framer";
   framerVoice = "sensor.framer_voice";
+  framerConversation = "binary_sensor.framer_conversation";
   panelScreensaver = "input_boolean.panel_screensaver";
+  wallpanelProfile = "input_text.wallpanel_profile";
+  secondsToReadReply = 30;
 
   voiceCard = {
     type = "conditional";
     conditions = [
       {
         condition = "state";
-        entity = framerSatellite;
-        state = [
-          "listening"
-          "processing"
-          "responding"
-        ];
+        entity = framerConversation;
+        state = "on";
       }
     ];
     card = {
@@ -232,6 +231,7 @@ let
           bottom: 8vh;
           transform: translateX(-50%);
           width: min(80vw, 900px);
+          height: auto;
           z-index: 10;
           font-size: 1.5em;
           {% if is_state('${framerSatellite}', 'listening') %}
@@ -345,6 +345,23 @@ in
             }
           ];
         }
+        {
+          binary_sensor = [
+            {
+              name = "framer conversation";
+              unique_id = "framer_conversation";
+              state = "{{ states('${framerSatellite}') in ['listening', 'processing', 'responding'] }}";
+              delay_off.seconds = secondsToReadReply;
+            }
+          ];
+          sensor = [
+            {
+              name = "panel profile";
+              unique_id = "panel_profile";
+              state = "{{ 'voice' if is_state('${framerConversation}', 'on') else states('${wallpanelProfile}') }}";
+            }
+          ];
+        }
       ];
 
       input_boolean.panel_screensaver.name = "Panel screensaver";
@@ -379,12 +396,8 @@ in
           trigger = [
             {
               platform = "state";
-              entity_id = framerSatellite;
-              to = [
-                "listening"
-                "processing"
-                "responding"
-              ];
+              entity_id = framerConversation;
+              to = "on";
             }
           ];
           action = [
@@ -405,7 +418,7 @@ in
           action = [
             {
               service = "input_text.set_value";
-              target.entity_id = "input_text.wallpanel_profile";
+              target.entity_id = wallpanelProfile;
               data.value = "night";
             }
           ];
@@ -421,7 +434,7 @@ in
           action = [
             {
               service = "input_text.set_value";
-              target.entity_id = "input_text.wallpanel_profile";
+              target.entity_id = wallpanelProfile;
               data.value = "day";
             }
           ];
@@ -449,11 +462,12 @@ in
         image_fit_landscape = "cover";
         image_url = "/wallpapers";
         stop_screensaver_on_mouse_click = true;
-        profile_entity = "input_text.wallpanel_profile";
+        profile_entity = "sensor.panel_profile";
         screensaver_entity = panelScreensaver;
         cards = infoCards;
 
         profiles = {
+          voice.idle_time = 0;
           day = { };
           night = {
             show_images = false;
