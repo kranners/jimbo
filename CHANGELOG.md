@@ -103,3 +103,4 @@
 - 2026-10-10: Let framer's voice assistant turn the panel's screen on or off or set its brightness until the schedule's next step, and make each schedule step apply the level for now, so a late `Persistent` replay no longer sets the wrong one.
 - 2026-10-10: Reconnect framer's satellite when it is stuck listening, and let panel-wake rearm its restore timer.
 - 2026-10-10: Give Rylee an admin user, `rylee`, on spike, logging in with her key from noodlebook.
+- 2026-10-10: Show framer's voice conversation as large white text over a full-screen bottom gradient.

@@ -234,19 +234,32 @@ let
       card_mod.style = ''
         ha-card {
           position: fixed;
-          left: 50%;
-          bottom: 8vh;
-          transform: translateX(-50%);
-          width: min(80vw, 900px);
+          inset: 0;
           height: auto;
           z-index: 10;
-          font-size: 1.5em;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          padding: 0 6vw 12vh;
+          box-sizing: border-box;
+          pointer-events: none;
+          background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.6) 40%, transparent 75%);
+          border: none;
+          border-radius: 0;
+          box-shadow: none;
+          text-align: center;
+          font-size: 3.5em;
+          line-height: 1.3;
+          text-shadow: 0 0.05em 0.2em black;
+          --primary-text-color: white;
+          --secondary-text-color: rgba(255, 255, 255, 0.75);
+          --mdc-icon-size: 1em;
           {% if is_state('${framerSatellite}', 'listening') %}
           animation: listening 1.2s ease-in-out infinite;
           {% endif %}
         }
         @keyframes listening {
-          50% { box-shadow: 0 0 0 1.5vh var(--primary-color); }
+          50% { box-shadow: inset 0 -2vh 2vh -1vh var(--primary-color); }
         }
       '';
     };
