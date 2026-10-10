@@ -147,6 +147,8 @@ Its files under `modules/hosts/framer` are plain NixOS modules, imported through
 `modules/kiosk` is the generic appliance role: `services.cage` logs `host.username` into tty1 running a script that starts `wayvnc` in the background and execs the `ungoogled-chromium` the browser module uses, full screen on `kiosk.url`, which framer's host module sets to `http://spike.local:8123/lovelace/panel`, Home Assistant's dashboard on spike, reached over the LAN so its trusted-network login matches framer's LAN address.
 The script first scales `kiosk.output` by `kiosk.scale` with `wlr-randr`, `eDP-1` by 2 on framer, so Chromium takes its HiDPI scale from cage, because its own `--force-device-scale-factor` under cage drew into the top-left quarter of the screen.
 Its cage unit restarts always, so a Chromium crash brings the dashboard back.
+It starts only after `network-online.target`, because Chromium never retries a page that failed to resolve.
+The kiosk overrides `NetworkManager-wait-online` to `nm-online -q -t 60`, which waits up to a minute for a connection, because NixOS's `nm-online -s` returns as soon as NetworkManager starts, seconds before framer's Marvell wifi connects.
 noVNC bridges wayvnc through websockify on `6080`; it and wayvnc's own `5900` are open on `kiosk.lanInterface`, which framer sets to `wlp1s0`, and `wg0` alone, with no VNC password, so the panel is a browser tab on the MacBook.
 `kiosk.schedule` drives `intel_backlight` through the `brightness` command: 60% from 07:30, 15% from 18:00, 0% from 23:30, back to 15% at 06:30.
 Its `panel-wake` command jumps to the schedule's brightest level, then arms a 2 minute `systemd-run` timer back to whatever the schedule says for now; a later voice satellite issue calls it on the wake word.
@@ -161,6 +163,7 @@ Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and
 - Hardware watchdog (`iTCO_wdt`) is armed by systemd, and the kernel reboots 10 s after a panic, the same as spike's.
 - The `brightness` command from `modules/brightness` drives framer's built-in panel, `intel_backlight`, with brightnessctl, which it picks over DDC/CI because `/sys/class/backlight` has a device here.
 - WireGuard client `wg0` at `10.100.0.5`, one peer, spike, over UDP `51820` at `spike.cute.engineer`.
+  The peer re-resolves that name every 5 minutes, `dynamicEndpointRefreshSeconds`, so a boot that failed to resolve it recovers and it follows spike's dyndns address, as `wireguard-wg0-peer-spike-refresh.service`.
   Its private key is generated on first boot at `/var/lib/wireguard/private`, the same as spike's.
   Spike's `framer` peer holds the public key of that private key, so regenerating it means updating the peer in `modules/hosts/spike/wireguard.nix` from `sudo wg show wg0 public-key` on framer.
 - `node_exporter` is open on `wlp1s0` and `wg0`; `modules/hosts/spike/monitoring.nix` scrapes it as the `framer` target, beside spike's own.

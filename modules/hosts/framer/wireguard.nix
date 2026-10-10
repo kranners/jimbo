@@ -11,6 +11,7 @@
         endpoint = "spike.cute.engineer:51820";
         allowedIPs = [ "10.100.0.0/24" ];
         persistentKeepalive = 25;
+        dynamicEndpointRefreshSeconds = 300;
       }
     ];
   };
