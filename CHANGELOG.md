@@ -90,3 +90,4 @@
 - 2026-10-10: Replace reminders with Google Tasks through Home Assistant on spike, and give OpenClaw on framer a skill that reads and writes them.
 - 2026-10-10: Show a listening card on framer's panel, with what was heard and the reply, and lift the screensaver while it talks.
 - 2026-10-10: Answer today's and tomorrow's forecast on framer locally through Home Assistant sentences that read Open-Meteo's daily forecast.
+- 2026-10-10: Default framer's Google Tasks skill to Aaron's real list, `todo.aaron_s_list`, instead of Google's `My Tasks`, which his account does not have.
