@@ -180,7 +180,7 @@ Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and
   Spike's `framer` peer holds the public key of that private key, so regenerating it means updating the peer in `modules/hosts/spike/wireguard.nix` from `sudo wg show wg0 public-key` on framer.
 - Voice (`modules/hosts/framer/voice.nix`) runs `wyoming-satellite` as `aaron`, named `framer`, on `:10700`, open on `wlp1s0` and `wg0` alone, for Home Assistant's Wyoming integration to find over zeroconf.
   It runs as `aaron` so `arecord` and `aplay` reach the PipeWire session cage's login starts, and it starts after `cage-tty1`.
-  `wyoming-openwakeword` listens on `127.0.0.1:10400` alone for the wake word `okay_nabu`, and each detection runs `panel-wake`.
+  `wyoming-openwakeword` listens on `127.0.0.1:10400` alone for the wake word `hey_mycroft`, and each detection runs `panel-wake`.
   Its wake word also clears the panel's transcript, and its transcript and the text it is about to speak go to the panel through Home Assistant's `framer-voice` webhook, each with a 2 second timeout so a slow spike never stalls the conversation.
   Before each start the satellite sets the speaker to full and the mic to `0.2` with `wpctl`, because at `1.0` the capture path's 60 dB of gain clipped the room's background noise, and a start before PipeWire is up keeps WirePlumber's saved volume instead of failing.
 - OpenClaw (`modules/hosts/framer/openclaw`) is the voice assistant's brain, `openclaw-gateway.service`, run as `aaron` after `cage-tty1` from nixpkgs' `openclaw`, which nixpkgs marks insecure for prompt injection, so the module permits it by name.

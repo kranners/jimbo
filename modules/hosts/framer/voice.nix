@@ -49,7 +49,7 @@ in
       "--wake-uri"
       "tcp://127.0.0.1:10400"
       "--wake-word-name"
-      "okay_nabu"
+      "hey_mycroft"
       "--detection-command"
       "${wakeAndClearPanel}"
       "--transcript-command"
