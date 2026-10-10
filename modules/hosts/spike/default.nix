@@ -31,6 +31,18 @@
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFTgNyfuTRL/Kygs5zNODcjMpcT/69U91T7nrOOHrbju"
       ];
 
+      users.users.rylee = {
+        isNormalUser = true;
+        description = "Rylee";
+        extraGroups = [
+          "wheel"
+          "docker"
+        ];
+        openssh.authorizedKeys.keys = [
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICajNcJKs5Iv63ZNppww4tNmNjkMjbPJwX2trSPiLGeT"
+        ];
+      };
+
       programs.git.enable = true;
 
       environment.systemPackages = [ pkgs.vim ];

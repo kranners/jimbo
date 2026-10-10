@@ -65,6 +65,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - The repo is cloned at `~/workspace/jimbo` on `main`.
   To deploy, push to `main`, then on spike: `git pull && just`.
 - SSH accepts keys only, declared in `modules/hosts/spike`.
+  Rylee logs in as `rylee` from her laptop, noodlebook, in `wheel` and `docker` like `aaron`.
   `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
 - Grafana listens on `127.0.0.1:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
