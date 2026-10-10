@@ -91,3 +91,4 @@
 - 2026-10-10: Show a listening card on framer's panel, with what was heard and the reply, and lift the screensaver while it talks.
 - 2026-10-10: Answer today's and tomorrow's forecast on framer locally through Home Assistant sentences that read Open-Meteo's daily forecast.
 - 2026-10-10: Default framer's Google Tasks skill to Aaron's real list, `todo.aaron_s_list`, instead of Google's `My Tasks`, which his account does not have.
+- 2026-10-10: Make spike framer's remote builder, so a `just` on framer builds OpenClaw on spike instead of running out of memory.
