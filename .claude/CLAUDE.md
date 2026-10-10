@@ -172,6 +172,16 @@ Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and
   It runs as `aaron` so `arecord` and `aplay` reach the PipeWire session cage's login starts, and it starts after `cage-tty1`.
   `wyoming-openwakeword` listens on `127.0.0.1:10400` alone for the wake word `okay_nabu`, and each detection runs `panel-wake`.
   Before each start the satellite sets the speaker to full and the mic to `0.2` with `wpctl`, because at `1.0` the capture path's 60 dB of gain clipped the room's background noise, and a start before PipeWire is up keeps WirePlumber's saved volume instead of failing.
+- OpenClaw (`modules/hosts/framer/openclaw`) is the voice assistant's brain, `openclaw-gateway.service`, run as `aaron` after `cage-tty1` from nixpkgs' `openclaw`, which nixpkgs marks insecure for prompt injection, so the module permits it by name.
+  It runs in OpenClaw's Nix mode, reading `openclaw.json` from the store and keeping its state in `~/.openclaw`.
+  Its gateway listens on `:18789`, open on `wlp1s0` and `wg0` alone, with token auth from `/var/lib/secrets/openclaw-gateway-token`, owner `aaron`, mode 600, written by hand.
+  Home Assistant's llama.cpp integration reaches it at `/v1/chat/completions` with model `openclaw/default`, as the conversation agent of framer's Assist pipeline for anything its own intents cannot answer.
+  Its model is `claude-cli/sonnet`, the unmodified `claude -p` under `aaron`'s own Claude Code login, made by hand with `claude auth login` over SSH.
+  That `claude` runs in `dontAsk` mode allowed only OpenClaw's MCP tools and `Bash` for the commands in the module's `openclaw.commands`, and OpenClaw's own exec, messaging, automation and file-writing tools are denied, so a page it browses cannot make it run anything else.
+  Each skill in `openclaw.skills` is copied into `~/.openclaw/workspace/skills/<name>` before every start, beside `SOUL.md`, `IDENTITY.md` and `TOOLS.md`, because OpenClaw rejects workspace files that link outside the workspace.
+  Its `home-assistant` skill calls Home Assistant's REST API on `10.100.0.1:8123` through `home-assistant-api`, which reads its token from `/var/lib/secrets/home-assistant-token`, owner `aaron`, mode 600, written by hand, so the token never reaches the model.
+  Its browser is `ungoogled-chromium` on cage's Wayland display, which cage shows in front of the dashboard while it is open and drops back from when it closes, and its profile in `~/.openclaw/browser/openclaw/user-data` keeps logins between tasks.
+  It stops the browser when a task is done, and tab cleanup closes tabs idle for 3 minutes in case it does not.
 - `node_exporter` is open on `wlp1s0` and `wg0`; `modules/hosts/spike/monitoring.nix` scrapes it as the `framer` target, beside spike's own.
 - UEFI's Enable Battery Limit (Power + Volume Up at boot, Boot configuration, Advanced Options), present since the Surface Book 2's July 2020 firmware, holds both batteries at 50%; a hand step, since it is not something NixOS can set.
 - A USB Ethernet adapter in the base beats the wifi for an always-on box; if one is used, its interface joins `modules/hosts/framer`'s firewall lists, a hand step alongside plugging it in.
