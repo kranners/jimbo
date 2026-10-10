@@ -170,6 +170,7 @@ Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and
 - Voice (`modules/hosts/framer/voice.nix`) runs `wyoming-satellite` as `aaron`, named `framer`, on `:10700`, open on `wlp1s0` and `wg0` alone, for Home Assistant's Wyoming integration to find over zeroconf.
   It runs as `aaron` so `arecord` and `aplay` reach the PipeWire session cage's login starts, and it starts after `cage-tty1`.
   `wyoming-openwakeword` listens on `127.0.0.1:10400` alone for the wake word `hey_jarvis`, and each detection runs `panel-wake`.
+  Before each start the satellite sets the mic to `0.2` with `wpctl`, because at `1.0` the capture path's 60 dB of gain clipped the room's background noise, and a start before PipeWire is up keeps WirePlumber's saved volume instead of failing.
 - `node_exporter` is open on `wlp1s0` and `wg0`; `modules/hosts/spike/monitoring.nix` scrapes it as the `framer` target, beside spike's own.
 - UEFI's Enable Battery Limit (Power + Volume Up at boot, Boot configuration, Advanced Options), present since the Surface Book 2's July 2020 firmware, holds both batteries at 50%; a hand step, since it is not something NixOS can set.
 - A USB Ethernet adapter in the base beats the wifi for an always-on box; if one is used, its interface joins `modules/hosts/framer`'s firewall lists, a hand step alongside plugging it in.

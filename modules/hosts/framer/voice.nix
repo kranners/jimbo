@@ -4,6 +4,14 @@
   host,
   ...
 }:
+let
+  micVolumeBelowClipping = "0.2";
+
+  setMicVolume = pkgs.writeShellScript "set-mic-volume" ''
+    export XDG_RUNTIME_DIR=/run/user/$UID
+    ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SOURCE@ ${micVolumeBelowClipping}
+  '';
+in
 {
   services.wyoming.openwakeword = {
     enable = true;
@@ -33,6 +41,7 @@
   systemd.services.wyoming-satellite = {
     wants = [ "cage-tty1.service" ];
     after = [ "cage-tty1.service" ];
+    serviceConfig.ExecStartPre = "-${setMicVolume}";
   };
 
   networking.firewall.interfaces = lib.genAttrs [ "wlp1s0" "wg0" ] (_: {
