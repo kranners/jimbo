@@ -1,0 +1,77 @@
+{
+  pkgs,
+  lib,
+  ...
+}:
+let
+  accounts = {
+    fastmail = {
+      address = "aaron@cute.engineer";
+      imapServer = "imap.fastmail.com:993";
+    };
+    gmail = {
+      address = "aaronpierce114@gmail.com";
+      imapServer = "imap.gmail.com:993";
+    };
+  };
+
+  passwordFile = name: "/var/lib/secrets/email-${name}-password";
+
+  himalayaConfig = (pkgs.formats.toml { }).generate "himalaya.toml" {
+    accounts = lib.mapAttrs (name: account: {
+      default = name == "fastmail";
+      imap.server = account.imapServer;
+      imap.sasl.plain.username = account.address;
+      imap.sasl.plain.password.command = "cat ${passwordFile name}";
+    }) accounts;
+  };
+
+  readOnlyMail = pkgs.writeShellApplication {
+    name = "mail";
+
+    runtimeInputs = [ pkgs.himalaya ];
+
+    text = ''
+      usage() {
+        echo "usage: mail accounts" >&2
+        echo "       mail <account> mailboxes" >&2
+        echo "       mail <account> unread [count]" >&2
+        echo "       mail <account> list [count]" >&2
+        echo "       mail <account> search <query>..." >&2
+        echo "       mail <account> read <id>" >&2
+        exit 2
+      }
+
+      himalaya() {
+        command himalaya --config ${himalayaConfig} --log-level off "$@"
+      }
+
+      [ $# -ge 1 ] || usage
+
+      if [ "$1" = accounts ]; then
+        himalaya account list
+        exit
+      fi
+
+      [ $# -ge 2 ] || usage
+      account="$1"
+      action="$2"
+      shift 2
+
+      case "$action" in
+        mailboxes) himalaya --account "$account" mailbox list ;;
+        unread) himalaya --account "$account" envelope search --page-size "''${1:-10}" not flag seen order by date desc ;;
+        list) himalaya --account "$account" envelope list --page-size "''${1:-10}" ;;
+        search) himalaya --account "$account" envelope search "$@" ;;
+        read) [ $# -eq 1 ] || usage; himalaya --account "$account" message read "$1" ;;
+        *) usage ;;
+      esac
+    '';
+  };
+in
+{
+  environment.systemPackages = [ readOnlyMail ];
+
+  openclaw.skills.email = ./skills/email;
+  openclaw.commands = [ readOnlyMail ];
+}
