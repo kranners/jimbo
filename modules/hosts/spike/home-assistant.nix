@@ -415,6 +415,23 @@ in
           ];
         }
         {
+          alias = "Reconnect framer's satellite when it is stuck listening";
+          trigger = [
+            {
+              platform = "state";
+              entity_id = framerSatellite;
+              to = "listening";
+              for.seconds = 30;
+            }
+          ];
+          action = [
+            {
+              service = "homeassistant.reload_config_entry";
+              target.entity_id = framerSatellite;
+            }
+          ];
+        }
+        {
           alias = "Wallpanel night profile";
           trigger = [
             {
