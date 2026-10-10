@@ -21,6 +21,7 @@ let
     accounts = lib.mapAttrs (name: account: {
       default = name == "fastmail";
       imap.server = account.imapServer;
+      mailbox.alias.inbox = "INBOX";
       imap.sasl.plain.username = account.address;
       imap.sasl.plain.password.command = "cat ${passwordFile name}";
     }) accounts;
