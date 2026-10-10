@@ -79,7 +79,7 @@ in
   };
 
   config.nixosSystemModule =
-    { pkgs, ... }:
+    { pkgs, ... }@nixos:
     let
       sortedSchedule = lib.sort (a: b: a.time < b.time) cfg.schedule;
       wrapPercent = (lib.last sortedSchedule).percent;
@@ -201,7 +201,16 @@ in
           };
         };
 
-        cage-tty1.serviceConfig.Restart = "always";
+        NetworkManager-wait-online.serviceConfig.ExecStart = [
+          ""
+          "${nixos.config.networking.networkmanager.package}/bin/nm-online -q -t 60"
+        ];
+
+        cage-tty1 = {
+          wants = [ "network-online.target" ];
+          after = [ "network-online.target" ];
+          serviceConfig.Restart = "always";
+        };
 
         kiosk-remote-view = {
           description = "Panel noVNC bridge to wayvnc";
