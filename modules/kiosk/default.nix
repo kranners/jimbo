@@ -171,6 +171,7 @@ in
         runtimeInputs = [ pkgs.systemd ];
         text = ''
           ${brightness} set ${toString dayPercent}
+          systemctl --user stop panel-wake-restore.timer 2>/dev/null || true
           systemd-run --user --collect --unit=panel-wake-restore --on-active=2min -- ${lib.getExe panelScheduleApply}
         '';
       };
