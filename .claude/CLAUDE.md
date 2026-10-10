@@ -182,6 +182,9 @@ Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and
   Its `home-assistant` skill calls Home Assistant's REST API on `10.100.0.1:8123` through `home-assistant-api`, which reads its token from `/var/lib/secrets/home-assistant-token`, owner `aaron`, mode 600, written by hand, so the token never reaches the model.
   Its browser is `ungoogled-chromium` on cage's Wayland display, which cage shows in front of the dashboard while it is open and drops back from when it closes, and its profile in `~/.openclaw/browser/openclaw/user-data` keeps logins between tasks.
   It stops the browser when a task is done, and tab cleanup closes tabs idle for 3 minutes in case it does not.
+- Email (`modules/hosts/framer/email.nix`) puts a read-only `mail` command on the path, a wrapper over himalaya that only lists, searches and reads, so OpenClaw can read Fastmail and Gmail aloud but never send, move or delete.
+  Its accounts are an attrset of address and IMAP server in that file, each logging in with an app password from `/var/lib/secrets/email-<account>-password`, owner `aaron`, mode 600, written by hand.
+  It adds `mail` to `openclaw.commands` and the OpenClaw skill `email`, telling the agent how to use `mail` and how to read mail aloud.
 - `node_exporter` is open on `wlp1s0` and `wg0`; `modules/hosts/spike/monitoring.nix` scrapes it as the `framer` target, beside spike's own.
 - UEFI's Enable Battery Limit (Power + Volume Up at boot, Boot configuration, Advanced Options), present since the Surface Book 2's July 2020 firmware, holds both batteries at 50%; a hand step, since it is not something NixOS can set.
 - A USB Ethernet adapter in the base beats the wifi for an always-on box; if one is used, its interface joins `modules/hosts/framer`'s firewall lists, a hand step alongside plugging it in.

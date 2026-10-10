@@ -85,3 +85,4 @@
 - 2026-10-10: Mask getty@tty1 on kiosks, because every switch started it and its conflict with cage stopped framer's panel.
 - 2026-10-10: Transcribe with whisper's base-int8 instead of small-int8, which took about 1 s instead of 3 s for a short command on spike.
 - 2026-10-10: Run OpenClaw on framer as the voice assistant's brain, through Claude Code's own login, with its browser in front of the panel's dashboard.
+- 2026-10-10: Give framer a read-only `mail` command over himalaya for Fastmail and Gmail, and an OpenClaw skill that reads email aloud with it.

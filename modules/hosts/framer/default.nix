@@ -16,6 +16,7 @@
         ./monitoring.nix
         ./voice.nix
         ./openclaw
+        ./email.nix
       ];
 
       boot.loader.systemd-boot.enable = true;
