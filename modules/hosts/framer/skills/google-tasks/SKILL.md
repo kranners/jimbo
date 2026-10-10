@@ -16,21 +16,21 @@ home-assistant-api GET states \
 ```
 
 `state` is the number of unfinished items.
-When Aaron names no list, use the one called `My Tasks`, Google's default.
+When Aaron names no list, use `todo.aaron_s_list`, his Google Tasks list; `todo.shopping_list` is Home Assistant's own, not Google's.
 
 ## Read
 
 ```sh
-home-assistant-api POST 'services/todo/get_items?return_response' '{"entity_id": "todo.my_tasks", "status": "needs_action"}'
+home-assistant-api POST 'services/todo/get_items?return_response' '{"entity_id": "todo.aaron_s_list", "status": "needs_action"}'
 ```
 
-The reply is `{"service_response": {"todo.my_tasks": {"items": [{"summary", "uid", "status", "due", "description"}]}}}`.
+The reply is `{"service_response": {"todo.aaron_s_list": {"items": [{"summary", "uid", "status", "due", "description"}]}}}`.
 Leave out `status` to include completed items.
 
 ## Add
 
 ```sh
-home-assistant-api POST services/todo/add_item '{"entity_id": "todo.my_tasks", "item": "Buy milk", "due_date": "2026-10-11", "description": "Two litres"}'
+home-assistant-api POST services/todo/add_item '{"entity_id": "todo.aaron_s_list", "item": "Buy milk", "due_date": "2026-10-11", "description": "Two litres"}'
 ```
 
 `due_date` and `description` are optional.
@@ -39,8 +39,8 @@ Google Tasks keeps a due date but no time, so a reminder "at 5pm" is saved for t
 ## Complete, rename or reschedule
 
 ```sh
-home-assistant-api POST services/todo/update_item '{"entity_id": "todo.my_tasks", "item": "Buy milk", "status": "completed"}'
-home-assistant-api POST services/todo/update_item '{"entity_id": "todo.my_tasks", "item": "Buy milk", "rename": "Buy oat milk", "due_date": "2026-10-12"}'
+home-assistant-api POST services/todo/update_item '{"entity_id": "todo.aaron_s_list", "item": "Buy milk", "status": "completed"}'
+home-assistant-api POST services/todo/update_item '{"entity_id": "todo.aaron_s_list", "item": "Buy milk", "rename": "Buy oat milk", "due_date": "2026-10-12"}'
 ```
 
 `item` matches an item's summary or its `uid`; read the list first when the name Aaron says is not exact.
@@ -48,7 +48,7 @@ home-assistant-api POST services/todo/update_item '{"entity_id": "todo.my_tasks"
 ## Delete
 
 ```sh
-home-assistant-api POST services/todo/remove_item '{"entity_id": "todo.my_tasks", "item": "Buy milk"}'
+home-assistant-api POST services/todo/remove_item '{"entity_id": "todo.aaron_s_list", "item": "Buy milk"}'
 ```
 
 Confirm before deleting, since Google Tasks has no undo from here.
