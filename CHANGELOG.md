@@ -83,3 +83,4 @@
 - 2026-10-10: Turn framer's speaker up to full before the satellite starts, because at 0.4 its answers were too quiet.
 - 2026-10-10: Wake framer with okay_nabu instead of hey_rhasspy.
 - 2026-10-10: Mask getty@tty1 on kiosks, because every switch started it and its conflict with cage stopped framer's panel.
+- 2026-10-10: Transcribe with whisper's base-int8 instead of small-int8, which took about 1 s instead of 3 s for a short command on spike.
