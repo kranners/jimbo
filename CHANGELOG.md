@@ -111,3 +111,4 @@
 - 2026-10-11: Let framer's voice assistant read Aaron's repositories' code and open issues, so the issues it raises are worded from the code.
 - 2026-10-11: Enlarge framer's clock and weather to twice their size across the panel's width, and drop its graphs.
 - 2026-10-11: Read a voice-raised GitHub issue's body from a heredoc, because Claude Code refused a quoted body with a markdown heading in it.
+- 2026-10-11: Serve backlogic at backlogic.spike.cute.engineer over WireGuard, proxying the instance already running on spike's :4200.
