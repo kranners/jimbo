@@ -70,15 +70,12 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
 - Grafana listens on `127.0.0.1:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
   Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
-  Its dashboards, Hardware, Services, Containers, Claude, and Workaholic and threads, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
-  Prometheus keeps a year of samples, so the Workaholic and threads dashboard can chart tokens and Claude active time per issue, from the `issue` label workaholic tags its sessions with, and per thread session, by `session_id`.
-  That dashboard also counts the issues of workaholic's repos through the `grafana-github-datasource` plugin, which searches GitHub, so it covers each issue's whole history, and reads closed without change as any close reason other than `completed`.
-  The plugin's token is a fine-grained GitHub token with read access to those repos' issues, in `/var/lib/grafana/github-token`, owner `grafana`, mode 600, written by hand.
-  Grafana starts with an empty one there when none was written, because a missing file fails its provisioning and stops it, and the GitHub panels show errors until the token is filled in.
+  Its dashboards, Hardware, Services, Containers, Claude, and Discord threads, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
+  Prometheus keeps a year of samples, so the Discord threads dashboard can chart tokens and Claude active time per thread session, by `session_id`.
   Grafana's plugins are declared, so the drilldown apps it otherwise installs itself are declared beside it.
-  Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions through `~/.claude/settings.json` on spike alone and from `workaholic`'s through its unit, each labelled `job` by `OTEL_SERVICE_NAME`.
+  Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions through `~/.claude/settings.json` on spike alone, each labelled `job` by `OTEL_SERVICE_NAME`.
   That `~/.claude/settings.json` also carries, on spike alone, an `autoMode` block telling the auto mode classifier that its production is a home server, so routine reads, restarts and post-land pulls there stop being denied.
-  Every other host's carries an `autoMode` rule instead, letting a session pipe the clipboard into a secret file on spike over SSH without reading it, which is how the GitHub token above gets there from the browser.
+  Every other host's carries an `autoMode` rule instead, letting a session pipe the clipboard into a secret file on spike over SSH without reading it, which is how a token gets there from the browser.
   `claude-limits.timer` writes the plan's session and weekly limits every 2 minutes for node_exporter's textfile collector, read as `aaron` from `/api/oauth/usage`, the undocumented endpoint behind `/usage`, with the token in `~/.claude/.credentials.json`.
 - Backlogic runs outside this flake, as `aaron`'s hand-started transient user units `backlogic-aaron` on `:4200` and `backlogic-second` on `:4201`, which a reboot stops.
   Caddy serves `backlogic-aaron` at `https://backlogic.spike.cute.engineer` (`modules/hosts/spike/backlogic.nix`), whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
@@ -136,23 +133,6 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `/done` removes a thread's worktree unless something in it is uncommitted, keeps its branch, and posting in the thread again restores it.
   `discord-threads-pull.timer` deploys every push to its `main` within 2 minutes: as `aaron` it runs `git pull --ff-only` in the checkout and, when `HEAD` moved, restarts `discord-threads`, which runs `npm ci --omit=dev` first and ends every live thread session, whose unfinished turns replay from the ledger on boot.
   It skips the pull while the checkout is on a branch other than `main`, so checking one out there pauses deploys.
-- Slack threads (`slack-threads.service`, `modules/hosts/spike/slack-threads.nix`) runs `kranners/claude-slack-threads` the same way from `~/workspace/claude-slack-threads`, giving each Slack thread its own Claude Code session.
-  It pulls with its own read-only deploy key, `~/.ssh/claude-slack-threads-deploy`, set as the checkout's `core.sshCommand`, and pushes over HTTPS through `remote.origin.pushurl`.
-  Its tokens live in `~/.claude/channels/slack/.env` as `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN`, mode 600, written by hand, and its allowlist and opted-in channels in `~/.claude/channels/slack/access.json`, edited with `/slack-threads:access`.
-  `slack-threads-pull.timer` deploys every push to its `main` within 2 minutes, skipping the pull while the checkout is on another branch.
-- workaholic (`modules/hosts/spike/workaholic.nix`) runs `kranners/workaholic` from `/srv/workaholic`, cloned by hand as `aaron`, as the system user `workaholic` with no `sudo` and its home in `/var/lib/workaholic`.
-  It is in the `bowerbird` group, so its sessions can read Bowerbird's state in `/var/lib/bowerbird`, all but `.config`, and still not `/srv/bowerbird/.env`.
-  Eight runners, one per thread, `workaholic@1` to `workaholic@8`, are instances of the oneshot `workaholic@.service`, each started by its own timer 3 plus twice its number minutes after boot and 5 minutes after its last run ends, at `Nice=10` and low CPU and IO weights so production stays ahead of it, and a switch leaves them running rather than killing their sessions, so each picks up a changed unit on its next run.
-  How many issues are worked at once is left to each run's gate on load, memory and Max usage, with eight as the ceiling.
-  The runners share `system-workaholic.slice`, capped at `MemoryHigh=7G` and `MemoryMax=8G`, because one run peaks at up to about 4 GiB and spike has no swap, so runs that overrun it are OOM-killed inside the slice rather than production.
-  Each run is `src/run.ts` under the `mixed` profile, which runs the gate, then claims one issue no other runner holds and works it with `claude -p`, with `git`, `claude-code`, `nodejs_24` and `curl` on its path, so sessions can run npm landing checks and probe their previews, and `SHELL` set to bash, because the user's own shell is `nologin`.
-  Its Claude token from `claude setup-token`, its GitHub token and the token of its own Discord bot, apart from the one `discord-threads` runs as, live in `/var/lib/workaholic/.config/workaholic/` as `claude-token`, `github-token` and `discord-token`, owner `workaholic`, mode 600, written by hand.
-  Its `config.json` beside them, naming its operator, the repos it works with their Slack channels, its preview hosts and its git author, holds no secrets, so the module generates it and tmpfiles links it there on every switch.
-  The user lingers, so its runs can leave each issue's preview running as a transient user unit on `4000` plus the issue number, with ports 4000 to 4999 open on `wlp2s0` and `wg0` alone, and `~/.config` is its own, apart from the root-owned token directory, because Chrome cannot start without writing there.
-  `TEST_CHROMIUM_PATH` names nixpkgs' Google Chrome, because Playwright's downloaded Chromium cannot run on NixOS, so sessions can run browser tests and record their changes.
-  Each run first starts the oneshot `workaholic-pull`, which runs `git pull --ff-only` in `/srv/workaholic` as `aaron`, so every run works from the newest `main` with no restart, and a failed pull leaves the run on the code already there.
-  When the pull moves `HEAD`, it also restarts `workaholic-listen`, which keeps `src/listen.ts` connected to Discord as that bot, restarting it 10 s after it exits, to answer its slash commands in issue threads.
-  `workaholic-listen` has the runners' path and environment, because `/pickup` starts a run as a transient user unit that takes `PATH`, `SHELL` and `TEST_CHROMIUM_PATH` from it.
 
 ### framer
 

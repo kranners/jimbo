@@ -7,7 +7,6 @@
 let
   inherit (config.services) cadvisor grafana prometheus;
   grafanaSecretKey = "${grafana.dataDir}/secret_key";
-  grafanaGithubToken = "${grafana.dataDir}/github-token";
   grafanaDomain = "grafana.spike.cute.engineer";
   textfileDir = "/var/lib/claude-limits";
 
@@ -97,7 +96,6 @@ in
   services.grafana = {
     enable = true;
     declarativePlugins = with pkgs.grafanaPlugins; [
-      grafana-github-datasource
       grafana-exploretraces-app
       grafana-lokiexplore-app
       grafana-metricsdrilldown-app
@@ -121,16 +119,6 @@ in
         isDefault = true;
         jsonData.timeInterval = prometheus.globalConfig.scrape_interval;
       }
-      {
-        name = "GitHub";
-        uid = "github";
-        type = "grafana-github-datasource";
-        jsonData = {
-          selectedAuthType = "personal-access-token";
-          cachingEnabled = true;
-        };
-        secureJsonData.accessToken = "$__file{${grafanaGithubToken}}";
-      }
     ];
   };
 
@@ -140,6 +128,5 @@ in
 
   systemd.services.grafana.preStart = ''
     [ -f ${grafanaSecretKey} ] || (umask 077 && ${pkgs.openssl}/bin/openssl rand -hex 32 > ${grafanaSecretKey})
-    [ -f ${grafanaGithubToken} ] || (umask 077 && touch ${grafanaGithubToken})
   '';
 }

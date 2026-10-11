@@ -117,3 +117,4 @@
 - 2026-10-11: Pulse the voice card's bottom gradient itself while framer's satellite listens, instead of a box-shadow halo that no longer read as a gradient.
 - 2026-10-11: Add tower to spike's WireGuard peers at `10.100.0.7`.
 - 2026-10-11: Raise framer's wake word threshold from `0.5` to `0.7` after it woke to overheard speech, and record each wake for tuning in #160.
+- 2026-10-12: Retire slack-threads from spike and drop workaholic's leftover dashboard panels, its GitHub issue datasource and its docs, now that backlogic replaces both.
