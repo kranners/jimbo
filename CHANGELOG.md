@@ -122,3 +122,4 @@
 - 2026-10-12: Serve framer's noVNC bridge at vnc.framer.cute.engineer over WireGuard, proxying framer's :6080 from Caddy on spike.
 - 2026-10-12: Run spike's nix-daemon at idle CPU and IO priority so framer's remote builds yield to Bowerbird.
 - 2026-10-12: Let framer file backlogic tickets by voice through a `backlogic-ticket` command and OpenClaw skill, with an owner token from `/var/lib/secrets/backlogic-token`.
+- 2026-10-11: Put a tile for framer's satellite mute, Home Assistant's own `switch.framer_mute`, on the panel, so the microphone can be muted from the screen with no command channel to framer.

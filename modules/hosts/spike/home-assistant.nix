@@ -116,6 +116,7 @@ let
   framerSatellite = "assist_satellite.framer";
   framerVoice = "sensor.framer_voice";
   framerConversation = "binary_sensor.framer_conversation";
+  framerMute = "switch.framer_mute";
   panelScreensaver = "input_boolean.panel_screensaver";
   wallpanelProfile = "input_text.wallpanel_profile";
   secondsToReadReply = 30;
@@ -180,6 +181,12 @@ let
         }
       '';
     };
+  };
+
+  muteCard = {
+    type = "tile";
+    entity = framerMute;
+    name = "Mute microphone";
   };
 
   infoCards = [
@@ -388,7 +395,7 @@ in
         {
           path = "panel";
           title = "Panel";
-          cards = [ voiceCard ] ++ infoCards;
+          cards = [ voiceCard ] ++ infoCards ++ [ muteCard ];
         }
       ];
 
