@@ -97,7 +97,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Assist answers today's and tomorrow's forecast locally through the module's own `WeatherForecastToday` and `WeatherForecastTomorrow` sentences, which read Open-Meteo's daily forecast for `weather.home`, because the built-in weather intent only reports the current conditions.
   That built-in intent answers "what's the weather" only once `weather.home` is exposed to Assist, a hand step in Home Assistant's settings.
 - Voice (`modules/hosts/spike/voice.nix`) runs `wyoming-faster-whisper-en` on `127.0.0.1:10300` and `wyoming-piper-en` on `127.0.0.1:10200` for Home Assistant's Assist pipeline, loopback only because Home Assistant runs on the same box.
-  Both are niced to `10` so a transcription never competes with Bowerbird, and both download their model from Hugging Face into the unit's state directory on first start, so that start needs the internet and a minute.
+  The recogniser is NVIDIA's English Parakeet through sherpa-onnx, the server's own default for English, which on spike transcribes a short command in under half a second, about three times faster than whisper's `base-int8`, which misheard commands.
+  Both are niced to `10` so a transcription never competes with Bowerbird, and both download their model, Parakeet from sherpa-onnx's GitHub releases and the voice from Hugging Face, into the unit's state directory on first start, so that start needs the internet and a minute.
 - Caddy (`modules/hosts/spike/caddy.nix`) serves HTTPS on `443`, open only on `wg0`.
   Its certificates come from Let's Encrypt by DNS-01, through the `caddy-dns/cloudflare` plugin built in with `pkgs.caddy.withPlugins`.
   It reads the cloudflare-dyndns token as the systemd credential `cloudflare-token`, through Caddy's `{file.*}` placeholder, so the token never reaches the Nix store.

@@ -1,7 +1,8 @@
 {
   services.wyoming.faster-whisper.servers.en = {
     enable = true;
-    model = "base-int8";
+    sttLibrary = "sherpa";
+    model = "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8";
     language = "en";
     device = "cpu";
     uri = "tcp://127.0.0.1:10300";

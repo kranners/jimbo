@@ -105,3 +105,4 @@
 - 2026-10-10: Give Rylee an admin user, `rylee`, on spike, logging in with her key from noodlebook.
 - 2026-10-10: Show framer's voice conversation as large white text over a full-screen bottom gradient.
 - 2026-10-10: Patch framer's wyoming-satellite to reset openwakeword on a transcript, so a long request no longer wakes it again and aborts the answer.
+- 2026-10-11: Recognise speech on spike with Parakeet instead of whisper's base-int8, which misheard commands; Parakeet is also about three times faster.
