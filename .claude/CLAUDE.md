@@ -70,12 +70,16 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
 - Grafana listens on `127.0.0.1:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
   Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
-  Its dashboards, Hardware, Services, Containers, Claude, and Discord threads, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
-  Prometheus keeps a year of samples, so the Discord threads dashboard can chart tokens and Claude active time per thread session, by `session_id`.
+  Its dashboards, Hardware, Services, Containers, Claude, and Backlogic and threads, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
+  Prometheus keeps a year of samples, so the Backlogic and threads dashboard can chart tokens and Claude active time per thread session, by `session_id`.
+  That dashboard and the Claude one read backlogic's tickets from `backlogic-aaron`'s `/api/snapshot` through the `yesoreyeram-infinity-datasource` plugin, counting open, claimed and done tickets and charting each done ticket's spend, read as met or not met by its resolution.
+  Its time range filters done tickets by `doneAt`, through Grafana's `${__from}` in each query's JSONata selector, which Grafana's frontend expands and the plugin's backend does not.
+  The plugin's token is a backlogic API token, minted by the owner in backlogic's settings, in `/var/lib/grafana/backlogic-token`, owner `grafana`, mode 600, written by hand.
+  Grafana starts with an empty one there when none was written, because a missing file fails its provisioning and stops it, and the backlogic panels show errors until the token is filled in.
   Grafana's plugins are declared, so the drilldown apps it otherwise installs itself are declared beside it.
-  Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions through `~/.claude/settings.json` on spike alone, each labelled `job` by `OTEL_SERVICE_NAME`.
+  Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions, backlogic's runner's among them, through `~/.claude/settings.json` on spike alone, each labelled `job` by `OTEL_SERVICE_NAME`.
   That `~/.claude/settings.json` also carries, on spike alone, an `autoMode` block telling the auto mode classifier that its production is a home server, so routine reads, restarts and post-land pulls there stop being denied.
-  Every other host's carries an `autoMode` rule instead, letting a session pipe the clipboard into a secret file on spike over SSH without reading it, which is how a token gets there from the browser.
+  Every other host's carries an `autoMode` rule instead, letting a session pipe the clipboard into a secret file on spike over SSH without reading it, which is how the backlogic token above gets there from the browser.
   `claude-limits.timer` writes the plan's session and weekly limits every 2 minutes for node_exporter's textfile collector, read as `aaron` from `/api/oauth/usage`, the undocumented endpoint behind `/usage`, with the token in `~/.claude/.credentials.json`.
 - Backlogic runs outside this flake, as `aaron`'s hand-started transient user units `backlogic-aaron` on `:4200` and `backlogic-second` on `:4201`, which a reboot stops.
   Caddy serves `backlogic-aaron` at `https://backlogic.spike.cute.engineer` (`modules/hosts/spike/backlogic.nix`), whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.

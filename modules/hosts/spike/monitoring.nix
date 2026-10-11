@@ -7,6 +7,8 @@
 let
   inherit (config.services) cadvisor grafana prometheus;
   grafanaSecretKey = "${grafana.dataDir}/secret_key";
+  grafanaBacklogicToken = "${grafana.dataDir}/backlogic-token";
+  backlogicUrl = "http://127.0.0.1:4200";
   grafanaDomain = "grafana.spike.cute.engineer";
   textfileDir = "/var/lib/claude-limits";
 
@@ -96,6 +98,7 @@ in
   services.grafana = {
     enable = true;
     declarativePlugins = with pkgs.grafanaPlugins; [
+      yesoreyeram-infinity-datasource
       grafana-exploretraces-app
       grafana-lokiexplore-app
       grafana-metricsdrilldown-app
@@ -111,6 +114,12 @@ in
       security.secret_key = "$__file{${grafanaSecretKey}}";
     };
 
+    provision.datasources.settings.deleteDatasources = [
+      {
+        name = "GitHub";
+        orgId = 1;
+      }
+    ];
     provision.datasources.settings.datasources = [
       {
         name = "Prometheus";
@@ -118,6 +127,17 @@ in
         url = "http://localhost:${toString prometheus.port}";
         isDefault = true;
         jsonData.timeInterval = prometheus.globalConfig.scrape_interval;
+      }
+      {
+        name = "Backlogic";
+        uid = "backlogic";
+        type = "yesoreyeram-infinity-datasource";
+        url = backlogicUrl;
+        jsonData = {
+          auth_method = "bearerToken";
+          allowedHosts = [ backlogicUrl ];
+        };
+        secureJsonData.bearerToken = "$__file{${grafanaBacklogicToken}}";
       }
     ];
   };
@@ -128,5 +148,6 @@ in
 
   systemd.services.grafana.preStart = ''
     [ -f ${grafanaSecretKey} ] || (umask 077 && ${pkgs.openssl}/bin/openssl rand -hex 32 > ${grafanaSecretKey})
+    [ -f ${grafanaBacklogicToken} ] || (umask 077 && touch ${grafanaBacklogicToken})
   '';
 }
