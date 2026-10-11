@@ -131,10 +131,9 @@ let
   cost = "claude_code_cost_usage_USD_total";
   workingSessions = "count by (job, session_id) (increase(${tokens}[5m]) > 0)";
   activeTime = "claude_code_active_time_seconds_total";
-  threads = ''job=~"discord-threads|slack-threads"'';
+  threads = ''job="discord-threads"'';
 
   inRange = by: metric: "sum by (${by}) (increase(${metric}[$__range])) > 0";
-  perIssue = metric: inRange "issue" ''${metric}{job="workaholic",issue!=""}'';
   perSession = job: metric: inRange "session_id" ''${metric}{job="${job}"}'';
 
   instantTableTarget = expr: {
@@ -175,33 +174,6 @@ let
       };
     };
 
-  github = {
-    type = "grafana-github-datasource";
-    uid = "github";
-  };
-  workaholicRepos = [
-    "kranners/bowerbird"
-    "kranners/jimbo"
-    "kranners/workaholic"
-    "kranners/claude-slack-threads"
-  ];
-  issueTimeField = {
-    created = 0;
-    closed = 1;
-  };
-  issues = timeField: query: {
-    datasource = github;
-    queryType = "Issues";
-    owner = "kranners";
-    repository = "";
-    options = {
-      timeField = issueTimeField.${timeField};
-      query = lib.concatMapStringsSep " " (repo: "repo:${repo}") workaholicRepos + " " + query;
-    };
-  };
-  completed = "reason:completed";
-  withoutChange = "is:closed -reason:completed";
-
   tally =
     args:
     stat (
@@ -216,26 +188,6 @@ let
         };
       }
     );
-
-  issueStat =
-    {
-      title,
-      target,
-      extra ? { },
-    }:
-    stat {
-      inherit title;
-      targets = [ target ];
-      extra = {
-        datasource = github;
-        fieldConfig.defaults.noValue = "0";
-        options.reduceOptions = {
-          calcs = [ "count" ];
-          fields = "/^number$/";
-        };
-      }
-      // extra;
-    };
 
   dashboards = {
     hardware = dashboard "spike-hardware" "Spike / Hardware" [
@@ -465,12 +417,6 @@ let
         targets = [ (target "count(${workingSessions}) or vector(0)" "sessions") ];
       })
       (stat {
-        title = "Busy workaholic runners";
-        targets = [
-          (target ''count(node_systemd_unit_state{name=~"workaholic@.+",state="activating"} == 1) or vector(0)'' "runners")
-        ];
-      })
-      (stat {
         title = "Tokens in range";
         targets = [ (target "sum(increase(${tokens}[$__range]))" "tokens") ];
       })
@@ -507,155 +453,10 @@ let
     ];
 
     agents =
-      dashboard "spike-agents" "Spike / Workaholic and threads" [
-        (issueStat {
-          title = "Open issues";
-          target = issues "created" "is:open";
-          extra.timeFrom = "10y";
-        })
-        (issueStat {
-          title = "Completed in range";
-          target = issues "closed" completed;
-        })
-        (issueStat {
-          title = "Closed without change in range";
-          target = issues "closed" withoutChange;
-        })
-        (tally {
-          title = "Issues worked in range";
-          targets = [ (target "count(${perIssue tokens}) or vector(0)" "issues") ];
-        })
-        (panel "timeseries" {
-          title = "Issues closed per day";
-          w = 24;
-          targets = [
-            (issues "closed" completed)
-            (issues "closed" withoutChange)
-          ];
-          extra = {
-            datasource = github;
-            fieldConfig = {
-              defaults.custom = {
-                drawStyle = "bars";
-                fillOpacity = 80;
-                stacking.mode = "normal";
-              };
-              overrides = named {
-                A = "completed";
-                B = "closed without change";
-              };
-            };
-            transformations = [
-              {
-                id = "formatTime";
-                options = {
-                  timeField = "closed_at";
-                  outputFormat = "YYYY-MM-DD";
-                };
-              }
-              {
-                id = "groupBy";
-                options.fields = {
-                  closed_at = {
-                    aggregations = [ ];
-                    operation = "groupby";
-                  };
-                  number = {
-                    aggregations = [ "count" ];
-                    operation = "aggregate";
-                  };
-                };
-              }
-              {
-                id = "convertFieldType";
-                options.conversions = [
-                  {
-                    targetField = "closed_at";
-                    destinationType = "time";
-                    dateFormat = "YYYY-MM-DD";
-                  }
-                ];
-              }
-            ];
-          };
-        })
-        (histogram {
-          title = "Tokens per issue";
-          targets = [ (perIssue tokens) ];
-          names.A = "issues";
-        })
-        (histogram {
-          title = "Claude active time per issue";
-          unit = "s";
-          targets = [ (perIssue activeTime) ];
-          names.A = "issues";
-        })
-        (panel "table" {
-          title = "Tokens and time per issue";
-          w = 24;
-          targets = map instantTableTarget [
-            (perIssue tokens)
-            (perIssue activeTime)
-            (perIssue cost)
-          ];
-          extra = {
-            transformations = [
-              {
-                id = "merge";
-                options = { };
-              }
-              {
-                id = "organize";
-                options = {
-                  excludeByName.Time = true;
-                  renameByName = {
-                    "Value #A" = "tokens";
-                    "Value #B" = "active time";
-                    "Value #C" = "API-equivalent cost";
-                  };
-                };
-              }
-              {
-                id = "sortBy";
-                options.sort = [
-                  {
-                    field = "tokens";
-                    desc = true;
-                  }
-                ];
-              }
-            ];
-            fieldConfig = {
-              defaults = { };
-              overrides =
-                lib.mapAttrsToList
-                  (name: unit: {
-                    matcher = {
-                      id = "byName";
-                      options = name;
-                    };
-                    properties = [
-                      {
-                        id = "unit";
-                        value = unit;
-                      }
-                    ];
-                  })
-                  {
-                    tokens = "short";
-                    "active time" = "s";
-                    "API-equivalent cost" = "currencyUSD";
-                  };
-            };
-          };
-        })
+      dashboard "spike-agents" "Spike / Discord threads" [
         (tally {
           title = "Discord sessions in range";
           targets = [ (target "count(${perSession "discord-threads" tokens}) or vector(0)" "sessions") ];
-        })
-        (tally {
-          title = "Slack sessions in range";
-          targets = [ (target "count(${perSession "slack-threads" tokens}) or vector(0)" "sessions") ];
         })
         (tally {
           title = "Thread tokens in range";
@@ -670,11 +471,9 @@ let
           title = "Tokens per thread session";
           targets = [
             (perSession "discord-threads" tokens)
-            (perSession "slack-threads" tokens)
           ];
           names = {
             A = "discord-threads";
-            B = "slack-threads";
           };
         })
         (histogram {
@@ -682,11 +481,9 @@ let
           unit = "s";
           targets = [
             (perSession "discord-threads" activeTime)
-            (perSession "slack-threads" activeTime)
           ];
           names = {
             A = "discord-threads";
-            B = "slack-threads";
           };
         })
       ]

@@ -10,7 +10,6 @@
         ./caddy.nix
         ./claude.nix
         ./discord-threads.nix
-        ./slack-threads.nix
         ./dns.nix
         ./docker.nix
         ./environments.nix
