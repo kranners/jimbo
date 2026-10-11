@@ -103,7 +103,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Its certificates come from Let's Encrypt by DNS-01, through the `caddy-dns/cloudflare` plugin built in with `pkgs.caddy.withPlugins`.
   It reads the cloudflare-dyndns token as the systemd credential `cloudflare-token`, through Caddy's `{file.*}` placeholder, so the token never reaches the Nix store.
   Spike's network answers every DNS query itself, whatever server it is sent to, and hides answers with private addresses, so Caddy skips its own propagation check, `propagation_timeout -1`, and waits 30 seconds for Let's Encrypt instead.
-  The same filter hides `app.bowerbird.cute.engineer` from anything resolving through the home network.
+  The same filter hides `app.bowerbird.cute.engineer` and `vnc.framer.cute.engineer` from anything resolving through the home network.
 - Bowerbird (`modules/hosts/spike/bowerbird.nix`) runs the job application pipeline from a clone of `kranners/bowerbird` at `/srv/bowerbird`, made by hand as `aaron` with `npm ci` run in it.
   Its secrets and settings live in `/srv/bowerbird/.env`, owner `bowerbird`, mode 600, written by hand.
   `bowerbird-compose.service` runs `compose.production.yml` as root: Postgres on `127.0.0.1:5432` and the portal on `:3000`.
@@ -163,6 +163,7 @@ Its cage unit restarts always, so a Chromium crash brings the dashboard back, an
 It starts only after `network-online.target`, because Chromium never retries a page that failed to resolve.
 The kiosk overrides `NetworkManager-wait-online` to `nm-online -q -t 60`, which waits up to a minute for a connection, because NixOS's `nm-online -s` returns as soon as NetworkManager starts, seconds before framer's Marvell wifi connects.
 noVNC bridges wayvnc through websockify on `6080`; it and wayvnc's own `5900` are open on `kiosk.lanInterface`, which framer sets to `wlp1s0`, and `wg0` alone, with no VNC password, so the panel is a browser tab on the MacBook.
+`modules/hosts/spike/framer-vnc.nix` gives that noVNC bridge a fixed name too, `https://vnc.framer.cute.engineer`, a Caddy virtual host on spike that reverse-proxies to framer's own `wg0` address (`modules/hosts/framer/wireguard.nix`) since Caddy runs on spike, not framer; its DNS-only A record points at `10.100.0.1`, the same as Grafana's and Bowerbird's, and it carries the same no-VNC-password boundary as the ports above, wg0 peers alone.
 `kiosk.schedule` drives `intel_backlight` through the `brightness` command: 60% from 07:30, 15% from 18:00, 0% from 23:30, back to 15% at 06:30.
 Each step clears any override and applies whatever the schedule says for now, so a step `Persistent` replays late after a boot or switch still sets the right level.
 Its `panel` command, `kiosk.panelCommand`, overrides the schedule until its next step, with `panel brightness <percent>`, `panel off`, `panel on` or `panel schedule`, through `/run/panel-brightness/override`.
