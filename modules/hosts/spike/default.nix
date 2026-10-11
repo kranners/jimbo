@@ -5,6 +5,7 @@
     {
       imports = [
         ./hardware.nix
+        ./backlogic.nix
         ./bowerbird.nix
         ./caddy.nix
         ./claude.nix
