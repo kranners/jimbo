@@ -24,6 +24,7 @@
         ./github-issues.nix
         ./backlogic.nix
         ./panel.nix
+        ./surface.nix
       ];
 
       boot.loader.systemd-boot.enable = true;
