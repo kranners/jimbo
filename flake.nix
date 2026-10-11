@@ -20,6 +20,13 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Private, and the org's policy refuses any fine-grained PAT over HTTPS, so this
+    # fetches over SSH instead, with the same access Aaron already has as one of its two owners.
+    backlogic = {
+      url = "git+ssh://git@github.com/backlogic/backlogic.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
