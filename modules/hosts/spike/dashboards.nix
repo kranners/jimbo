@@ -197,9 +197,18 @@ let
     ) columns;
   };
   countTickets = filter: tickets "$count(tickets[${filter}])" { };
-  doneInRange = filter: "tickets[$toMillis(doneAt) >= \${__from} and ${filter}]";
-  met = ''resolution = "met"'';
-  notMet = ''resolution != "met"'';
+  doneInRange =
+    filter:
+    "$append([], tickets[$toMillis(doneAt) >= \${__from} and $toMillis(doneAt) <= \${__to} and ${filter}])";
+  resolution = name: ''resolution = "${name}"'';
+  resolutionColors = {
+    met = "green";
+    partly-met = "yellow";
+    not-met = "red";
+    rejected = "purple";
+    unknown = "text";
+  };
+  resolutions = lib.attrNames resolutionColors;
   claimedTickets = countTickets ''state = "claimed"'';
   doneTicket = {
     doneAt = {
@@ -535,11 +544,11 @@ let
         })
         (ticketStat {
           title = "Met in range";
-          target = tickets "$count(${doneInRange met})" { };
+          target = tickets "$count(${doneInRange (resolution "met")})" { };
         })
         (ticketStat {
-          title = "Not met in range";
-          target = tickets "$count(${doneInRange notMet})" { };
+          title = "Short of met in range";
+          target = tickets "$count(${doneInRange ''resolution != "met"''})" { };
         })
         (ticketStat {
           title = "Claimed tickets";
@@ -548,10 +557,7 @@ let
         (panel "timeseries" {
           title = "Tickets done per day";
           w = 24;
-          targets = map (resolution: tickets (doneInRange resolution) doneTicket) [
-            met
-            notMet
-          ];
+          targets = map (name: tickets (doneInRange (resolution name)) doneTicket) resolutions;
           extra = {
             datasource = backlogic;
             fieldConfig = {
@@ -560,10 +566,25 @@ let
                 fillOpacity = 80;
                 stacking.mode = "normal";
               };
-              overrides = named {
-                A = "met";
-                B = "not met";
-              };
+              overrides = lib.imap0 (i: name: {
+                matcher = {
+                  id = "byFrameRefID";
+                  options = builtins.substring i 1 "ABCDEFGH";
+                };
+                properties = [
+                  {
+                    id = "displayName";
+                    value = lib.replaceStrings [ "-" ] [ " " ] name;
+                  }
+                  {
+                    id = "color";
+                    value = {
+                      mode = "fixed";
+                      fixedColor = resolutionColors.${name};
+                    };
+                  }
+                ];
+              }) resolutions;
             };
             transformations = [
               {
@@ -708,7 +729,7 @@ let
       ]
       // {
         time = {
-          from = "now-30d";
+          from = "now-7d";
           to = "now";
         };
         refresh = "5m";
