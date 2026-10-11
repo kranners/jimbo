@@ -207,6 +207,8 @@ Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and
   It adds `mail` to `openclaw.commands` and the OpenClaw skill `email`, telling the agent how to use `mail` and how to read mail aloud.
 - `modules/hosts/framer/google-calendar.nix` adds the OpenClaw skill `google-calendar`, which lists, reads and adds Google Calendar events through `home-assistant-api`.
 - `modules/hosts/framer/google-tasks.nix` adds the OpenClaw skill `google-tasks`, which reads and writes Google Tasks through Home Assistant's `todo` services with `home-assistant-api`.
+- `modules/hosts/framer/github-issues.nix` puts a `github-issue` command on the path, which only lists the non-archived repositories Aaron owns and opens new issues on them, and adds the OpenClaw skill `github-issues`, so a voice request names a repository the way it is said and gets at most two follow-up questions before the issue is raised.
+  It reads a fine-grained GitHub token with read and write access to issues on all of Aaron's repositories from `/var/lib/secrets/github-issues-token`, owner `aaron`, mode 600, written by hand.
 - `modules/hosts/framer/panel.nix` adds the OpenClaw skill `panel` and the kiosk's `panel` command, so a voice command turns the screen on or off or sets its brightness until the schedule's next step.
 - `node_exporter` is open on `wlp1s0` and `wg0`; `modules/hosts/spike/monitoring.nix` scrapes it as the `framer` target, beside spike's own.
 - UEFI's Enable Battery Limit (Power + Volume Up at boot, Boot configuration, Advanced Options), present since the Surface Book 2's July 2020 firmware, holds both batteries at 50%; a hand step, since it is not something NixOS can set.
