@@ -31,6 +31,11 @@
         publicKey = "tvFk4wzKSPm6IbX/0ydl1crn56BD4TNu14DKmZDqDG0=";
         allowedIPs = [ "10.100.0.6/32" ];
       }
+      {
+        name = "tower";
+        publicKey = "IA5R1V9DCdOVwyi6oY+RFturexAtizQnXU2MgzsKdi0=";
+        allowedIPs = [ "10.100.0.7/32" ];
+      }
     ];
   };
 
