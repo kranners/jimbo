@@ -21,6 +21,7 @@
         ./email.nix
         ./google-calendar.nix
         ./google-tasks.nix
+        ./github-issues.nix
         ./panel.nix
       ];
 

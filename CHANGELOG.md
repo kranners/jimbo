@@ -107,3 +107,4 @@
 - 2026-10-10: Patch framer's wyoming-satellite to reset openwakeword on a transcript, so a long request no longer wakes it again and aborts the answer.
 - 2026-10-11: Recognise speech on spike with Parakeet instead of whisper's base-int8, which misheard commands; Parakeet is also about three times faster.
 - 2026-10-11: Patch framer's wyoming-satellite to listen for an answer, without the wake word, after a reply that asks a question.
+- 2026-10-11: Let framer's voice assistant raise a GitHub issue on any of Aaron's repositories by name.
