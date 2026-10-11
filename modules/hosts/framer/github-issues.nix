@@ -16,7 +16,7 @@ let
         echo "       github-issue files <owner/repo> [path regex]" >&2
         echo "       github-issue read <owner/repo> <path>" >&2
         echo "       github-issue issues <owner/repo>" >&2
-        echo "       github-issue create <owner/repo> <title> <body>" >&2
+        echo "       github-issue create <owner/repo> <title> <<'EOF' ... EOF  (body on stdin)" >&2
         exit 2
       }
 
@@ -50,8 +50,8 @@ let
             | jq -r '.[] | select(.pull_request | not) | "#\(.number)\t\(.title)"'
           ;;
         create)
-          [ $# -eq 4 ] || usage
-          jq --null-input --arg title "$3" --arg body "$4" '{title: $title, body: $body}' \
+          [ $# -eq 3 ] || usage
+          jq --null-input --arg title "$3" --rawfile body /dev/stdin '{title: $title, body: $body}' \
             | github --data @- "https://api.github.com/repos/$2/issues" \
             | jq -r '"#\(.number) \(.html_url)"'
           ;;
