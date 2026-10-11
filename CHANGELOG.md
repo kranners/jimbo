@@ -113,3 +113,4 @@
 - 2026-10-11: Read a voice-raised GitHub issue's body from a heredoc, because Claude Code refused a quoted body with a markdown heading in it.
 - 2026-10-11: Serve backlogic at backlogic.spike.cute.engineer over WireGuard, proxying the instance already running on spike's :4200.
 - 2026-10-11: Retire workaholic from spike now that backlogic replaces it, keeping backlogic's `:4200` and `:4201` open on the LAN and WireGuard.
+- 2026-10-11: Count spike's working Claude sessions, those whose tokens rose in the last 5 minutes, instead of every session ID still in Prometheus, which counted backlogic's usage probes.
