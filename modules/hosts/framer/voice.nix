@@ -14,6 +14,8 @@ let
     ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ ${speakerVolumeFull}
   '';
 
+  wakeRecordingsDir = "/var/lib/wyoming-satellite/recordings";
+
   panelVoiceWebhook = "http://spike.local:8123/api/webhook/framer-voice";
 
   postToPanel = "${lib.getExe pkgs.curl} -fsS --max-time 2 -H 'Content-Type: application/json' -d @- ${panelVoiceWebhook}";
@@ -33,6 +35,7 @@ in
   services.wyoming.openwakeword = {
     enable = true;
     uri = "tcp://127.0.0.1:10400";
+    threshold = 0.7;
   };
 
   services.wyoming.satellite = {
@@ -62,12 +65,15 @@ in
       "${showOnPanel "heard"}"
       "--synthesize-command"
       "${showOnPanel "reply"}"
+      "--debug-recording-dir"
+      wakeRecordingsDir
     ];
   };
 
   systemd.services.wyoming-satellite = {
     wants = [ "cage-tty1.service" ];
     after = [ "cage-tty1.service" ];
+    serviceConfig.StateDirectory = "wyoming-satellite";
     serviceConfig.ExecStartPre = "-${setAudioVolumes}";
   };
 
