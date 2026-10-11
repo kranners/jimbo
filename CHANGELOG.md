@@ -116,3 +116,4 @@
 - 2026-10-11: Count spike's working Claude sessions, those whose tokens rose in the last 5 minutes, instead of every session ID still in Prometheus, which counted backlogic's usage probes.
 - 2026-10-11: Pulse the voice card's bottom gradient itself while framer's satellite listens, instead of a box-shadow halo that no longer read as a gradient.
 - 2026-10-11: Add tower to spike's WireGuard peers at `10.100.0.7`.
+- 2026-10-11: Raise framer's wake word threshold from `0.5` to `0.7` after it woke to overheard speech, and record each wake for tuning in #160.
