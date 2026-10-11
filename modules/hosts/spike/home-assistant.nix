@@ -113,89 +113,6 @@ let
     '';
   };
 
-  hardwareMetrics = [
-    {
-      key = "cpu_busy";
-      name = "cpu busy";
-      unit = "%";
-      expr = ''round(100 - avg(rate(node_cpu_seconds_total{mode="idle",host="spike"}[5m])) * 100, 0.1)'';
-    }
-    {
-      key = "memory_used";
-      name = "memory used";
-      unit = "%";
-      expr = ''round((1 - node_memory_MemAvailable_bytes{host="spike"} / node_memory_MemTotal_bytes{host="spike"}) * 100, 0.1)'';
-    }
-    {
-      key = "disk_used";
-      name = "disk used";
-      unit = "%";
-      expr = ''round((1 - node_filesystem_avail_bytes{mountpoint="/",host="spike"} / node_filesystem_size_bytes{mountpoint="/",host="spike"}) * 100, 0.1)'';
-    }
-    {
-      key = "temperature";
-      name = "temperature";
-      unit = "°C";
-      expr = ''round(max(node_hwmon_temp_celsius{host="spike"}), 0.1)'';
-    }
-    {
-      key = "load_per_core";
-      name = "load per core";
-      unit = "";
-      expr = ''round(node_load5{host="spike"} / on (host) count by (host) (node_cpu_seconds_total{mode="idle",host="spike"}), 0.01)'';
-    }
-  ];
-
-  claudeLimitMetrics = [
-    {
-      key = "claude_session_limit";
-      name = "claude session limit";
-      unit = "%";
-      expr = ''max(claude_limit_percent{kind="session"})'';
-    }
-    {
-      key = "claude_weekly_limit";
-      name = "claude weekly limit";
-      unit = "%";
-      expr = ''max(claude_limit_percent{kind="weekly_all"})'';
-    }
-    {
-      key = "claude_weekly_scoped_limit";
-      name = "claude weekly scoped limit";
-      unit = "%";
-      expr = ''max(claude_limit_percent{kind="weekly_scoped"})'';
-    }
-  ];
-
-  claudeActivityMetrics = [
-    {
-      key = "claude_live_sessions";
-      name = "claude live sessions";
-      unit = "";
-      expr = "count(count by (job, session_id) (claude_code_session_count_total)) or vector(0)";
-    }
-    {
-      key = "busy_workaholic_runners";
-      name = "busy workaholic runners";
-      unit = "";
-      expr = ''count(node_systemd_unit_state{name=~"workaholic@.+",state="activating"} == 1) or vector(0)'';
-    }
-  ];
-
-  statQueries = map (metric: {
-    name = "spike ${metric.name}";
-    unique_id = "spike_${metric.key}";
-    inherit (metric) expr;
-    unit_of_measurement = metric.unit;
-  }) (hardwareMetrics ++ claudeLimitMetrics ++ claudeActivityMetrics);
-
-  historyGraph = title: metrics: {
-    type = "history-graph";
-    inherit title;
-    hours_to_show = 24;
-    entities = map (metric: "sensor.spike_${metric.key}") metrics;
-  };
-
   framerSatellite = "assist_satellite.framer";
   framerVoice = "sensor.framer_voice";
   framerConversation = "binary_sensor.framer_conversation";
@@ -279,9 +196,6 @@ let
       entity = "weather.home";
       forecast_type = "daily";
     }
-    (historyGraph "spike" hardwareMetrics)
-    (historyGraph "plan limits used" claudeLimitMetrics)
-    (historyGraph "claude" claudeActivityMetrics)
   ];
 in
 {
@@ -301,8 +215,6 @@ in
       "google"
       "google_tasks"
     ];
-
-    customComponents = [ pkgs.home-assistant-custom-components.prometheus_sensor ];
 
     customLovelaceModules = with pkgs.home-assistant-custom-lovelace-modules; [
       kiosk-mode
@@ -333,14 +245,6 @@ in
           }
         ];
       };
-
-      sensor = [
-        {
-          platform = "prometheus_sensor";
-          url = "http://localhost:9090";
-          queries = statQueries;
-        }
-      ];
 
       template = [
         {
@@ -502,6 +406,10 @@ in
         profile_entity = "sensor.panel_profile";
         screensaver_entity = panelScreensaver;
         cards = infoCards;
+        style.wallpanel-screensaver-info-box-content = {
+          zoom = "2";
+          "--wp-card-width" = "460px";
+        };
 
         profiles = {
           voice.idle_time = 0;
