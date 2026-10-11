@@ -80,6 +80,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   That `~/.claude/settings.json` also carries, on spike alone, an `autoMode` block telling the auto mode classifier that its production is a home server, so routine reads, restarts and post-land pulls there stop being denied.
   Every other host's carries an `autoMode` rule instead, letting a session pipe the clipboard into a secret file on spike over SSH without reading it, which is how the GitHub token above gets there from the browser.
   `claude-limits.timer` writes the plan's session and weekly limits every 2 minutes for node_exporter's textfile collector, read as `aaron` from `/api/oauth/usage`, the undocumented endpoint behind `/usage`, with the token in `~/.claude/.credentials.json`.
+- Backlogic runs outside this flake, as `aaron`'s hand-started transient user units `backlogic-aaron` on `:4200` and `backlogic-second` on `:4201`, which a reboot stops.
+  Caddy serves `backlogic-aaron` at `https://backlogic.spike.cute.engineer` (`modules/hosts/spike/backlogic.nix`), whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
 - Home Assistant (`modules/hosts/spike/home-assistant.nix`) runs as the NixOS `home-assistant` module, serving `:8123` open on `wlp2s0` and `wg0` alone.
   Its secrets, `latitude`, `longitude`, `elevation` and `panel_user_id`, live in `/var/lib/hass/secrets.yaml`, owner `hass`, mode 600, written by hand.
   Trusted-network auth skips the login screen for framer's DHCP-reserved LAN address, `192.168.4.25`, logging it in as the user `panel_user_id` names, so the panel at `http://spike.local:8123/nixos-lovelace/panel` never shows one while every other client still logs in.
