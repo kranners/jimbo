@@ -41,7 +41,7 @@ let
         file)
           [ $# -eq 3 ] || usage
           jq --null-input --arg project "$2" --arg title "$3" --rawfile text /dev/stdin \
-            '{project: $project, title: $title, text: $text}' \
+            '{project: $project, title: $title, text: $text, assignee: "owner"}' \
             | backlogic --data @- "${url}/api/tickets" \
             | jq -r '.id'
           ;;
