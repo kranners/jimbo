@@ -22,6 +22,7 @@
         ./google-calendar.nix
         ./google-tasks.nix
         ./github-issues.nix
+        ./backlogic.nix
         ./panel.nix
       ];
 
