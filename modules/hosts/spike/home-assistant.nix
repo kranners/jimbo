@@ -176,7 +176,7 @@ let
           {% endif %}
         }
         @keyframes listening {
-          50% { box-shadow: inset 0 -2vh 2vh -1vh var(--primary-color); }
+          50% { background: linear-gradient(to top, var(--primary-color), rgba(0, 0, 0, 0.6) 40%, transparent 75%); }
         }
       '';
     };
