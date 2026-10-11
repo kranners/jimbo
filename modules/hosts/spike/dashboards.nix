@@ -174,6 +174,67 @@ let
       };
     };
 
+  backlogic = {
+    type = "yesoreyeram-infinity-datasource";
+    uid = "backlogic";
+  };
+  tickets = selector: columns: {
+    datasource = backlogic;
+    type = "json";
+    source = "url";
+    parser = "backend";
+    format = "table";
+    url = "/api/snapshot";
+    url_options.method = "GET";
+    root_selector = selector;
+    columns = lib.mapAttrsToList (
+      text: column:
+      {
+        inherit text;
+        type = "string";
+      }
+      // column
+    ) columns;
+  };
+  countTickets = filter: tickets "$count(tickets[${filter}])" { };
+  doneInRange = filter: "tickets[$toMillis(doneAt) >= \${__from} and ${filter}]";
+  met = ''resolution = "met"'';
+  notMet = ''resolution != "met"'';
+  claimedTickets = countTickets ''state = "claimed"'';
+  doneTicket = {
+    doneAt = {
+      selector = "doneAt";
+      type = "timestamp";
+    };
+    id.selector = "id";
+  };
+  spendColumns =
+    lib.mapAttrs
+      (_: selector: {
+        inherit selector;
+        type = "number";
+      })
+      {
+        tokens = "spend.tokens";
+        minutes = "spend.minutes";
+        cost = "spend.dollars";
+      };
+
+  ticketHistogram =
+    {
+      title,
+      unit ? "short",
+      column,
+    }:
+    panel "histogram" {
+      inherit title unit;
+      targets = [ (tickets (doneInRange "true") { tickets = column; }) ];
+      extra = {
+        datasource = backlogic;
+        fieldConfig.defaults.unit = unit;
+      };
+    };
+
   tally =
     args:
     stat (
@@ -188,6 +249,16 @@ let
         };
       }
     );
+
+  ticketStat =
+    { title, target }:
+    tally {
+      inherit title;
+      targets = [ target ];
+    }
+    // {
+      datasource = backlogic;
+    };
 
   dashboards = {
     hardware = dashboard "spike-hardware" "Spike / Hardware" [
@@ -416,6 +487,10 @@ let
         title = "Working sessions";
         targets = [ (target "count(${workingSessions}) or vector(0)" "sessions") ];
       })
+      (ticketStat {
+        title = "Claimed backlogic tickets";
+        target = claimedTickets;
+      })
       (stat {
         title = "Tokens in range";
         targets = [ (target "sum(increase(${tokens}[$__range]))" "tokens") ];
@@ -453,7 +528,151 @@ let
     ];
 
     agents =
-      dashboard "spike-agents" "Spike / Discord threads" [
+      dashboard "spike-agents" "Spike / Backlogic and threads" [
+        (ticketStat {
+          title = "Open tickets";
+          target = countTickets ''state != "done"'';
+        })
+        (ticketStat {
+          title = "Met in range";
+          target = tickets "$count(${doneInRange met})" { };
+        })
+        (ticketStat {
+          title = "Not met in range";
+          target = tickets "$count(${doneInRange notMet})" { };
+        })
+        (ticketStat {
+          title = "Claimed tickets";
+          target = claimedTickets;
+        })
+        (panel "timeseries" {
+          title = "Tickets done per day";
+          w = 24;
+          targets = map (resolution: tickets (doneInRange resolution) doneTicket) [
+            met
+            notMet
+          ];
+          extra = {
+            datasource = backlogic;
+            fieldConfig = {
+              defaults.custom = {
+                drawStyle = "bars";
+                fillOpacity = 80;
+                stacking.mode = "normal";
+              };
+              overrides = named {
+                A = "met";
+                B = "not met";
+              };
+            };
+            transformations = [
+              {
+                id = "formatTime";
+                options = {
+                  timeField = "doneAt";
+                  outputFormat = "YYYY-MM-DD";
+                };
+              }
+              {
+                id = "groupBy";
+                options.fields = {
+                  doneAt = {
+                    aggregations = [ ];
+                    operation = "groupby";
+                  };
+                  id = {
+                    aggregations = [ "count" ];
+                    operation = "aggregate";
+                  };
+                };
+              }
+              {
+                id = "convertFieldType";
+                options.conversions = [
+                  {
+                    targetField = "doneAt";
+                    destinationType = "time";
+                    dateFormat = "YYYY-MM-DD";
+                  }
+                ];
+              }
+            ];
+          };
+        })
+        (ticketHistogram {
+          title = "Tokens per ticket done in range";
+          column = spendColumns.tokens;
+        })
+        (ticketHistogram {
+          title = "Claude time per ticket done in range";
+          unit = "m";
+          column = spendColumns.minutes;
+        })
+        (panel "table" {
+          title = "Spend per ticket done in range";
+          w = 24;
+          targets = [
+            (tickets (doneInRange "true") (
+              {
+                ticket.selector = "id";
+                project.selector = "project";
+                title.selector = "title";
+                resolution.selector = "resolution";
+              }
+              // spendColumns
+            ))
+          ];
+          extra = {
+            datasource = backlogic;
+            transformations = [
+              {
+                id = "organize";
+                options.indexByName = lib.listToAttrs (
+                  lib.imap0 (index: name: lib.nameValuePair name index) [
+                    "ticket"
+                    "project"
+                    "title"
+                    "resolution"
+                    "tokens"
+                    "minutes"
+                    "cost"
+                  ]
+                );
+              }
+              {
+                id = "sortBy";
+                options.sort = [
+                  {
+                    field = "tokens";
+                    desc = true;
+                  }
+                ];
+              }
+            ];
+            fieldConfig = {
+              defaults = { };
+              overrides =
+                lib.mapAttrsToList
+                  (name: unit: {
+                    matcher = {
+                      id = "byName";
+                      options = name;
+                    };
+                    properties = [
+                      {
+                        id = "unit";
+                        value = unit;
+                      }
+                    ];
+                  })
+                  {
+                    tokens = "short";
+                    minutes = "m";
+                    cost = "currencyUSD";
+                  };
+            };
+          };
+        })
         (tally {
           title = "Discord sessions in range";
           targets = [ (target "count(${perSession "discord-threads" tokens}) or vector(0)" "sessions") ];
