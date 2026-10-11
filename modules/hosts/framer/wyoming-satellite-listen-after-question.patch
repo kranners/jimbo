@@ -1,0 +1,42 @@
+--- a/wyoming_satellite/satellite.py
++++ b/wyoming_satellite/satellite.py
+@@ -1221,6 +1221,8 @@
+ 
+         self._wake_info: Optional[Info] = None
+         self._wake_info_ready = asyncio.Event()
++
++        self._reply_asks_question = False
+ 
+     async def event_from_server(self, event: Event) -> None:
+         # Only check event types once
+@@ -1315,7 +1317,30 @@
+         else:
+             # Forward to wake word service
+             await self.event_to_wake(event)
++
++    async def trigger_synthesize(self, synthesize: Synthesize) -> None:
++        await super().trigger_synthesize(synthesize)
++        self._reply_asks_question = synthesize.text.strip().endswith("?")
++
++    async def trigger_played(self) -> None:
++        await super().trigger_played()
+ 
++        if not self._reply_asks_question:
++            return
++
++        self._reply_asks_question = False
++        if self.is_streaming or self._is_paused or (self.server_id is None):
++            return
++
++        _LOGGER.debug("Reply asked a question, streaming the answer")
++        self.is_streaming = True
++        await self._send_run_pipeline()
++        await self._play_wav(
++            self.settings.snd.awake_wav,
++            mute_microphone=self.settings.mic.mute_during_awake_wav,
++        )
++        await self.trigger_streaming_start()
++
+     async def event_from_wake(self, event: Event) -> None:
+         if Info.is_type(event.type):
+             self._wake_info = Info.from_event(event)
