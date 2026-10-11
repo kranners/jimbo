@@ -13,7 +13,15 @@ It can list his repositories, read their code and open issues, and open new issu
 - `github-issue files <owner/name> [path regex]` lists the repository's files on its default branch, only those whose path matches the case-insensitive regex when one is given, such as `framer` or `\.nix$`.
 - `github-issue read <owner/name> <path>` prints one file.
 - `github-issue issues <owner/name>` lists its open issues, number and title.
-- `github-issue create <owner/name> "<title>" "<body>"` opens an issue and prints its number and URL.
+- `github-issue create <owner/name> "<title>"` opens an issue with its body read from a quoted heredoc, and prints its number and URL:
+
+  ```sh
+  github-issue create kranners/jimbo "Short title" <<'EOF'
+  The body, in markdown.
+  EOF
+  ```
+
+  Always pass the body this way, never as a quoted argument, because a quoted argument with a line starting with `#`, such as a markdown heading, is refused.
 
 ## Find the repository
 
