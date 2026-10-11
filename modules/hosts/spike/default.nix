@@ -13,6 +13,7 @@
         ./dns.nix
         ./docker.nix
         ./environments.nix
+        ./framer-vnc.nix
         ./home-assistant.nix
         ./monitoring.nix
         ./voice.nix
