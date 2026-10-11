@@ -15,4 +15,7 @@ in
   users.groups.nix-builder = { };
 
   nix.settings.trusted-users = [ "nix-builder" ];
+
+  nix.daemonCPUSchedPolicy = "idle";
+  nix.daemonIOSchedClass = "idle";
 }
