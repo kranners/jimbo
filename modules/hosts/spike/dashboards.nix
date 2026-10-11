@@ -129,7 +129,7 @@ let
 
   tokens = "claude_code_token_usage_tokens_total";
   cost = "claude_code_cost_usage_USD_total";
-  liveSessions = "count by (job, session_id) (claude_code_session_count_total)";
+  workingSessions = "count by (job, session_id) (increase(${tokens}[5m]) > 0)";
   activeTime = "claude_code_active_time_seconds_total";
   threads = ''job=~"discord-threads|slack-threads"'';
 
@@ -461,8 +461,8 @@ let
         };
       })
       (stat {
-        title = "Live sessions";
-        targets = [ (target "count(${liveSessions}) or vector(0)" "sessions") ];
+        title = "Working sessions";
+        targets = [ (target "count(${workingSessions}) or vector(0)" "sessions") ];
       })
       (stat {
         title = "Busy workaholic runners";
@@ -480,8 +480,8 @@ let
         targets = [ (target "sum(increase(${cost}[$__range]))" "cost") ];
       })
       (timeseries {
-        title = "Live sessions by source";
-        targets = [ (target "count by (job) (${liveSessions})" "{{job}}") ];
+        title = "Working sessions by source";
+        targets = [ (target "count by (job) (${workingSessions})" "{{job}}") ];
       })
       (timeseries {
         title = "Sessions actively working by source";
