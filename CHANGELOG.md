@@ -126,3 +126,4 @@
 - 2026-10-12: Give framer touch with linux-surface's kernel from nixos-hardware and `iptsd`, built on spike like the rest of framer, and put `surface-control` on its path.
 - 2026-10-13: File framer's voice tickets with assignee `owner`, so the runner never picks one before Aaron triages it, as the dedicated backlogic user `framer` instead of an owner token.
 - 2026-10-12: Chart spike's done backlogic tickets from `/api/done`, so Grafana's range reaches past the week `/api/snapshot` keeps.
+- 2026-10-13: Join the Hardware dashboard's temperatures to chip names on `host` as well as `chip`, since framer's chips share names with spike's and broke the query.

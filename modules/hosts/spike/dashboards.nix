@@ -322,7 +322,7 @@ let
         title = "Temperatures";
         unit = "celsius";
         targets = [
-          (target "node_hwmon_temp_celsius * on (chip) group_left (chip_name) node_hwmon_chip_names" "{{chip_name}} {{sensor}}")
+          (target "node_hwmon_temp_celsius * on (host, chip) group_left (chip_name) node_hwmon_chip_names" "{{host}} {{chip_name}} {{sensor}}")
         ];
       })
       (timeseries {
