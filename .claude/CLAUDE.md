@@ -72,10 +72,10 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
   Its dashboards, Hardware, Services, Containers, Claude, and Backlogic and threads, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
   Prometheus keeps a year of samples, so the Backlogic and threads dashboard can chart tokens and Claude active time per thread session, by `session_id`.
-  That dashboard and the Claude one read backlogic's tickets from `backlogic-aaron`'s `/api/snapshot` through the `yesoreyeram-infinity-datasource` plugin, counting open, claimed and done tickets and charting each done ticket's spend and resolution.
-  Its time range filters done tickets by `doneAt`, through Grafana's `${__from}` and `${__to}` in each query's JSONata selector, which Grafana's frontend expands and the plugin's backend does not.
+  That dashboard and the Claude one read backlogic's tickets from `backlogic-aaron` through the `yesoreyeram-infinity-datasource` plugin, counting open and claimed tickets from `/api/snapshot` and charting each done ticket's spend and resolution from `/api/done`.
+  Its time range picks the done tickets, through Grafana's `${__from}` and `${__to}` in each query's `/api/done?from=&to=` URL, which Grafana's frontend expands.
   Each selector wraps its tickets in `$append([], …)`, because the plugin fails a query whose selector matches nothing.
-  It opens on the last 7 days, because backlogic archives a done ticket 7 days after `doneAt` and `/api/snapshot` leaves archived tickets out, so a wider range shows no older done tickets.
+  It opens on the last 7 days, and a wider range reaches older done tickets too, because `/api/done` keeps the ones backlogic archives 7 days after `doneAt`, which `/api/snapshot` leaves out.
   The plugin's token is a backlogic API token, minted by the owner in backlogic's settings, in `/var/lib/grafana/backlogic-token`, owner `grafana`, mode 600, written by hand.
   Grafana starts with an empty one there when none was written, because a missing file fails its provisioning and stops it, and the backlogic panels show errors until the token is filled in.
   Grafana's plugins are declared, so the drilldown apps it otherwise installs itself are declared beside it.
