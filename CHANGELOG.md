@@ -124,3 +124,4 @@
 - 2026-10-12: Let framer file backlogic tickets by voice through a `backlogic-ticket` command and OpenClaw skill, with an owner token from `/var/lib/secrets/backlogic-token`.
 - 2026-10-11: Put a tile for framer's satellite mute, Home Assistant's own `switch.framer_mute`, on the panel, so the microphone can be muted from the screen with no command channel to framer.
 - 2026-10-12: Give framer touch with linux-surface's kernel from nixos-hardware and `iptsd`, built on spike like the rest of framer, and put `surface-control` on its path.
+- 2026-10-13: File framer's voice tickets with assignee `owner`, so the runner never picks one before Aaron triages it, as the dedicated backlogic user `framer` instead of an owner token.
