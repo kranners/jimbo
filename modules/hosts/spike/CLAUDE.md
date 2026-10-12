@@ -3,14 +3,17 @@
 This machine is spike, the always-on NixOS home server that runs Bowerbird in production and doubles as a home lab, so every action here lands on production.
 Its whole configuration is the `spike` host of the flake in `~/workspace/jimbo`, whose `.claude/CLAUDE.md` describes each service in detail and whose `modules/hosts/spike/` holds their modules; Bowerbird's own side is in `/srv/bowerbird/docs/spike.md`.
 The system changes only through jimbo: a branch lands on its `main`, then `git pull && just` in `~/workspace/jimbo` switches to it, and anything set imperatively is lost or ignored by the next switch.
-`just` stages and builds whatever sits in `~/workspace/jimbo`, so that checkout stays clean on `main` and work happens in worktrees.
+`just` stages and builds whatever sits in `~/workspace/jimbo`, and work happens in worktrees.
+That checkout's `main` need not be clean: `backlogic-switch` leaves its `flake.lock` bumped, so when `git pull` refuses over `flake.lock`, `git checkout flake.lock` first and the timer bumps it again within a minute.
+Unattended switches of production spike are allowed, by `backlogic-switch` and by a session that lands a jimbo branch.
 `sudo` asks for no password, so nothing stands between a mistaken command and the live system.
 `/srv/bowerbird` is Bowerbird's production checkout, which `bin/deploy` updates on every push to its `main`; checking out another branch there pauses deploys until `main` is checked out again.
 `~/workspace/bowerbird` is a separate development checkout, and its branch databases live on the `postgresql` unit on `:5433`, beside `bowerbird_template`, which `bowerbird-template` clones from production at 03:30.
 `bowerbird-compose` runs production Postgres on `127.0.0.1:5432` and the portal on `:3000` in Docker, and `bowerbird-display` (the house's own `:99`, unwatched), `bowerbird-display@<N>` (one per signed-in member, its own display and VNC port), `bowerbird-vnc-proxy` (noVNC on `:6080`, routed per member by `?token=`) and `bowerbird-worker` run as the `bowerbird` user with state in `/var/lib/bowerbird`.
 `bowerbird-sync-displays` keeps the proxy's token file and which `bowerbird-display@` instances run in sync with Postgres every minute.
 `bowerbird-backup` dumps production into `/var/lib/bowerbird-backups` at 03:00.
-Backlogic runs outside this flake as `aaron`'s transient user units `backlogic-aaron` on `:4200` and `backlogic-second` on `:4201`, both open on `wlp2s0` and `wg0`, started by hand, so a reboot stops them; Caddy serves `backlogic-aaron` at `https://backlogic.spike.cute.engineer` over WireGuard.
+Backlogic's `backlogic-aaron` runs from its NixOS module as `aaron` on `:4200`, its store in `~/backlogic-data/aaron`, and Caddy serves it at `https://backlogic.spike.cute.engineer` over WireGuard; `backlogic-switch` bumps jimbo's `backlogic` input and switches spike each minute backlogic's `main` has moved.
+Its runner, `backlogic-runner-aaron`, and `backlogic-second` on `:4201` are still `aaron`'s transient user units, started by hand, so a reboot stops them; `:4200` and `:4201` are open on `wlp2s0` and `wg0`.
 Grafana, at `https://grafana.spike.cute.engineer` over WireGuard and `127.0.0.1:3001` locally, charts Prometheus on `:9090`, which scrapes node_exporter and cAdvisor and takes Claude Code metrics over OTLP, and its dashboards are provisioned from `modules/hosts/spike/dashboards.nix`, so any made in the UI are lost on the next switch.
 Home Assistant serves `:8123` on the LAN and WireGuard alone, its secrets written by hand to `/var/lib/hass/secrets.yaml`, and its kiosk panel, a WallPanel screensaver of wallhaven wallpapers, the time, weather, and graphs of spike's hardware stats, Claude's plan limits and sessions, at `http://spike.local:8123/nixos-lovelace/panel`.
 `wyoming-faster-whisper-en` and `wyoming-piper-en` serve Home Assistant's Assist pipeline on `127.0.0.1:10300` and `127.0.0.1:10200`, loopback only.

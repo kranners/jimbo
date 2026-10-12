@@ -1,11 +1,86 @@
-{ lib, ... }:
+{
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 let
+  home = "/home/aaron";
+  checkout = "${home}/workspace/jimbo";
+
   lanInterfaces = [
     "wlp2s0"
     "wg0"
   ];
+
+  # Bumps the checkout's lock to backlogic's main and switches spike to it when main has moved.
+  # A bump that fails to switch puts the lock back and is skipped until main moves again.
+  backlogic-switch = pkgs.writeShellApplication {
+    name = "backlogic-switch";
+    runtimeInputs = [
+      pkgs.git
+      pkgs.jq
+      pkgs.nh
+      pkgs.openssh
+    ];
+    text = ''
+      failed_record="$STATE_DIRECTORY/failed"
+      locked=$(jq -r .nodes.backlogic.locked.rev flake.lock)
+      latest=$(git ls-remote git@github.com:backlogic/backlogic.git refs/heads/main | cut -f1)
+      if [ "$latest" = "$locked" ] || [ "$latest" = "$(cat "$failed_record" 2>/dev/null)" ]; then
+        exit 0
+      fi
+
+      cp flake.lock "$STATE_DIRECTORY/flake.lock.before"
+      if nix flake update backlogic && nh os switch .; then
+        rm -f "$failed_record"
+      else
+        cp "$STATE_DIRECTORY/flake.lock.before" flake.lock
+        echo "$latest" > "$failed_record"
+        exit 1
+      fi
+    '';
+  };
 in
 {
+  imports = [ inputs.backlogic.nixosModules.default ];
+
+  services.backlogic.instances.aaron = {
+    port = 4200;
+    hostname = "0.0.0.0";
+    dataDir = "${home}/backlogic-data/aaron";
+    project = "bowerbird";
+    displayName = "Aaron's instance";
+    layout = "drawer";
+    user = "aaron";
+  };
+
+  systemd.services.backlogic-switch = {
+    description = "Bump jimbo's backlogic input and switch spike to it when backlogic's main moved";
+    wants = [ "network-online.target" ];
+    after = [ "network-online.target" ];
+    path = [
+      "/run/wrappers"
+      "/run/current-system/sw"
+    ];
+    unitConfig.ConditionPathExists = "${checkout}/flake.lock";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "aaron";
+      WorkingDirectory = checkout;
+      StateDirectory = "backlogic-switch";
+      ExecStart = lib.getExe backlogic-switch;
+    };
+  };
+
+  systemd.timers.backlogic-switch = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "2min";
+      OnUnitInactiveSec = "1min";
+    };
+  };
+
   services.caddy.virtualHosts."backlogic.spike.cute.engineer".extraConfig = ''
     reverse_proxy 127.0.0.1:4200
   '';
