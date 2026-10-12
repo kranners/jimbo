@@ -120,3 +120,4 @@
 - 2026-10-12: Retire slack-threads from spike and drop workaholic's leftover dashboard panels, its GitHub issue datasource and its docs, now that backlogic replaces both.
 - 2026-10-12: Chart backlogic's tickets on spike's Grafana through backlogic-aaron's `/api/snapshot` instead of workaholic's, opening on the 7 days backlogic keeps unarchived.
 - 2026-10-12: Serve framer's noVNC bridge at vnc.framer.cute.engineer over WireGuard, proxying framer's :6080 from Caddy on spike.
+- 2026-10-12: Run spike's nix-daemon at idle CPU and IO priority so framer's remote builds yield to Bowerbird.
