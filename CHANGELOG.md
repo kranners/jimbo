@@ -121,3 +121,4 @@
 - 2026-10-12: Chart backlogic's tickets on spike's Grafana through backlogic-aaron's `/api/snapshot` instead of workaholic's, opening on the 7 days backlogic keeps unarchived.
 - 2026-10-12: Serve framer's noVNC bridge at vnc.framer.cute.engineer over WireGuard, proxying framer's :6080 from Caddy on spike.
 - 2026-10-12: Run spike's nix-daemon at idle CPU and IO priority so framer's remote builds yield to Bowerbird.
+- 2026-10-12: Let framer file backlogic tickets by voice through a `backlogic-ticket` command and OpenClaw skill, with an owner token from `/var/lib/secrets/backlogic-token`.
