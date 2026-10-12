@@ -178,13 +178,13 @@ let
     type = "yesoreyeram-infinity-datasource";
     uid = "backlogic";
   };
-  tickets = selector: columns: {
+  ticketsFrom = url: selector: columns: {
     datasource = backlogic;
     type = "json";
     source = "url";
     parser = "backend";
     format = "table";
-    url = "/api/snapshot";
+    inherit url;
     url_options.method = "GET";
     root_selector = selector;
     columns = lib.mapAttrsToList (
@@ -196,10 +196,10 @@ let
       // column
     ) columns;
   };
+  tickets = ticketsFrom "/api/snapshot";
+  doneTickets = ticketsFrom "/api/done?from=\${__from}&to=\${__to}";
   countTickets = filter: tickets "$count(tickets[${filter}])" { };
-  doneInRange =
-    filter:
-    "$append([], tickets[$toMillis(doneAt) >= \${__from} and $toMillis(doneAt) <= \${__to} and ${filter}])";
+  doneInRange = filter: "$append([], tickets[${filter}])";
   resolution = name: ''resolution = "${name}"'';
   resolutionColors = {
     met = "green";
@@ -237,7 +237,7 @@ let
     }:
     panel "histogram" {
       inherit title unit;
-      targets = [ (tickets (doneInRange "true") { tickets = column; }) ];
+      targets = [ (doneTickets (doneInRange "true") { tickets = column; }) ];
       extra = {
         datasource = backlogic;
         fieldConfig.defaults.unit = unit;
@@ -544,11 +544,11 @@ let
         })
         (ticketStat {
           title = "Met in range";
-          target = tickets "$count(${doneInRange (resolution "met")})" { };
+          target = doneTickets "$count(${doneInRange (resolution "met")})" { };
         })
         (ticketStat {
           title = "Short of met in range";
-          target = tickets "$count(${doneInRange ''resolution != "met"''})" { };
+          target = doneTickets "$count(${doneInRange ''resolution != "met"''})" { };
         })
         (ticketStat {
           title = "Claimed tickets";
@@ -557,7 +557,7 @@ let
         (panel "timeseries" {
           title = "Tickets done per day";
           w = 24;
-          targets = map (name: tickets (doneInRange (resolution name)) doneTicket) resolutions;
+          targets = map (name: doneTickets (doneInRange (resolution name)) doneTicket) resolutions;
           extra = {
             datasource = backlogic;
             fieldConfig = {
@@ -633,7 +633,7 @@ let
           title = "Spend per ticket done in range";
           w = 24;
           targets = [
-            (tickets (doneInRange "true") (
+            (doneTickets (doneInRange "true") (
               {
                 ticket.selector = "id";
                 project.selector = "project";
