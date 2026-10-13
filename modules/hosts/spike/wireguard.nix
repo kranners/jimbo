@@ -1,3 +1,17 @@
+{ config, lib, ... }:
+let
+  forwardingPeers = [
+    "piggys-MBP"
+    "phone"
+    "framer"
+    "tower"
+  ];
+  forwardingAddresses = lib.concatMap (peer: peer.allowedIPs) (
+    lib.filter (
+      peer: lib.elem peer.name forwardingPeers
+    ) config.networking.wireguard.interfaces.wg0.peers
+  );
+in
 {
   networking.wireguard.interfaces.wg0 = {
     ips = [ "10.100.0.1/24" ];
@@ -43,4 +57,23 @@
 
   # Rylee's backlogic instance on tower, served only to private addresses.
   networking.hosts."10.100.0.7" = [ "ideas.noodlebra.in" ];
+
+  boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+
+  networking.firewall.extraCommands = ''
+    iptables -D FORWARD -i wg0 -j spike-wg0-forward 2> /dev/null || true
+    iptables -F spike-wg0-forward 2> /dev/null || true
+    iptables -X spike-wg0-forward 2> /dev/null || true
+    iptables -N spike-wg0-forward
+    iptables -A spike-wg0-forward -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    ${lib.concatMapStrings (address: ''
+      iptables -A spike-wg0-forward -s ${address} -o wg0 -j ACCEPT
+    '') forwardingAddresses}
+    iptables -A spike-wg0-forward -j DROP
+    iptables -I FORWARD -i wg0 -j spike-wg0-forward
+  '';
+
+  networking.firewall.extraStopCommands = ''
+    iptables -D FORWARD -i wg0 -j spike-wg0-forward 2> /dev/null || true
+  '';
 }
