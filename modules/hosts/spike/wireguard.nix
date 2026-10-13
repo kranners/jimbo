@@ -40,4 +40,7 @@
   };
 
   networking.firewall.allowedUDPPorts = [ 51820 ];
+
+  # Rylee's backlogic instance on tower, served only to private addresses.
+  networking.hosts."10.100.0.7" = [ "ideas.noodlebra.in" ];
 }
