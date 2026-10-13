@@ -26,7 +26,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Private: fetched over SSH with aaron's key on spike and with a read token in CI.
+    # Private: fetched over SSH with aaron's key on spike.
     # It keeps its own nixpkgs, because its package pins the esbuild of that nixpkgs' Deno.
     backlogic = {
       url = "git+ssh://git@github.com/backlogic/backlogic?ref=main";
