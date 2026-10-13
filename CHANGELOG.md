@@ -128,3 +128,4 @@
 - 2026-10-12: Chart spike's done backlogic tickets from `/api/done`, so Grafana's range reaches past the week `/api/snapshot` keeps.
 - 2026-10-13: Join the Hardware dashboard's temperatures to chip names on `host` as well as `chip`, since framer's chips share names with spike's and broke the query.
 - 2026-10-13: Pin `ideas.noodlebra.in` to tower's WireGuard address on spike, so Aaron's backlogic instance can follow Rylee's.
+- 2026-10-13: Forward between WireGuard peers on spike only from Aaron's own devices, `piggys-MBP`, `phone`, `framer` and `tower`, and declare `ip_forward` instead of leaving it to Docker.
