@@ -90,7 +90,7 @@ in
   };
 
   config.nixosSystemModule =
-    { pkgs, ... }@nixos:
+    { pkgs, ... }:
     let
       overrideFile = "/run/panel-brightness/override";
       sortedSchedule = lib.sort (a: b: a.time < b.time) cfg.schedule;
@@ -179,6 +179,7 @@ in
       kioskPanel = pkgs.writeShellApplication {
         name = "kiosk-panel";
         runtimeInputs = [
+          pkgs.curl
           pkgs.wayvnc
           pkgs.wlr-randr
           pkgs.ungoogled-chromium
@@ -187,6 +188,9 @@ in
           wlr-randr --output ${cfg.output} --scale ${toString cfg.scale} --transform ${cfg.transform}
           wayvnc 0.0.0.0 5900 &
           trap 'kill $!' EXIT
+          until curl -fsS --max-time 5 -o /dev/null ${cfg.versionUrl}; do
+            sleep 2
+          done
           exec chromium \
             --kiosk \
             --ozone-platform=wayland \
@@ -268,16 +272,7 @@ in
           };
         };
 
-        NetworkManager-wait-online.serviceConfig.ExecStart = [
-          ""
-          "${nixos.config.networking.networkmanager.package}/bin/nm-online -q -t 60"
-        ];
-
-        cage-tty1 = {
-          wants = [ "network-online.target" ];
-          after = [ "network-online.target" ];
-          serviceConfig.Restart = "always";
-        };
+        cage-tty1.serviceConfig.Restart = "always";
 
         "getty@tty1".enable = false;
 

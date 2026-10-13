@@ -73,6 +73,8 @@ in
   systemd.services.wyoming-satellite = {
     wants = [ "cage-tty1.service" ];
     after = [ "cage-tty1.service" ];
+    startLimitIntervalSec = 0;
+    serviceConfig.RestartSec = 5;
     serviceConfig.StateDirectory = "wyoming-satellite";
     serviceConfig.ExecStartPre = "-${setAudioVolumes}";
   };
