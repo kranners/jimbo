@@ -129,3 +129,4 @@
 - 2026-10-13: Join the Hardware dashboard's temperatures to chip names on `host` as well as `chip`, since framer's chips share names with spike's and broke the query.
 - 2026-10-13: Pin `ideas.noodlebra.in` to tower's WireGuard address on spike, so Aaron's backlogic instance can follow Rylee's.
 - 2026-10-13: Forward between WireGuard peers on spike only from Aaron's own devices, `piggys-MBP`, `phone`, `framer` and `tower`, and declare `ip_forward` instead of leaving it to Docker.
+- 2026-10-14: Wait for the panel page before framer starts Chromium, and restart its wyoming-satellite without a start limit, since `network-online.target` was reached before the wifi connected and a cold boot left both dead.
