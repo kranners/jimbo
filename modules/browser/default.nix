@@ -9,6 +9,15 @@
       source = import ./claude-vivaldi { inherit pkgs lib; };
       recursive = true;
     };
+
+    launchd.agents.vivaldi-mail-watch = {
+      enable = true;
+
+      config = {
+        ProgramArguments = [ (lib.getExe (import ./vivaldi-mail-watch.nix { inherit pkgs; })) ];
+        StartInterval = 3600;
+      };
+    };
   };
 
   nixosHomeModule = { pkgs, ... }: {
