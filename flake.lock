@@ -5,11 +5,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1791819379,
-        "narHash": "sha256-YncoNozKfJ483IHYPjI35ljaklujRH+fh1MIxxKsJRk=",
+        "lastModified": 1791966877,
+        "narHash": "sha256-BiTNfIZeXKNr1wv3Bey/GkpGbOwBnWEG4P1d6BfY3vk=",
         "ref": "main",
-        "rev": "4c69ce207e691fe2e9b9181c706747d7e93de815",
-        "revCount": 345,
+        "rev": "ddb0e9f0caa8fea2724dbb5c0fd2bfde659ccf86",
+        "revCount": 538,
         "type": "git",
         "url": "ssh://git@github.com/backlogic/backlogic"
       },

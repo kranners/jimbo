@@ -4,7 +4,7 @@ This machine is spike, the always-on NixOS home server that runs Bowerbird in pr
 Its whole configuration is the `spike` host of the flake in `~/workspace/jimbo`, whose `.claude/CLAUDE.md` describes each service in detail and whose `modules/hosts/spike/` holds their modules; Bowerbird's own side is in `/srv/bowerbird/docs/spike.md`.
 The system changes only through jimbo: a branch lands on its `main`, then `git pull && just` in `~/workspace/jimbo` switches to it, and anything set imperatively is lost or ignored by the next switch.
 `just` stages and builds whatever sits in `~/workspace/jimbo`, and work happens in worktrees.
-That checkout's `main` need not be clean: `backlogic-switch` leaves its `flake.lock` bumped, so when `git pull` refuses over `flake.lock`, `git checkout flake.lock` first and the timer bumps it again within a minute.
+That checkout's `main` need not be clean: `backlogic-switch` leaves its `flake.lock` bumped, and `just` stages it, so when `git pull` refuses over `flake.lock`, run `git checkout HEAD flake.lock && git pull && nix flake update backlogic && just`, which keeps backlogic on its `main`: the committed lock can be older than the store it runs on, which older code refuses to open.
 Unattended switches of production spike are allowed, by `backlogic-switch` and by a session that lands a jimbo branch.
 `sudo` asks for no password, so nothing stands between a mistaken command and the live system.
 `/srv/bowerbird` is Bowerbird's production checkout, which `bin/deploy` updates on every push to its `main`; checking out another branch there pauses deploys until `main` is checked out again.

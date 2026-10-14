@@ -51,8 +51,14 @@ in
     dataDir = "${home}/backlogic-data/aaron";
     project = "bowerbird";
     displayName = "Aaron's instance";
-    layout = "drawer";
+    layout = "modal";
     user = "aaron";
+    peer = {
+      name = "Rylee's instance";
+      url = "https://ideas.noodlebra.in";
+      tokenFile = "${home}/backlogic-data/aaron/tokens/peer-rylee.token";
+      owner = "ibrokemypie";
+    };
   };
 
   systemd.services.backlogic-switch = {
