@@ -18,7 +18,22 @@ jobs:
         name: kranners
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
     - uses: DeterminateSystems/magic-nix-cache-action@v2
+    # `nix flake check` for every output but spike, which imports the private backlogic
+    # input: CI cannot fetch it, and watch-store pushes to the public kranners cache.
     - run: |
         cachix watch-store kranners &
-        nix flake check --show-trace
+        system=$(nix eval --impure --raw --expr builtins.currentSystem)
+
+        hosts=$(nix eval --json .#nixosConfigurations \
+          --apply 'configs: builtins.attrNames (builtins.removeAttrs configs [ "spike" ])' | jq -r '.[]')
+        for host in $hosts; do
+          nix eval --show-trace --raw ".#nixosConfigurations.$host.config.system.build.toplevel.drvPath"
+          echo
+        done
+
+        checks=$(nix eval --json ".#checks.$system" --apply builtins.attrNames | jq -r '.[]')
+        for check in $checks; do
+          nix build --no-link --show-trace ".#checks.$system.$check"
+        done
+        nix build --no-link --show-trace ".#formatter.$system"
 

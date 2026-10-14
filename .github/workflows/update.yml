@@ -36,7 +36,8 @@ jobs:
           export FLAKE_BRANCH_NAME="flake-update-$(date +'%Y-%m-%dT%H-%M-%S')"
 
           git switch --create "$FLAKE_BRANCH_NAME"
-          nix flake update
+          # backlogic is private, so CI cannot fetch it; spike's backlogic-switch timer bumps it.
+          nix flake update $(jq -r '.nodes.root.inputs | keys[] | select(. != "backlogic")' flake.lock)
           git commit -am "flake update $(date +'%Y-%m-%dT%H-%M-%S')"
           git push -u origin "$FLAKE_BRANCH_NAME"
 

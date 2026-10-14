@@ -15,7 +15,7 @@ Nix flake configuring four machines for a single user (`aaron`):
 
 ```sh
 just          # rebuild + switch the current host (runs `git add .` first, then nh)
-just check    # nix flake check --show-trace (this is what CI runs)
+just check    # nix flake check --show-trace
 ```
 
 `just` stages everything before building because flakes only see git-tracked files.
@@ -24,7 +24,9 @@ just check    # nix flake check --show-trace (this is what CI runs)
 
 The landing check is `just check`.
 The weekly `flake-update-*` branches are the exception: they land through the pull request the bot opens.
-CI runs `just check`'s `nix flake check` on every push to every branch.
+CI runs what `nix flake check` checks on every push to every branch, but leaves spike out (`.github/workflows/test.yml`).
+Spike imports the private `backlogic` input, which CI cannot fetch and whose builds must stay out of the public `kranners` cache, so only `just check` on spike checks spike's setup.
+The weekly update bumps every input but `backlogic`, which `backlogic-switch.timer` bumps on spike.
 `.claude/worktrees/` is gitignored so the `git add .` in `just` never stages a worktree.
 
 Update this file, or `modules/hosts/spike/CLAUDE.md`, in the same branch as any change that makes it wrong.
