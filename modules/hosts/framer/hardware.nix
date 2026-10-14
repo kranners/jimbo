@@ -1,6 +1,7 @@
 {
   config,
   modulesPath,
+  pkgs,
   ...
 }:
 {
@@ -38,6 +39,20 @@
   # unreliable while it is on.
   hardware.bluetooth.enable = false;
   hardware.bluetooth.powerOnBoot = false;
+
+  # The ALC298's mic jack once read plugged in from boot with nothing in it,
+  # moving capture off the internal mic to a silent jack, so jack detection
+  # is off and the internal mic and speakers are always used.
+  boot.extraModprobeConfig = "options snd-hda-intel patch=framer-no-jack-detect.fw";
+  hardware.firmware = [
+    (pkgs.writeTextDir "lib/firmware/framer-no-jack-detect.fw" ''
+      [codec]
+      0x10ec0298 0x10ec1146 0
+
+      [hint]
+      jack_detect = false
+    '')
+  ];
 
   services.thermald.enable = true;
   services.upower.enable = true;
