@@ -14,7 +14,9 @@ let
   ];
 
   # Bumps the checkout's lock to backlogic's main and switches spike to it when main has moved.
-  # A bump that fails to switch puts the lock back and is skipped until main moves again.
+  # A bump that fails to build puts the lock back and is skipped until main moves again.
+  # One that builds keeps its lock even when the switch fails, since spike may already run it
+  # and a later switch from the older lock would run a backlogic older than its store.
   backlogic-switch = pkgs.writeShellApplication {
     name = "backlogic-switch";
     runtimeInputs = [
@@ -32,13 +34,14 @@ let
       fi
 
       cp flake.lock "$STATE_DIRECTORY/flake.lock.before"
-      if nix flake update backlogic && nh os switch .; then
-        rm -f "$failed_record"
-      else
+      if ! nix flake update backlogic || ! nh os build .; then
         cp "$STATE_DIRECTORY/flake.lock.before" flake.lock
         echo "$latest" > "$failed_record"
         exit 1
       fi
+
+      rm -f "$failed_record"
+      nh os switch .
     '';
   };
 in
