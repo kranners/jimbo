@@ -87,7 +87,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `claude-limits.timer` writes the plan's session and weekly limits every 2 minutes for node_exporter's textfile collector, read as `aaron` from `/api/oauth/usage`, the undocumented endpoint behind `/usage`, with the token in `~/.claude/.credentials.json`.
 - Backlogic's `backlogic-aaron` runs from the `backlogic` input's NixOS module as `aaron` on `:4200`, its store in `~/backlogic-data/aaron` (`modules/hosts/spike/backlogic.nix`).
   `backlogic-switch.timer` checks backlogic's `main` each minute with `git ls-remote`, and when it has moved bumps the input in `~/workspace/jimbo/flake.lock` and runs `nh os switch .` there, as `aaron`, whose SSH key reads the private repository.
-  A bump that fails to switch puts the lock back and is skipped until `main` moves again, recorded in `/var/lib/backlogic-switch/failed`.
+  A bump that fails to build puts the lock back and is skipped until `main` moves again, recorded in `/var/lib/backlogic-switch/failed`; one that builds keeps its lock even when the switch fails, since spike may already run it.
   So `~/workspace/jimbo`'s `main` need not be clean, and unattended switches of production spike are allowed.
   A `git pull` there that refuses over `flake.lock` takes `git checkout HEAD flake.lock && git pull && nix flake update backlogic && just`: the committed lock can pin backlogic older than its store, which older code refuses to open.
   Its runner, `backlogic-runner-aaron`, and `backlogic-second` on `:4201` are still `aaron`'s hand-started transient user units, which a reboot stops.
