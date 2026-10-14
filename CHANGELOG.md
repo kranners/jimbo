@@ -130,3 +130,4 @@
 - 2026-10-13: Pin `ideas.noodlebra.in` to tower's WireGuard address on spike, so Aaron's backlogic instance can follow Rylee's.
 - 2026-10-13: Forward between WireGuard peers on spike only from Aaron's own devices, `piggys-MBP`, `phone`, `framer` and `tower`, and declare `ip_forward` instead of leaving it to Docker.
 - 2026-10-14: Wait for the panel page before framer starts Chromium, and restart its wyoming-satellite without a start limit, since `network-online.target` was reached before the wifi connected and a cold boot left both dead.
+- 2026-10-14: Turn off framer's audio jack detection so a stale mic jack never takes capture from the internal mic, and keep the panel's day profile at full opacity with WallPanel's error alerts off.

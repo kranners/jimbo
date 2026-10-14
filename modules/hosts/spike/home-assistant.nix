@@ -410,6 +410,7 @@ in
         image_fit_portrait = "cover";
         image_url = "/wallpapers";
         stop_screensaver_on_mouse_click = true;
+        alert_errors = false;
         profile_entity = "sensor.panel_profile";
         screensaver_entity = panelScreensaver;
         cards = infoCards;
@@ -420,7 +421,7 @@ in
 
         profiles = {
           voice.idle_time = 0;
-          day = { };
+          day.style.wallpanel-screensaver-info-box.opacity = "1";
           night = {
             show_images = false;
             style.wallpanel-screensaver-overlay.background = "#000000ff";
