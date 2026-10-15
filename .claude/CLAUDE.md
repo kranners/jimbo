@@ -157,6 +157,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - mise is installed system-wide, and `programs.nix-ld` loads the tools it downloads, which are built for other Linuxes, such as backlogic's Deno and Python (`modules/hosts/spike/mise.nix`).
   Both Claude services have `~/.local/share/mise/shims` last on their `PATH`, so a session finds a repository's mise tools, and its git hooks run, while the system's `python3` still wins outside one.
   `/etc/mise/config.toml` trusts every `mise.toml` under `~/workspace/backlogic`, its worktrees included, and takes prebuilt Python, since building it from source fails here.
+  A shim resolves its version from the working directory's `mise.toml`, so the file also sets Deno to the newest installed everywhere else, for hooks and tests that run Deno outside a checkout.
   A repository's tools are installed once by hand with `mise install` in its checkout, after `mise trust` outside `~/workspace/backlogic`.
 
 ### framer
