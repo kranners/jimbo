@@ -12,6 +12,14 @@ in
 
   environment.systemPackages = [ pkgs.mise ];
 
+  # mise compiles Python from source by default here, which fails, so it takes the prebuilt one.
+  environment.etc."mise/config.toml".source = (pkgs.formats.toml { }).generate "mise-config.toml" {
+    settings = {
+      python.compile = false;
+      trusted_config_paths = [ "/home/aaron/workspace/backlogic" ];
+    };
+  };
+
   systemd.services = lib.genAttrs [ "claude-remote-control" "discord-threads" ] (_: {
     path = lib.mkAfter [ miseShims ];
   });
