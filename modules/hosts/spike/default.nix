@@ -15,6 +15,7 @@
         ./environments.nix
         ./framer-vnc.nix
         ./home-assistant.nix
+        ./mise.nix
         ./monitoring.nix
         ./voice.nix
         ./watchdog.nix

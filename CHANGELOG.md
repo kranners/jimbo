@@ -137,3 +137,4 @@
 - 2026-10-15: Install python3 on spike, so the Python guard and usage hooks of Claude Code sessions there run instead of failing open.
 - 2026-10-15: Add a Windows install as the WireGuard peer `windows` at `10.100.0.8`, so it reaches backlogic and spike's other WireGuard-only sites from the home network.
 - 2026-10-15: Drop spike's backlogic `layout` setting, which backlogic removed with its classic board, and bump backlogic to the module that evaluates again.
+- 2026-10-15: Install mise on spike with nix-ld to load its tools, and put its shims on the Claude services' PATH, so sessions there run backlogic's checks and hooks.
