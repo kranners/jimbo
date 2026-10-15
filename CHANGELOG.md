@@ -136,3 +136,4 @@
 - 2026-10-15: Run Aaron's backlogic on spike from its NixOS module, with a timer that bumps the backlogic input and switches spike on every push to backlogic's main, keeping the bumped lock once it builds.
 - 2026-10-15: Install python3 on spike, so the Python guard and usage hooks of Claude Code sessions there run instead of failing open.
 - 2026-10-15: Add a Windows install as the WireGuard peer `windows` at `10.100.0.8`, so it reaches backlogic and spike's other WireGuard-only sites from the home network.
+- 2026-10-15: Drop spike's backlogic `layout` setting, which backlogic removed with its classic board, and bump backlogic to the module that evaluates again.

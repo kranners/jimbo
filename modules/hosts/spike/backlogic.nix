@@ -54,7 +54,6 @@ in
     dataDir = "${home}/backlogic-data/aaron";
     project = "bowerbird";
     displayName = "Aaron's instance";
-    layout = "modal";
     user = "aaron";
     peer = {
       name = "Rylee's instance";
