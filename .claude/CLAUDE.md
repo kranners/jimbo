@@ -139,7 +139,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Spike's nix-daemon runs at idle CPU and IO priority, so those builds, and every other, yield to Bowerbird.
 - WireGuard `wg0` on UDP `51820` at `spike.cute.engineer` (kept current by cloudflare-dyndns, token in `/var/lib/secrets/cloudflare-dyndns-token`), spike is `10.100.0.1`.
   Its private key is generated on first boot at `/var/lib/wireguard/private`.
-  Its peers are `piggys-MBP` at `10.100.0.2`, `phone` at `10.100.0.4`, `framer` at `10.100.0.5`, `rylee` at `10.100.0.6`, `tower` at `10.100.0.7`, and `github-actions` at `10.100.0.3`, whose private key lives only in Bowerbird's GitHub secrets.
+  Its peers are `piggys-MBP` at `10.100.0.2`, `phone` at `10.100.0.4`, `framer` at `10.100.0.5`, `rylee` at `10.100.0.6`, `tower` at `10.100.0.7`, `windows` at `10.100.0.8`, and `github-actions` at `10.100.0.3`, whose private key lives only in Bowerbird's GitHub secrets.
   spike forwards from Aaron's own peers, `piggys-MBP`, `phone`, `framer` and `tower`, to any other peer, and its `spike-wg0-forward` chain drops every other packet forwarded in from `wg0` but replies, so `rylee` and `github-actions` reach spike alone.
   It declares `ip_forward` itself, which it otherwise had only because Docker set it.
   There is no NAT for `10.100.0.0/24`, so a peer reaches nothing on the LAN through spike.

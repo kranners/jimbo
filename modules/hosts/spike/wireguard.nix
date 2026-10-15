@@ -50,6 +50,11 @@ in
         publicKey = "IA5R1V9DCdOVwyi6oY+RFturexAtizQnXU2MgzsKdi0=";
         allowedIPs = [ "10.100.0.7/32" ];
       }
+      {
+        name = "windows";
+        publicKey = "Z7V1ro+dr7/wPsnfyDq8rBPqeJ0M+NuI7t1O1uYvFxE=";
+        allowedIPs = [ "10.100.0.8/32" ];
+      }
     ];
   };
 
