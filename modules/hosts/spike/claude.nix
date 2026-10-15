@@ -1,6 +1,10 @@
 { pkgs, ... }:
 {
-  environment.systemPackages = [ pkgs.claude-code ];
+  # Claude Code hooks in repositories here, such as backlogic's guards, run with python3.
+  environment.systemPackages = [
+    pkgs.claude-code
+    pkgs.python3
+  ];
 
   # Login, the Remote Control opt-in, and trusting ~/workspace each need a TTY,
   # so they are done once by hand over SSH:
