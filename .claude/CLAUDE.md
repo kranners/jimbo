@@ -154,6 +154,9 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `/done` removes a thread's worktree unless something in it is uncommitted, keeps its branch, and posting in the thread again restores it.
   `discord-threads-pull.timer` deploys every push to its `main` within 2 minutes: as `aaron` it runs `git pull --ff-only` in the checkout and, when `HEAD` moved, restarts `discord-threads`, which runs `npm ci --omit=dev` first and ends every live thread session, whose unfinished turns replay from the ledger on boot.
   It skips the pull while the checkout is on a branch other than `main`, so checking one out there pauses deploys.
+- mise is installed system-wide, and `programs.nix-ld` loads the tools it downloads, which are built for other Linuxes, such as backlogic's Deno and Python (`modules/hosts/spike/mise.nix`).
+  Both Claude services have `~/.local/share/mise/shims` last on their `PATH`, so a session finds a repository's mise tools, and its git hooks run, while the system's `python3` still wins outside one.
+  A repository's tools are installed once by hand with `mise trust && mise install` in its checkout.
 
 ### framer
 
