@@ -13,7 +13,9 @@ in
   environment.systemPackages = [ pkgs.mise ];
 
   # mise compiles Python from source by default here, which fails, so it takes the prebuilt one.
+  # A shim outside any mise.toml has no version, so Deno defaults to the newest installed, for hooks run elsewhere.
   environment.etc."mise/config.toml".source = (pkgs.formats.toml { }).generate "mise-config.toml" {
+    tools.deno = "latest";
     settings = {
       python.compile = false;
       trusted_config_paths = [ "/home/aaron/workspace/backlogic" ];
