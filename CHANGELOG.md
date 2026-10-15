@@ -134,3 +134,4 @@
 - 2026-10-14: Enable zram swap on spike at the module defaults, half of RAM compressed with zstd, so memory pressure builds gradually instead of ending in the OOM killer.
 - 2026-10-14: Warn on the Mac when Vivaldi has saved no new mail for 6 hours or has run for 3 days, since its IMAP sync stalls after long sessions until it is relaunched.
 - 2026-10-15: Run Aaron's backlogic on spike from its NixOS module, with a timer that bumps the backlogic input and switches spike on every push to backlogic's main, keeping the bumped lock once it builds.
+- 2026-10-15: Install python3 on spike, so the Python guard and usage hooks of Claude Code sessions there run instead of failing open.
