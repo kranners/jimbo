@@ -67,8 +67,13 @@
           permissions.defaultMode = "auto";
 
           # Plugins
+          extraKnownMarketplaces.backlogic.source = {
+            source = "github";
+            repo = "backlogic/backlogic";
+          };
           enabledPlugins = {
             "typescript-lsp@claude-plugins-official" = true;
+            "backlogic@backlogic" = true;
           };
 
           # Workflows and builtin skills

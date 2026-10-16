@@ -140,3 +140,4 @@
 - 2026-10-15: Install mise on spike with nix-ld to load its tools, and put its shims on the Claude services' PATH, so sessions there run backlogic's checks and hooks.
 - 2026-10-16: Trust backlogic's mise.toml files on spike and have mise take prebuilt Python, so sessions there install and run backlogic's tools unprompted.
 - 2026-10-16: Default mise's Deno on spike to the newest installed, so hooks and tests that run Deno outside a backlogic checkout find it.
+- 2026-10-16: Turn on the backlogic Claude Code plugin on every host and put Deno on the Mac, so sessions Aaron starts load backlogic's shared rules.
