@@ -66,6 +66,7 @@
 
   darwinHomeModule = {
     home.packages = [
+      pkgs.deno
       pkgs.nurl
       pkgs.nix-output-monitor
       pkgs.mas
