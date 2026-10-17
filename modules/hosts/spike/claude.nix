@@ -1,9 +1,11 @@
 { pkgs, ... }:
 {
   # Claude Code hooks in repositories here, such as backlogic's guards, run with python3.
+  # backlogic's bin/check and board publishing load boards in a headless Chrome found on PATH.
   environment.systemPackages = [
     pkgs.claude-code
     pkgs.python3
+    pkgs.google-chrome
   ];
 
   # Login, the Remote Control opt-in, and trusting ~/workspace each need a TTY,
