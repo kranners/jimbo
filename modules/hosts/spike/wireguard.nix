@@ -3,6 +3,7 @@ let
   forwardingPeers = [
     "piggys-MBP"
     "phone"
+    "phone-2"
     "framer"
     "tower"
   ];
@@ -54,6 +55,11 @@ in
         name = "windows";
         publicKey = "Z7V1ro+dr7/wPsnfyDq8rBPqeJ0M+NuI7t1O1uYvFxE=";
         allowedIPs = [ "10.100.0.8/32" ];
+      }
+      {
+        name = "phone-2";
+        publicKey = "+kOfkc7PFX6OFf9mq1ShAZ4/fT+1yC3d4IXebrQvaCI=";
+        allowedIPs = [ "10.100.0.9/32" ];
       }
     ];
   };
