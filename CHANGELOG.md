@@ -141,3 +141,4 @@
 - 2026-10-16: Trust backlogic's mise.toml files on spike and have mise take prebuilt Python, so sessions there install and run backlogic's tools unprompted.
 - 2026-10-16: Default mise's Deno on spike to the newest installed, so hooks and tests that run Deno outside a backlogic checkout find it.
 - 2026-10-16: Turn on the backlogic Claude Code plugin on every host and put Deno on the Mac, so sessions Aaron starts load backlogic's shared rules.
+- 2026-10-17: Add a second phone as WireGuard peer 10.100.0.9 on spike, forwarding to the other peers like the first.
