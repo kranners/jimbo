@@ -144,3 +144,4 @@
 - 2026-10-17: Add a second phone as WireGuard peer 10.100.0.9 on spike, forwarding to the other peers like the first.
 - 2026-10-18: Install google-chrome on spike, so backlogic's bin/check and board publishing find a Chrome on PATH.
 - 2026-10-18: Run backlogic's runner on spike as a declared service with mise's shims on its PATH, so its sessions find bin/check's tools and it survives a reboot.
+- 2026-10-18: Close spike's :4201, which backlogic's retired second instance served, and drop it from the docs.

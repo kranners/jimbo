@@ -91,7 +91,6 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   So `~/workspace/jimbo`'s `main` need not be clean, and unattended switches of production spike are allowed.
   A `git pull` there that refuses over `flake.lock` takes `git checkout HEAD flake.lock && git pull && nix flake update backlogic && just`: the committed lock can pin backlogic older than its store, which older code refuses to open.
   Its runner, `backlogic-runner-aaron`, runs as `aaron` from the detached checkout `~/workspace/backlogic--service`, with mise's shims on its PATH so its sessions find `bin/check`'s tools, and a switch never restarts it, since its sessions run inside the unit.
-  `backlogic-second` on `:4201` is still `aaron`'s hand-started transient user unit, which a reboot stops.
   Caddy serves `backlogic-aaron` at `https://backlogic.spike.cute.engineer` (`modules/hosts/spike/backlogic.nix`), whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
 - Home Assistant (`modules/hosts/spike/home-assistant.nix`) runs as the NixOS `home-assistant` module, serving `:8123` open on `wlp2s0` and `wg0` alone.
   Its secrets, `latitude`, `longitude`, `elevation` and `panel_user_id`, live in `/var/lib/hass/secrets.yaml`, owner `hass`, mode 600, written by hand.
