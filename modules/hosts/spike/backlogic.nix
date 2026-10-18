@@ -8,6 +8,7 @@ let
   home = "/home/aaron";
   checkout = "${home}/workspace/jimbo";
   runnerCheckout = "${home}/workspace/backlogic--service";
+  runnerTmp = "/run/backlogic-runner-tmp";
 
   lanInterfaces = [
     "wlp2s0"
@@ -83,8 +84,22 @@ in
   };
 
   # Its sessions run inside the unit, so a switch never restarts it.
-  # TMPDIR on tmpfs keeps the checks' fsyncs off the NVMe, and OOMPolicy=continue keeps the
-  # other sessions running when one is killed for memory (backlogic's docs/decisions/runner.md).
+  # TMPDIR on tmpfs keeps the checks' fsyncs off the NVMe, on a tmpfs of its own outside /dev,
+  # where Deno grants a named --allow-read or --allow-write nothing, and OOMPolicy=continue keeps
+  # the other sessions running when one is killed for memory (backlogic's docs/decisions/runner.md).
+  fileSystems.${runnerTmp} = {
+    device = "tmpfs";
+    fsType = "tmpfs";
+    options = [
+      "size=50%"
+      "mode=0700"
+      "uid=1000"
+      "gid=100"
+      "nosuid"
+      "nodev"
+    ];
+  };
+
   systemd.services.backlogic-runner-aaron = {
     description = "backlogic runner launching sessions on Aaron's instance";
     wantedBy = [ "multi-user.target" ];
@@ -94,12 +109,13 @@ in
       "backlogic-aaron.service"
     ];
     restartIfChanged = false;
+    unitConfig.RequiresMountsFor = runnerTmp;
     path = [
       "/run/wrappers"
       "/run/current-system/sw"
     ];
     environment = {
-      TMPDIR = "/dev/shm";
+      TMPDIR = runnerTmp;
       XDG_RUNTIME_DIR = "/run/user/1000";
     };
     serviceConfig = {
