@@ -7,6 +7,7 @@
 let
   home = "/home/aaron";
   checkout = "${home}/workspace/jimbo";
+  runnerCheckout = "${home}/workspace/backlogic--service";
 
   lanInterfaces = [
     "wlp2s0"
@@ -78,6 +79,36 @@ in
       WorkingDirectory = checkout;
       StateDirectory = "backlogic-switch";
       ExecStart = lib.getExe backlogic-switch;
+    };
+  };
+
+  # Its sessions run inside the unit, so a switch never restarts it.
+  # TMPDIR on tmpfs keeps the checks' fsyncs off the NVMe, and OOMPolicy=continue keeps the
+  # other sessions running when one is killed for memory (backlogic's docs/decisions/runner.md).
+  systemd.services.backlogic-runner-aaron = {
+    description = "backlogic runner launching sessions on Aaron's instance";
+    wantedBy = [ "multi-user.target" ];
+    wants = [ "network-online.target" ];
+    after = [
+      "network-online.target"
+      "backlogic-aaron.service"
+    ];
+    restartIfChanged = false;
+    path = [
+      "/run/wrappers"
+      "/run/current-system/sw"
+    ];
+    environment = {
+      TMPDIR = "/dev/shm";
+      XDG_RUNTIME_DIR = "/run/user/1000";
+    };
+    serviceConfig = {
+      User = "aaron";
+      WorkingDirectory = runnerCheckout;
+      ExecStart = "${runnerCheckout}/bin/backlogic-runner --url http://127.0.0.1:4200";
+      OOMPolicy = "continue";
+      Restart = "always";
+      RestartSec = 30;
     };
   };
 
