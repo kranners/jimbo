@@ -90,7 +90,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   A bump that fails to build puts the lock back and is skipped until `main` moves again, recorded in `/var/lib/backlogic-switch/failed`; one that builds keeps its lock even when the switch fails, since spike may already run it.
   So `~/workspace/jimbo`'s `main` need not be clean, and unattended switches of production spike are allowed.
   A `git pull` there that refuses over `flake.lock` takes `git checkout HEAD flake.lock && git pull && nix flake update backlogic && just`: the committed lock can pin backlogic older than its store, which older code refuses to open.
-  Its runner, `backlogic-runner-aaron`, and `backlogic-second` on `:4201` are still `aaron`'s hand-started transient user units, which a reboot stops.
+  Its runner, `backlogic-runner-aaron`, runs as `aaron` from the detached checkout `~/workspace/backlogic--service`, with mise's shims on its PATH so its sessions find `bin/check`'s tools, and a switch never restarts it, since its sessions run inside the unit.
+  `backlogic-second` on `:4201` is still `aaron`'s hand-started transient user unit, which a reboot stops.
   Caddy serves `backlogic-aaron` at `https://backlogic.spike.cute.engineer` (`modules/hosts/spike/backlogic.nix`), whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
 - Home Assistant (`modules/hosts/spike/home-assistant.nix`) runs as the NixOS `home-assistant` module, serving `:8123` open on `wlp2s0` and `wg0` alone.
   Its secrets, `latitude`, `longitude`, `elevation` and `panel_user_id`, live in `/var/lib/hass/secrets.yaml`, owner `hass`, mode 600, written by hand.
@@ -155,7 +156,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `discord-threads-pull.timer` deploys every push to its `main` within 2 minutes: as `aaron` it runs `git pull --ff-only` in the checkout and, when `HEAD` moved, restarts `discord-threads`, which runs `npm ci --omit=dev` first and ends every live thread session, whose unfinished turns replay from the ledger on boot.
   It skips the pull while the checkout is on a branch other than `main`, so checking one out there pauses deploys.
 - mise is installed system-wide, and `programs.nix-ld` loads the tools it downloads, which are built for other Linuxes, such as backlogic's Deno and Python (`modules/hosts/spike/mise.nix`).
-  Both Claude services have `~/.local/share/mise/shims` last on their `PATH`, so a session finds a repository's mise tools, and its git hooks run, while the system's `python3` still wins outside one.
+  Both Claude services and backlogic's runner have `~/.local/share/mise/shims` last on their `PATH`, so a session finds a repository's mise tools, and its git hooks run, while the system's `python3` still wins outside one.
   `/etc/mise/config.toml` trusts every `mise.toml` under `~/workspace/backlogic`, its worktrees included, and takes prebuilt Python, since building it from source fails here.
   A shim resolves its version from the working directory's `mise.toml`, so the file also sets Deno to the newest installed everywhere else, for hooks and tests that run Deno outside a checkout.
   A repository's tools are installed once by hand with `mise install` in its checkout, after `mise trust` outside `~/workspace/backlogic`.

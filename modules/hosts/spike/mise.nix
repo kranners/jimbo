@@ -22,7 +22,14 @@ in
     };
   };
 
-  systemd.services = lib.genAttrs [ "claude-remote-control" "discord-threads" ] (_: {
-    path = lib.mkAfter [ miseShims ];
-  });
+  systemd.services =
+    lib.genAttrs
+      [
+        "backlogic-runner-aaron"
+        "claude-remote-control"
+        "discord-threads"
+      ]
+      (_: {
+        path = lib.mkAfter [ miseShims ];
+      });
 }

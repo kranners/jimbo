@@ -143,3 +143,4 @@
 - 2026-10-16: Turn on the backlogic Claude Code plugin on every host and put Deno on the Mac, so sessions Aaron starts load backlogic's shared rules.
 - 2026-10-17: Add a second phone as WireGuard peer 10.100.0.9 on spike, forwarding to the other peers like the first.
 - 2026-10-18: Install google-chrome on spike, so backlogic's bin/check and board publishing find a Chrome on PATH.
+- 2026-10-18: Run backlogic's runner on spike as a declared service with mise's shims on its PATH, so its sessions find bin/check's tools and it survives a reboot.
