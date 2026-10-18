@@ -125,9 +125,6 @@ in
   '';
 
   networking.firewall.interfaces = lib.genAttrs lanInterfaces (_: {
-    allowedTCPPorts = [
-      4200
-      4201
-    ];
+    allowedTCPPorts = [ 4200 ];
   });
 }
