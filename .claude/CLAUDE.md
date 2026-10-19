@@ -240,6 +240,11 @@ Lua edits take effect immediately without a rebuild; only `init.lua` and the LSP
 
 Lua is formatted with stylua (`stylua.toml` at repo root).
 
+### Speed reading
+
+`modules/speed-read` puts the Raycast script command Speed Read Selection in `~/.config/raycast/scripts` on the Macs, which copies the selection and plays it one word at a time from 400 wpm with agent-rsvp in a small Ghostty window.
+Adding that directory under Raycast's Script Commands and giving the command a hotkey are hand steps, since Raycast keeps both in its own database.
+
 ### Other directories
 
 - `voyager/`, QMK keymap for a ZSA Voyager keyboard; built/flashed externally with `qmk`, not part of the flake.
