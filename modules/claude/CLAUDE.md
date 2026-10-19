@@ -16,7 +16,7 @@ Comments in source should link to upstream bugs to track against where possible.
 # LANDING CHANGES:
 
 A repository whose `CLAUDE.md` names its landing checks lands branches this way, and any other repository keeps its own process.
-Each branch holds one feature or fix, and lives only until it lands.
+Each branch lives only until it lands.
 A branch lands by appending one dated line summarising its change to the end of `CHANGELOG.md`, fetching `origin`, rebasing onto `origin/main`, passing the landing checks, then running `git push origin HEAD:main`.
 `CHANGELOG.md` is marked `merge=union` in `.gitattributes`, so a rebase keeps every branch's line instead of conflicting.
 A rejected push means `main` moved, so landing starts again from the fetch.
