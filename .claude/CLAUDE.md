@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Nix flake configuring four machines for a single user (`aaron`):
+Nix flake configuring five machines for a single user (`aaron`, `aaronpierce` on the second MacBook):
 
 - `jimbo`, NixOS PC, `x86_64-linux`
 - `piggys-MBP`, MacBook via nix-darwin, `aarch64-darwin`
+- `pilot`, second MacBook via nix-darwin, `aarch64-darwin`, same setup as `piggys-MBP`, its computer and network names set to `pilot` by nix-darwin
 - `spike`, always-on NixOS box, `x86_64-linux`
 - `framer`, NixOS Surface Book 2 laptop, `x86_64-linux`
 

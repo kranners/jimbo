@@ -149,3 +149,4 @@
 - 2026-10-19: The Mac reaches GitHub over SSH with `~/.ssh/id_ed25519` like the NixOS hosts, since its `id_rsa` is gone.
 - 2026-10-19: The Mac's Homebrew ungoogled-chromium gets the same extensions as the NixOS hosts, through home-manager's External Extensions files.
 - 2026-10-19: Claude in Chrome is bumped to 1.0.101, the release the store serves, with the Vivaldi side panel patch rewritten for its renamed code and also applied to its new extension-page sender check.
+- 2026-10-19: pilot, a second MacBook for `aaronpierce`, joins the flake with the same setup as piggys-MBP, nix-darwin names it `pilot`, and `just` picks the Mac host by LocalHostName.
