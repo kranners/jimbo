@@ -154,3 +154,4 @@
 - 2026-10-19: zellij is removed: its module, the sidebar plugin and its `rust-overlay` input, and the Claude Code hooks that named zellij tabs after each session's status.
 - 2026-10-19: AutoRaise only warps the cursor to the window Charmstone switches to, through its documented `delay=0` instead of an empty include list, and the dead Accessibility option and misspelled brew option are gone.
 - 2026-10-19: pilot gets the tooling its work repositories expect (uv 0.13 and Google Chrome from Homebrew, terraform, tflint, lefthook, the AWS and SAM CLIs and OpenSSL 3 from nixpkgs), and gcc is Linux-only so Apple's clang stays the Mac's `cc` for native Python builds.
+- 2026-10-19: Both Macs get claude-swap (`cswap`), installed by Homebrew's uv on first activation so `cswap upgrade` keeps it current.

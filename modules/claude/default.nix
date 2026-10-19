@@ -127,4 +127,19 @@
         }
       );
     };
+
+  # Homebrew's uv keeps up with uv's releases
+  darwinSystemModule.homebrew.brews = [ "uv" ];
+
+  darwinHomeModule =
+    { lib, ... }:
+    {
+      # uv owns claude-swap so `cswap upgrade` can update it in place
+      home.activation.installClaudeSwap = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        if [ ! -x "$HOME/.local/bin/cswap" ]; then
+          run /opt/homebrew/bin/uv tool install claude-swap \
+            || echo "claude-swap install failed, retry with: uv tool install claude-swap" >&2
+        fi
+      '';
+    };
 }
