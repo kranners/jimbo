@@ -242,7 +242,8 @@ Lua is formatted with stylua (`stylua.toml` at repo root).
 
 ### Speed reading
 
-`modules/speed-read` puts the Raycast script command Speed Read Selection in `~/.config/raycast/scripts` on the Macs, which copies the selection and plays it one word at a time from 400 wpm with agent-rsvp in a small Ghostty window.
+`modules/speed-read` puts the Raycast script command Speed Read Selection in `~/.config/raycast/scripts` on the Macs, which copies the selection and plays it one word at a time from 500 wpm with agent-rsvp in a small Terminal window centred on the screen under the mouse pointer, after waiting for the hotkey's modifiers to be released so its copy keystroke reaches the app as a plain ⌘C.
+On every switch it sets the default Terminal profile to close a window when its shell exits cleanly, so quitting the reader closes its window.
 Adding that directory under Raycast's Script Commands and giving the command a hotkey are hand steps, since Raycast keeps both in its own database.
 
 ### Other directories
