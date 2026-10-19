@@ -58,6 +58,7 @@ in
     ./spotify
     ./browser
     ./night-shift
+    ./speed-read
   ]
   ++ lib.optionals host.kiosk [
     ./kiosk

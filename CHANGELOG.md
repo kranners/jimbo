@@ -156,3 +156,4 @@
 - 2026-10-19: pilot gets the tooling its work repositories expect (uv 0.13 and Google Chrome from Homebrew, terraform, tflint, lefthook, the AWS and SAM CLIs and OpenSSL 3 from nixpkgs), and gcc is Linux-only so Apple's clang stays the Mac's `cc` for native Python builds.
 - 2026-10-19: Both Macs get claude-swap (`cswap`), installed by Homebrew's uv on first activation so `cswap upgrade` keeps it current.
 - 2026-10-20: The Claude Code status line names the account each session is logged in as, beside the model and repository, following `cswap run`'s per-session config.
+- 2026-10-20: The Macs get a Raycast script command, Speed Read Selection, that plays the selected text one word at a time from 400 wpm with agent-rsvp in a small Ghostty window.
