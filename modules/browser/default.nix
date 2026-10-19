@@ -4,7 +4,16 @@
     # "firefox"
   ];
 
+  sharedHomeModule = { pkgs, ... }: {
+    programs.chromium = {
+      enable = true;
+      extensions = import ./extensions.nix { inherit pkgs; };
+    };
+  };
+
   darwinHomeModule = { pkgs, lib, ... }: {
+    programs.chromium.package = null;
+
     home.file.claude-extension-vivaldi-patched = {
       source = import ./claude-vivaldi { inherit pkgs lib; };
       recursive = true;
@@ -21,11 +30,7 @@
   };
 
   nixosHomeModule = { pkgs, ... }: {
-    programs.chromium = {
-      enable = true;
-      package = pkgs.ungoogled-chromium;
-      extensions = import ./extensions.nix { inherit pkgs; };
-    };
+    programs.chromium.package = pkgs.ungoogled-chromium;
 
     wayland.windowManager.hyprland.settings.bind = [
       "$mod, B, exec, chromium"

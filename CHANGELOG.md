@@ -147,3 +147,4 @@
 - 2026-10-18: Close spike's :4201, which backlogic's retired second instance served, and drop it from the docs.
 - 2026-10-19: Drop the personal CLAUDE.md rule that each branch holds only one feature or fix.
 - 2026-10-19: The Mac reaches GitHub over SSH with `~/.ssh/id_ed25519` like the NixOS hosts, since its `id_rsa` is gone.
+- 2026-10-19: The Mac's Homebrew ungoogled-chromium gets the same extensions as the NixOS hosts, through home-manager's External Extensions files.
