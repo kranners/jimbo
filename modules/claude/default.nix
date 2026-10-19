@@ -86,6 +86,11 @@
           # Recaps
           awaySummaryEnabled = false;
 
+          # Every session is reachable from the Claude app, which also receives its push notifications
+          remoteControlAtStartup = true;
+          agentPushNotifEnabled = true;
+          inputNeededNotifEnabled = true;
+
           # Disable feedback surveys
           feedbackSurveyRate = 0;
 
