@@ -1,7 +1,0 @@
-[package]
-name = "zellij-sidebar"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-zellij-tile = "0.45.1"

@@ -24,7 +24,6 @@ in
     ./git
     ./claude
     ./homelab
-    ./zellij
     ./security
     ./locale
     ./networking
