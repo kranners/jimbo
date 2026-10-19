@@ -2,7 +2,7 @@
 
 Reads the status line JSON on stdin and prints three lines:
 
-  Opus 5.5  ·  jimbo:main  ·  jimbo-50
+  Opus 5.5  ·  jimbo:main  ·  aaron@cute.engineer  ·  jimbo-50
   turn 210k $0.68  ·  session 1.2M $4.31  ·  today 8.4M $22.10  ·  week 51M $310.20
   context ########-- 84% left  ·  session ######---- 61% left 2h10m  ·  week ####------ 43% left 1d3h  ·  Fable ...
 
@@ -328,6 +328,16 @@ def repo_name(status, cwd):
     return os.path.basename(cwd)
 
 
+def account_email():
+    """The account this session is logged in as, which `cswap run` changes per session."""
+    config_home = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~")
+    try:
+        with open(os.path.join(config_home, ".claude.json")) as handle:
+            return (json.load(handle).get("oauthAccount") or {}).get("emailAddress")
+    except (OSError, ValueError):
+        return None
+
+
 def human(count):
     if count >= 1e9:
         return "%.1fB" % (count / 1e9)
@@ -470,6 +480,9 @@ def main():
     model = (status.get("model") or {}).get("display_name") or "?"
     branch = git(cwd, "branch", "--show-current") or git(cwd, "rev-parse", "--short", "HEAD") or "-"
     header = [BOLD + model + RESET, "%s%s:%s%s" % (repo_name(status, cwd), DIM, RESET, branch)]
+    email = account_email()
+    if email:
+        header.append(email)
     if status.get("session_name"):
         header.append(status["session_name"])
     if not PLAIN:
