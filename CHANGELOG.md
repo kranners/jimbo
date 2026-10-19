@@ -152,3 +152,4 @@
 - 2026-10-19: pilot, a second MacBook for `aaronpierce`, joins the flake with the same setup as piggys-MBP, nix-darwin names it `pilot`, and `just` picks the Mac host by LocalHostName.
 - 2026-10-19: Bump Bitwarden, uBlock Origin Lite and Refined GitHub to the releases the Chrome Web Store serves, which pilot's first build fetched fresh.
 - 2026-10-19: zellij is removed: its module, the sidebar plugin and its `rust-overlay` input, and the Claude Code hooks that named zellij tabs after each session's status.
+- 2026-10-19: AutoRaise only warps the cursor to the window Charmstone switches to, through its documented `delay=0` instead of an empty include list, and the dead Accessibility option and misspelled brew option are gone.
