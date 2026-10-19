@@ -49,7 +49,7 @@ map fetchExtension [
   {
     # Claude in Chrome
     id = "fcoeoabgfenejglbffodgkkbkcdhcgfn";
-    version = "1.0.98";
-    hash = "sha256-aNtDr+oRbmHVTwODFzZ12PTMiiTaoW/yhxmRypaEPXg=";
+    version = "1.0.101";
+    hash = "sha256-yQO71kndmQf1WIjJBGk9ixE928oOL7M7OcdcQYV/7is=";
   }
 ]
