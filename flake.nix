@@ -56,6 +56,14 @@
         }
 
         {
+          system = "aarch64-darwin";
+          hostname = "pilot";
+          username = "aaronpierce";
+          desktop = true;
+          kiosk = false;
+        }
+
+        {
           system = "x86_64-linux";
           hostname = "spike";
           username = "aaron";

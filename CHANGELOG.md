@@ -146,3 +146,4 @@
 - 2026-10-18: Run backlogic's runner on spike as a declared service with mise's shims on its PATH, so its sessions find bin/check's tools and it survives a reboot.
 - 2026-10-18: Close spike's :4201, which backlogic's retired second instance served, and drop it from the docs.
 - 2026-10-19: Claude in Chrome is bumped to 1.0.101, the release the store serves, with the Vivaldi side panel patch rewritten for its renamed code and also applied to its new extension-page sender check.
+- 2026-10-19: pilot, a second MacBook for `aaronpierce`, joins the flake with the same setup as piggys-MBP, nix-darwin names it `pilot`, and `just` picks the Mac host by LocalHostName.
