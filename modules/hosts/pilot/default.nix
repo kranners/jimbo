@@ -1,6 +1,7 @@
 { host, ... }: {
   imports = [
     ./state-versions.nix
+    ./work-tools.nix
   ];
 
   darwinSystemModule.networking = {

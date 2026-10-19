@@ -45,13 +45,14 @@ top: {
         pkgs.fzf
         pkgs.lua-language-server
         pkgs.gh
-        pkgs.gcc
         pkgs.basedpyright
         pkgs.stylua
         pkgs.cargo
         pkgs.tree-sitter
         pkgs.yaml-language-server
         pkgs.sqls
-      ];
+      ]
+      # Apple's clang is the Mac's C compiler, and a gcc named cc ahead of it breaks native Python builds.
+      ++ lib.optional pkgs.stdenv.hostPlatform.isLinux pkgs.gcc;
     };
 }
