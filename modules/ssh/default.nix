@@ -10,6 +10,7 @@
         "github.com" = {
           HostName = "github.com";
           User = "git";
+          IdentityFile = "~/.ssh/id_ed25519";
         };
 
         "*" = {
@@ -29,8 +30,6 @@
   };
 
   darwinHomeModule.programs.ssh.settings = {
-    "github.com".IdentityFile = "~/.ssh/id_rsa";
-
     "tower" = {
       HostName = "192.168.168.10";
       User = "root";
@@ -50,5 +49,4 @@
       ControlPersist = "10m";
     };
   };
-  nixosHomeModule.programs.ssh.settings."github.com".IdentityFile = "~/.ssh/id_ed25519";
 }
