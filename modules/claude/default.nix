@@ -36,17 +36,6 @@
           exec python3 ${./statusline.py}
         '';
       };
-
-      agentStatusHook = status: [
-        {
-          hooks = [
-            {
-              type = "command";
-              command = "zellij-agent-status ${status}";
-            }
-          ];
-        }
-      ];
     in
     {
       home.packages = [
@@ -108,14 +97,6 @@
             type = "command";
             command = "${statusline}/bin/claude-statusline";
             refreshInterval = 30;
-          };
-
-          # Agent status in zellij tab names
-          hooks = {
-            UserPromptSubmit = agentStatusHook "running";
-            Notification = agentStatusHook "input";
-            Stop = agentStatusHook "idle";
-            SessionEnd = agentStatusHook "";
           };
         }
         // lib.optionalAttrs (host.hostname == "spike") {
