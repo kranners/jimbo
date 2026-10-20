@@ -164,3 +164,4 @@
 - 2026-10-20: Speed Read Selection shows its words at twice the Terminal profile's text size, still 80×12 and centred on the screen under the pointer.
 - 2026-10-20: Every machine has `bats` for running shell script tests.
 - 2026-10-20: Collect Nix garbage weekly on every host, keeping 7 days of generations, after spike ran out of inodes on 317 system generations and Grafana's session rotation failed into a redirect loop.
+- 2026-10-21: Claude Code sessions start in bypass permissions mode on every host but spike, which stays in auto mode.
