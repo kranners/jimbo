@@ -25,6 +25,49 @@
         '';
       };
 
+      # Prints every Stack note whose `repo` property names the session's repository, worktrees included
+      stack-notes = pkgs.writeShellApplication {
+        name = "claude-stack-notes";
+        runtimeInputs = [
+          pkgs.git
+          pkgs.gawk
+          pkgs.coreutils
+        ];
+
+        text = ''
+          STACK="$HOME/Documents/Latte/Stack"
+
+          COMMON_DIR="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || exit 0
+          REPO="$(basename "$(dirname "$COMMON_DIR")")"
+
+          frontmatter_repo() {
+            awk '
+              NR == 1 && $0 != "---" { exit }
+              NR > 1 && $0 == "---" { exit }
+              NR > 1 && sub(/^repo:[[:space:]]*/, "") { gsub(/["\047]/, ""); print; exit }
+            ' "$1"
+          }
+
+          FOUND=0
+          for NOTE in "$STACK"/*.md; do
+            [ -f "$NOTE" ] || continue
+            [ "$(frontmatter_repo "$NOTE")" = "$REPO" ] || continue
+
+            if [ "$FOUND" = 0 ]; then
+              echo "The user's Stack notes for $REPO, from their Obsidian vault. Read them before starting work."
+            fi
+            FOUND=1
+
+            printf '\n=== %s ===\n' "$NOTE"
+            cat "$NOTE"
+          done
+
+          if [ "$FOUND" = 0 ]; then
+            echo "No note in $STACK has the property repo: $REPO."
+          fi
+        '';
+      };
+
       statusline = pkgs.writeShellApplication {
         name = "claude-statusline";
         runtimeInputs = [
@@ -96,6 +139,18 @@
 
           # Disable prompt suggestions
           promptSuggestionsEnabled = false;
+
+          # Every session starts with the Stack notes for its repository
+          hooks.SessionStart = [
+            {
+              hooks = [
+                {
+                  type = "command";
+                  command = "${stack-notes}/bin/claude-stack-notes";
+                }
+              ];
+            }
+          ];
 
           # Status line
           statusLine = {
