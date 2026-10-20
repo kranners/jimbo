@@ -1,5 +1,5 @@
 /**
- * Runs a command in a new 80×12 Terminal window centred on the screen under the mouse pointer.
+ * Runs a command in a new 80×12 Terminal window, its text twice the profile's size, centred on the screen under the mouse pointer.
  */
 function screenUnderMousePointer() {
   const pointer = $.NSEvent.mouseLocation;
@@ -47,6 +47,7 @@ function run(argv) {
 
   const terminal = Application("Terminal");
   const tab = terminal.running() ? openInNewWindow(terminal, argv[0]) : openInLaunchWindow(terminal, argv[0]);
+  tab.fontSize = tab.fontSize() * 2;
   tab.numberOfColumns = 80;
   tab.numberOfRows = 12;
 
