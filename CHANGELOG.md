@@ -163,3 +163,4 @@
 - 2026-10-20: Every Claude Code session starts with the full text of each Obsidian Stack note whose `repo` property names its repository, worktrees included, or a line saying there is none.
 - 2026-10-20: Speed Read Selection shows its words at twice the Terminal profile's text size, still 80×12 and centred on the screen under the pointer.
 - 2026-10-20: Every machine has `bats` for running shell script tests.
+- 2026-10-20: Collect Nix garbage weekly on every host, keeping 7 days of generations, after spike ran out of inodes on 317 system generations and Grafana's session rotation failed into a redirect loop.

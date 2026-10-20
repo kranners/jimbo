@@ -1,3 +1,4 @@
+{ lib, ... }:
 let
   nixpkgs.config = {
     allowUnfree = true;
@@ -28,9 +29,17 @@ let
         "kranners.cachix.org-1:ZuxIgFNLP2qrpRXPKGMV1U+GErsAFU4Em4sqoOkJ0no="
       ];
     };
+
+    gc = {
+      automatic = true;
+      options = "--delete-older-than 7d";
+    };
   };
 in
 {
-  nixosSystemModule = { inherit nix nixpkgs; };
+  nixosSystemModule = {
+    inherit nixpkgs;
+    nix = lib.recursiveUpdate nix { gc.dates = "weekly"; };
+  };
   darwinSystemModule = { inherit nix nixpkgs; };
 }
