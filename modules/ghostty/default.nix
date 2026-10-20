@@ -9,10 +9,6 @@ let
   fontSize = if isLinux then 10 else 16;
 in
 {
-  darwinSystemModule.homebrew.casks = [
-    "ghostty"
-  ];
-
   nixosHomeModule = {
     home.packages = [
       pkgs.ghostty

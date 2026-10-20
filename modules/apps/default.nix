@@ -12,15 +12,11 @@
         "font-iosevka-nerd-font"
 
         "visual-studio-code"
-        "ghostty"
-        "mysqlworkbench"
         "browserstacklocal"
 
         "docker-desktop"
-        "microsoft-teams"
         "slack"
         "microsoft-outlook"
-        "onedrive"
         "readdle-spark"
 
         "charmstone"
