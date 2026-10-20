@@ -57,6 +57,7 @@
     pkgs.act
     pkgs.nh
     pkgs.ripgrep
+    pkgs.bats
     pkgs.mariadb.client
   ];
 
