@@ -95,8 +95,9 @@
           model = "claude-opus-5-5";
           effortLevel = "high";
 
-          # Start in auto mode
-          permissions.defaultMode = "auto";
+          # Spike starts in auto mode so its production keeps the classifier, every other host in bypass mode
+          permissions.defaultMode = if host.hostname == "spike" then "auto" else "bypassPermissions";
+          skipDangerousModePermissionPrompt = host.hostname != "spike";
 
           # Plugins
           extraKnownMarketplaces.backlogic.source = {
