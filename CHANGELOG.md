@@ -170,3 +170,4 @@
 - 2026-10-21: Compact Claude sessions automatically at backlogic's 200k context ceiling.
 - 2026-10-21: Stop compacting Claude sessions automatically at 200k, since compaction drops context opaquely.
 - 2026-10-21: Turn framer's screen and microphone off, or set its brightness, from Home Assistant's `framer` view.
+- 2026-10-21: Let Aaron's new machine SSH into spike as `aaron`.
