@@ -83,7 +83,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   The plugin's token is a backlogic API token, minted by the owner in backlogic's settings, in `/var/lib/grafana/backlogic-token`, owner `grafana`, mode 600, written by hand.
   Grafana starts with an empty one there when none was written, because a missing file fails its provisioning and stops it, and the backlogic panels show errors until the token is filled in.
   Grafana's plugins are declared, so the drilldown apps it otherwise installs itself are declared beside it.
-  Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions, backlogic's runner's among them, through `~/.claude/settings.json` on spike alone, each labelled `job` by `OTEL_SERVICE_NAME`.
+  Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions and backlogic's runner's, through `~/.claude/settings.json` on spike alone, each labelled `job` by `OTEL_SERVICE_NAME`.
   That `~/.claude/settings.json` also carries, on spike alone, an `autoMode` block telling the auto mode classifier that its production is a home server, so routine reads, restarts and post-land pulls there stop being denied.
   Every other host's starts sessions in `bypassPermissions` mode with its warning skipped, and carries an `autoMode` rule for when a session is switched back to auto mode, letting a session pipe the clipboard into a secret file on spike over SSH without reading it, which is how the backlogic token above gets there from the browser.
   `claude-limits.timer` writes the plan's session and weekly limits every 2 minutes for node_exporter's textfile collector, read as `aaron` from `/api/oauth/usage`, the undocumented endpoint behind `/usage`, with the token in `~/.claude/.credentials.json`.
@@ -92,7 +92,11 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   A bump that fails to build puts the lock back and is skipped until `main` moves again, recorded in `/var/lib/backlogic-switch/failed`; one that builds keeps its lock even when the switch fails, since spike may already run it.
   So `~/workspace/jimbo`'s `main` need not be clean, and unattended switches of production spike are allowed.
   A `git pull` there that refuses over `flake.lock` takes `git checkout HEAD flake.lock && git pull && nix flake update backlogic && just`: the committed lock can pin backlogic older than its store, which older code refuses to open.
-  Its runner, `backlogic-runner-aaron`, runs as `aaron` from the detached checkout `~/workspace/backlogic--service`, with mise's shims on its PATH so its sessions find `bin/check`'s tools, and a switch never restarts it, since its sessions run inside the unit.
+  Its runner, `backlogic-runner-aaron`, runs as the system user `backlogic-runner`, outside `wheel` and without `sudo`, so no session it launches can be root, from the detached checkout `~/workspace/backlogic--service` under its home `/var/lib/backlogic-runner`, beside its own clones of the projects its sessions work in, with its mise shims on its PATH so its sessions find `bin/check`'s tools, and a switch never restarts it, since its sessions run inside the unit.
+  Its unit runs at `Nice` 10 and a CPU and IO weight of 20 against everything else's 100, and its sessions, their `/dev/shm` temp files included, share a `MemoryHigh` of 6G and a `MemoryMax` of 8G of spike's 15 GiB, so Bowerbird and `backlogic-aaron` win under pressure.
+  Its Claude Code settings, personal `CLAUDE.md` and git config are links to `aaron`'s home-manager files, so its sessions behave as his did, while its Claude login, its token in `~/runner.token` and its GitHub credentials are its own, made by hand.
+  The instance writes `runner.json` to `/var/lib/backlogic-runner-config`, owner `aaron`, group `backlogic-runner`, setgid, so the runner and its sessions' hooks read what the instance writes.
+  It lands through its own queue, `~/land-queue`, since `land-on-main`'s default under `/tmp` belongs to whichever user landed first.
   Caddy serves `backlogic-aaron` at `https://backlogic.spike.cute.engineer` (`modules/hosts/spike/backlogic.nix`), whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
 - Home Assistant (`modules/hosts/spike/home-assistant.nix`) runs as the NixOS `home-assistant` module, serving `:8123` open on `wlp2s0` and `wg0` alone.
   Its secrets, `latitude`, `longitude`, `elevation` and `panel_user_id`, live in `/var/lib/hass/secrets.yaml`, owner `hass`, mode 600, written by hand.
@@ -161,8 +165,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `discord-threads-pull.timer` deploys every push to its `main` within 2 minutes: as `aaron` it runs `git pull --ff-only` in the checkout and, when `HEAD` moved, restarts `discord-threads`, which runs `npm ci --omit=dev` first and ends every live thread session, whose unfinished turns replay from the ledger on boot.
   It skips the pull while the checkout is on a branch other than `main`, so checking one out there pauses deploys.
 - mise is installed system-wide, and `programs.nix-ld` loads the tools it downloads, which are built for other Linuxes, such as backlogic's Deno and Python (`modules/hosts/spike/mise.nix`).
-  Both Claude services and backlogic's runner have `~/.local/share/mise/shims` last on their `PATH`, so a session finds a repository's mise tools, and its git hooks run, while the system's `python3` still wins outside one.
-  `/etc/mise/config.toml` trusts every `mise.toml` under `~/workspace/backlogic`, its worktrees included, and takes prebuilt Python, since building it from source fails here.
+  Both Claude services have `~/.local/share/mise/shims` last on their `PATH`, and backlogic's runner its own user's, so a session finds a repository's mise tools, and its git hooks run, while the system's `python3` still wins outside one.
+  `/etc/mise/config.toml` trusts every `mise.toml` under `aaron`'s and the runner's `~/workspace/backlogic`, their worktrees included, and takes prebuilt Python, since building it from source fails here.
   A shim resolves its version from the working directory's `mise.toml`, so the file also sets Deno to the newest installed everywhere else, for hooks and tests that run Deno outside a checkout.
   A repository's tools are installed once by hand with `mise install` in its checkout, after `mise trust` outside `~/workspace/backlogic`.
 

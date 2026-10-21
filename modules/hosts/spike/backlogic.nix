@@ -1,4 +1,5 @@
 {
+  config,
   inputs,
   lib,
   pkgs,
@@ -7,7 +8,10 @@
 let
   home = "/home/aaron";
   checkout = "${home}/workspace/jimbo";
-  runnerCheckout = "${home}/workspace/backlogic--service";
+  runnerHome = config.users.users.backlogic-runner.home;
+  runnerCheckout = "${runnerHome}/workspace/backlogic--service";
+  runnerConfigDir = "/var/lib/backlogic-runner-config";
+  aaronHome = config.home-manager.users.aaron;
 
   lanInterfaces = [
     "wlp2s0"
@@ -56,6 +60,7 @@ in
     project = "bowerbird";
     displayName = "Aaron's instance";
     user = "aaron";
+    runnerConfig = "${runnerConfigDir}/runner.json";
     peer = {
       name = "Rylee's instance";
       url = "https://ideas.noodlebra.in";
@@ -82,9 +87,36 @@ in
     };
   };
 
+  # A session run as aaron could be root through his passwordless sudo, so the runner has
+  # its own user, outside wheel, with its own clones under its home.
+  users.users.backlogic-runner = {
+    isSystemUser = true;
+    group = "backlogic-runner";
+    home = "/var/lib/backlogic-runner";
+    createHome = true;
+    shell = pkgs.bashInteractive;
+  };
+  users.groups.backlogic-runner = { };
+
+  # The instance writes runner.json through a rename as aaron, and the runner and its
+  # sessions' hooks read it, so it lives in a directory both reach, its group inherited.
+  # The runner's Claude Code and git take aaron's settings, so its sessions behave as his did.
+  systemd.tmpfiles.rules = [
+    "d ${runnerConfigDir} 2750 aaron backlogic-runner -"
+    "d ${runnerHome}/.claude 0700 backlogic-runner backlogic-runner -"
+    "L+ ${runnerHome}/.claude/settings.json - - - - ${
+      aaronHome.home.file.".claude/settings.json".source
+    }"
+    "L+ ${runnerHome}/.claude/CLAUDE.md - - - - ${aaronHome.home.file.".claude/CLAUDE.md".source}"
+    "d ${runnerHome}/.config 0755 backlogic-runner backlogic-runner -"
+    "d ${runnerHome}/.config/git 0755 backlogic-runner backlogic-runner -"
+    "L+ ${runnerHome}/.config/git/config - - - - ${aaronHome.xdg.configFile."git/config".source}"
+  ];
+
   # Its sessions run inside the unit, so a switch never restarts it.
   # TMPDIR on tmpfs keeps the checks' fsyncs off the NVMe, and OOMPolicy=continue keeps the
   # other sessions running when one is killed for memory (backlogic's docs/decisions/runner.md).
+  # Its weights and memory ceiling leave Bowerbird and the instance the box under pressure.
   systemd.services.backlogic-runner-aaron = {
     description = "backlogic runner launching sessions on Aaron's instance";
     wantedBy = [ "multi-user.target" ];
@@ -94,21 +126,39 @@ in
       "backlogic-aaron.service"
     ];
     restartIfChanged = false;
+    unitConfig.ConditionPathExists = "${runnerCheckout}/bin/backlogic-runner";
     path = [
       "/run/wrappers"
       "/run/current-system/sw"
     ];
     environment = {
       TMPDIR = "/dev/shm";
-      XDG_RUNTIME_DIR = "/run/user/1000";
+      BACKLOGIC_LAND_QUEUE = "${runnerHome}/land-queue";
     };
     serviceConfig = {
-      User = "aaron";
+      User = "backlogic-runner";
       WorkingDirectory = runnerCheckout;
-      ExecStart = "${runnerCheckout}/bin/backlogic-runner --url http://127.0.0.1:4200";
+      ExecStart = lib.escapeShellArgs [
+        "${runnerCheckout}/bin/backlogic-runner"
+        "--url"
+        "http://127.0.0.1:4200"
+        "--workspace"
+        "${runnerHome}/workspace"
+        "--state"
+        "${runnerHome}/state"
+        "--config"
+        "${runnerConfigDir}/runner.json"
+        "--token-file"
+        "${runnerHome}/runner.token"
+      ];
       OOMPolicy = "continue";
       Restart = "always";
       RestartSec = 30;
+      Nice = 10;
+      CPUWeight = 20;
+      IOWeight = 20;
+      MemoryHigh = "6G";
+      MemoryMax = "8G";
     };
   };
 
