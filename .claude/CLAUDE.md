@@ -168,7 +168,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   There is no NAT for `10.100.0.0/24`, so a peer reaches nothing on the LAN through spike.
   Caddy's `vnc.framer.cute.engineer` is spike's own `443`, open to every peer, so it still reaches framer's noVNC from `rylee` and `github-actions`.
 - Claude Code runs on two accounts here, `aaron@cute.engineer` logged in under `~/.claude` and `ap@bloomanalytics.ai` under `~/.claude-bloom`, the `CLAUDE_CONFIG_DIR` of anything that uses it.
-  Home-manager writes the same `CLAUDE.md`, skills and `settings.json` into both, on spike alone, but neither login, `.credentials.json` or `.claude.json`, and each directory installs its plugins once by hand, since a fresh one only clones the marketplaces its `settings.json` declares.
+  Home-manager writes the same `CLAUDE.md`, skills and `settings.json` into both, on spike alone, but neither login, `.credentials.json` or `.claude.json`, and a directory's first logged-in session installs the plugins its `settings.json` enables, which `claude plugin install` cannot, since it writes to that read-only `settings.json`.
   Backlogic's runner, which logs in to both accounts under its own home, spends the personal account first and moves to bloom only while personal is at its limit, capped low enough that most of bloom's week stays free, through `runner.json`'s `accounts`.
   Remote Control and Discord threads run on bloom, so they keep working once the runner has spent the personal week.
 - Claude Code Remote Control (`claude-remote-control.service`) serves sessions from `~/workspace` to claude.ai/code as `spike`, on the bloom account.

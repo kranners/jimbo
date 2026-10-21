@@ -185,3 +185,4 @@
 - 2026-10-22: Rebuild spike's backlogic only once its `main` has stayed put for 30 minutes, so a run of landings costs one build and one restart.
 - 2026-10-22: Fix spike's alert summaries, which Grafana failed to expand because its provisioning keeps `$$` as written.
 - 2026-10-22: Run spike's Remote Control and Discord threads on a second Claude account in `~/.claude-bloom`, which home-manager configures like `~/.claude`, and chart both accounts' limits, polled every 10 minutes.
+- 2026-10-22: Correct how a new Claude config directory on spike gets its plugins: its first logged-in session installs them.
