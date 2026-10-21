@@ -106,6 +106,9 @@
           permissions.defaultMode = if host.hostname == "spike" then "auto" else "bypassPermissions";
           skipDangerousModePermissionPrompt = host.hostname != "spike";
 
+          # Messages from Aaron's other sessions arrive without waiting for approval, whatever either session's permission mode
+          crossSessionInbound = "accept";
+
           # Plugins
           extraKnownMarketplaces.backlogic.source = {
             source = "github";
