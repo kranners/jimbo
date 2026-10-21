@@ -7,10 +7,10 @@ Reads the status line JSON on stdin and prints three lines:
   context ########-- 84% left  ·  session ######---- 61% left 2h10m  ·  week ####------ 43% left 1d3h  ·  Fable ...
 
 Session cost comes from Claude Code itself. Token counts and the other costs are
-summed from the JSONL transcripts under ~/.claude/projects, priced with the same
-table Claude Code uses. The turn figure covers the most recent prompt and every
-request it triggered, so per prompt cost can be watched climbing as the context
-grows. The week figure runs from the start of the weekly limit's window.
+summed from the JSONL transcripts under CLAUDE_CONFIG_DIR's projects, priced with
+the same table Claude Code uses. The turn figure covers the most recent prompt
+and every request it triggered, so per prompt cost can be watched climbing as the
+context grows. The week figure runs from the start of the weekly limit's window.
 
 With CLAUDE_STATUSLINE_PLAIN=1 it drops the first line, the bars and the colours,
 for the footer discord-threads posts under each reply.
@@ -94,8 +94,12 @@ MODEL_WINDOWS = {
 # window; the figure on smaller windows has not been checked.
 AUTOCOMPACT_BUFFER = 33_000
 
+CONFIG_DIR = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+
 USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
-USAGE_CACHE = os.path.expanduser("~/.cache/claude-statusline/usage.json")
+USAGE_CACHE = os.path.expanduser(
+    "~/.cache/claude-statusline/%s-usage.json" % os.path.basename(CONFIG_DIR).lstrip(".")
+)
 USAGE_TTL = 60
 
 PLAIN = os.environ.get("CLAUDE_STATUSLINE_PLAIN") == "1"
@@ -289,7 +293,7 @@ def window_for(model, used):
 
 
 def files_since(start):
-    root = os.path.expanduser("~/.claude/projects")
+    root = os.path.join(CONFIG_DIR, "projects")
     found = []
     for dirpath, _, names in os.walk(root):
         for name in names:
@@ -383,7 +387,7 @@ def oauth_token():
             timeout=2,
         ).stdout
     else:
-        with open(os.path.expanduser("~/.claude/.credentials.json")) as handle:
+        with open(os.path.join(CONFIG_DIR, ".credentials.json")) as handle:
             raw = handle.read()
     return json.loads(raw)["claudeAiOauth"]["accessToken"]
 
@@ -401,7 +405,7 @@ def fetch_usage():
 
 
 def account_usage():
-    """The /usage reading, fetched at most once a minute across every session."""
+    """The /usage reading, fetched at most once a minute across every session of the account."""
     try:
         if time.time() - os.stat(USAGE_CACHE).st_mtime < USAGE_TTL:
             with open(USAGE_CACHE) as handle:
