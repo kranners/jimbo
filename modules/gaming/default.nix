@@ -11,7 +11,10 @@ let
   ];
 in
 {
-  darwinSystemModule.homebrew.casks = [ "jagex" ];
+  darwinSystemModule.homebrew.casks = [
+    "jagex"
+    "steam"
+  ];
 
   nixosSystemModule = {
     programs = {
