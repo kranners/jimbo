@@ -13,6 +13,7 @@ let
   runnerConfigDir = "/var/lib/backlogic-runner-config";
   aaronHome = config.home-manager.users.aaron;
   runnerTokens = "${runnerHome}/.config/github-tokens";
+  quietMinutes = 30;
 
   # Each Claude account the runner launches on has its own config directory, named in
   # runner.json's accounts, every one with aaron's settings, CLAUDE.md and skills.
@@ -106,7 +107,8 @@ let
     PATH=${pkgs.deno}/bin:$PATH exec ${checkout}/bin/backlogic "$@"
   '';
 
-  # Checks out backlogic's main and rebuilds the instance from it when main has moved.
+  # Checks out backlogic's main and rebuilds the instance from it once main has stayed put for quietMinutes,
+  # so a run of landings costs one build and one restart.
   # A main that does not descend from the running commit is skipped, so older code never opens a store newer code migrated.
   # A build that fails puts the checkout back and is skipped until main moves again.
   # One that builds keeps its checkout even when it fails to start, since it may already have migrated the store.
@@ -114,15 +116,25 @@ let
     name = "backlogic-switch";
     runtimeInputs = [
       backlogic-compose
+      pkgs.findutils
       pkgs.git
       pkgs.openssh
     ];
     text = ''
       failed_record="$STATE_DIRECTORY/failed"
+      pending_record="$STATE_DIRECTORY/pending"
       running=$(git rev-parse HEAD)
       git fetch --quiet origin main
       latest=$(git rev-parse FETCH_HEAD)
       if [ "$latest" = "$running" ] || [ "$latest" = "$(cat "$failed_record" 2>/dev/null)" ]; then
+        exit 0
+      fi
+
+      if [ "$latest" != "$(cat "$pending_record" 2>/dev/null)" ]; then
+        echo "$latest" > "$pending_record"
+        exit 0
+      fi
+      if [ -z "$(find "$pending_record" -mmin +${toString quietMinutes})" ]; then
         exit 0
       fi
 
