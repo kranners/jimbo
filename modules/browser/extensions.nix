@@ -52,4 +52,22 @@ map fetchExtension [
     version = "1.0.101";
     hash = "sha256-yQO71kndmQf1WIjJBGk9ixE928oOL7M7OcdcQYV/7is=";
   }
+  {
+    # Tampermonkey
+    id = "dhdgffkkebhmkfjojejmpbldmpobfkfo";
+    version = "5.5.1";
+    hash = "sha256-tRZ5N4F+Y2reukYu2b+bMv8BwoiPeKmvxqpPjmVf6HI=";
+  }
+  {
+    # React Developer Tools
+    id = "fmkadmapgofadopljbjfkapdkoienihi";
+    version = "8.0.0";
+    hash = "sha256-2S4RIqFjYsxVEJJwaKWxqNULQ+HzviXDEX98AFgHswI=";
+  }
+  {
+    # Proton VPN
+    id = "jplgfhpmjnbigmhklmmbgecoobifkmpa";
+    version = "1.3.6";
+    hash = "sha256-vTwPXkBKlOA0FUzaQTD1hldFzMevtSf41IHl2zkmQa0=";
+  }
 ]
