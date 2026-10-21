@@ -1,13 +1,13 @@
 {
   config,
-  inputs,
   lib,
   pkgs,
   ...
 }:
 let
   home = "/home/aaron";
-  checkout = "${home}/workspace/jimbo";
+  checkout = "/srv/backlogic";
+  dataDir = "${home}/backlogic-data/aaron";
   runnerHome = config.users.users.backlogic-runner.home;
   runnerCheckout = "${runnerHome}/workspace/backlogic--service";
   runnerConfigDir = "/var/lib/backlogic-runner-config";
@@ -49,72 +49,131 @@ let
     	helper = ${lib.getExe github-token-credential}
     	useHttpPath = true
   '';
+  aaronUidGid = "1000:100";
 
   lanInterfaces = [
     "wlp2s0"
     "wg0"
   ];
 
-  # Bumps the checkout's lock to backlogic's main and switches spike to it when main has moved.
-  # A bump that fails to build puts the lock back and is skipped until main moves again.
-  # One that builds keeps its lock even when the switch fails, since spike may already run it
-  # and a later switch from the older lock would run a backlogic older than its store.
+  # As aaron, the owner's admin verbs keep sharing the store, and runner.json lands in runnerConfigDir with its group.
+  # compose.yaml takes no --config, so the entrypoint is the image's own with it added.
+  # On the host's network, :4200 stays behind spike's firewall and the peer resolves through spike's /etc/hosts.
+  composeOverride = pkgs.writeText "backlogic-spike.yaml" ''
+    services:
+      backlogic:
+        user: "${aaronUidGid}"
+        network_mode: host
+        ports: !reset []
+        entrypoint:
+          - deno
+          - run
+          - --quiet
+          - --allow-net
+          - --allow-read
+          - --allow-write
+          - --allow-env
+          - --allow-sys=hostname
+          - src/server/main.ts
+          - --config
+          - ${runnerConfigDir}/runner.json
+        volumes:
+          - ${dataDir}:/data
+          - ${runnerConfigDir}:${runnerConfigDir}
+  '';
+
+  backlogic-compose = pkgs.writeShellApplication {
+    name = "backlogic-compose";
+    runtimeInputs = [
+      config.virtualisation.docker.package
+      pkgs.git
+    ];
+    text = ''
+      BACKLOGIC_COMMIT=$(git -C ${checkout} rev-parse HEAD | cut -c1-7)
+      export BACKLOGIC_COMMIT
+      export BACKLOGIC_NAME="Aaron's instance"
+      export BACKLOGIC_PROJECT=bowerbird
+      export BACKLOGIC_PEER="Rylee's instance"
+      export BACKLOGIC_PEER_URL=https://ideas.noodlebra.in
+      export BACKLOGIC_PEER_TOKEN_FILE=${dataDir}/tokens/peer-rylee.token
+      export BACKLOGIC_PEER_OWNER=ibrokemypie
+      exec docker compose --project-directory ${checkout} --file ${checkout}/compose.yaml --file ${composeOverride} "$@"
+    '';
+  };
+
+  # The owner's admin verbs open the store itself, so they run the code the instance runs.
+  backlogic = pkgs.writeShellScriptBin "backlogic" ''
+    PATH=${pkgs.deno}/bin:$PATH exec ${checkout}/bin/backlogic "$@"
+  '';
+
+  # Checks out backlogic's main and rebuilds the instance from it when main has moved.
+  # A main that does not descend from the running commit is skipped, so older code never opens a store newer code migrated.
+  # A build that fails puts the checkout back and is skipped until main moves again.
+  # One that builds keeps its checkout even when it fails to start, since it may already have migrated the store.
   backlogic-switch = pkgs.writeShellApplication {
     name = "backlogic-switch";
     runtimeInputs = [
+      backlogic-compose
       pkgs.git
-      pkgs.jq
-      pkgs.nh
       pkgs.openssh
     ];
     text = ''
       failed_record="$STATE_DIRECTORY/failed"
-      locked=$(jq -r .nodes.backlogic.locked.rev flake.lock)
-      latest=$(git ls-remote git@github.com:backlogic/backlogic.git refs/heads/main | cut -f1)
-      if [ "$latest" = "$locked" ] || [ "$latest" = "$(cat "$failed_record" 2>/dev/null)" ]; then
+      running=$(git rev-parse HEAD)
+      git fetch --quiet origin main
+      latest=$(git rev-parse FETCH_HEAD)
+      if [ "$latest" = "$running" ] || [ "$latest" = "$(cat "$failed_record" 2>/dev/null)" ]; then
         exit 0
       fi
 
-      cp flake.lock "$STATE_DIRECTORY/flake.lock.before"
-      if ! nix flake update backlogic || ! nh os build .; then
-        cp "$STATE_DIRECTORY/flake.lock.before" flake.lock
+      if ! git merge-base --is-ancestor "$running" "$latest"; then
+        echo "$latest does not descend from the running $running" >&2
+        echo "$latest" > "$failed_record"
+        exit 1
+      fi
+
+      git checkout --quiet --detach "$latest"
+      if ! backlogic-compose build; then
+        git checkout --quiet --detach "$running"
         echo "$latest" > "$failed_record"
         exit 1
       fi
 
       rm -f "$failed_record"
-      nh os switch .
+      backlogic-compose up --detach --wait
     '';
   };
 in
 {
-  imports = [ inputs.backlogic.nixosModules.default ];
+  environment.systemPackages = [
+    backlogic
+    backlogic-compose
+  ];
 
-  services.backlogic.instances.aaron = {
-    port = 4200;
-    hostname = "0.0.0.0";
-    dataDir = "${home}/backlogic-data/aaron";
-    project = "bowerbird";
-    displayName = "Aaron's instance";
-    user = "aaron";
-    runnerConfig = "${runnerConfigDir}/runner.json";
-    peer = {
-      name = "Rylee's instance";
-      url = "https://ideas.noodlebra.in";
-      tokenFile = "${home}/backlogic-data/aaron/tokens/peer-rylee.token";
-      owner = "ibrokemypie";
+  systemd.services.backlogic-aaron = {
+    description = "Aaron's backlogic instance, built in Docker from ${checkout}";
+    wantedBy = [ "multi-user.target" ];
+    requires = [ "docker.service" ];
+    wants = [ "network-online.target" ];
+    after = [
+      "docker.service"
+      "network-online.target"
+    ];
+    unitConfig.ConditionPathExists = "${checkout}/compose.yaml";
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      User = "aaron";
+      ExecStart = "${lib.getExe backlogic-compose} up --detach --build --wait";
+      ExecStop = "${lib.getExe backlogic-compose} stop";
     };
   };
 
   systemd.services.backlogic-switch = {
-    description = "Bump jimbo's backlogic input and switch spike to it when backlogic's main moved";
+    description = "Rebuild Aaron's backlogic instance when backlogic's main moved";
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
-    path = [
-      "/run/wrappers"
-      "/run/current-system/sw"
-    ];
-    unitConfig.ConditionPathExists = "${checkout}/flake.lock";
+    unitConfig.ConditionPathExists = "${checkout}/.git";
     serviceConfig = {
       Type = "oneshot";
       User = "aaron";
