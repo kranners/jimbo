@@ -133,6 +133,21 @@ let
   activeTime = "claude_code_active_time_seconds_total";
   threads = ''job="discord-threads"'';
 
+  accountEmails = {
+    personal = "aaron@cute.engineer";
+    bloom = "ap@bloomanalytics.ai";
+  };
+  byAccount =
+    expr:
+    lib.foldlAttrs (
+      labelled: account: email:
+      ''label_replace(${labelled}, "account", "${account}", "user_email", "${
+        builtins.replaceStrings [ "." ] [ "[.]" ] email
+      }")''
+    ) expr accountEmails;
+  workingSessionsByAccount = "count by (account) (${byAccount "count by (user_email, session_id) (increase(${tokens}[5m]) > 0)"})";
+  sumByAccount = expr: "sum by (account) (${byAccount expr})";
+
   inRange = by: metric: "sum by (${by}) (increase(${metric}[$__range])) > 0";
   perSession = job: metric: inRange "session_id" ''${metric}{job="${job}"}'';
 
@@ -494,7 +509,7 @@ let
       })
       (stat {
         title = "Working sessions";
-        targets = [ (target "count(${workingSessions}) or vector(0)" "sessions") ];
+        targets = [ (target "${workingSessionsByAccount} or on () vector(0)" "{{account}}") ];
       })
       (ticketStat {
         title = "Claimed backlogic tickets";
@@ -502,12 +517,33 @@ let
       })
       (stat {
         title = "Tokens in range";
-        targets = [ (target "sum(increase(${tokens}[$__range]))" "tokens") ];
+        targets = [ (target (sumByAccount "increase(${tokens}[$__range])") "{{account}}") ];
       })
       (stat {
         title = "API-equivalent cost in range";
         unit = "currencyUSD";
-        targets = [ (target "sum(increase(${cost}[$__range]))" "cost") ];
+        targets = [ (target (sumByAccount "increase(${cost}[$__range])") "{{account}}") ];
+      })
+      (stat {
+        title = "Sessions in range";
+        h = 8;
+        targets = [
+          (target "count by (account) (${byAccount (inRange "user_email, session_id" tokens)})" "{{account}}")
+        ];
+      })
+      (timeseries {
+        title = "Working sessions by account";
+        w = 18;
+        targets = [ (target workingSessionsByAccount "{{account}}") ];
+      })
+      (timeseries {
+        title = "Tokens per minute by account";
+        targets = [ (target "${sumByAccount (rate tokens)} * 60" "{{account}}") ];
+      })
+      (timeseries {
+        title = "API-equivalent cost per hour by account";
+        unit = "currencyUSD";
+        targets = [ (target "${sumByAccount (rate cost)} * 3600" "{{account}}") ];
       })
       (timeseries {
         title = "Working sessions by source";

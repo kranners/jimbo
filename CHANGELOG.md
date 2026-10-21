@@ -186,3 +186,4 @@
 - 2026-10-22: Fix spike's alert summaries, which Grafana failed to expand because its provisioning keeps `$$` as written.
 - 2026-10-22: Run spike's Remote Control and Discord threads on a second Claude account in `~/.claude-bloom`, which home-manager configures like `~/.claude`, and chart both accounts' limits, polled every 10 minutes.
 - 2026-10-22: Correct how a new Claude config directory on spike gets its plugins: its first logged-in session installs them.
+- 2026-10-22: Chart Claude sessions, tokens and cost by account on spike's Claude dashboard.

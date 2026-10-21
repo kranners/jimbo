@@ -75,6 +75,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - Grafana listens on `127.0.0.1:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
   Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
   Its dashboards, Hardware, Services, Containers, Claude, and Backlogic and threads, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
+  The Claude dashboard splits sessions, tokens and cost by account, naming each Claude Code series' `user_email` `personal` or `bloom` with `label_replace` from `accountEmails` in that file.
   Prometheus keeps a year of samples, so the Backlogic and threads dashboard can chart tokens and Claude active time per thread session, by `session_id`.
   That dashboard and the Claude one read backlogic's tickets from `backlogic-aaron` through the `yesoreyeram-infinity-datasource` plugin, counting open and claimed tickets from `/api/snapshot` and charting each done ticket's spend and resolution from `/api/done`.
   Its time range picks the done tickets, through Grafana's `${__from}` and `${__to}` in each query's `/api/done?from=&to=` URL, which Grafana's frontend expands.
