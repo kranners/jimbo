@@ -82,6 +82,11 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   The plugin's token is a backlogic API token, minted by the owner in backlogic's settings, in `/var/lib/grafana/backlogic-token`, owner `grafana`, mode 600, written by hand.
   Grafana starts with an empty one there when none was written, because a missing file fails its provisioning and stops it, and the backlogic panels show errors until the token is filled in.
   Grafana's plugins are declared, so the drilldown apps it otherwise installs itself are declared beside it.
+  Its alerts are provisioned from `modules/hosts/spike/monitoring.nix` and post to a Discord channel through a webhook whose URL lives in `/var/lib/grafana/discord-webhook`, owner `grafana`, mode 600, written by hand, read by Grafana only when it starts.
+  Grafana refuses to start with an empty URL there, so it writes a placeholder pointing nowhere when none was written, and alerts go nowhere until the webhook is filled in.
+  They fire, for spike and framer each, when a host booted in the last 30 minutes, the kernel OOM-killed a process in the last 10 minutes, available memory stays under 1.5 GiB or swap over 80% used for 5 minutes, or `/` has over 80% of its inodes used.
+  They also fire when a systemd service on spike restarts more than 3 times in an hour, from node_exporter's restart metrics, which framer's node_exporter leaves off.
+  Grafana runs on spike, so a hung spike raises nothing until it comes back, when the reboot alert fires, and a host that stops reporting counts as fine.
   Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions, backlogic's runner's among them, through `~/.claude/settings.json` on spike alone, each labelled `job` by `OTEL_SERVICE_NAME`.
   That `~/.claude/settings.json` also carries, on spike alone, an `autoMode` block telling the auto mode classifier that its production is a home server, so routine reads, restarts and post-land pulls there stop being denied.
   Every other host's starts sessions in `bypassPermissions` mode with its warning skipped, and carries an `autoMode` rule for when a session is switched back to auto mode, letting a session pipe the clipboard into a secret file on spike over SSH without reading it, which is how the backlogic token above gets there from the browser.
