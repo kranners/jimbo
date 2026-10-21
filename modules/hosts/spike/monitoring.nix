@@ -79,9 +79,10 @@ let
       annotations.summary = summary;
     };
 
+  runnerHome = config.users.users.backlogic-runner.home;
   claudeConfigDirs = {
-    personal = ".claude";
-    bloom = ".claude-bloom";
+    personal = "${runnerHome}/.claude";
+    bloom = "${runnerHome}/.claude-bloom";
   };
 
   # Reads the undocumented endpoint behind Claude Code's /usage, with the token Claude Code keeps refreshed.
@@ -96,7 +97,7 @@ let
       status=0
       ${lib.concatMapAttrsStringSep "\n" (account: configDir: ''
         prom=${textfileDir}/claude-limits-${account}.prom
-        token=$(jq -r .claudeAiOauth.accessToken ~/${configDir}/.credentials.json) &&
+        token=$(jq -r .claudeAiOauth.accessToken ${configDir}/.credentials.json) &&
           curl --silent --fail https://api.anthropic.com/api/oauth/usage \
             --header "Authorization: Bearer $token" \
             --header "anthropic-beta: oauth-2025-04-20" |
@@ -163,7 +164,7 @@ in
     description = "Write Claude plan limits for node_exporter";
     serviceConfig = {
       Type = "oneshot";
-      User = "aaron";
+      User = "backlogic-runner";
       StateDirectory = "claude-limits";
       ExecStart = lib.getExe claudeLimits;
     };

@@ -187,3 +187,4 @@
 - 2026-10-22: Run spike's Remote Control and Discord threads on a second Claude account in `~/.claude-bloom`, which home-manager configures like `~/.claude`, and chart both accounts' limits, polled every 10 minutes.
 - 2026-10-22: Correct how a new Claude config directory on spike gets its plugins: its first logged-in session installs them.
 - 2026-10-22: Chart Claude sessions, tokens and cost by account on spike's Claude dashboard.
+- 2026-10-22: Read spike's Claude limits with the runner's tokens, since the status line kept `aaron`'s personal token rate limited.
