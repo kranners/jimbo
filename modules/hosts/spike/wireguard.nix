@@ -61,6 +61,11 @@ in
         publicKey = "+kOfkc7PFX6OFf9mq1ShAZ4/fT+1yC3d4IXebrQvaCI=";
         allowedIPs = [ "10.100.0.9/32" ];
       }
+      {
+        name = "rylee-2";
+        publicKey = "sXVMpbkWoPiFD1Czg4clq/bb0ycA32ODGdDnHDLFn1E=";
+        allowedIPs = [ "10.100.0.10/32" ];
+      }
     ];
   };
 
