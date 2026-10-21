@@ -25,12 +25,13 @@
         '';
       };
 
-      # Prints every Stack note whose `repo` property names the session's repository, worktrees included
+      # Prints every Stack note whose `repo` property, one name or a list, names the session's repository, worktrees included
       stack-notes = pkgs.writeShellApplication {
         name = "claude-stack-notes";
         runtimeInputs = [
           pkgs.git
           pkgs.gawk
+          pkgs.gnugrep
           pkgs.coreutils
         ];
 
@@ -40,18 +41,24 @@
           COMMON_DIR="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || exit 0
           REPO="$(basename "$(dirname "$COMMON_DIR")")"
 
-          frontmatter_repo() {
+          frontmatter_repos() {
             awk '
               NR == 1 && $0 != "---" { exit }
               NR > 1 && $0 == "---" { exit }
-              NR > 1 && sub(/^repo:[[:space:]]*/, "") { gsub(/["\047]/, ""); print; exit }
+              in_list && sub(/^[[:space:]]*-[[:space:]]*/, "") { gsub(/["\047]/, ""); print; next }
+              { in_list = 0 }
+              NR > 1 && sub(/^repo:[[:space:]]*/, "") {
+                gsub(/["\047]/, "")
+                if ($0 == "") in_list = 1
+                else print
+              }
             ' "$1"
           }
 
           FOUND=0
           for NOTE in "$STACK"/*.md; do
             [ -f "$NOTE" ] || continue
-            [ "$(frontmatter_repo "$NOTE")" = "$REPO" ] || continue
+            frontmatter_repos "$NOTE" | grep -xF "$REPO" >/dev/null || continue
 
             if [ "$FOUND" = 0 ]; then
               echo "The user's Stack notes for $REPO, from their Obsidian vault. Read them before starting work."
