@@ -171,3 +171,4 @@
 - 2026-10-21: Stop compacting Claude sessions automatically at 200k, since compaction drops context opaquely.
 - 2026-10-21: Turn framer's screen and microphone off, or set its brightness, from Home Assistant's `framer` view.
 - 2026-10-21: Let Aaron's new machine SSH into spike as `aaron`.
+- 2026-10-21: Bump Refined GitHub and uBlock Origin Lite to the releases the store serves, fixing the darwin build.
