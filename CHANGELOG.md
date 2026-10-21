@@ -178,3 +178,4 @@
 - 2026-10-21: Auto-update the backlogic marketplace and its plugin on every host, spike included, whose nixpkgs `claude` already keeps plugin updates on.
 - 2026-10-22: Drop Vivaldi's patched Claude extension and mail watch on the Macs, which now use ungoogled-chromium, and pin Tampermonkey, React Developer Tools and Proton VPN.
 - 2026-10-22: Run backlogic's runner on spike as its own user without sudo, from its own clones, and cap its CPU and memory so Bowerbird and the instance win under pressure.
+- 2026-10-22: Run spike's backlogic in Docker from backlogic's own compose file, rebuilt from `/srv/backlogic` when its `main` moves, and drop the private `backlogic` input, so CI checks spike again.

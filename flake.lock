@@ -1,24 +1,5 @@
 {
   "nodes": {
-    "backlogic": {
-      "inputs": {
-        "nixpkgs": "nixpkgs"
-      },
-      "locked": {
-        "lastModified": 1792063935,
-        "narHash": "sha256-LoC/R8zuM4T8OpFU/ar8hDO1vPTuc68A2MnQ3+5shQc=",
-        "ref": "main",
-        "rev": "02259ef4b07aec5ffa6197313f9eb13ab7b7625d",
-        "revCount": 635,
-        "type": "git",
-        "url": "ssh://git@github.com/backlogic/backlogic"
-      },
-      "original": {
-        "ref": "main",
-        "type": "git",
-        "url": "ssh://git@github.com/backlogic/backlogic"
-      }
-    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -81,22 +62,6 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1791594108,
-        "narHash": "sha256-XK4KceonkwD8LuMAt/vNrz982mXJM5jeHAxMwsUXXAQ=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "6510408d147d8c5e6d76043e899e9251756f6a75",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_2": {
-      "locked": {
         "lastModified": 1790480522,
         "narHash": "sha256-fXrm/q9klVBtVq5rGQ+XpI/dokPuSB15ZK2CZvWxXOk=",
         "owner": "nixos",
@@ -113,11 +78,10 @@
     },
     "root": {
       "inputs": {
-        "backlogic": "backlogic",
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
         "nixos-hardware": "nixos-hardware",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs"
       }
     }
   },
