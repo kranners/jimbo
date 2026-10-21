@@ -117,6 +117,10 @@ let
   framerVoice = "sensor.framer_voice";
   framerConversation = "binary_sensor.framer_conversation";
   framerMute = "switch.framer_mute";
+  framerScreen = "light.framer_screen";
+  framerScreenBrightness = "sensor.framer_screen_brightness";
+  framerScreenAndMicrophoneOff = "switch.framer_screen_and_microphone_off";
+  framerPanelRemote = "http://10.100.0.5:8124";
   panelScreensaver = "input_boolean.panel_screensaver";
   wallpanelProfile = "input_text.wallpanel_profile";
   secondsToReadReply = 30;
@@ -188,6 +192,34 @@ let
     entity = framerMute;
     name = "Mute microphone";
   };
+
+  refreshFramerScreenBrightness = {
+    action = "homeassistant.update_entity";
+    target.entity_id = framerScreenBrightness;
+  };
+
+  runFramerPanel = command: [
+    {
+      action = "rest_command.framer_panel";
+      data.command = command;
+    }
+    refreshFramerScreenBrightness
+  ];
+
+  framerControlCards = [
+    {
+      type = "tile";
+      entity = framerScreenAndMicrophoneOff;
+      name = "Screen and microphone off";
+    }
+    {
+      type = "tile";
+      entity = framerScreen;
+      name = "Screen";
+      features = [ { type = "light-brightness"; } ];
+    }
+    muteCard
+  ];
 
   infoCards = [
     {
@@ -277,6 +309,47 @@ in
           ];
         }
         {
+          light = [
+            {
+              name = "framer screen";
+              unique_id = "framer_screen";
+              availability = "{{ has_value('${framerScreenBrightness}') }}";
+              state = "{{ states('${framerScreenBrightness}') | int(0) > 0 }}";
+              level = "{{ (states('${framerScreenBrightness}') | int(0) * 2.55) | round(0) | int }}";
+              turn_on = runFramerPanel "on";
+              turn_off = runFramerPanel "off";
+              set_level = runFramerPanel "brightness/{{ [1, (brightness / 2.55) | round(0) | int] | max }}";
+            }
+          ];
+          switch = [
+            {
+              name = "framer screen and microphone off";
+              unique_id = "framer_screen_and_microphone_off";
+              state = "{{ is_state('${framerScreen}', 'off') and is_state('${framerMute}', 'on') }}";
+              turn_on = [
+                {
+                  action = "light.turn_off";
+                  target.entity_id = framerScreen;
+                }
+                {
+                  action = "switch.turn_on";
+                  target.entity_id = framerMute;
+                }
+              ];
+              turn_off = [
+                {
+                  action = "light.turn_on";
+                  target.entity_id = framerScreen;
+                }
+                {
+                  action = "switch.turn_off";
+                  target.entity_id = framerMute;
+                }
+              ];
+            }
+          ];
+        }
+        {
           binary_sensor = [
             {
               name = "framer conversation";
@@ -294,6 +367,25 @@ in
           ];
         }
       ];
+
+      rest = [
+        {
+          resource = "${framerPanelRemote}/brightness";
+          scan_interval = 30;
+          sensor = [
+            {
+              name = "framer screen brightness";
+              unique_id = "framer_screen_brightness";
+              unit_of_measurement = "%";
+            }
+          ];
+        }
+      ];
+
+      rest_command.framer_panel = {
+        url = "${framerPanelRemote}/{{ command }}";
+        method = "post";
+      };
 
       input_boolean.panel_screensaver.name = "Panel screensaver";
       conversation.intents = {
@@ -397,10 +489,16 @@ in
           title = "Panel";
           cards = [ voiceCard ] ++ infoCards ++ [ muteCard ];
         }
+        {
+          path = "framer";
+          title = "Framer";
+          cards = framerControlCards;
+        }
       ];
 
       wallpanel = {
         enabled = true;
+        enabled_on_views = [ "panel" ];
         hide_toolbar = true;
         hide_sidebar = true;
         idle_time = 15;
