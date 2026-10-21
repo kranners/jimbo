@@ -5,7 +5,6 @@ let
     "phone"
     "phone-2"
     "framer"
-    "tower"
   ];
   forwardingAddresses = lib.concatMap (peer: peer.allowedIPs) (
     lib.filter (
@@ -71,8 +70,8 @@ in
 
   networking.firewall.allowedUDPPorts = [ 51820 ];
 
-  # Rylee's backlogic instance on tower, served only to private addresses.
-  networking.hosts."10.100.0.7" = [ "ideas.noodlebra.in" ];
+  # Rylee's backlogic instance on rylee-2, served only to private addresses.
+  networking.hosts."10.100.0.10" = [ "ideas.noodlebra.in" ];
 
   boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
