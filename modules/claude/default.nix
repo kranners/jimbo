@@ -110,9 +110,12 @@
           crossSessionInbound = "accept";
 
           # Plugins
-          extraKnownMarketplaces.backlogic.source = {
-            source = "github";
-            repo = "backlogic/backlogic";
+          extraKnownMarketplaces.backlogic = {
+            source = {
+              source = "github";
+              repo = "backlogic/backlogic";
+            };
+            autoUpdate = true;
           };
           enabledPlugins = {
             "typescript-lsp@claude-plugins-official" = true;
