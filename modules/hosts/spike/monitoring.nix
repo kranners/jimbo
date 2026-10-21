@@ -252,7 +252,7 @@ in
           (alertRule {
             uid = "host-rebooted";
             title = "Host rebooted";
-            summary = "{{ $$labels.host }} booted in the last ${
+            summary = "{{ index .Labels \"host\" }} booted in the last ${
               toString (alertThresholds.recentBootSeconds / 60)
             } minutes.";
             expr = "time() - node_boot_time_seconds";
@@ -261,14 +261,14 @@ in
           (alertRule {
             uid = "oom-kill";
             title = "OOM kill";
-            summary = "The kernel killed a process on {{ $$labels.host }} for memory.";
+            summary = "The kernel killed a process on {{ index .Labels \"host\" }} for memory.";
             expr = "increase(node_vmstat_oom_kill[10m])";
             evaluator = above 0;
           })
           (alertRule {
             uid = "low-available-memory";
             title = "Low available memory";
-            summary = "{{ $$labels.host }} has had under ${toString alertThresholds.minAvailableMebibytes} MiB available for 5 minutes.";
+            summary = "{{ index .Labels \"host\" }} has had under ${toString alertThresholds.minAvailableMebibytes} MiB available for 5 minutes.";
             expr = "node_memory_MemAvailable_bytes";
             evaluator = below (alertThresholds.minAvailableMebibytes * 1024 * 1024);
             for = "5m";
@@ -276,7 +276,7 @@ in
           (alertRule {
             uid = "swap-full";
             title = "Swap nearly full";
-            summary = "{{ $$labels.host }} has had over ${percent alertThresholds.maxSwapUsed} of its swap used for 5 minutes.";
+            summary = "{{ index .Labels \"host\" }} has had over ${percent alertThresholds.maxSwapUsed} of its swap used for 5 minutes.";
             expr = "1 - node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes";
             evaluator = above alertThresholds.maxSwapUsed;
             for = "5m";
@@ -284,14 +284,14 @@ in
           (alertRule {
             uid = "root-inodes-full";
             title = "Root inodes nearly full";
-            summary = "{{ $$labels.host }} has used over ${percent alertThresholds.maxRootInodesUsed} of the inodes on /.";
+            summary = "{{ index .Labels \"host\" }} has used over ${percent alertThresholds.maxRootInodesUsed} of the inodes on /.";
             expr = ''1 - node_filesystem_files_free{mountpoint="/"} / node_filesystem_files{mountpoint="/"}'';
             evaluator = above alertThresholds.maxRootInodesUsed;
           })
           (alertRule {
             uid = "service-restarting";
             title = "Service restarting";
-            summary = "{{ $$labels.name }} on {{ $$labels.host }} restarted more than ${toString alertThresholds.maxServiceRestartsPerHour} times in the last hour.";
+            summary = "{{ index .Labels \"name\" }} on {{ index .Labels \"host\" }} restarted more than ${toString alertThresholds.maxServiceRestartsPerHour} times in the last hour.";
             expr = "increase(node_systemd_service_restart_total[1h])";
             evaluator = above alertThresholds.maxServiceRestartsPerHour;
           })
