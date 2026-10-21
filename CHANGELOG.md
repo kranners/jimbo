@@ -165,3 +165,4 @@
 - 2026-10-20: Every machine has `bats` for running shell script tests.
 - 2026-10-20: Collect Nix garbage weekly on every host, keeping 7 days of generations, after spike ran out of inodes on 317 system generations and Grafana's session rotation failed into a redirect loop.
 - 2026-10-21: Claude Code sessions start in bypass permissions mode on every host but spike, which stays in auto mode.
+- 2026-10-21: A Stack note's `repo` property can list several repositories, and sessions in any of them read it.
