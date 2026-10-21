@@ -71,6 +71,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Rylee logs in as `rylee` from her laptop, noodlebook, in `wheel` and `docker` like `aaron`.
   `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
+  `docker-prune.timer` runs `docker system prune` daily, removing stopped containers, unused networks, dangling images and build cache, because rebuilding backlogic's image leaves the previous one dangling; volumes and images a container uses are kept.
 - Grafana listens on `127.0.0.1:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
   Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
   Its dashboards, Hardware, Services, Containers, Claude, and Backlogic and threads, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
