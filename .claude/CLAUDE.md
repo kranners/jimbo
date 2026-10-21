@@ -28,6 +28,7 @@ The weekly `flake-update-*` branches are the exception: they land through the pu
 CI runs what `nix flake check` checks on every push to every branch, but leaves spike out (`.github/workflows/test.yml`).
 Spike imports the private `backlogic` input, which CI cannot fetch and whose builds must stay out of the public `kranners` cache, so only `just check` on spike checks spike's setup.
 The weekly update bumps every input but `backlogic`, which `backlogic-switch.timer` bumps on spike.
+It also runs `modules/browser/update-extensions.sh`, which pins each browser extension in `modules/browser/extensions.nix` to the release the Chrome Web Store serves, since the store serves only the newest one and an older pin fails the build.
 `.claude/worktrees/` is gitignored so the `git add .` in `just` never stages a worktree.
 
 Update this file, or `modules/hosts/spike/CLAUDE.md`, in the same branch as any change that makes it wrong.

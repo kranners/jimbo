@@ -38,6 +38,7 @@ jobs:
           git switch --create "$FLAKE_BRANCH_NAME"
           # backlogic is private, so CI cannot fetch it; spike's backlogic-switch timer bumps it.
           nix flake update $(jq -r '.nodes.root.inputs | keys[] | select(. != "backlogic")' flake.lock)
+          modules/browser/update-extensions.sh
           git commit -am "flake update $(date +'%Y-%m-%dT%H-%M-%S')"
           git push -u origin "$FLAKE_BRANCH_NAME"
 
@@ -45,7 +46,7 @@ jobs:
             --base main \
             --reviewer kranners \
             --title "Flake update on $(date +'%Y-%m-%d at %H:%M:%S')" \
-            --body "Updates the flake. Ensure checks have passed before merging."
+            --body "Updates the flake and the browser extension pins. Ensure checks have passed before merging."
 
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_SCOPED_TOKEN }}
