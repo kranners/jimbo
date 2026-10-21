@@ -97,7 +97,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   As `aaron`, the owner's admin verbs keep sharing that store with the container, and the peer token there stays readable to it.
   On the host's network, `:4200` stays behind spike's firewall instead of Docker's own rules, and the peer `ideas.noodlebra.in` resolves through spike's `/etc/hosts`.
   The `backlogic` command on the path runs `/srv/backlogic/bin/backlogic`, so the admin verbs, which open the store itself, run the code the instance runs.
-  `backlogic-switch.timer` fetches backlogic's `main` in `/srv/backlogic` each minute as `aaron`, whose SSH key reads the private repository, and when it has moved checks it out and runs `backlogic-compose build`, then `up --detach --wait`.
+  `backlogic-switch.timer` fetches backlogic's `main` in `/srv/backlogic` each minute as `aaron`, whose SSH key reads the private repository, and once it has moved and then stayed put for 30 minutes, recorded in `/var/lib/backlogic-switch/pending`, checks it out and runs `backlogic-compose build`, then `up --detach --wait`, so a run of landings costs one build and one restart.
   A `main` that does not descend from the running commit is skipped, so older code never opens a store newer code migrated, which it refuses.
   A build that fails puts the checkout back and is skipped until `main` moves again, recorded in `/var/lib/backlogic-switch/failed`; one that builds keeps its checkout even when it fails to start, since it may already have migrated the store.
   It redeploys production unattended and never touches `~/workspace/jimbo`, so that checkout's `main` stays clean.
