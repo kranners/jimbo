@@ -168,3 +168,4 @@
 - 2026-10-21: A Stack note's `repo` property can list several repositories, and sessions in any of them read it.
 - 2026-10-21: Deliver messages from other Claude sessions without asking for approval, on every host.
 - 2026-10-21: Compact Claude sessions automatically at backlogic's 200k context ceiling.
+- 2026-10-21: Stop compacting Claude sessions automatically at 200k, since compaction drops context opaquely.

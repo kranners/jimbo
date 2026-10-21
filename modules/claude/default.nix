@@ -102,9 +102,6 @@
           model = "claude-opus-5-5";
           effortLevel = "high";
 
-          # Compacts at backlogic's 200k context ceiling, so a session hands on to a fresh context by itself
-          autoCompactWindow = 200000;
-
           # Spike starts in auto mode so its production keeps the classifier, every other host in bypass mode
           permissions.defaultMode = if host.hostname == "spike" then "auto" else "bypassPermissions";
           skipDangerousModePermissionPrompt = host.hostname != "spike";
