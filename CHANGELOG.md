@@ -183,3 +183,4 @@
 - 2026-10-22: Install Steam on both Macs through Homebrew.
 - 2026-10-22: Prune Docker daily on spike, since each backlogic rebuild leaves its previous image dangling.
 - 2026-10-22: Rebuild spike's backlogic only once its `main` has stayed put for 30 minutes, so a run of landings costs one build and one restart.
+- 2026-10-22: Fix spike's alert summaries, which Grafana failed to expand because its provisioning keeps `$$` as written.
