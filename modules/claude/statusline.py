@@ -101,6 +101,8 @@ USAGE_CACHE = os.path.expanduser(
     "~/.cache/claude-statusline/%s-usage.json" % os.path.basename(CONFIG_DIR).lstrip(".")
 )
 USAGE_TTL = 60
+# The endpoint rate limits each token, so a refused fetch waits longer before the next.
+FAILED_USAGE_TTL = 300
 
 PLAIN = os.environ.get("CLAUDE_STATUSLINE_PLAIN") == "1"
 
@@ -407,15 +409,17 @@ def fetch_usage():
 def account_usage():
     """The /usage reading, fetched at most once a minute across every session of the account."""
     try:
-        if time.time() - os.stat(USAGE_CACHE).st_mtime < USAGE_TTL:
-            with open(USAGE_CACHE) as handle:
-                return json.load(handle)
+        age = time.time() - os.stat(USAGE_CACHE).st_mtime
+        with open(USAGE_CACHE) as handle:
+            cached = json.load(handle)
+        if age < (FAILED_USAGE_TTL if cached is None else USAGE_TTL):
+            return cached
     except (OSError, ValueError):
         pass
     try:
         usage = fetch_usage()
     except Exception:
-        return None
+        usage = None
     os.makedirs(os.path.dirname(USAGE_CACHE), exist_ok=True)
     partial = "%s.%d" % (USAGE_CACHE, os.getpid())
     with open(partial, "w") as handle:
