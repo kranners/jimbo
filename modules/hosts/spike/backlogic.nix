@@ -12,6 +12,43 @@ let
   runnerCheckout = "${runnerHome}/workspace/backlogic--service";
   runnerConfigDir = "/var/lib/backlogic-runner-config";
   aaronHome = config.home-manager.users.aaron;
+  runnerTokens = "${runnerHome}/.config/github-tokens";
+
+  # Each Claude account the runner launches on has its own config directory, named in
+  # runner.json's accounts, every one with aaron's settings, CLAUDE.md and skills.
+  runnerClaudeDirs = [
+    ".claude"
+    ".claude-bloom"
+  ];
+  claudeFiles = [
+    "settings.json"
+    "CLAUDE.md"
+    "skills/commit/SKILL.md"
+  ];
+
+  # Answers git over HTTPS with the fine-grained token of the repository's owner, one per
+  # owner, since a fine-grained token reaches the repositories of one owner alone.
+  github-token-credential = pkgs.writeShellApplication {
+    name = "github-token-credential";
+    text = ''
+      [ "$1" = get ] || exit 0
+      while IFS='=' read -r key value && [ -n "$key" ]; do
+        [ "$key" = path ] && owner=''${value%%/*}
+      done
+      token="${runnerTokens}/''${owner:?git sent no path}"
+      [ -r "$token" ] || exit 0
+      echo username=x-access-token
+      echo "password=$(cat "$token")"
+    '';
+  };
+
+  # Read after aaron's git config, so its gh helper is cleared for the runner's own.
+  runnerGitConfig = pkgs.writeText "backlogic-runner-gitconfig" ''
+    [credential "https://github.com"]
+    	helper =
+    	helper = ${lib.getExe github-token-credential}
+    	useHttpPath = true
+  '';
 
   lanInterfaces = [
     "wlp2s0"
@@ -101,16 +138,26 @@ in
   # The instance writes runner.json through a rename as aaron, and the runner and its
   # sessions' hooks read it, so it lives in a directory both reach, its group inherited.
   # The runner's Claude Code and git take aaron's settings, so its sessions behave as his did.
+  # Every config directory takes .claude's files, which are the same in each of aaron's.
   systemd.tmpfiles.rules = [
     "d ${runnerConfigDir} 2750 aaron backlogic-runner -"
-    "d ${runnerHome}/.claude 0700 backlogic-runner backlogic-runner -"
-    "L+ ${runnerHome}/.claude/settings.json - - - - ${
-      aaronHome.home.file.".claude/settings.json".source
-    }"
-    "L+ ${runnerHome}/.claude/CLAUDE.md - - - - ${aaronHome.home.file.".claude/CLAUDE.md".source}"
+  ]
+  ++ lib.concatMap (
+    dir:
+    [
+      "d ${runnerHome}/${dir} 0700 backlogic-runner backlogic-runner -"
+      "d ${runnerHome}/${dir}/skills/commit 0755 backlogic-runner backlogic-runner -"
+    ]
+    ++ map (
+      file: "L+ ${runnerHome}/${dir}/${file} - - - - ${aaronHome.home.file.".claude/${file}".source}"
+    ) claudeFiles
+  ) runnerClaudeDirs
+  ++ [
     "d ${runnerHome}/.config 0755 backlogic-runner backlogic-runner -"
     "d ${runnerHome}/.config/git 0755 backlogic-runner backlogic-runner -"
     "L+ ${runnerHome}/.config/git/config - - - - ${aaronHome.xdg.configFile."git/config".source}"
+    "L+ ${runnerHome}/.gitconfig - - - - ${runnerGitConfig}"
+    "d ${runnerTokens} 0700 backlogic-runner backlogic-runner -"
   ];
 
   # Its sessions run inside the unit, so a switch never restarts it.
