@@ -181,3 +181,4 @@
 - 2026-10-22: Run spike's backlogic in Docker from backlogic's own compose file, rebuilt from `/srv/backlogic` when its `main` moves, and drop the private `backlogic` input, so CI checks spike again.
 - 2026-10-22: Alert to Discord from Grafana on spike when a host reboots, the kernel OOM-kills, memory, swap or root inodes run low, or a service keeps restarting.
 - 2026-10-22: Install Steam on both Macs through Homebrew.
+- 2026-10-22: Prune Docker daily on spike, since each backlogic rebuild leaves its previous image dangling.
