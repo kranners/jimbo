@@ -8,9 +8,76 @@ let
   inherit (config.services) cadvisor grafana prometheus;
   grafanaSecretKey = "${grafana.dataDir}/secret_key";
   grafanaBacklogicToken = "${grafana.dataDir}/backlogic-token";
+  grafanaDiscordWebhook = "${grafana.dataDir}/discord-webhook";
+  # Grafana refuses to start while a Discord contact point's URL is empty, so an unwritten webhook points nowhere instead.
+  unsetDiscordWebhook = "http://127.0.0.1:9/discord-webhook-unset";
   backlogicUrl = "http://127.0.0.1:4200";
   grafanaDomain = "grafana.spike.cute.engineer";
   textfileDir = "/var/lib/claude-limits";
+
+  # Grafana fails to provision a datasource whose uid changed, so this is the one it derived from the name "Prometheus".
+  prometheusUid = "PBFA97CFB590B2093";
+  discordContactPoint = "Discord";
+
+  alertThresholds = {
+    recentBootSeconds = 30 * 60;
+    minAvailableMebibytes = 1536;
+    maxSwapUsed = 0.8;
+    maxRootInodesUsed = 0.8;
+    maxServiceRestartsPerHour = 3;
+  };
+
+  above = threshold: {
+    type = "gt";
+    params = [ threshold ];
+  };
+  below = threshold: {
+    type = "lt";
+    params = [ threshold ];
+  };
+  percent = fraction: "${toString (builtins.floor (fraction * 100))}%";
+
+  alertRule =
+    {
+      uid,
+      title,
+      summary,
+      expr,
+      evaluator,
+      for ? "0s",
+    }:
+    {
+      inherit uid title for;
+      condition = "threshold";
+      data = [
+        {
+          refId = "query";
+          datasourceUid = prometheusUid;
+          relativeTimeRange = {
+            from = 600;
+            to = 0;
+          };
+          model = {
+            refId = "query";
+            inherit expr;
+            instant = true;
+          };
+        }
+        {
+          refId = "threshold";
+          datasourceUid = "__expr__";
+          model = {
+            refId = "threshold";
+            type = "threshold";
+            expression = "query";
+            conditions = [ { inherit evaluator; } ];
+          };
+        }
+      ];
+      noDataState = "OK";
+      execErrState = "Error";
+      annotations.summary = summary;
+    };
 
   # Reads the undocumented endpoint behind Claude Code's /usage, with the token Claude Code keeps refreshed.
   claudeLimits = pkgs.writeShellApplication {
@@ -53,7 +120,10 @@ in
     exporters.node = {
       enable = true;
       enabledCollectors = [ "systemd" ];
-      extraFlags = [ "--collector.textfile.directory=${textfileDir}" ];
+      extraFlags = [
+        "--collector.textfile.directory=${textfileDir}"
+        "--collector.systemd.enable-restarts-metrics"
+      ];
     };
 
     scrapeConfigs = [
@@ -123,6 +193,7 @@ in
     provision.datasources.settings.datasources = [
       {
         name = "Prometheus";
+        uid = prometheusUid;
         type = "prometheus";
         url = "http://localhost:${toString prometheus.port}";
         isDefault = true;
@@ -142,6 +213,93 @@ in
     ];
   };
 
+  services.grafana.provision.alerting = {
+    contactPoints.settings.contactPoints = [
+      {
+        orgId = 1;
+        name = discordContactPoint;
+        receivers = [
+          {
+            uid = "discord";
+            type = "discord";
+            settings = {
+              url = "$__file{${grafanaDiscordWebhook}}";
+              use_discord_username = true;
+            };
+          }
+        ];
+      }
+    ];
+
+    policies.settings.policies = [
+      {
+        orgId = 1;
+        receiver = discordContactPoint;
+        group_by = [
+          "grafana_folder"
+          "alertname"
+        ];
+      }
+    ];
+
+    rules.settings.groups = [
+      {
+        orgId = 1;
+        name = "spike";
+        folder = "Alerts";
+        interval = "1m";
+        rules = [
+          (alertRule {
+            uid = "host-rebooted";
+            title = "Host rebooted";
+            summary = "{{ $$labels.host }} booted in the last ${
+              toString (alertThresholds.recentBootSeconds / 60)
+            } minutes.";
+            expr = "time() - node_boot_time_seconds";
+            evaluator = below alertThresholds.recentBootSeconds;
+          })
+          (alertRule {
+            uid = "oom-kill";
+            title = "OOM kill";
+            summary = "The kernel killed a process on {{ $$labels.host }} for memory.";
+            expr = "increase(node_vmstat_oom_kill[10m])";
+            evaluator = above 0;
+          })
+          (alertRule {
+            uid = "low-available-memory";
+            title = "Low available memory";
+            summary = "{{ $$labels.host }} has had under ${toString alertThresholds.minAvailableMebibytes} MiB available for 5 minutes.";
+            expr = "node_memory_MemAvailable_bytes";
+            evaluator = below (alertThresholds.minAvailableMebibytes * 1024 * 1024);
+            for = "5m";
+          })
+          (alertRule {
+            uid = "swap-full";
+            title = "Swap nearly full";
+            summary = "{{ $$labels.host }} has had over ${percent alertThresholds.maxSwapUsed} of its swap used for 5 minutes.";
+            expr = "1 - node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes";
+            evaluator = above alertThresholds.maxSwapUsed;
+            for = "5m";
+          })
+          (alertRule {
+            uid = "root-inodes-full";
+            title = "Root inodes nearly full";
+            summary = "{{ $$labels.host }} has used over ${percent alertThresholds.maxRootInodesUsed} of the inodes on /.";
+            expr = ''1 - node_filesystem_files_free{mountpoint="/"} / node_filesystem_files{mountpoint="/"}'';
+            evaluator = above alertThresholds.maxRootInodesUsed;
+          })
+          (alertRule {
+            uid = "service-restarting";
+            title = "Service restarting";
+            summary = "{{ $$labels.name }} on {{ $$labels.host }} restarted more than ${toString alertThresholds.maxServiceRestartsPerHour} times in the last hour.";
+            expr = "increase(node_systemd_service_restart_total[1h])";
+            evaluator = above alertThresholds.maxServiceRestartsPerHour;
+          })
+        ];
+      }
+    ];
+  };
+
   services.caddy.virtualHosts.${grafanaDomain}.extraConfig = ''
     reverse_proxy ${grafana.settings.server.http_addr}:${toString grafana.settings.server.http_port}
   '';
@@ -149,5 +307,6 @@ in
   systemd.services.grafana.preStart = ''
     [ -f ${grafanaSecretKey} ] || (umask 077 && ${pkgs.openssl}/bin/openssl rand -hex 32 > ${grafanaSecretKey})
     [ -f ${grafanaBacklogicToken} ] || (umask 077 && touch ${grafanaBacklogicToken})
+    [ -s ${grafanaDiscordWebhook} ] || (umask 077 && echo ${unsetDiscordWebhook} > ${grafanaDiscordWebhook})
   '';
 }
