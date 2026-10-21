@@ -446,34 +446,34 @@ let
       (stat {
         title = "Session limit used";
         extra.fieldConfig.defaults = limitPercent;
-        targets = [ (target ''claude_limit_percent{kind="session"}'' "session") ];
+        targets = [ (target ''claude_limit_percent{kind="session"}'' "{{account}}") ];
       })
       (stat {
         title = "Session limit resets";
         unit = "dateTimeFromNow";
-        targets = [ (target ''claude_limit_resets_at_seconds{kind="session"} * 1000'' "session") ];
+        targets = [ (target ''claude_limit_resets_at_seconds{kind="session"} * 1000'' "{{account}}") ];
       })
       (stat {
         title = "Weekly limit used";
         extra.fieldConfig.defaults = limitPercent;
-        targets = [ (target ''claude_limit_percent{kind="weekly_all"}'' "weekly") ];
+        targets = [ (target ''claude_limit_percent{kind="weekly_all"}'' "{{account}}") ];
       })
       (stat {
         title = "Weekly limit resets";
         unit = "dateTimeFromNow";
-        targets = [ (target ''claude_limit_resets_at_seconds{kind="weekly_all"} * 1000'' "weekly") ];
+        targets = [ (target ''claude_limit_resets_at_seconds{kind="weekly_all"} * 1000'' "{{account}}") ];
       })
       (timeseries {
         title = "Plan limits used";
         extra.fieldConfig.defaults = limitPercent;
         w = 18;
-        targets = [ (target "claude_limit_percent" "{{kind}} {{model}}") ];
+        targets = [ (target "claude_limit_percent" "{{account}} {{kind}} {{model}}") ];
       })
       (stat {
         title = "Plan limits age";
         h = 8;
         targets = [
-          (target ''time() - node_textfile_mtime_seconds{file=~".*/claude-limits[.]prom"}'' "age")
+          (target ''label_replace(time() - node_textfile_mtime_seconds{file=~".*/claude-limits-.*[.]prom"}, "account", "$1", "file", ".*/claude-limits-(.*)[.]prom")'' "{{account}}")
         ];
         extra.fieldConfig.defaults = {
           unit = "s";
@@ -486,7 +486,7 @@ let
               }
               {
                 color = "red";
-                value = 600;
+                value = 1800;
               }
             ];
           };

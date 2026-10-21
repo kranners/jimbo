@@ -88,10 +88,11 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   They fire, for spike and framer each, when a host booted in the last 30 minutes, the kernel OOM-killed a process in the last 10 minutes, available memory stays under 1.5 GiB or swap over 80% used for 5 minutes, or `/` has over 80% of its inodes used.
   They also fire when a systemd service on spike restarts more than 3 times in an hour, from node_exporter's restart metrics, which framer's node_exporter leaves off.
   Grafana runs on spike, so a hung spike raises nothing until it comes back, when the reboot alert fires, and a host that stops reporting counts as fine.
-  Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions, backlogic's runner's among them, through `~/.claude/settings.json` on spike alone, each labelled `job` by `OTEL_SERVICE_NAME`.
-  That `~/.claude/settings.json` also carries, on spike alone, an `autoMode` block telling the auto mode classifier that its production is a home server, so routine reads, restarts and post-land pulls there stop being denied.
+  Prometheus takes Claude Code metrics over OTLP on `localhost`, from `aaron`'s sessions, backlogic's runner's among them, through its `settings.json` on spike alone, each labelled `job` by `OTEL_SERVICE_NAME`.
+  That `settings.json` also carries, on spike alone, an `autoMode` block telling the auto mode classifier that its production is a home server, so routine reads, restarts and post-land pulls there stop being denied.
   Every other host's starts sessions in `bypassPermissions` mode with its warning skipped, and carries an `autoMode` rule for when a session is switched back to auto mode, letting a session pipe the clipboard into a secret file on spike over SSH without reading it, which is how the backlogic token above gets there from the browser.
-  `claude-limits.timer` writes the plan's session and weekly limits every 2 minutes for node_exporter's textfile collector, read as `aaron` from `/api/oauth/usage`, the undocumented endpoint behind `/usage`, with the token in `~/.claude/.credentials.json`.
+  `claude-limits.timer` writes each account's session and weekly limits every 10 minutes for node_exporter's textfile collector, one `claude-limits-<account>.prom` per account labelled `account`, read as `aaron` from `/api/oauth/usage`, the undocumented endpoint behind `/usage`, with the token in that account's `.credentials.json`.
+  It polls no more often because the endpoint answered 87% of its 2 minute polls with HTTP 429, and an account it refuses keeps its last reading, whose age the Claude dashboard shows.
 - Backlogic's `backlogic-aaron` runs backlogic's own `compose.yaml` in Docker, built on spike from the detached checkout `/srv/backlogic`, cloned by hand as `aaron` over SSH (`modules/hosts/spike/backlogic.nix`).
   The `backlogic-compose` command runs `docker compose` there with spike's settings and an override that runs the container as `aaron`, uid `1000`, on the host's network, on `:4200`, with `~/backlogic-data/aaron` bind-mounted as its store.
   As `aaron`, the owner's admin verbs keep sharing that store with the container, and the peer token there stays readable to it.
@@ -166,11 +167,15 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   It declares `ip_forward` itself, which it otherwise had only because Docker set it.
   There is no NAT for `10.100.0.0/24`, so a peer reaches nothing on the LAN through spike.
   Caddy's `vnc.framer.cute.engineer` is spike's own `443`, open to every peer, so it still reaches framer's noVNC from `rylee` and `github-actions`.
-- Claude Code Remote Control (`claude-remote-control.service`) serves sessions from `~/workspace` to claude.ai/code as `spike`.
-- Discord threads (`discord-threads.service`) runs `kranners/claude-discord-threads` as `aaron` from `~/workspace/claude-discord-threads`, giving each Discord thread its own Claude Code session through the Nix-managed `claude`.
+- Claude Code runs on two accounts here, `aaron@cute.engineer` logged in under `~/.claude` and `ap@bloomanalytics.ai` under `~/.claude-bloom`, the `CLAUDE_CONFIG_DIR` of anything that uses it.
+  Home-manager writes the same `CLAUDE.md`, skills and `settings.json` into both, on spike alone, but neither login, `.credentials.json` or `.claude.json`, and each directory installs its plugins once by hand, since a fresh one only clones the marketplaces its `settings.json` declares.
+  Backlogic's runner, which logs in to both accounts under its own home, spends the personal account first and moves to bloom only while personal is at its limit, capped low enough that most of bloom's week stays free, through `runner.json`'s `accounts`.
+  Remote Control and Discord threads run on bloom, so they keep working once the runner has spent the personal week.
+- Claude Code Remote Control (`claude-remote-control.service`) serves sessions from `~/workspace` to claude.ai/code as `spike`, on the bloom account.
+- Discord threads (`discord-threads.service`) runs `kranners/claude-discord-threads` as `aaron` from `~/workspace/claude-discord-threads`, giving each Discord thread its own Claude Code session through the Nix-managed `claude`, on the bloom account.
   That repository is private, so the checkout pulls over SSH with a read-only deploy key, `~/.ssh/claude-discord-threads-deploy`, set as its `core.sshCommand` because home-manager owns `~/.ssh/config`.
   Pushes go over HTTPS with the `gh` login instead, through the checkout's `remote.origin.pushurl`, so the deploy key never needs write access.
-  Its bot token lives in `~/.claude/channels/discord/.env` as `DISCORD_BOT_TOKEN`, mode 600, written by hand.
+  Its bot token lives in `~/.claude/channels/discord/.env` as `DISCORD_BOT_TOKEN`, mode 600, written by hand, under `~/.claude` whatever `CLAUDE_CONFIG_DIR` says, since the bot only moves it for `DISCORD_STATE_DIR`.
   Its allowlist is `~/.claude/channels/discord/access.json`, re-read on every message: `{"dmPolicy":"allowlist","allowFrom":["193903125994799114"],"groups":{"<channel id>":{"requireMention":false,"allowFrom":[]}}}`.
   `/project <path>` in an opted-in channel binds it to a repo, and each new thread there gets a worktree under `<repo>/.claude/worktrees/`.
   `/done` removes a thread's worktree unless something in it is uncommitted, keeps its branch, and posting in the thread again restores it.

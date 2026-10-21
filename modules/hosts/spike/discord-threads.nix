@@ -34,6 +34,7 @@ in
 
     environment = {
       CLAUDE_CODE_EXECUTABLE = "${pkgs.claude-code}/bin/claude";
+      CLAUDE_CONFIG_DIR = "${home}/.claude-bloom";
       DISABLE_AUTOUPDATER = "1";
       DISCORD_WORKER_CWD = "${home}/workspace";
       OTEL_SERVICE_NAME = "discord-threads";

@@ -86,15 +86,11 @@
           exec python3 ${./statusline.py}
         '';
       };
-    in
-    {
-      home.packages = [
-        save-branch-context
-      ];
 
-      home.file.".claude/CLAUDE.md".text = builtins.readFile ./CLAUDE.md;
-      home.file.".claude/skills/commit/SKILL.md".source = ./skills/commit/SKILL.md;
-      home.file.".claude/settings.json".text = builtins.toJSON (
+      # Spike's second account, ap@bloomanalytics.ai, logs in under ~/.claude-bloom
+      configDirs = [ ".claude" ] ++ lib.optional (host.hostname == "spike") ".claude-bloom";
+
+      settings = builtins.toJSON (
         {
           theme = "auto";
 
@@ -199,6 +195,19 @@
             "Piping the clipboard straight into a command on spike (`pbpaste | ssh 10.100.0.1 '...'`) that writes a secret there, such as `sudo install ... /dev/stdin <path>` followed by restarting the service that reads it, when Aaron asked for that secret to be written there; never printing, echoing, measuring or otherwise reading the clipboard into the transcript."
           ];
         }
+      );
+    in
+    {
+      home.packages = [
+        save-branch-context
+      ];
+
+      home.file = lib.mergeAttrsList (
+        map (configDir: {
+          "${configDir}/CLAUDE.md".text = builtins.readFile ./CLAUDE.md;
+          "${configDir}/skills/commit/SKILL.md".source = ./skills/commit/SKILL.md;
+          "${configDir}/settings.json".text = settings;
+        }) configDirs
       );
     };
 

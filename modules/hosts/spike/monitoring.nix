@@ -79,7 +79,13 @@ let
       annotations.summary = summary;
     };
 
+  claudeConfigDirs = {
+    personal = ".claude";
+    bloom = ".claude-bloom";
+  };
+
   # Reads the undocumented endpoint behind Claude Code's /usage, with the token Claude Code keeps refreshed.
+  # Each account has its own file, so one the endpoint refuses keeps its last reading and its age.
   claudeLimits = pkgs.writeShellApplication {
     name = "claude-limits";
     runtimeInputs = [
@@ -87,12 +93,18 @@ let
       pkgs.jq
     ];
     text = ''
-      token=$(jq -r .claudeAiOauth.accessToken ~/.claude/.credentials.json)
-      curl --silent --fail https://api.anthropic.com/api/oauth/usage \
-        --header "Authorization: Bearer $token" \
-        --header "anthropic-beta: oauth-2025-04-20" |
-        jq -r -f ${./claude-limits.jq} > ${textfileDir}/claude-limits.prom.tmp
-      mv ${textfileDir}/claude-limits.prom.tmp ${textfileDir}/claude-limits.prom
+      status=0
+      ${lib.concatMapAttrsStringSep "\n" (account: configDir: ''
+        prom=${textfileDir}/claude-limits-${account}.prom
+        token=$(jq -r .claudeAiOauth.accessToken ~/${configDir}/.credentials.json) &&
+          curl --silent --fail https://api.anthropic.com/api/oauth/usage \
+            --header "Authorization: Bearer $token" \
+            --header "anthropic-beta: oauth-2025-04-20" |
+          jq -r --arg account ${account} -f ${./claude-limits.jq} > "$prom.tmp" &&
+          mv "$prom.tmp" "$prom" ||
+          status=1
+      '') claudeConfigDirs}
+      exit "$status"
     '';
   };
 in
@@ -161,7 +173,7 @@ in
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnBootSec = "1m";
-      OnUnitActiveSec = "2m";
+      OnUnitActiveSec = "10m";
     };
   };
 
