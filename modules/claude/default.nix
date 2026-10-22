@@ -89,8 +89,8 @@
         '';
       };
 
-      # Spike's second account, ap@bloomanalytics.ai, logs in under ~/.claude-bloom
-      configDirs = [ ".claude" ] ++ lib.optional (host.hostname == "spike") ".claude-bloom";
+      # Spike's second account, the work one, logs in under ~/.claude-work
+      configDirs = [ ".claude" ] ++ lib.optional (host.hostname == "spike") ".claude-work";
 
       settings = builtins.toJSON (
         {

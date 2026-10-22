@@ -11,8 +11,8 @@
   # Login, the Remote Control opt-in, and trusting ~/workspace each need a TTY,
   # so they are done once by hand over SSH:
   #   claude auth login
-  #   CLAUDE_CONFIG_DIR=~/.claude-bloom claude auth login
-  #   cd ~/workspace && CLAUDE_CONFIG_DIR=~/.claude-bloom claude remote-control
+  #   CLAUDE_CONFIG_DIR=~/.claude-work claude auth login
+  #   cd ~/workspace && CLAUDE_CONFIG_DIR=~/.claude-work claude remote-control
   systemd.services.claude-remote-control = {
     description = "Claude Code Remote Control server";
     wantedBy = [ "multi-user.target" ];
@@ -25,7 +25,7 @@
     ];
 
     environment = {
-      CLAUDE_CONFIG_DIR = "/home/aaron/.claude-bloom";
+      CLAUDE_CONFIG_DIR = "/home/aaron/.claude-work";
       DISABLE_AUTOUPDATER = "1";
       OTEL_SERVICE_NAME = "remote-control";
     };

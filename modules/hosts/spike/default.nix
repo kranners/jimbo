@@ -73,7 +73,7 @@
     };
 
   nixosHomeModule.home.stateVersion = "26.11";
-  nixosHomeModule.home.file = lib.genAttrs [ ".claude/CLAUDE.md" ".claude-bloom/CLAUDE.md" ] (_: {
+  nixosHomeModule.home.file = lib.genAttrs [ ".claude/CLAUDE.md" ".claude-work/CLAUDE.md" ] (_: {
     text = lib.mkAfter (builtins.readFile ./CLAUDE.md);
   });
 }

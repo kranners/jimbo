@@ -82,7 +82,7 @@ let
   runnerHome = config.users.users.backlogic-runner.home;
   claudeConfigDirs = {
     personal = "${runnerHome}/.claude";
-    bloom = "${runnerHome}/.claude-bloom";
+    work = "${runnerHome}/.claude-work";
   };
 
   # Reads the undocumented endpoint behind Claude Code's /usage, with the token Claude Code keeps refreshed.

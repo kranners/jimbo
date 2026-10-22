@@ -19,7 +19,7 @@ let
   # runner.json's accounts, every one with aaron's settings, CLAUDE.md and skills.
   runnerClaudeDirs = [
     ".claude"
-    ".claude-bloom"
+    ".claude-work"
   ];
   claudeFiles = [
     "settings.json"

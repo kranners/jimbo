@@ -76,7 +76,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - Grafana listens on `127.0.0.1:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
   Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
   Its dashboards, Hardware, Services, Containers, Claude, and Backlogic and threads, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
-  The Claude dashboard splits sessions, tokens and cost by account, naming each Claude Code series' `user_email` `personal` or `bloom` with `label_replace` from `accountEmails` in that file.
+  The Claude dashboard splits sessions, tokens and cost by account, naming each Claude Code series' `user_email` `personal` when it is `personalEmail` in that file and `work` otherwise, with `label_replace`.
   Prometheus keeps a year of samples, so the Backlogic and threads dashboard can chart tokens and Claude active time per thread session, by `session_id`.
   That dashboard and the Claude one read backlogic's tickets from `backlogic-aaron` through the `yesoreyeram-infinity-datasource` plugin, counting open and claimed tickets from `/api/snapshot` and charting each done ticket's spend and resolution from `/api/done`.
   Its time range picks the done tickets, through Grafana's `${__from}` and `${__to}` in each query's `/api/done?from=&to=` URL, which Grafana's frontend expands.
@@ -108,7 +108,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Its runner, `backlogic-runner-aaron`, runs as the system user `backlogic-runner`, outside `wheel` and without `sudo`, so no session it launches can be root, from the detached checkout `~/workspace/backlogic--service` under its home `/var/lib/backlogic-runner`, beside its own clones of the projects its sessions work in, with its mise shims on its PATH so its sessions find `bin/check`'s tools, and a switch never restarts it, since its sessions run inside the unit.
   Its unit runs at `Nice` 10 and a CPU and IO weight of 20 against everything else's 100, and its sessions, their `/dev/shm` temp files included, share a `MemoryHigh` of 6G and a `MemoryMax` of 8G of spike's 15 GiB, so Bowerbird and `backlogic-aaron` win under pressure.
   Its Claude Code settings, personal `CLAUDE.md`, skills and git config are links to `aaron`'s home-manager files, so its sessions behave as his did, while its Claude logins, its token in `~/runner.token` and its GitHub tokens are its own, made by hand.
-  It has a Claude config directory per account, `~/.claude` and `~/.claude-bloom` under its home, each logged in by hand, which `runner.json`'s `accounts` name by `configDir`.
+  It has a Claude config directory per account, `~/.claude` and `~/.claude-work` under its home, each logged in by hand, which `runner.json`'s `accounts` name by `configDir`.
   Its clones are over HTTPS, and `~/.gitconfig` swaps `aaron`'s `gh` credential helper for one handing git the fine-grained token in `~/.config/github-tokens/<owner>`, mode 600, one for `kranners` and one for the `backlogic` organisation, since a fine-grained token reaches one owner's repositories alone.
   The instance writes `runner.json` to `/var/lib/backlogic-runner-config`, owner `aaron`, group `backlogic-runner`, setgid, so the runner and its sessions' hooks read what the instance writes.
   That directory is bind-mounted into the container at the same path, and named by `--config` in the override's entrypoint, the image's own with that flag added, since `compose.yaml` passes no `--config`.
@@ -170,12 +170,12 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   It declares `ip_forward` itself, which it otherwise had only because Docker set it.
   There is no NAT for `10.100.0.0/24`, so a peer reaches nothing on the LAN through spike.
   Caddy's `vnc.framer.cute.engineer` is spike's own `443`, open to every peer, so it still reaches framer's noVNC from `rylee` and `github-actions`.
-- Claude Code runs on two accounts here, `aaron@cute.engineer` logged in under `~/.claude` and `ap@bloomanalytics.ai` under `~/.claude-bloom`, the `CLAUDE_CONFIG_DIR` of anything that uses it.
+- Claude Code runs on two accounts here, `aaron@cute.engineer` logged in under `~/.claude` and the work account under `~/.claude-work`, the `CLAUDE_CONFIG_DIR` of anything that uses it.
   Home-manager writes the same `CLAUDE.md`, skills and `settings.json` into both, on spike alone, but neither login, `.credentials.json` or `.claude.json`, and a directory's first logged-in session installs the plugins its `settings.json` enables, which `claude plugin install` cannot, since it writes to that read-only `settings.json`.
-  Backlogic's runner, which logs in to both accounts under its own home, spends the personal account first and moves to bloom only while personal is at its limit, capped low enough that most of bloom's week stays free, through `runner.json`'s `accounts`.
-  Remote Control and Discord threads run on bloom, so they keep working once the runner has spent the personal week.
-- Claude Code Remote Control (`claude-remote-control.service`) serves sessions from `~/workspace` to claude.ai/code as `spike`, on the bloom account.
-- Discord threads (`discord-threads.service`) runs `kranners/claude-discord-threads` as `aaron` from `~/workspace/claude-discord-threads`, giving each Discord thread its own Claude Code session through the Nix-managed `claude`, on the bloom account.
+  Backlogic's runner, which logs in to both accounts under its own home, spends the personal account first and moves to the work account only while personal is at its limit, capped low enough that most of the work account's week stays free, through `runner.json`'s `accounts`.
+  Remote Control and Discord threads run on the work account, so they keep working once the runner has spent the personal week.
+- Claude Code Remote Control (`claude-remote-control.service`) serves sessions from `~/workspace` to claude.ai/code as `spike`, on the work account.
+- Discord threads (`discord-threads.service`) runs `kranners/claude-discord-threads` as `aaron` from `~/workspace/claude-discord-threads`, giving each Discord thread its own Claude Code session through the Nix-managed `claude`, on the work account.
   That repository is private, so the checkout pulls over SSH with a read-only deploy key, `~/.ssh/claude-discord-threads-deploy`, set as its `core.sshCommand` because home-manager owns `~/.ssh/config`.
   Pushes go over HTTPS with the `gh` login instead, through the checkout's `remote.origin.pushurl`, so the deploy key never needs write access.
   Its bot token lives in `~/.claude/channels/discord/.env` as `DISCORD_BOT_TOKEN`, mode 600, written by hand, under `~/.claude` whatever `CLAUDE_CONFIG_DIR` says, since the bot only moves it for `DISCORD_STATE_DIR`.

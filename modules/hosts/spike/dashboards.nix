@@ -133,18 +133,15 @@ let
   activeTime = "claude_code_active_time_seconds_total";
   threads = ''job="discord-threads"'';
 
-  accountEmails = {
-    personal = "aaron@cute.engineer";
-    bloom = "ap@bloomanalytics.ai";
-  };
+  personalEmail = "aaron@cute.engineer";
   byAccount =
     expr:
-    lib.foldlAttrs (
-      labelled: account: email:
-      ''label_replace(${labelled}, "account", "${account}", "user_email", "${
-        builtins.replaceStrings [ "." ] [ "[.]" ] email
-      }")''
-    ) expr accountEmails;
+    let
+      everyAccountAsWork = ''label_replace(${expr}, "account", "work", "user_email", ".+")'';
+    in
+    ''label_replace(${everyAccountAsWork}, "account", "personal", "user_email", "${
+      builtins.replaceStrings [ "." ] [ "[.]" ] personalEmail
+    }")'';
   workingSessionsByAccount = "count by (account) (${byAccount "count by (user_email, session_id) (increase(${tokens}[5m]) > 0)"})";
   sumByAccount = expr: "sum by (account) (${byAccount expr})";
 
