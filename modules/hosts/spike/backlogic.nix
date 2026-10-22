@@ -111,7 +111,7 @@ let
 
   # Rebuilds the instance from backlogic's main, following the updates folder it shares with
   # the instance's Windows Update (backlogic's docs/decisions/update-notice.md).
-  # It writes the waiting commit and its changelog lines to `available`, and installs the commit
+  # Each fetch touches `checked`, then writes the waiting commit and its changelog lines to `available`, and installs the commit
   # an owner chose in `install`, refusing one not on main or one the instance already passed.
   # While `automatic` is there it also checks out each main once it has stayed put for
   # quietMinutes, so a run of landings costs one build and one restart, skipping one that failed.
@@ -134,8 +134,10 @@ let
       git fetch --quiet origin main
       latest=$(git rev-parse FETCH_HEAD)
 
-      # Offers main and the changelog lines it adds to the instance, or nothing once it runs main.
+      # Records the look in `checked`, then offers main and the changelog lines it adds to the
+      # instance, or nothing once it runs main.
       write_available() {
+        touch "${updatesDir}/checked"
         if [ "$latest" = "$(git rev-parse HEAD)" ]; then
           rm -f "${updatesDir}/available"
           return
