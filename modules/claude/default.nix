@@ -61,7 +61,9 @@
             frontmatter_repos "$NOTE" | grep -xF "$REPO" >/dev/null || continue
 
             if [ "$FOUND" = 0 ]; then
-              echo "The user's Stack notes for $REPO, from their Obsidian vault. Read them before starting work."
+              echo "The user's Stack notes for $REPO, from their Obsidian vault, hold the project's context across sessions. Read them before starting work."
+              echo "Every section of a note is yours to edit, the user's own included: answer their questions under them, tick what is done, and correct or remove what has gone wrong or stale."
+              echo "Keep them current without being asked: whenever you learn, decide or finish something a later session would need, update the note in place before ending the turn, saying in your reply what you changed."
             fi
             FOUND=1
 
