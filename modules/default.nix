@@ -59,6 +59,7 @@ in
     ./browser
     ./night-shift
     ./speed-read
+    ./screenshots
   ]
   ++ lib.optionals host.kiosk [
     ./kiosk
