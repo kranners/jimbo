@@ -190,3 +190,4 @@
 - 2026-10-22: Read spike's Claude limits with the runner's tokens, since the status line kept `aaron`'s personal token rate limited.
 - 2026-10-22: Wait 5 minutes after a refused usage fetch in the Claude status line, so a long-lived session no longer keeps its token rate limited.
 - 2026-10-22: Copy every screenshot and screen recording on the Macs to the clipboard as it is saved to `~/Pictures`, with the floating thumbnail off so it lands at once.
+- 2026-10-22: Cache every pinned browser extension in the kranners Cachix cache through a new flake check, so a pin the Chrome Web Store has moved past still builds, and bump uBlock Origin Lite and Claude in Chrome to the releases it serves.

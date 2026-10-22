@@ -25,7 +25,7 @@ in
     };
 
     checks = mkOption {
-      type = types.raw;
+      type = types.attrsOf (types.attrsOf types.package);
       default = { };
     };
   };
