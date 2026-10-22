@@ -193,3 +193,4 @@
 - 2026-10-22: Cache every pinned browser extension in the kranners Cachix cache through a new flake check, so a pin the Chrome Web Store has moved past still builds, and bump uBlock Origin Lite and Claude in Chrome to the releases it serves.
 - 2026-10-22: Stack notes are agents' to edit in every section, and sessions keep them current without being asked, saying what they changed.
 - 2026-10-22: Name spike's second Claude account `work`, in `~/.claude-work`, and label the dashboard's accounts without naming its email.
+- 2026-10-22: Install the WireGuard app on the Macs and add `pilot` as spike's WireGuard peer at `10.100.0.11`, its tunnel named Home network.

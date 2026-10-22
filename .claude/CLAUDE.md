@@ -164,8 +164,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Spike's nix-daemon runs at idle CPU and IO priority, so those builds, and every other, yield to Bowerbird.
 - WireGuard `wg0` on UDP `51820` at `spike.cute.engineer` (kept current by cloudflare-dyndns, token in `/var/lib/secrets/cloudflare-dyndns-token`), spike is `10.100.0.1`.
   Its private key is generated on first boot at `/var/lib/wireguard/private`.
-  Its peers are `piggys-MBP` at `10.100.0.2`, `phone` at `10.100.0.4`, `phone-2` at `10.100.0.9`, `framer` at `10.100.0.5`, `rylee` at `10.100.0.6`, `rylee-2` at `10.100.0.10`, `tower` at `10.100.0.7`, `windows` at `10.100.0.8`, and `github-actions` at `10.100.0.3`, whose private key lives only in Bowerbird's GitHub secrets.
-  spike forwards from Aaron's own peers, `piggys-MBP`, `phone`, `phone-2` and `framer`, to any other peer, and its `spike-wg0-forward` chain drops every other packet forwarded in from `wg0` but replies, so Rylee's `rylee`, `rylee-2` and `tower`, and `github-actions`, reach spike alone.
+  Its peers are `piggys-MBP` at `10.100.0.2`, `phone` at `10.100.0.4`, `phone-2` at `10.100.0.9`, `framer` at `10.100.0.5`, `rylee` at `10.100.0.6`, `rylee-2` at `10.100.0.10`, `pilot` at `10.100.0.11`, `tower` at `10.100.0.7`, `windows` at `10.100.0.8`, and `github-actions` at `10.100.0.3`, whose private key lives only in Bowerbird's GitHub secrets.
+  spike forwards from Aaron's own peers, `piggys-MBP`, `phone`, `phone-2` and `framer`, to any other peer, and its `spike-wg0-forward` chain drops every other packet forwarded in from `wg0` but replies, so Rylee's `rylee`, `rylee-2` and `tower`, `github-actions` and `pilot` reach spike alone.
   Spike resolves `ideas.noodlebra.in`, Rylee's backlogic instance, to `rylee-2` at `10.100.0.10`.
   It declares `ip_forward` itself, which it otherwise had only because Docker set it.
   There is no NAT for `10.100.0.0/24`, so a peer reaches nothing on the LAN through spike.
@@ -275,6 +275,11 @@ Lua is formatted with stylua (`stylua.toml` at repo root).
 `modules/speed-read` puts the Raycast script command Speed Read Selection in `~/.config/raycast/scripts` on the Macs, which copies the selection and plays it one word at a time from 500 wpm with agent-rsvp, at twice the Terminal profile's text size, in a Terminal window centred on the screen under the mouse pointer, after waiting for the hotkey's modifiers to be released so its copy keystroke reaches the app as a plain ⌘C.
 On every switch it sets the default Terminal profile to close a window when its shell exits cleanly, so quitting the reader closes its window.
 Adding that directory under Raycast's Script Commands and giving the command a hotkey are hand steps, since Raycast keeps both in its own database.
+
+### WireGuard
+
+`modules/wireguard` installs the WireGuard app from the App Store on the Macs.
+On `pilot` its tunnel `Home network` is spike's peer `pilot`, imported by hand from `~/.config/wireguard/Home network.conf`, which holds its private key and never enters the repo.
 
 ### Other directories
 
