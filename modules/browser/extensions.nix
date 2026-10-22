@@ -31,8 +31,8 @@ map fetchExtension [
     # uBlock Origin Lite, the store no longer serves the Manifest V2 uBlock
     # Origin to Chromium 139 and later.
     id = "ddkjiahejlhfcafbddmgiahcphecmpfh";
-    version = "2026.1018.2229";
-    hash = "sha256-VZ0Q733LlrxOgS3ms/8MLmx6vKV4Mk2Nev19jPeKbdc=";
+    version = "2026.1021.1354";
+    hash = "sha256-CIdVnrnmhk6RtS5KDGYJla3kfAhNzHFQ7ZrnQ8lHWnY=";
   }
   {
     # Vimium C
@@ -49,8 +49,8 @@ map fetchExtension [
   {
     # Claude in Chrome
     id = "fcoeoabgfenejglbffodgkkbkcdhcgfn";
-    version = "1.0.101";
-    hash = "sha256-yQO71kndmQf1WIjJBGk9ixE928oOL7M7OcdcQYV/7is=";
+    version = "1.0.102";
+    hash = "sha256-uG3+/qtOQn8dwqBxn+Je8zyJmVXV1WFC/qV0AHznzZ8=";
   }
   {
     # Tampermonkey
