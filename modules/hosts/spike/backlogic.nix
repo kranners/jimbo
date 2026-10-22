@@ -8,6 +8,7 @@ let
   home = "/home/aaron";
   checkout = "/srv/backlogic";
   dataDir = "${home}/backlogic-data/aaron";
+  updatesDir = "${dataDir}/updates";
   runnerHome = config.users.users.backlogic-runner.home;
   runnerCheckout = "${runnerHome}/workspace/backlogic--service";
   runnerConfigDir = "/var/lib/backlogic-runner-config";
@@ -98,6 +99,7 @@ let
       export BACKLOGIC_PEER_URL=https://ideas.noodlebra.in
       export BACKLOGIC_PEER_TOKEN_FILE=${dataDir}/tokens/peer-rylee.token
       export BACKLOGIC_PEER_OWNER=ibrokemypie
+      export BACKLOGIC_UPDATES_DIR=${updatesDir}
       exec docker compose --project-directory ${checkout} --file ${checkout}/compose.yaml --file ${composeOverride} "$@"
     '';
   };
@@ -107,10 +109,14 @@ let
     PATH=${pkgs.deno}/bin:$PATH exec ${checkout}/bin/backlogic "$@"
   '';
 
-  # Checks out backlogic's main and rebuilds the instance from it once main has stayed put for quietMinutes,
-  # so a run of landings costs one build and one restart.
-  # A main that does not descend from the running commit is skipped, so older code never opens a store newer code migrated.
-  # A build that fails puts the checkout back and is skipped until main moves again.
+  # Rebuilds the instance from backlogic's main, following the updates folder it shares with
+  # the instance's Windows Update (backlogic's docs/decisions/update-notice.md).
+  # It writes the waiting commit and its changelog lines to `available`, and installs the commit
+  # an owner chose in `install`, refusing one not on main or one the instance already passed.
+  # While `automatic` is there it also checks out each main once it has stayed put for
+  # quietMinutes, so a run of landings costs one build and one restart, skipping one that failed.
+  # A target that does not descend from the running commit is refused, so older code never opens a store newer code migrated.
+  # A build that fails puts the checkout back and records the target in `failed`.
   # One that builds keeps its checkout even when it fails to start, since it may already have migrated the store.
   backlogic-switch = pkgs.writeShellApplication {
     name = "backlogic-switch";
@@ -118,40 +124,73 @@ let
       backlogic-compose
       pkgs.findutils
       pkgs.git
+      pkgs.gnused
       pkgs.openssh
     ];
     text = ''
-      failed_record="$STATE_DIRECTORY/failed"
+      failed_record="${updatesDir}/failed"
       pending_record="$STATE_DIRECTORY/pending"
       running=$(git rev-parse HEAD)
       git fetch --quiet origin main
       latest=$(git rev-parse FETCH_HEAD)
-      if [ "$latest" = "$running" ] || [ "$latest" = "$(cat "$failed_record" 2>/dev/null)" ]; then
+
+      # Offers main and the changelog lines it adds to the instance, or nothing once it runs main.
+      write_available() {
+        if [ "$latest" = "$(git rev-parse HEAD)" ]; then
+          rm -f "${updatesDir}/available"
+          return
+        fi
+        {
+          echo "$latest"
+          git diff --unified=0 HEAD "$latest" -- CHANGELOG.md | sed -n 's/^+- //p'
+        } > "${updatesDir}/available.tmp"
+        mv "${updatesDir}/available.tmp" "${updatesDir}/available"
+      }
+      write_available
+
+      chosen=$(cat "${updatesDir}/install" 2>/dev/null || true)
+      rm -f "${updatesDir}/install"
+      if [ -n "$chosen" ] && ! git merge-base --is-ancestor "$chosen" "$latest" 2>/dev/null; then
+        echo "Not installing $chosen: it is not on main" >&2
+        chosen=""
+      elif [ -n "$chosen" ] && git merge-base --is-ancestor "$chosen" "$running"; then
+        echo "Not installing $chosen: the instance already runs it or a later commit" >&2
+        chosen=""
+      fi
+
+      if [ -n "$chosen" ]; then
+        target=$(git rev-parse "$chosen^{commit}")
+      elif [ -e "${updatesDir}/automatic" ]; then
+        target=$latest
+        if [ "$target" = "$running" ] || [ "$target" = "$(cat "$failed_record" 2>/dev/null)" ]; then
+          exit 0
+        fi
+        if [ "$target" != "$(cat "$pending_record" 2>/dev/null)" ]; then
+          echo "$target" > "$pending_record"
+          exit 0
+        fi
+        if [ -z "$(find "$pending_record" -mmin +${toString quietMinutes})" ]; then
+          exit 0
+        fi
+      else
         exit 0
       fi
 
-      if [ "$latest" != "$(cat "$pending_record" 2>/dev/null)" ]; then
-        echo "$latest" > "$pending_record"
-        exit 0
-      fi
-      if [ -z "$(find "$pending_record" -mmin +${toString quietMinutes})" ]; then
-        exit 0
-      fi
-
-      if ! git merge-base --is-ancestor "$running" "$latest"; then
-        echo "$latest does not descend from the running $running" >&2
-        echo "$latest" > "$failed_record"
+      if ! git merge-base --is-ancestor "$running" "$target"; then
+        echo "$target does not descend from the running $running" >&2
+        echo "$target" > "$failed_record"
         exit 1
       fi
 
-      git checkout --quiet --detach "$latest"
+      git checkout --quiet --detach "$target"
       if ! backlogic-compose build; then
         git checkout --quiet --detach "$running"
-        echo "$latest" > "$failed_record"
+        echo "$target" > "$failed_record"
         exit 1
       fi
 
       rm -f "$failed_record"
+      write_available
       backlogic-compose up --detach --wait
     '';
   };
@@ -172,6 +211,12 @@ in
       "network-online.target"
     ];
     unitConfig.ConditionPathExists = "${checkout}/compose.yaml";
+    # The updates folder starts with `automatic` once, so spike installs every push until an owner turns it off.
+    preStart = ''
+      if mkdir ${updatesDir} 2>/dev/null; then
+        echo on > ${updatesDir}/automatic
+      fi
+    '';
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
