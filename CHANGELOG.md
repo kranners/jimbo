@@ -189,3 +189,4 @@
 - 2026-10-22: Chart Claude sessions, tokens and cost by account on spike's Claude dashboard.
 - 2026-10-22: Read spike's Claude limits with the runner's tokens, since the status line kept `aaron`'s personal token rate limited.
 - 2026-10-22: Wait 5 minutes after a refused usage fetch in the Claude status line, so a long-lived session no longer keeps its token rate limited.
+- 2026-10-22: Copy every screenshot and screen recording on the Macs to the clipboard as it is saved to `~/Pictures`, with the floating thumbnail off so it lands at once.
