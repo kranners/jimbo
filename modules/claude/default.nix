@@ -89,7 +89,7 @@
         '';
       };
 
-      # Spike's second account, me@example.com, logs in under ~/.claude-work
+      # Spike's second account, the work one, logs in under ~/.claude-work
       configDirs = [ ".claude" ] ++ lib.optional (host.hostname == "spike") ".claude-work";
 
       settings = builtins.toJSON (
