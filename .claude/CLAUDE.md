@@ -102,7 +102,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   On the host's network, `:4200` stays behind spike's firewall instead of Docker's own rules, and the peer `ideas.noodlebra.in` resolves through spike's `/etc/hosts`.
   The `backlogic` command on the path runs `/srv/backlogic/bin/backlogic`, so the admin verbs, which open the store itself, run the code the instance runs.
   The instance's updates folder, `~/backlogic-data/aaron/updates`, is its Windows Update's setting and backlogic-switch's protocol with it (backlogic's `docs/decisions/update-notice.md`), started once with `automatic` so spike installs every push until Aaron chooses *Let me choose* on the page.
-  `backlogic-switch.timer` fetches backlogic's `main` in `/srv/backlogic` each minute as `aaron`, whose SSH key reads the private repository, and writes it with the changelog lines it adds to the folder's `available`.
+  `backlogic-switch.timer` fetches backlogic's `main` in `/srv/backlogic` each minute as `aaron`, whose SSH key reads the private repository, touches the folder's `checked` after each fetch so the page can say when it last looked, and writes it with the changelog lines it adds to the folder's `available`.
   It installs at once the commit an owner chose there in `install`, refusing one not on `main` or one the instance already passed.
   While `automatic` is there, once `main` has moved and then stayed put for 30 minutes, recorded in `/var/lib/backlogic-switch/pending`, checks it out and runs `backlogic-compose build`, then `up --detach --wait`, so a run of landings costs one build and one restart.
   A commit that does not descend from the running one is skipped, so older code never opens a store newer code migrated, which it refuses.
