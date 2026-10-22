@@ -28,6 +28,7 @@ The weekly `flake-update-*` branches are the exception: they land through the pu
 CI runs `nix flake check` on every push to every branch (`.github/workflows/test.yml`).
 The weekly update bumps every input.
 It also runs `modules/browser/update-extensions.sh`, which pins each browser extension in `modules/browser/extensions.nix` to the release the Chrome Web Store serves, since the store serves only the newest one and an older pin fails the build.
+The flake check `browser-extensions` fetches every pinned extension, so CI's `cachix watch-store` pushes each one to the `kranners` cache, from which every host substitutes it after the store has moved on, so a pin that lags the store still builds.
 `.claude/worktrees/` is gitignored so the `git add .` in `just` never stages a worktree.
 
 Update this file, or `modules/hosts/spike/CLAUDE.md`, in the same branch as any change that makes it wrong.
