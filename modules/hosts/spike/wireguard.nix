@@ -65,6 +65,11 @@ in
         publicKey = "sXVMpbkWoPiFD1Czg4clq/bb0ycA32ODGdDnHDLFn1E=";
         allowedIPs = [ "10.100.0.10/32" ];
       }
+      {
+        name = "pilot";
+        publicKey = "ttPbzMDHC7O8nbm24AYi9pwQT74qxtb+OXP/+Inq9DE=";
+        allowedIPs = [ "10.100.0.11/32" ];
+      }
     ];
   };
 

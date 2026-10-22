@@ -60,6 +60,7 @@ in
     ./night-shift
     ./speed-read
     ./screenshots
+    ./wireguard
   ]
   ++ lib.optionals host.kiosk [
     ./kiosk
