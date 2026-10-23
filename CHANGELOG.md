@@ -195,3 +195,4 @@
 - 2026-10-22: Name spike's second Claude account `work`, in `~/.claude-work`, and label the dashboard's accounts without naming its email.
 - 2026-10-22: Install the WireGuard app on the Macs and add `pilot` as spike's WireGuard peer at `10.100.0.11`, its tunnel named Home network.
 - 2026-10-23: spike's backlogic-switch honours the instance's Windows Update setting, installing every push while it is automatic and only the update Aaron chooses otherwise.
+- 2026-10-24: spike carries backlogic's API alone to the public through a Cloudflare Tunnel, so the runner's cloud sessions on claude.ai can reach the instance.

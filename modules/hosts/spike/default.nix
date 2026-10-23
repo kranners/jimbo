@@ -6,6 +6,7 @@
       imports = [
         ./hardware.nix
         ./backlogic.nix
+        ./backlogic-tunnel.nix
         ./bowerbird.nix
         ./caddy.nix
         ./claude.nix
