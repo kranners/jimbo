@@ -119,8 +119,9 @@ let
   # A build that fails puts the checkout back and records the target in `failed`.
   # One that builds keeps its checkout even when it fails to start, since it may already have migrated the store.
   # Once it is up, each of aaron's Claude configs takes main's backlogic plugin, since a third-party
-  # marketplace updates only when a session starts, and when the switch changed what the plugin
-  # prints, a fresh Haiku session in each checks the whole base arrived (backlogic's docs/decisions/rule-layers.md).
+  # marketplace updates only when a session starts, and when that update changed what the plugin
+  # prints and the plugin's commit is the checkout's, a fresh Haiku session in each checks the whole base arrived
+  # (backlogic's docs/decisions/rule-layers.md).
   backlogic-switch = pkgs.writeShellApplication {
     name = "backlogic-switch";
     runtimeInputs = [
@@ -130,6 +131,7 @@ let
       pkgs.findutils
       pkgs.git
       pkgs.gnused
+      pkgs.jq
       pkgs.openssh
     ];
     text = ''
@@ -200,13 +202,26 @@ let
       write_available
       backlogic-compose up --detach --wait
 
-      plugin_changes=$(git diff --name-only "$running" HEAD -- rules .claude-plugin hooks)
+      installed_plugin_version() {
+        claude plugin list --json | jq -r '.[] | select(.id == "backlogic@backlogic") | .version'
+      }
+      # The marketplace serves main, so the plugin can be ahead of a commit an owner chose, and
+      # rules-fresh-session compares what arrived against this checkout's rules.
       update_plugin() {
         claude plugin marketplace update backlogic
+        local version_before version_after
+        version_before=$(installed_plugin_version)
         claude plugin update backlogic@backlogic
-        if [ -n "$plugin_changes" ]; then
-          bin/rules-fresh-session
+        version_after=$(installed_plugin_version)
+        if [ "$version_before" = "$version_after" ] \
+          || [ -z "$(git diff --name-only "$version_before" "$version_after" -- rules .claude-plugin hooks 2>/dev/null || echo unknown)" ]; then
+          return
         fi
+        if [[ "$(git rev-parse HEAD)" != "$version_after"* ]]; then
+          echo "Not checking the rules arrived: the plugin is at $version_after, the checkout at $(git rev-parse --short HEAD)" >&2
+          return
+        fi
+        bin/rules-fresh-session
       }
       # ~/.claude is the default config, whose .claude.json sits in the home, not inside it as CLAUDE_CONFIG_DIR would read it.
       update_plugin
