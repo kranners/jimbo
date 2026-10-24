@@ -197,3 +197,4 @@
 - 2026-10-23: spike's backlogic-switch honours the instance's Windows Update setting, installing every push while it is automatic and only the update Aaron chooses otherwise.
 - 2026-10-24: spike carries backlogic's API alone to the public through a Cloudflare Tunnel, so the runner's cloud sessions on claude.ai can reach the instance.
 - 2026-10-24: After each backlogic switch, spike updates Aaron's installed backlogic plugin in both Claude configs, and checks in a fresh session that the rules arrived whenever the switch changed them.
+- 2026-10-24: spike's backlogic-switch judges a plugin change from the plugin's own installed version, and skips checking the rules arrived, saying why, when that version is ahead of the checked-out commit.
