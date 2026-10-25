@@ -21,7 +21,7 @@ in
       host all bowerbird samenet scram-sha-256
     '';
     initialScript = pkgs.writeText "bowerbird-environments.sql" ''
-      create role bowerbird superuser login password 'bowerbird';
+      create role bowerbird createdb login;
     '';
   };
 
