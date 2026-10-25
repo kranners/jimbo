@@ -100,6 +100,7 @@ let
       export BACKLOGIC_PEER_TOKEN_FILE=${dataDir}/tokens/peer-rylee.token
       export BACKLOGIC_PEER_OWNER=ibrokemypie
       export BACKLOGIC_UPDATES_DIR=${updatesDir}
+      export BACKLOGIC_PROMETHEUS_URL=http://127.0.0.1:9090
       exec docker compose --project-directory ${checkout} --file ${checkout}/compose.yaml --file ${composeOverride} "$@"
     '';
   };
