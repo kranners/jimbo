@@ -202,3 +202,4 @@
 - 2026-10-25: spike alerts when / is over 85% full, a unit stays failed or an exporter stops answering, and Prometheus keeps retrying after a failed start.
 - 2026-10-25: spike caps its Claude sessions' memory and swap, and bowerbird-compose no longer rebuilds the portal on every restart.
 - 2026-10-25: spike collects Nix garbage daily instead of weekly, so the dead builds backlogic's checks leave in the store never run its root filesystem out of inodes.
+- 2026-10-25: spike's /tmp ages out directories untouched for 10 days by creation and change alone, so its old test leftovers finally clear instead of being kept fresh by a daily read.

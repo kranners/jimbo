@@ -21,6 +21,7 @@
         ./voice.nix
         ./watchdog.nix
         ./remote-builder.nix
+        ./tmp.nix
         ./wireguard.nix
       ];
 
