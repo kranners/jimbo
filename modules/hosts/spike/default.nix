@@ -46,6 +46,8 @@
         ];
       };
 
+      nix.gc.dates = "daily";
+
       programs.git.enable = true;
 
       environment.systemPackages = [ pkgs.vim ];

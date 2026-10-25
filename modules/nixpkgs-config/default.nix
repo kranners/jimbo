@@ -39,7 +39,7 @@ in
 {
   nixosSystemModule = {
     inherit nixpkgs;
-    nix = lib.recursiveUpdate nix { gc.dates = "weekly"; };
+    nix = lib.recursiveUpdate nix { gc.dates = lib.mkDefault "weekly"; };
   };
   darwinSystemModule = { inherit nix nixpkgs; };
 }
