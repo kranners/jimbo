@@ -31,7 +31,7 @@ in
     home.packages = [
       pkgs.protonup-qt
       pkgs.r2modman
-      pkgs.pokemmo-installer
+      pkgs.pokemmo
       pkgs.prismlauncher
       pkgs.bolt-launcher
       pkgs.lutris
