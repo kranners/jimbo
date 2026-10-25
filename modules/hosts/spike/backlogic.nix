@@ -356,6 +356,7 @@ in
       IOWeight = 20;
       MemoryHigh = "6G";
       MemoryMax = "8G";
+      MemorySwapMax = "2G";
     };
   };
 

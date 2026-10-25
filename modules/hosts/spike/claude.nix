@@ -39,6 +39,10 @@
       # same directory resumes the sessions it was serving.
       Restart = "always";
       RestartSec = 10;
+      OOMPolicy = "continue";
+      MemoryHigh = "6G";
+      MemoryMax = "8G";
+      MemorySwapMax = "2G";
     };
   };
 }
