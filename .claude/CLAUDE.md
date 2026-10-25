@@ -169,6 +169,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - Hardware watchdog (`wdat_wdt`) is armed by systemd, and the kernel reboots 10 s after a panic.
 - Its only swap is `zramSwap` at the module's defaults, half of RAM compressed with zstd, so cold pages compress in memory and pressure builds gradually instead of running straight into the OOM killer.
   `vm.oom_dump_tasks` is off, so the OOM killer acts at once instead of first logging every task, and Nix collects garbage during a build once `/` has under 5 GiB free.
+- Nix collects garbage daily, where every other host does weekly, because each backlogic `bin/check` the runner runs leaves a dead build of thousands of files in the store, and a week of them filled the root filesystem's inode table while it still had blocks free.
 - Spike is framer's remote builder (`modules/hosts/spike/remote-builder.nix`): framer's root logs in as the system user `nix-builder`, whose key may only run `nix-daemon --stdio`, and which Nix trusts.
   Spike's nix-daemon runs at idle CPU and IO priority, so those builds, and every other, yield to Bowerbird.
 - WireGuard `wg0` on UDP `51820` at `spike.cute.engineer` (kept current by cloudflare-dyndns, token in `/var/lib/secrets/cloudflare-dyndns-token`), spike is `10.100.0.1`.
