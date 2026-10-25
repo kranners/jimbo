@@ -198,3 +198,6 @@
 - 2026-10-24: spike carries backlogic's API alone to the public through a Cloudflare Tunnel, so the runner's cloud sessions on claude.ai can reach the instance.
 - 2026-10-24: After each backlogic switch, spike updates Aaron's installed backlogic plugin in both Claude configs, and checks in a fresh session that the rules arrived whenever the switch changed them.
 - 2026-10-24: spike's backlogic-switch judges a plugin change from the plugin's own installed version, and skips checking the rules arrived, saying why, when that version is ahead of the checked-out commit.
+- 2026-10-25: spike's branch database role is no superuser and its password is no longer in the repository.
+- 2026-10-25: spike alerts when / is over 85% full, a unit stays failed or an exporter stops answering, and Prometheus keeps retrying after a failed start.
+- 2026-10-25: spike caps its Claude sessions' memory and swap, and bowerbird-compose no longer rebuilds the portal on every restart.
