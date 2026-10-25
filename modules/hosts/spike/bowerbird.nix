@@ -18,8 +18,8 @@ let
   bowerbird-display = pkgs.writeShellApplication {
     name = "bowerbird-display";
     runtimeInputs = [
-      pkgs.xorg.xorgserver
-      pkgs.xorg.xdpyinfo
+      pkgs.xorg-server
+      pkgs.xdpyinfo
       pkgs.openbox
     ];
     text = ''
@@ -37,8 +37,8 @@ let
   bowerbird-member-display = pkgs.writeShellApplication {
     name = "bowerbird-member-display";
     runtimeInputs = [
-      pkgs.xorg.xorgserver
-      pkgs.xorg.xdpyinfo
+      pkgs.xorg-server
+      pkgs.xdpyinfo
       pkgs.openbox
       pkgs.x11vnc
     ];
@@ -174,6 +174,7 @@ in
     description = "Bowerbird Postgres and portal";
     wantedBy = [ "multi-user.target" ];
     requires = [ "docker.service" ];
+    wants = [ "network-online.target" ];
     after = [
       "docker.service"
       "network-online.target"
