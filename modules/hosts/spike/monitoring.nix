@@ -24,6 +24,7 @@ let
     minAvailableMebibytes = 1536;
     maxSwapUsed = 0.8;
     maxRootInodesUsed = 0.8;
+    maxRootBytesUsed = 0.85;
     maxServiceRestartsPerHour = 3;
   };
 
@@ -94,18 +95,16 @@ let
       pkgs.jq
     ];
     text = ''
-      status=0
       ${lib.concatMapAttrsStringSep "\n" (account: configDir: ''
         prom=${textfileDir}/claude-limits-${account}.prom
         token=$(jq -r .claudeAiOauth.accessToken ${configDir}/.credentials.json) &&
-          curl --silent --fail https://api.anthropic.com/api/oauth/usage \
+          curl --silent --show-error --fail https://api.anthropic.com/api/oauth/usage \
             --header "Authorization: Bearer $token" \
             --header "anthropic-beta: oauth-2025-04-20" |
           jq -r --arg account ${account} -f ${./claude-limits.jq} > "$prom.tmp" &&
           mv "$prom.tmp" "$prom" ||
-          status=1
+          echo "Kept ${account}'s last reading" >&2
       '') claudeConfigDirs}
-      exit "$status"
     '';
   };
 in
@@ -158,6 +157,11 @@ in
         static_configs = [ { targets = [ "localhost:${toString cadvisor.port}" ]; } ];
       }
     ];
+  };
+
+  systemd.services.prometheus = {
+    serviceConfig.RestartSec = 30;
+    unitConfig.StartLimitIntervalSec = 0;
   };
 
   systemd.services.claude-limits = {
@@ -300,6 +304,29 @@ in
             summary = "{{ index .Labels \"host\" }} has used over ${percent alertThresholds.maxRootInodesUsed} of the inodes on /.";
             expr = ''1 - node_filesystem_files_free{mountpoint="/"} / node_filesystem_files{mountpoint="/"}'';
             evaluator = above alertThresholds.maxRootInodesUsed;
+          })
+          (alertRule {
+            uid = "root-disk-full";
+            title = "Root disk nearly full";
+            summary = "{{ index .Labels \"host\" }} has used over ${percent alertThresholds.maxRootBytesUsed} of the space on /.";
+            expr = ''1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}'';
+            evaluator = above alertThresholds.maxRootBytesUsed;
+          })
+          (alertRule {
+            uid = "target-down";
+            title = "Host not reporting";
+            summary = "{{ index .Labels \"host\" }}'s {{ index .Labels \"job\" }} exporter has not answered Prometheus for 10 minutes.";
+            expr = "up";
+            evaluator = below 1;
+            for = "10m";
+          })
+          (alertRule {
+            uid = "unit-failed";
+            title = "Unit failed";
+            summary = "{{ index .Labels \"name\" }} on {{ index .Labels \"host\" }} has failed.";
+            expr = ''node_systemd_unit_state{state="failed"}'';
+            evaluator = above 0;
+            for = "5m";
           })
           (alertRule {
             uid = "service-restarting";
