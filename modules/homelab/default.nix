@@ -9,6 +9,8 @@
         ln -s ${pkgs.findutils}/bin/find $out/bin/gfind
         ln -s ${pkgs.findutils}/bin/xargs $out/bin/gxargs
         ln -s ${pkgs.gnugrep}/bin/grep $out/bin/ggrep
+        ln -s ${pkgs.coreutils-prefixed}/bin/* $out/bin/
+        ln -s ${pkgs.coreutils}/bin/timeout $out/bin/timeout
       '';
     in
     {

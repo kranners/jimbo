@@ -203,3 +203,4 @@
 - 2026-10-25: spike caps its Claude sessions' memory and swap, and bowerbird-compose no longer rebuilds the portal on every restart.
 - 2026-10-25: spike collects Nix garbage daily instead of weekly, so the dead builds backlogic's checks leave in the store never run its root filesystem out of inodes.
 - 2026-10-25: spike's /tmp ages out directories untouched for 10 days by creation and change alone, so its old test leftovers finally clear instead of being kept fresh by a daily read.
+- 2026-10-26: The Macs get coreutils under their g names (gdate, ghead, gstat, gtimeout and the rest) and `timeout` under its plain name, which backlogic's checks call.
