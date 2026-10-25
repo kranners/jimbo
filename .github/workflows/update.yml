@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.REPO_SCOPED_TOKEN }}
       - uses: cachix/install-nix-action@v30
       - uses: cachix/cachix-action@v14
         with:
