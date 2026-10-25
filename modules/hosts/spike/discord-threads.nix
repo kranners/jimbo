@@ -48,6 +48,10 @@ in
       Restart = "always";
       RestartSec = 10;
       TimeoutStopSec = 20;
+      OOMPolicy = "continue";
+      MemoryHigh = "3G";
+      MemoryMax = "4G";
+      MemorySwapMax = "1G";
     };
   };
 

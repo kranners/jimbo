@@ -182,7 +182,7 @@ in
     environment.REMOTE_VIEW_URL = "https://${portal}/vnc/vnc.html?autoconnect=1&resize=scale&path=/vnc/";
     serviceConfig = {
       WorkingDirectory = checkout;
-      ExecStart = "${compose} up --build";
+      ExecStart = "${compose} up";
       Restart = "on-failure";
       RestartSec = 10;
     };
