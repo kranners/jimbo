@@ -206,3 +206,4 @@
 - 2026-10-26: The Macs get coreutils under their g names (gdate, ghead, gstat, gtimeout and the rest) and `timeout` under its plain name, which backlogic's checks call.
 - 2026-10-26: spike's backlogic reads spike's Prometheus at 127.0.0.1:9090, so Task Manager shows the host's metrics.
 - 2026-10-26: pilot starts every Claude Code session in ultracode, and turns on backlogic's plugin in its backlogic checkouts alone; the personal CLAUDE.md is reworded.
+- 2026-10-26: spike's Nix collects garbage during builds below 20 GiB free and dedupes its store, /tmp ages out after a day and Deno's gen caches after two, Docker prunes unused images daily, and the journal keeps 1 GiB.

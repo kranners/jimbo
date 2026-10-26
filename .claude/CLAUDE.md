@@ -72,7 +72,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Rylee logs in as `rylee` from her laptop, noodlebook, in `wheel` and `docker` like `aaron`.
   `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
 - Headless. Docker is managed directly with `docker`/`docker compose`; `aaron` is in the `docker` group.
-  `docker-prune.timer` runs `docker system prune` daily, removing stopped containers, unused networks, dangling images and build cache, because rebuilding backlogic's image leaves the previous one dangling; volumes and images a container uses are kept.
+  `docker-prune.timer` runs `docker system prune --all --filter until=24h` daily, removing stopped containers, unused networks, every image no container uses and build cache once each is a day old, because rebuilding backlogic's image leaves the previous one and its cache behind; volumes, Bowerbird's named Postgres one among them, and images a container uses are kept.
 - Grafana listens on `127.0.0.1:3001`, backed by Prometheus scraping node_exporter and cAdvisor.
   Caddy serves it at `https://grafana.spike.cute.engineer`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone.
   Its dashboards, Hardware, Services, Containers, Claude, and Backlogic and threads, are provisioned from `modules/hosts/spike/dashboards.nix`, so a switch replaces any edited or added in the UI.
@@ -168,9 +168,13 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   The script refuses to deploy while a branch other than `main` is checked out in `/srv/bowerbird`, so checking one out there pauses deploys while it is tested.
 - Hardware watchdog (`wdat_wdt`) is armed by systemd, and the kernel reboots 10 s after a panic.
 - Its only swap is `zramSwap` at the module's defaults, half of RAM compressed with zstd, so cold pages compress in memory and pressure builds gradually instead of running straight into the OOM killer.
-  `vm.oom_dump_tasks` is off, so the OOM killer acts at once instead of first logging every task, and Nix collects garbage during a build once `/` has under 5 GiB free.
+  `vm.oom_dump_tasks` is off, so the OOM killer acts at once instead of first logging every task, and Nix collects garbage during a build once `/` has under 20 GiB free, until 60 GiB is.
 - Nix collects garbage daily, where every other host does weekly, because each backlogic `bin/check` the runner runs leaves a dead build of thousands of files in the store, and a week of them filled the root filesystem's inode table while it still had blocks free.
-- `/tmp` sits on the root filesystem and ages out entries untouched for 10 days, systemd's own `tmp.conf` rule, overridden in `modules/hosts/spike/tmp.nix` to judge directories by birth and modification time alone, because every directory there is read daily, which kept their access time fresh and the 10 days from ever passing.
+  Even daily, the store grew about 48 GiB in a day, which is why the build-time collection starts at 20 GiB, and `auto-optimise-store` hard-links identical files as they arrive.
+- `/tmp` sits on the root filesystem and ages out entries untouched for a day, overriding systemd's own `tmp.conf` rule in `modules/hosts/spike/tmp.nix`, which judges directories by birth and modification time alone, because every directory there is read daily, which kept their access time fresh and the age from ever passing.
+  The runner's checks leave thousands of entries there a day.
+  The same file ages out Deno's `gen` cache, in `aaron`'s and the runner's homes, after 2 days unused, since every new lane path adds a fresh set of entries to it.
+- The journal keeps at most 1 GiB.
 - Spike is framer's remote builder (`modules/hosts/spike/remote-builder.nix`): framer's root logs in as the system user `nix-builder`, whose key may only run `nix-daemon --stdio`, and which Nix trusts.
   Spike's nix-daemon runs at idle CPU and IO priority, so those builds, and every other, yield to Bowerbird.
 - WireGuard `wg0` on UDP `51820` at `spike.cute.engineer` (kept current by cloudflare-dyndns, token in `/var/lib/secrets/cloudflare-dyndns-token`), spike is `10.100.0.1`.
