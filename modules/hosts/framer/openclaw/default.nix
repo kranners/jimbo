@@ -32,6 +32,34 @@ let
     '';
   };
 
+  jq-filter = pkgs.writeShellApplication {
+    name = "jq-filter";
+    runtimeInputs = [ pkgs.jq ];
+    text = ''
+      usage() {
+        echo "usage: jq-filter [-r] [-c] [-e] [-S] [-j] <filter>   (reads JSON from stdin only)" >&2
+        exit 2
+      }
+
+      flags=()
+      while [ $# -gt 1 ]; do
+        case "$1" in
+          -r | -c | -e | -S | -j) flags+=("$1") ;;
+          *) usage ;;
+        esac
+        shift
+      done
+
+      [ $# -eq 1 ] || usage
+      if [[ $1 =~ (^|[^a-zA-Z_.])(import|include|modulemeta|get_search_list|env)([^a-zA-Z_]|$) || $1 == *"\$ENV"* ]]; then
+        echo "jq-filter: filters may not load modules or read the environment" >&2
+        exit 2
+      fi
+
+      exec jq "''${flags[@]}" -- "$1"
+    '';
+  };
+
   # https://github.com/openclaw/openclaw/blob/v2026.6.33/extensions/anthropic/cli-backend.ts
   claudeAllowedTools = lib.concatStringsSep "," (
     [ "mcp__openclaw__*" ] ++ map (command: "Bash(${baseNameOf (lib.getExe command)} *)") cfg.commands
@@ -173,7 +201,7 @@ in
     openclaw.skills.home-assistant = ./skills/home-assistant;
     openclaw.commands = [
       home-assistant-api
-      pkgs.jq
+      jq-filter
     ];
 
     nixpkgs.config.allowInsecurePredicate = package: lib.getName package == "openclaw";

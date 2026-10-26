@@ -75,6 +75,12 @@ let
       action="$2"
       shift 2
 
+      for argument in "$account" "$@"; do
+        case "$argument" in
+          -*) usage ;;
+        esac
+      done
+
       case "$action" in
         mailboxes) himalaya --account "$account" mailbox list ;;
         unread) himalaya --account "$account" envelope search --page-size "''${1:-10}" not flag seen order by date desc ;;

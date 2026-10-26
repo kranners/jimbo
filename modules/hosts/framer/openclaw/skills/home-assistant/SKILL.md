@@ -14,7 +14,7 @@ It calls `http://10.100.0.1:8123/api/<path>` with the token itself, so never loo
 home-assistant-api GET states
 ```
 
-Pipe it through `jq` to pick out the entity you need, such as `weather.home`, instead of reading it all aloud.
+Pipe it through `jq-filter` to pick out the entity you need, such as `weather.home`, instead of reading it all aloud.
 
 ## Read one entity
 
