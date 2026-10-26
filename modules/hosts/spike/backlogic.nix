@@ -17,15 +17,11 @@ let
   quietMinutes = 30;
 
   # Each Claude account the runner launches on has its own config directory, named in
-  # runner.json's accounts, every one with aaron's settings, CLAUDE.md and skills.
+  # runner.json's accounts, every one with aaron's settings. Its sessions load only the
+  # repository's instructions, so his CLAUDE.md and skills stay out.
   runnerClaudeDirs = [
     ".claude"
     ".claude-work"
-  ];
-  claudeFiles = [
-    "settings.json"
-    "CLAUDE.md"
-    "skills/commit/SKILL.md"
   ];
 
   # Answers git over HTTPS with the fine-grained token of the repository's owner, one per
@@ -289,20 +285,16 @@ in
   # The instance writes runner.json through a rename as aaron, and the runner and its
   # sessions' hooks read it, so it lives in a directory both reach, its group inherited.
   # The runner's Claude Code and git take aaron's settings, so its sessions behave as his did.
-  # Every config directory takes .claude's files, which are the same in each of aaron's.
+  # Every config directory takes .claude's settings, which are the same in each of aaron's.
   systemd.tmpfiles.rules = [
     "d ${runnerConfigDir} 2750 aaron backlogic-runner -"
   ]
-  ++ lib.concatMap (
-    dir:
-    [
-      "d ${runnerHome}/${dir} 0700 backlogic-runner backlogic-runner -"
-      "d ${runnerHome}/${dir}/skills/commit 0755 backlogic-runner backlogic-runner -"
-    ]
-    ++ map (
-      file: "L+ ${runnerHome}/${dir}/${file} - - - - ${aaronHome.home.file.".claude/${file}".source}"
-    ) claudeFiles
-  ) runnerClaudeDirs
+  ++ lib.concatMap (dir: [
+    "d ${runnerHome}/${dir} 0700 backlogic-runner backlogic-runner -"
+    "L+ ${runnerHome}/${dir}/settings.json - - - - ${
+      aaronHome.home.file.".claude/settings.json".source
+    }"
+  ]) runnerClaudeDirs
   ++ [
     "d ${runnerHome}/.config 0755 backlogic-runner backlogic-runner -"
     "d ${runnerHome}/.config/git 0755 backlogic-runner backlogic-runner -"
