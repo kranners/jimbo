@@ -205,3 +205,4 @@
 - 2026-10-25: spike's /tmp ages out directories untouched for 10 days by creation and change alone, so its old test leftovers finally clear instead of being kept fresh by a daily read.
 - 2026-10-26: The Macs get coreutils under their g names (gdate, ghead, gstat, gtimeout and the rest) and `timeout` under its plain name, which backlogic's checks call.
 - 2026-10-26: spike's backlogic reads spike's Prometheus at 127.0.0.1:9090, so Task Manager shows the host's metrics.
+- 2026-10-26: pilot starts every Claude Code session in ultracode, and turns on backlogic's plugin in its backlogic checkouts alone; the personal CLAUDE.md is reworded.
