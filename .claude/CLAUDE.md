@@ -305,6 +305,7 @@ On `pilot` its tunnel `Home network` is spike's peer `pilot`, imported by hand f
 Backlogic's plugin is on everywhere on the Linux hosts, and on the Macs nowhere but `pilot`'s backlogic checkouts.
 Claude Code turns a plugin on for one repository only through that repository's settings, so on `pilot` every switch sets `backlogic@backlogic` in the gitignored `.claude/settings.local.json` of `~/workspace/backlogic`, each `~/workspace/backlogic--*` and each worktree under `~/workspace/backlogic/.claude/worktrees`, and a checkout made since the last switch has it from the next.
 Every `pilot` session starts in ultracode, through `settings.json`'s `ultracode`.
+On the Macs a `PreToolUse` hook, `pkill-guard.py`, refuses a Bash command running `pkill` or `pgrep` with an option after its pattern, because macOS takes every argument from the first pattern on as another pattern, and `pkill -f 'cat' -U $(id -u) -x` once signalled every process Aaron owned.
 
 ### Other directories
 

@@ -89,6 +89,15 @@
         '';
       };
 
+      pkill-guard = pkgs.writeShellApplication {
+        name = "claude-pkill-guard";
+        runtimeInputs = [ pkgs.python3 ];
+
+        text = ''
+          exec python3 ${./pkill-guard.py}
+        '';
+      };
+
       # Spike's second account, the work one, logs in under ~/.claude-work
       configDirs = [ ".claude" ] ++ lib.optional (host.hostname == "spike") ".claude-work";
 
@@ -165,6 +174,19 @@
                 {
                   type = "command";
                   command = "${stack-notes}/bin/claude-stack-notes";
+                }
+              ];
+            }
+          ];
+
+          # macOS pkill takes every argument after the first pattern as another pattern, so a misplaced option signals every process Aaron owns
+          hooks.PreToolUse = lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+            {
+              matcher = "Bash";
+              hooks = [
+                {
+                  type = "command";
+                  command = "${pkill-guard}/bin/claude-pkill-guard";
                 }
               ];
             }
