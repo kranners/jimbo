@@ -107,16 +107,22 @@
           # Messages from Aaron's other sessions arrive without waiting for approval, whatever either session's permission mode
           crossSessionInbound = "accept";
 
-          # Plugins
-          extraKnownMarketplaces.backlogic = {
-            source = {
-              source = "github";
-              repo = "backlogic/backlogic";
-            };
-            autoUpdate = true;
-          };
+          # Plugins, backlogic's on the Linux hosts alone, and on pilot in its backlogic checkouts alone
+          extraKnownMarketplaces =
+            lib.optionalAttrs (!pkgs.stdenv.hostPlatform.isDarwin || host.hostname == "pilot")
+              {
+                backlogic = {
+                  source = {
+                    source = "github";
+                    repo = "backlogic/backlogic";
+                  };
+                  autoUpdate = true;
+                };
+              };
           enabledPlugins = {
             "typescript-lsp@claude-plugins-official" = true;
+          }
+          // lib.optionalAttrs (!pkgs.stdenv.hostPlatform.isDarwin) {
             "backlogic@backlogic" = true;
           };
 
@@ -171,6 +177,10 @@
             refreshInterval = 30;
           };
         }
+        // lib.optionalAttrs (host.hostname == "pilot") {
+          # Every pilot session orchestrates its work with workflows
+          ultracode = true;
+        }
         // lib.optionalAttrs (host.hostname == "spike") {
           # Tell auto mode that spike's production is a home server
           autoMode.environment = [
@@ -217,8 +227,25 @@
   darwinSystemModule.homebrew.brews = [ "uv" ];
 
   darwinHomeModule =
-    { lib, ... }:
+    { pkgs, lib, ... }:
     {
+      # Claude Code turns a plugin on for one repository only through that repository's settings
+      home.activation.enableBacklogicPluginInCheckouts = lib.mkIf (host.hostname == "pilot") (
+        lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          for checkout in "$HOME"/workspace/backlogic "$HOME"/workspace/backlogic--* "$HOME"/workspace/backlogic/.claude/worktrees/*; do
+            [ -d "$checkout/.claude" ] || continue
+            local_settings="$checkout/.claude/settings.local.json"
+            [ -s "$local_settings" ] || echo '{}' >"$local_settings"
+            if ${pkgs.jq}/bin/jq '.enabledPlugins["backlogic@backlogic"] = true' "$local_settings" >"$local_settings.new"; then
+              mv "$local_settings.new" "$local_settings"
+            else
+              rm -f "$local_settings.new"
+              echo "$local_settings is not JSON, so backlogic's plugin stays off there" >&2
+            fi
+          done
+        ''
+      );
+
       # uv owns claude-swap so `cswap upgrade` can update it in place
       home.activation.installClaudeSwap = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         if [ ! -x "$HOME/.local/bin/cswap" ]; then

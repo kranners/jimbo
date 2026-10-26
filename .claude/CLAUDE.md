@@ -295,6 +295,13 @@ Adding that directory under Raycast's Script Commands and giving the command a h
 `modules/wireguard` installs the WireGuard app from the App Store on the Macs.
 On `pilot` its tunnel `Home network` is spike's peer `pilot`, imported by hand from `~/.config/wireguard/Home network.conf`, which holds its private key and never enters the repo.
 
+### Claude Code
+
+`modules/claude` writes the personal `CLAUDE.md`, skills and `settings.json` on every host.
+Backlogic's plugin is on everywhere on the Linux hosts, and on the Macs nowhere but `pilot`'s backlogic checkouts.
+Claude Code turns a plugin on for one repository only through that repository's settings, so on `pilot` every switch sets `backlogic@backlogic` in the gitignored `.claude/settings.local.json` of `~/workspace/backlogic`, each `~/workspace/backlogic--*` and each worktree under `~/workspace/backlogic/.claude/worktrees`, and a checkout made since the last switch has it from the next.
+Every `pilot` session starts in ultracode, through `settings.json`'s `ultracode`.
+
 ### Other directories
 
 - `voyager/`, QMK keymap for a ZSA Voyager keyboard; built/flashed externally with `qmk`, not part of the flake.
