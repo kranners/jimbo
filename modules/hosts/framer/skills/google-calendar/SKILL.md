@@ -11,7 +11,7 @@ Run `home-assistant-api <METHOD> <path> [json body]` with Bash; it carries the t
 ## List calendars
 
 ```sh
-home-assistant-api GET calendars | jq -r '.[] | "\(.entity_id)\t\(.name)"'
+home-assistant-api GET calendars | jq-filter -r '.[] | "\(.entity_id)\t\(.name)"'
 ```
 
 Google calendars are the `calendar.*` entities whose names match Aaron's Google calendars; the primary one is named after his account.
@@ -23,7 +23,7 @@ List them first rather than guessing an entity id.
 
 ```sh
 home-assistant-api GET 'calendars/calendar.ENTITY?start=2026-10-16T00:00:00%2B11:00&end=2026-10-17T00:00:00%2B11:00' \
-  | jq -r '.[] | "\(.start.dateTime // .start.date)\t\(.summary)\t\(.location // "")"'
+  | jq-filter -r '.[] | "\(.start.dateTime // .start.date)\t\(.summary)\t\(.location // "")"'
 ```
 
 Write the offset's `+` as `%2B`.

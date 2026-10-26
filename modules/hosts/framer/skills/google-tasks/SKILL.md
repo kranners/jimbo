@@ -12,7 +12,7 @@ Run `home-assistant-api <METHOD> <path> [json body]` with Bash; it carries the t
 
 ```sh
 home-assistant-api GET states \
-  | jq '[.[] | select(.entity_id | startswith("todo.")) | {entity_id, name: .attributes.friendly_name, open: .state}]'
+  | jq-filter '[.[] | select(.entity_id | startswith("todo.")) | {entity_id, name: .attributes.friendly_name, open: .state}]'
 ```
 
 `state` is the number of unfinished items.
