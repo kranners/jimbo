@@ -208,3 +208,4 @@
 - 2026-10-26: pilot starts every Claude Code session in ultracode, and turns on backlogic's plugin in its backlogic checkouts alone; the personal CLAUDE.md is reworded.
 - 2026-10-26: spike's Nix collects garbage during builds below 20 GiB free and dedupes its store, /tmp ages out after a day and Deno's gen caches after two, Docker prunes unused images daily, and the journal keeps 1 GiB.
 - 2026-10-26: spike's backlogic runner config directories take only aaron's Claude settings, no longer his CLAUDE.md or commit skill, since runner sessions load only the repository's instructions.
+- 2026-10-27: On the Macs the personal `CLAUDE.md` points sessions that drive a browser at cmux's, which holds a copy of Chromium's logins.

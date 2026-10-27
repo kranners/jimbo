@@ -14,4 +14,3 @@ Comments in source should link to upstream bugs to track against where possible.
 
 You should be able to achieve the goal completely unattended.
 Ask for permission immediately, instead of waiting until you need it.
-
