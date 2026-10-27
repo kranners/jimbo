@@ -306,6 +306,7 @@ Backlogic's plugin is on everywhere on the Linux hosts, and on the Macs nowhere 
 Claude Code turns a plugin on for one repository only through that repository's settings, so on `pilot` every switch sets `backlogic@backlogic` in the gitignored `.claude/settings.local.json` of `~/workspace/backlogic`, each `~/workspace/backlogic--*` and each worktree under `~/workspace/backlogic/.claude/worktrees`, and a checkout made since the last switch has it from the next.
 Every `pilot` session starts in ultracode, through `settings.json`'s `ultracode`.
 On the Macs a `PreToolUse` hook, `pkill-guard.py`, refuses a Bash command running `pkill` or `pgrep` with an option after its pattern, because macOS takes every argument from the first pattern on as another pattern, and `pkill -f 'cat' -U $(id -u) -x` once signalled every process Aaron owned.
+On the Macs `modules/cmux` appends to the personal `CLAUDE.md` a line pointing sessions that need a browser at cmux's, `cmux browser`, which holds a copy of Chromium's logins made with `cmux browser import`, since its WebKit view cannot use Chromium's profile itself.
 
 ### Other directories
 

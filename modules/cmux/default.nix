@@ -31,4 +31,13 @@
         };
       };
     };
+
+  darwinHomeModule =
+    { lib, ... }:
+    {
+      home.file.".claude/CLAUDE.md".text = lib.mkAfter ''
+        To drive a browser, use cmux's: `cmux browser open <url>` prints its surface, then `cmux browser <surface> snapshot -i`, `click`, `fill` and `get`; `cmux browser --help` lists the rest.
+        It holds a copy of Chromium's logins, refreshed with `cmux browser import --non-interactive --from chromium --profile Default --to-profile Default`.
+      '';
+    };
 }
