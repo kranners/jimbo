@@ -24,6 +24,13 @@ let
     ".claude-work"
   ];
 
+  # Runner sessions run at medium effort, aaron's own at the high his settings carry.
+  runnerClaudeSettings = pkgs.runCommand "runner-claude-settings.json" { } ''
+    ${pkgs.jq}/bin/jq '.effortLevel = "medium"' ${
+      aaronHome.home.file.".claude/settings.json".source
+    } > $out
+  '';
+
   # Answers git over HTTPS with the fine-grained token of the repository's owner, one per
   # owner, since a fine-grained token reaches the repositories of one owner alone.
   github-token-credential = pkgs.writeShellApplication {
@@ -285,15 +292,13 @@ in
   # The instance writes runner.json through a rename as aaron, and the runner and its
   # sessions' hooks read it, so it lives in a directory both reach, its group inherited.
   # The runner's Claude Code and git take aaron's settings, so its sessions behave as his did.
-  # Every config directory takes .claude's settings, which are the same in each of aaron's.
+  # Every config directory takes those settings.
   systemd.tmpfiles.rules = [
     "d ${runnerConfigDir} 2750 aaron backlogic-runner -"
   ]
   ++ lib.concatMap (dir: [
     "d ${runnerHome}/${dir} 0700 backlogic-runner backlogic-runner -"
-    "L+ ${runnerHome}/${dir}/settings.json - - - - ${
-      aaronHome.home.file.".claude/settings.json".source
-    }"
+    "L+ ${runnerHome}/${dir}/settings.json - - - - ${runnerClaudeSettings}"
   ]) runnerClaudeDirs
   ++ [
     "d ${runnerHome}/.config 0755 backlogic-runner backlogic-runner -"
