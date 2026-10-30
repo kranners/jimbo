@@ -11,7 +11,6 @@
         ./butler.nix
         ./caddy.nix
         ./claude.nix
-        ./discord-threads.nix
         ./dns.nix
         ./docker.nix
         ./environments.nix

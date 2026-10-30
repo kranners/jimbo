@@ -34,16 +34,8 @@ in
     };
   };
 
-  systemd.services =
-    lib.genAttrs
-      [
-        "claude-remote-control"
-        "discord-threads"
-      ]
-      (_: {
-        path = lib.mkAfter [ (miseShimsOf "/home/aaron") ];
-      })
-    // {
-      backlogic-runner-aaron.path = lib.mkAfter [ (miseShimsOf runnerHome) ];
-    };
+  systemd.services = {
+    claude-remote-control.path = lib.mkAfter [ (miseShimsOf "/home/aaron") ];
+    backlogic-runner-aaron.path = lib.mkAfter [ (miseShimsOf runnerHome) ];
+  };
 }
