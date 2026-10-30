@@ -10,6 +10,7 @@
         ./bowerbird.nix
         ./butler.nix
         ./butler-drive.nix
+        ./butler-health.nix
         ./butler-mail.nix
         ./butler-messenger.nix
         ./butler-outlook.nix

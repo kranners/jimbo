@@ -113,6 +113,7 @@ let
           "Read(~/.claude/channels/**)"
           "Read(~/.claude/.credentials.json)"
           "Read(~/.ssh/**)"
+          "Read(~/.cache/**)"
           "Read(~/.local/share/pyicloud/**)"
           "Read(~/.local/share/ortie/**)"
           "Read(~/.config/rclone/**)"
