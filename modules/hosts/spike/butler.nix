@@ -17,6 +17,8 @@ let
   memoryLock = "${home}/memory.lock";
   memoryRepository = "git@github.com:kranners/butler-memory.git";
   memoryDeployKey = "/var/lib/secrets/butler-memory-deploy-key";
+  outbox = "${home}/outbox";
+  moods = ../../../assets/butler/moods;
 
   sshWithKey = key: "ssh -i ${key} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new";
 
@@ -143,6 +145,14 @@ let
     You cannot ask questions with buttons or menus, so ask them in plain text and wait for Aaron's reply.
     When a request needs something you cannot do, say so plainly and suggest what Aaron could do instead.
     Cite links for facts you found on the web.
+
+    ## Pictures
+
+    Prefer answering with a picture, attached with `attach_file`.
+    Draw schedules, trends, timelines and structures with `render`, and show Aaron's photos with `photos`.
+    When a reply has no other picture, attach the one of you in `${moods}` whose feeling honestly matches yours as you deliver it: ${
+      lib.concatMapStringsSep ", " (name: "`${name}`") (lib.attrNames (builtins.readDir moods))
+    }.
 
     ## Memory
 
@@ -306,6 +316,7 @@ in
       "d ${home}/.claude/skills 0700 butler butler -"
       "d ${home}/.claude/rules 0700 butler butler -"
       "d ${home}/.local 0700 butler butler -"
+      "d ${outbox} 0700 butler butler -"
       "d ${home}/.local/share 0700 butler butler -"
       "d ${home}/.local/share/pyicloud 0700 butler butler -"
       "L+ ${home}/.claude/settings.json - - - - ${readOnlySettings}"
@@ -339,6 +350,7 @@ in
         DISCORD_CRON_DIR = "${memory}/cron";
         DISCORD_CRON_CHANNEL = "1565593836883935264";
         DISCORD_TAINTING_PATHS = "${memory}/journal";
+        DISCORD_ATTACH_PATHS = "${outbox}:${moods}";
       };
 
       serviceConfig = {

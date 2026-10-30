@@ -12,10 +12,13 @@
         ./butler-browser.nix
         ./butler-drive.nix
         ./butler-health.nix
+        ./butler-imagine.nix
         ./butler-mail.nix
         ./butler-messenger.nix
         ./butler-outlook.nix
+        ./butler-photos.nix
         ./butler-reminders.nix
+        ./butler-render.nix
         ./butler-tools.nix
         ./butler-voice.nix
         ./caddy.nix
@@ -34,6 +37,8 @@
         ./tmp.nix
         ./wireguard.nix
       ];
+
+      butler.imagine.enable = true;
 
       boot.loader.systemd-boot.enable = true;
       boot.loader.efi.canTouchEfiVariables = true;
