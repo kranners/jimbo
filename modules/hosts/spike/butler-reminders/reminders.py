@@ -6,8 +6,10 @@ from datetime import date, datetime, time, timedelta, timezone
 
 os.environ.setdefault("PYTHON_KEYRING_BACKEND", "keyring.backends.null.Keyring")
 
+import requests
 from pyicloud import PyiCloudService
 from pyicloud.exceptions import (
+    PyiCloudAPIResponseException,
     PyiCloud2FARequiredException,
     PyiCloud2SARequiredException,
     PyiCloudAuthRequiredException,
@@ -15,6 +17,7 @@ from pyicloud.exceptions import (
     PyiCloudNoStoredPasswordAvailableException,
     PyiCloudServiceUnavailable,
 )
+from pyicloud.services.reminders.client import RemindersApiError, RemindersAuthError
 from tzlocal import get_localzone
 
 COOKIE_DIRECTORY = "/var/lib/butler/.local/share/pyicloud"
@@ -215,7 +218,13 @@ def main():
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
         usage()
     command = COMMANDS[sys.argv[1]]
-    command(connect(), sys.argv[2:])
+    try:
+        command(connect(), sys.argv[2:])
+    except (RemindersAuthError, *EXPIRED):
+        expired()
+    except (RemindersApiError, PyiCloudAPIResponseException, requests.RequestException) as error:
+        print(f"iCloud Reminders failed: {error}", file=sys.stderr)
+        sys.exit(1)
 
 
 main()

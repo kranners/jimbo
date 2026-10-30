@@ -161,6 +161,7 @@ let
   memory-note = pkgs.writeShellApplication {
     name = "memory-note";
     runtimeInputs = [
+      pkgs.coreutils
       pkgs.git
       pkgs.openssh
       pkgs.util-linux
@@ -171,7 +172,11 @@ let
         exit 2
       fi
 
-      note=$(head -c 8192)
+      note=$(head -c 8193)
+      if [ "$(printf %s "$note" | wc -c)" -gt 8192 ]; then
+        echo "memory-note: the note is over 8 KB; shorten it" >&2
+        exit 2
+      fi
       if [ -z "$note" ]; then
         echo "memory-note: the note on stdin is empty" >&2
         exit 2
@@ -182,13 +187,17 @@ let
       flock 9
       cd ${memory}
 
-      git pull --rebase --quiet
+      pull() {
+        git pull --rebase --quiet || { git rebase --abort 2>/dev/null; exit 1; }
+      }
+
+      pull
       day=$(date +%F)
       time=$(date +%H:%M)
       printf '\n## %s\n%s\n' "$time" "$note" >>"journal/$day.md"
       git add "journal/$day.md"
       git -c user.name=Butler -c user.email=butler@spike commit --quiet --message "Journal $day $time"
-      git push --quiet || { git pull --rebase --quiet && git push --quiet; }
+      git push --quiet || { pull && git push --quiet; }
       echo "Noted in journal/$day.md"
     '';
   };
@@ -207,7 +216,7 @@ let
       flock 9
 
       if [ -d ${memory}/.git ]; then
-        git -C ${memory} pull --rebase --quiet
+        git -C ${memory} pull --rebase --quiet || { git -C ${memory} rebase --abort 2>/dev/null; exit 1; }
       else
         git clone --quiet ${memoryRepository} ${memory}
       fi
