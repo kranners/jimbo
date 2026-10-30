@@ -8,6 +8,7 @@
         ./backlogic.nix
         ./backlogic-tunnel.nix
         ./bowerbird.nix
+        ./butler.nix
         ./caddy.nix
         ./claude.nix
         ./discord-threads.nix
