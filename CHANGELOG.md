@@ -2,6 +2,9 @@
 
 - 2026-10-30: butler can answer framer's Assist pipeline from a voice endpoint on `127.0.0.1:18789`, off behind `butler.voice.enable` until its daemon serves it, with a bearer token it generates once in `/var/lib/secrets/butler-voice-token`.
 - 2026-10-30: spike bridges Messenger into a loopback Matrix homeserver with mautrix-meta and tuwunel, and butler reads Messenger and Marketplace chats and sends replies Aaron approves, once `butler.messenger.enable` is set after `sudo messenger-setup`.
+- 2026-10-30: butler sends plain-text mail from Fastmail and Gmail with `mail-send`, each send waiting for Aaron's approval.
+- 2026-10-30: butler can read and send Outlook mail behind `butler.outlook.enable`, once `sudo -u butler butler-outlook-login` has stored its token.
+- 2026-10-30: butler can search and read Google Drive read-only behind `butler.drive.enable`, once `sudo -u butler butler-drive-login` has written its rclone config.
 - 2026-10-30: butler reads, adds and completes Apple Reminders through iCloud, once `sudo -u butler butler-icloud-login` has trusted its session.
 - 2026-10-30: butler reads and archives mail, reads and adds calendar events, and files GitHub issues and backlogic tickets, through wrappers its daemon runs as tools, and asks Aaron before using the web or sending anything out once a thread has read private data.
 - 2026-10-30: butler keeps a memory in `kranners/butler-memory`, of rules, skills and scheduled prompts Aaron writes and a journal it adds to.
