@@ -217,3 +217,4 @@
 - 2026-10-26: spike's backlogic runner config directories take only aaron's Claude settings, no longer his CLAUDE.md or commit skill, since runner sessions load only the repository's instructions.
 - 2026-10-27: On the Macs the personal `CLAUDE.md` points sessions that drive a browser at cmux's, which holds a copy of Chromium's logins.
 - 2026-10-27: spike's backlogic runner sessions run at medium effort, while aaron's own sessions stay at high.
+- 2026-10-30: framer's avahi runs on IPv4 alone, so IPv6 address churn no longer makes it rename itself `framer-2.local`.
