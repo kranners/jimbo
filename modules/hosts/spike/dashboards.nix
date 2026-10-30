@@ -130,8 +130,6 @@ let
   tokens = "claude_code_token_usage_tokens_total";
   cost = "claude_code_cost_usage_USD_total";
   workingSessions = "count by (job, session_id) (increase(${tokens}[5m]) > 0)";
-  activeTime = "claude_code_active_time_seconds_total";
-  threads = ''job="discord-threads"'';
 
   personalEmail = "aaron@cute.engineer";
   byAccount =
@@ -146,45 +144,6 @@ let
   sumByAccount = expr: "sum by (account) (${byAccount expr})";
 
   inRange = by: metric: "sum by (${by}) (increase(${metric}[$__range])) > 0";
-  perSession = job: metric: inRange "session_id" ''${metric}{job="${job}"}'';
-
-  instantTableTarget = expr: {
-    inherit expr;
-    legendFormat = "";
-    instant = true;
-    format = "table";
-  };
-
-  named =
-    names:
-    lib.mapAttrsToList (refId: displayName: {
-      matcher = {
-        id = "byFrameRefID";
-        options = refId;
-      };
-      properties = [
-        {
-          id = "displayName";
-          value = displayName;
-        }
-      ];
-    }) names;
-
-  histogram =
-    {
-      title,
-      unit ? "short",
-      targets,
-      names ? { },
-    }:
-    panel "histogram" {
-      inherit title unit;
-      targets = map instantTableTarget targets;
-      extra.fieldConfig = {
-        defaults.unit = unit;
-        overrides = named names;
-      };
-    };
 
   backlogic = {
     type = "yesoreyeram-infinity-datasource";
@@ -570,7 +529,7 @@ let
     ];
 
     agents =
-      dashboard "spike-agents" "Spike / Backlogic and threads" [
+      dashboard "spike-agents" "Spike / Backlogic" [
         (ticketStat {
           title = "Open tickets";
           target = countTickets ''state != "done"'';
@@ -725,38 +684,6 @@ let
                     cost = "currencyUSD";
                   };
             };
-          };
-        })
-        (tally {
-          title = "Discord sessions in range";
-          targets = [ (target "count(${perSession "discord-threads" tokens}) or vector(0)" "sessions") ];
-        })
-        (tally {
-          title = "Thread tokens in range";
-          targets = [ (target "sum(increase(${tokens}{${threads}}[$__range]))" "tokens") ];
-        })
-        (tally {
-          title = "Thread active time in range";
-          unit = "s";
-          targets = [ (target "sum(increase(${activeTime}{${threads}}[$__range]))" "time") ];
-        })
-        (histogram {
-          title = "Tokens per thread session";
-          targets = [
-            (perSession "discord-threads" tokens)
-          ];
-          names = {
-            A = "discord-threads";
-          };
-        })
-        (histogram {
-          title = "Claude active time per thread session";
-          unit = "s";
-          targets = [
-            (perSession "discord-threads" activeTime)
-          ];
-          names = {
-            A = "discord-threads";
           };
         })
       ]
