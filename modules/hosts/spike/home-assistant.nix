@@ -124,6 +124,11 @@ let
   panelScreensaver = "input_boolean.panel_screensaver";
   wallpanelProfile = "input_text.wallpanel_profile";
   secondsToReadReply = 30;
+  conversationStates = [
+    "listening"
+    "processing"
+    "responding"
+  ];
 
   voiceCard = {
     type = "conditional";
@@ -185,6 +190,35 @@ let
         }
       '';
     };
+  };
+
+  assistantOffCard = {
+    type = "markdown";
+    content = ''
+      {% set spoken = ${builtins.toJSON spokenConditions} %}
+      {% set condition = states('weather.home') %}
+      # {{ now().strftime('%-H:%M') }}
+      {{ state_attr('weather.home', 'temperature') | round }}° {{ spoken.get(condition, condition) }}
+    '';
+    card_mod.style = ''
+      ha-card {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        background: black;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        font-size: 3em;
+        line-height: 1.2;
+        --primary-text-color: #5a5a5a;
+        color: #5a5a5a;
+      }
+    '';
   };
 
   muteCard = {
@@ -350,19 +384,47 @@ in
           ];
         }
         {
+          trigger = [
+            {
+              platform = "state";
+              entity_id = framerSatellite;
+              to = conversationStates;
+              id = "active";
+            }
+            {
+              platform = "state";
+              entity_id = framerSatellite;
+              not_to = conversationStates;
+              for.seconds = secondsToReadReply;
+              id = "read";
+            }
+            {
+              platform = "event";
+              event_type = "framer_dismissed";
+              id = "dismissed";
+            }
+            {
+              platform = "homeassistant";
+              event = "start";
+              id = "started";
+            }
+          ];
+          # A dismissed conversation stays hidden while Home Assistant finishes
+          # it, until the next wake starts listening.
           binary_sensor = [
             {
               name = "framer conversation";
               unique_id = "framer_conversation";
-              state = "{{ states('${framerSatellite}') in ['listening', 'processing', 'responding'] }}";
-              delay_off.seconds = secondsToReadReply;
+              state = "{{ trigger.id == 'active' and (trigger.to_state.state == 'listening' or this.state == 'on') }}";
             }
           ];
+        }
+        {
           sensor = [
             {
               name = "panel profile";
               unique_id = "panel_profile";
-              state = "{{ 'voice' if is_state('${framerConversation}', 'on') else states('${wallpanelProfile}') }}";
+              state = "{{ 'off' if is_state('${framerMute}', 'on') else 'voice' if is_state('${framerConversation}', 'on') else states('${wallpanelProfile}') }}";
             }
           ];
         }
@@ -426,6 +488,62 @@ in
           action = [
             {
               service = "input_boolean.turn_off";
+              target.entity_id = panelScreensaver;
+            }
+          ];
+        }
+        {
+          alias = "Dismiss framer's conversation";
+          trigger = [
+            {
+              platform = "webhook";
+              webhook_id = "framer-dismiss";
+              allowed_methods = [ "POST" ];
+              local_only = true;
+            }
+          ];
+          action = [
+            { event = "framer_dismissed"; }
+            {
+              # Reconnecting the satellite is the only way to cancel its pipeline.
+              condition = "template";
+              value_template = "{{ states('${framerSatellite}') in ${builtins.toJSON conversationStates} }}";
+            }
+            {
+              service = "homeassistant.reload_config_entry";
+              target.entity_id = framerSatellite;
+            }
+          ];
+        }
+        {
+          alias = "Toggle framer's assistant";
+          trigger = [
+            {
+              platform = "webhook";
+              webhook_id = "framer-assistant-toggle";
+              allowed_methods = [ "POST" ];
+              local_only = true;
+            }
+          ];
+          action = [
+            {
+              service = "switch.toggle";
+              target.entity_id = framerMute;
+            }
+          ];
+        }
+        {
+          alias = "Show only the time and weather while framer's assistant is off";
+          trigger = [
+            {
+              platform = "state";
+              entity_id = framerMute;
+              to = "on";
+            }
+          ];
+          action = [
+            {
+              service = "input_boolean.turn_on";
               target.entity_id = panelScreensaver;
             }
           ];
@@ -519,6 +637,13 @@ in
 
         profiles = {
           voice.idle_time = 0;
+          off = {
+            idle_time = 10;
+            show_images = false;
+            cards = [ assistantOffCard ];
+            style.wallpanel-screensaver-overlay.background = "#000000ff";
+            style.wallpanel-screensaver-info-box.opacity = "1";
+          };
           day.style.wallpanel-screensaver-info-box.opacity = "1";
           night = {
             show_images = false;
