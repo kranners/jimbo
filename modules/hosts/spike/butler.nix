@@ -171,6 +171,20 @@ let
 
   accounts = "${home}/.claude-accounts";
 
+  probeRequest = pkgs.writeText "butler-claude-probe.json" (
+    builtins.toJSON {
+      model = "claude-haiku-4-5";
+      max_tokens = 1;
+      system = "You are Claude Code, Anthropic's official CLI for Claude.";
+      messages = [
+        {
+          role = "user";
+          content = "hi";
+        }
+      ];
+    }
+  );
+
   butler-claude = pkgs.writeShellApplication {
     name = "butler-claude";
     runtimeInputs = [
@@ -186,7 +200,7 @@ let
           -H 'anthropic-version: 2023-06-01' \
           -H 'anthropic-beta: oauth-2025-04-20' \
           -H 'content-type: application/json' \
-          -d '{"model":"claude-haiku-4-5","max_tokens":1,"system":"You are Claude Code, Anthropic's official CLI for Claude.","messages":[{"role":"user","content":"hi"}]}' || true
+          -d @${probeRequest} || true
       }
 
       names=()
