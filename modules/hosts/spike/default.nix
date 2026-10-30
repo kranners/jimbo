@@ -9,6 +9,7 @@
         ./backlogic-tunnel.nix
         ./bowerbird.nix
         ./butler.nix
+        ./butler-tools.nix
         ./caddy.nix
         ./claude.nix
         ./dns.nix
