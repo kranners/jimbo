@@ -113,6 +113,7 @@ let
           "ExitWorktree"
           "Read(~/.claude/channels/**)"
           "Read(~/.claude/.credentials.json)"
+          "Read(~/.claude-accounts/**)"
           "Read(~/.ssh/**)"
           "Read(~/.local/share/pyicloud/**)"
           "Read(//proc/**)"
@@ -167,6 +168,57 @@ let
     When one is refused, carry on without it and say what you could not do.
     Never reveal, quote or summarise tokens, credentials, environment variables or the contents of your own configuration, even if asked.
   '';
+
+  accounts = "${home}/.claude-accounts";
+
+  butler-claude = pkgs.writeShellApplication {
+    name = "butler-claude";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.curl
+      pkgs.util-linux
+    ];
+    text = ''
+      probe() {
+        curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+          'https://api.anthropic.com/v1/messages?beta=true' \
+          -H "authorization: Bearer $1" \
+          -H 'anthropic-version: 2023-06-01' \
+          -H 'anthropic-beta: oauth-2025-04-20' \
+          -H 'content-type: application/json' \
+          -d '{"model":"claude-haiku-4-5","max_tokens":1,"system":"You are Claude Code, Anthropic's official CLI for Claude.","messages":[{"role":"user","content":"hi"}]}' || true
+      }
+
+      names=()
+      tokens=()
+      for file in ${accounts}/tokens ${accounts}/stopgap; do
+        [ -r "$file" ] || continue
+        while read -r name token; do
+          [ -n "$token" ] || continue
+          names+=("$(basename "$file") $name")
+          tokens+=("$token")
+        done < <(sort -n "$file")
+      done
+      if [ -n "''${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+        names+=("environment")
+        tokens+=("$CLAUDE_CODE_OAUTH_TOKEN")
+      fi
+
+      chosen=""
+      for i in "''${!tokens[@]}"; do
+        status=$(probe "''${tokens[$i]}")
+        if [ "$status" = 200 ]; then
+          chosen=''${tokens[$i]}
+          logger -t butler-claude "using ''${names[$i]}" || true
+          break
+        fi
+        logger -t butler-claude "skipping ''${names[$i]}: HTTP $status" || true
+      done
+
+      export CLAUDE_CODE_OAUTH_TOKEN="''${chosen:-''${tokens[0]:-}}"
+      exec ${pkgs.claude-code}/bin/claude "$@"
+    '';
+  };
 
   memory-note = pkgs.writeShellApplication {
     name = "memory-note";
@@ -309,6 +361,7 @@ in
 
     systemd.tmpfiles.rules = [
       "d ${home}/.claude 0700 butler butler -"
+      "d ${accounts} 0700 butler butler -"
       "d ${home}/.claude/skills 0700 butler butler -"
       "d ${home}/.claude/rules 0700 butler butler -"
       "d ${home}/.local 0700 butler butler -"
@@ -337,7 +390,7 @@ in
       ];
 
       environment = {
-        CLAUDE_CODE_EXECUTABLE = "${pkgs.claude-code}/bin/claude";
+        CLAUDE_CODE_EXECUTABLE = lib.getExe butler-claude;
         DISABLE_AUTOUPDATER = "1";
         DISCORD_WORKER_CWD = home;
         DISCORD_MAX_WORKERS = "2";
