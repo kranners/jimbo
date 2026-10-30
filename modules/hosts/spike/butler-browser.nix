@@ -16,16 +16,20 @@ let
   display = ":50";
   cdpPort = 9222;
   vncPort = 5950;
+  panelVncPort = 5951;
   viewPort = 6081;
-  viewers = [
+  panelPort = 6082;
+  addressesOf =
+    names:
+    lib.concatMap (peer: peer.allowedIPs) (
+      lib.filter (peer: lib.elem peer.name names) config.networking.wireguard.interfaces.wg0.peers
+    );
+  viewerAddresses = addressesOf [
     "piggys-MBP"
     "phone"
     "phone-2"
-    "framer"
   ];
-  viewerAddresses = lib.concatMap (peer: peer.allowedIPs) (
-    lib.filter (peer: lib.elem peer.name viewers) config.networking.wireguard.interfaces.wg0.peers
-  );
+  panelAddresses = addressesOf [ "framer" ];
 
   readTools = [
     "browser_snapshot"
@@ -75,8 +79,9 @@ let
         env.PLAYWRIGHT_MCP_USER_DATA_DIR = profile;
       };
       allowedTools = qualified (readTools ++ actionTools ++ quietTools);
-      taints = qualified readTools;
+      taints = qualified (readTools ++ actionTools);
       egress = qualified actionTools;
+      safe = qualified quietTools;
     }
   );
 
@@ -95,7 +100,9 @@ let
 
       x11vnc -display ${display} -listen 127.0.0.1 -noipv6 -rfbport ${toString vncPort} -nopw -forever -shared -quiet &
       vnc_pid=$!
-      trap 'kill "$xvfb_pid" "$vnc_pid"' EXIT
+      x11vnc -display ${display} -listen 127.0.0.1 -noipv6 -rfbport ${toString panelVncPort} -viewonly -nopw -forever -shared -quiet &
+      panel_vnc_pid=$!
+      trap 'kill "$xvfb_pid" "$vnc_pid" "$panel_vnc_pid"' EXIT
 
       DISPLAY=${display} chromium \
         --user-data-dir=${profile} \
@@ -110,12 +117,19 @@ let
     '';
   };
 
-  butler-browser-view = pkgs.writeShellApplication {
-    name = "butler-browser-view";
-    runtimeInputs = [ pkgs.python3Packages.websockify ];
-    text = ''
-      exec websockify --web ${pkgs.novnc}/share/webapps/novnc 127.0.0.1:${toString viewPort} 127.0.0.1:${toString vncPort}
-    '';
+  bridge = listen: vnc: description: {
+    inherit description;
+    wantedBy = [ "multi-user.target" ];
+    after = [ "butler-browser.service" ];
+    serviceConfig = {
+      User = "butler-browser";
+      ExecStart = "${lib.getExe pkgs.python3Packages.websockify} --web ${pkgs.novnc}/share/webapps/novnc 127.0.0.1:${toString listen} 127.0.0.1:${toString vnc}";
+      Restart = "always";
+      RestartSec = 5;
+      ProtectHome = true;
+      ProtectSystem = "strict";
+      PrivateTmp = true;
+    };
   };
 
   butler-browser-activity = pkgs.writeShellApplication {
@@ -142,9 +156,39 @@ let
     '';
   };
 
-  loopbackGuard = port: user: ''
-    iptables -A butler-browser-loopback -p tcp --dport ${toString port} -m owner --uid-owner ${user} -j RETURN
-    iptables -A butler-browser-loopback -p tcp --dport ${toString port} -j REJECT --reject-with tcp-reset
+  guards = [
+    {
+      port = cdpPort;
+      user = "butler";
+    }
+    {
+      port = vncPort;
+      user = "butler-browser";
+    }
+    {
+      port = panelVncPort;
+      user = "butler-browser";
+    }
+    {
+      port = viewPort;
+      user = "caddy";
+    }
+    {
+      port = panelPort;
+      user = "caddy";
+    }
+  ];
+
+  loopbackChain = iptables: ''
+    ${iptables} -D OUTPUT -o lo -j butler-browser-loopback 2> /dev/null || true
+    ${iptables} -F butler-browser-loopback 2> /dev/null || true
+    ${iptables} -X butler-browser-loopback 2> /dev/null || true
+    ${iptables} -N butler-browser-loopback
+    ${lib.concatMapStrings (guard: ''
+      ${iptables} -A butler-browser-loopback -p tcp --dport ${toString guard.port} -m owner --uid-owner ${guard.user} -j RETURN
+      ${iptables} -A butler-browser-loopback -p tcp --dport ${toString guard.port} -j REJECT --reject-with tcp-reset
+    '') guards}
+    ${iptables} -I OUTPUT -o lo -j butler-browser-loopback
   '';
 in
 {
@@ -175,27 +219,24 @@ in
         ExecStart = lib.getExe butler-browser;
         Restart = "always";
         RestartSec = 5;
+        MemoryHigh = "1200M";
         MemoryMax = "1536M";
+        OOMPolicy = "continue";
+        CPUQuota = "200%";
+        NoNewPrivileges = true;
         ProtectHome = true;
         ProtectSystem = "strict";
         PrivateTmp = true;
       };
     };
 
-    systemd.services.butler-browser-view = {
-      description = "noVNC bridge to butler's Chromium, for logging it in by hand";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "butler-browser.service" ];
-      serviceConfig = {
-        User = "butler-browser";
-        ExecStart = lib.getExe butler-browser-view;
-        Restart = "always";
-        RestartSec = 5;
-        ProtectHome = true;
-        ProtectSystem = "strict";
-        PrivateTmp = true;
-      };
-    };
+    systemd.services.butler-browser-view =
+      bridge viewPort vncPort
+        "noVNC bridge to butler's Chromium, for logging it in by hand";
+
+    systemd.services.butler-browser-panel =
+      bridge panelPort panelVncPort
+        "View-only noVNC bridge to butler's Chromium, for framer's panel";
 
     systemd.services.butler-browser-activity = {
       description = "Publish whether butler is driving its Chromium, for framer's panel";
@@ -219,30 +260,33 @@ in
       "L+ ${config.users.users.butler.home}/.claude/skills/browser - - - - ${./butler-skills/browser}"
     ];
 
-    networking.firewall.extraCommands = ''
-      iptables -D OUTPUT -o lo -j butler-browser-loopback 2> /dev/null || true
-      iptables -F butler-browser-loopback 2> /dev/null || true
-      iptables -X butler-browser-loopback 2> /dev/null || true
-      iptables -N butler-browser-loopback
-      ${loopbackGuard cdpPort "butler"}
-      ${loopbackGuard vncPort "butler-browser"}
-      ${loopbackGuard viewPort "caddy"}
-      iptables -I OUTPUT -o lo -j butler-browser-loopback
-    '';
+    networking.firewall.extraCommands = loopbackChain "iptables" + loopbackChain "ip6tables";
 
     networking.firewall.extraStopCommands = ''
       iptables -D OUTPUT -o lo -j butler-browser-loopback 2> /dev/null || true
+      ip6tables -D OUTPUT -o lo -j butler-browser-loopback 2> /dev/null || true
     '';
 
     services.caddy.virtualHosts.${domain}.extraConfig = ''
-      @outsider not remote_ip ${lib.concatStringsSep " " viewerAddresses}
-      abort @outsider
-      handle /active {
-        root * ${activity}
-        file_server
+      @outsider not remote_ip ${lib.concatStringsSep " " (viewerAddresses ++ panelAddresses)}
+      @foreignOrigin {
+        header Origin *
+        not header Origin https://${domain}
       }
-      handle {
-        reverse_proxy 127.0.0.1:${toString viewPort}
+      @panel remote_ip ${lib.concatStringsSep " " panelAddresses}
+      route {
+        abort @outsider
+        abort @foreignOrigin
+        handle /active {
+          root * ${activity}
+          file_server
+        }
+        handle @panel {
+          reverse_proxy 127.0.0.1:${toString panelPort}
+        }
+        handle {
+          reverse_proxy 127.0.0.1:${toString viewPort}
+        }
       }
     '';
   };
