@@ -104,6 +104,7 @@ in
         ./wyoming-satellite-reset-wake-on-transcript.patch
         ./wyoming-satellite-listen-after-question.patch
         ./wyoming-satellite-stop-recording-on-error.patch
+        ./wyoming-satellite-give-up-without-speech.patch
       ];
     });
     user = host.username;
