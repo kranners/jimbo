@@ -206,10 +206,11 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   The checkout is cloned once by hand as `butler` from `git@github.com:kranners/claude-discord-threads.git` with the deploy key `/var/lib/butler/.ssh/claude-discord-threads-deploy`, owned by `butler`, mode 600.
   `butler-pull.timer` pulls its `main` every 2 minutes as `butler`, over SSH with that read-only deploy key through `GIT_SSH_COMMAND`, and when `HEAD` moved its root `ExecStartPost` restarts `butler`, so it needs no `sudo`.
   `modules/hosts/spike/butler-tools.nix` gives it framer's `mail`, `github-issue` and `backlogic-ticket` wrappers and a `calendar` one, each with a skill from `modules/hosts/spike/butler-skills` worded for Discord.
+  They stay off until `butler.credentialedTools = true`, set once their credentials, copied from framer, are in `/var/lib/secrets`, because a missing `LoadCredential` source stops the unit starting.
   `mail` reads and archives Fastmail and Gmail with app passwords from `/var/lib/secrets/butler-email-<account>-password`.
   `calendar` lists, reads and adds Google Calendar events through Home Assistant on `127.0.0.1:8123`, with a long-lived token of its own, "Butler on spike", from `/var/lib/secrets/butler-home-assistant-token`, and takes only a `calendar.*` entity and ISO dates, never a raw API path.
   `github-issue` reads a fine-grained GitHub token from `/var/lib/secrets/butler-github-issues-token`.
-  `backlogic-ticket` files to `backlogic-aaron` on `127.0.0.1:4200` as the backlogic user `butler`, its token minted with `bin/backlogic token-mint butler --label butler` into `/var/lib/secrets/butler-backlogic-token`.
+  `backlogic-ticket` files to `backlogic-aaron` on `127.0.0.1:4200` with framer's owner token, copied into `/var/lib/secrets/butler-backlogic-token`.
   `modules/hosts/spike/butler-reminders.nix` gives it `reminders`, which reads, adds and completes Apple Reminders through pyicloud's CloudKit Reminders service, so an assertion requires pyicloud 2026.10.1 or later.
   Its iCloud session lives in `/var/lib/butler/.local/share/pyicloud`, beside an `apple-id` file naming the account, both written by `sudo -u butler butler-icloud-login <apple-id>`, which asks for the password and 2FA code and keeps only the trusted session.
   That session lasts about two months, after which `reminders` exits 75 asking for the login to be run again.

@@ -1,4 +1,9 @@
-{ pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 let
   credential = name: "/run/credentials/butler.service/${name}";
   secret = name: "/var/lib/secrets/butler-${name}";
@@ -311,7 +316,9 @@ let
   };
 in
 {
-  butler.commands = {
+  options.butler.credentialedTools = lib.mkEnableOption "the mail, calendar, GitHub and backlogic tools, once their credentials are in /var/lib/secrets";
+
+  config.butler.commands = lib.mkIf config.butler.credentialedTools {
     mail = {
       package = mail;
       description = ''
