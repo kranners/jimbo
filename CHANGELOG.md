@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-10-30: framer accepts pilot's SSH key.
 - 2026-10-30: discord-threads is retired from spike, and its thread panels leave the Backlogic dashboard; butler is the one claude-discord-threads instance left.
 - 2026-10-30: Keep butler's Discord avatar, a deadpan bow-tie butler, in `assets/butler`, as the SVG and the 1024px PNG uploaded to its app, bot and server.
 - 2026-10-30: spike runs `butler.service`, a personal instance of discord-threads under its own user on the personal Claude account, with tools that only read.
