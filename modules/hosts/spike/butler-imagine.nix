@@ -6,6 +6,7 @@
 }:
 let
   avatar = ../../../assets/butler/butler-avatar.png;
+  character = ../../../assets/butler/character.webp;
 
   imagine =
     pkgs.writers.writePython3Bin "imagine"
@@ -14,7 +15,7 @@ let
         flakeIgnore = [ "E501" ];
       }
       (
-        builtins.replaceStrings [ "@avatar@" ] [ "${avatar}" ] (
+        builtins.replaceStrings [ "@avatar@" "@character@" ] [ "${avatar}" "${character}" ] (
           builtins.readFile ./butler-imagine/imagine.py
         )
       );
