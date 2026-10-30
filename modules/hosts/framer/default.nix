@@ -45,6 +45,8 @@
       services.avahi = {
         enable = true;
         nssmdns4 = true;
+        # https://github.com/avahi/avahi/issues/117
+        settings.server.use-ipv6 = false;
         openFirewall = true;
         settings.publish = {
           disable-publishing = false;

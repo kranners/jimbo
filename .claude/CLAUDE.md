@@ -245,6 +245,7 @@ brightnessctl's udev rule gives the `video` group write access to the backlight,
 Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and the power key, because the clipboard sits docked backwards on its base.
 
 - SSH: `ssh aaron@framer.local` (key auth, resolved over mDNS), keys only, declared in `modules/hosts/framer`.
+  Its avahi runs on IPv4 alone, because over IPv6 the churn of its privacy addresses made avahi mistake its own announcement for a conflict and rename framer `framer-2.local`, and a restart of `avahi-daemon` takes the name back if that happens anyway.
 - Hardware: Intel i5-7300U, one 119 GB NVMe disk with a 1 GB ESP, wifi (`wlp1s0`) and no wired network, two batteries and an `intel_backlight` panel.
   `boot.loader.systemd-boot.configurationLimit` is 5, because that ESP only has room for a few generations.
   `thermald` and `upower` run for the laptop's thermals and battery.
