@@ -30,4 +30,4 @@ For a month calendar, use a seven-column table starting on Monday, with each eve
 Write dates and times the Australian way, day month year and 24-hour or am/pm as Aaron uses them.
 
 When a render fails, the error names the problem, such as a Mermaid parse error with its line; fix the source and try once more.
-When a warning says the page was cut short or a resource failed, check the picture with Read before attaching it.
+Look at every picture with Read before attaching it, and fix and render again anything clipped, overlapping or unreadable.
