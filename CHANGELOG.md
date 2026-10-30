@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-10-30: Keep butler's Discord avatar, a deadpan bow-tie butler, in `assets/butler`, as the SVG and the 1024px PNG uploaded to its app, bot and server.
 - 2026-10-30: spike runs `butler.service`, a personal instance of discord-threads under its own user on the personal Claude account, with tools that only read.
 - 2026-10-03: The landing workflow moves into the personal `CLAUDE.md`, and each landed change appends one line here.
 - 2026-10-03: spike runs `discord-threads.service`, giving each Discord thread its own Claude Code session through the Nix-managed `claude`.
