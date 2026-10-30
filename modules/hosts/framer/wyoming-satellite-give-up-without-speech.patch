@@ -1,22 +1,22 @@
 --- a/wyoming_satellite/satellite.py
 +++ b/wyoming_satellite/satellite.py
-@@ -1193,6 +1193,10 @@
- 
- 
+@@ -1195,6 +1195,10 @@
  # -----------------------------------------------------------------------------
-+
-+
+ 
+ 
 +_SECONDS_TO_START_SPEAKING: Final = 6.0
 +_SECONDS_TO_ANSWER_QUESTION: Final = 8.0
- 
- 
++
++
  class WakeStreamingSatellite(SatelliteBase):
-@@ -1223,8 +1227,37 @@
+     """Satellite that waits for local wake word detection before streaming."""
+ 
+@@ -1223,8 +1227,43 @@
          self._wake_info_ready = asyncio.Event()
  
          self._reply_asks_question = False
 +        self._speech_timeout: Optional[asyncio.Task] = None
- 
++
 +    def _cancel_speech_timeout(self) -> None:
 +        if self._speech_timeout is not None:
 +            self._speech_timeout.cancel()
@@ -25,7 +25,7 @@
 +    def _expect_speech_within(self, seconds: float) -> None:
 +        self._cancel_speech_timeout()
 +        self._speech_timeout = asyncio.create_task(self._give_up_without_speech(seconds))
-+
+ 
 +    async def _give_up_without_speech(self, seconds: float) -> None:
 +        await asyncio.sleep(seconds)
 +        self._speech_timeout = None
@@ -35,6 +35,12 @@
 +        _LOGGER.info("No speech %s second(s) after streaming started, giving up", seconds)
 +        self.is_streaming = False
 +        await self.event_to_server(AudioStop().event())
++
++        if self.stt_audio_writer is not None:
++            self.stt_audio_writer.stop()
++
++        await self.trigger_streaming_stop()
++        await self._send_wake_detect()
 +
      async def event_from_server(self, event: Event) -> None:
 +        if (
@@ -49,19 +55,19 @@
          # Only check event types once
          is_run_satellite = False
          is_pause_satellite = False
-@@ -1340,6 +1373,7 @@
-             mute_microphone=self.settings.mic.mute_during_awake_wav,
-         )
-         await self.trigger_streaming_start()
+@@ -1334,6 +1373,7 @@
+ 
+         _LOGGER.debug("Reply asked a question, streaming the answer")
+         self.is_streaming = True
 +        self._expect_speech_within(_SECONDS_TO_ANSWER_QUESTION)
+         await self._send_run_pipeline()
+         await self._play_wav(
+             self.settings.snd.awake_wav,
+@@ -1373,6 +1413,7 @@
+             _LOGGER.debug(detection)
  
-     async def event_from_wake(self, event: Event) -> None:
-         if Info.is_type(event.type):
-@@ -1401,6 +1435,7 @@
-             await self.forward_event(event)  # forward to event service
-             await self.trigger_detection(Detection.from_event(event))
-             await self.trigger_streaming_start()
+             self.is_streaming = True
 +            self._expect_speech_within(_SECONDS_TO_START_SPEAKING)
+             _LOGGER.debug("Streaming audio")
  
-     async def update_info(self, info: Info) -> None:
-         self._wake_info = None
+             if self.settings.wake.refractory_seconds is not None:
