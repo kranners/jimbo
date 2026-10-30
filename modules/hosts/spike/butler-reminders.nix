@@ -42,21 +42,33 @@ in
         lanes = both;
       }
       {
-        match = [ "due" ];
+        match = [
+          "due"
+          "**"
+        ];
         lanes = both;
         taints = true;
       }
       {
-        match = [ "open" ];
+        match = [
+          "open"
+          "**"
+        ];
         lanes = both;
         taints = true;
       }
       {
-        match = [ "add" ];
+        match = [
+          "add"
+          "**"
+        ];
         lanes = [ "interactive" ];
       }
       {
-        match = [ "complete" ];
+        match = [
+          "complete"
+          "**"
+        ];
         lanes = [ "interactive" ];
       }
     ];

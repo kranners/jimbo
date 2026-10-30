@@ -334,6 +334,7 @@ in
         DISCORD_COMMANDS_FILE = "${manifest}";
         DISCORD_CRON_DIR = "${memory}/cron";
         DISCORD_CRON_CHANNEL = "1565593836883935264";
+        DISCORD_TAINTING_PATHS = "${memory}/journal";
       };
 
       serviceConfig = {

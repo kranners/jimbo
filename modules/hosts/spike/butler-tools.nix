@@ -341,6 +341,7 @@ in
             match = [
               "*"
               action
+              "**"
             ];
             lanes = both;
             taints = true;
@@ -356,6 +357,7 @@ in
           match = [
             "*"
             "archive"
+            "**"
           ];
           lanes = interactive;
         }
@@ -378,17 +380,26 @@ in
           lanes = both;
         }
         {
-          match = [ "agenda" ];
+          match = [
+            "agenda"
+            "**"
+          ];
           lanes = both;
           taints = true;
         }
         {
-          match = [ "events" ];
+          match = [
+            "events"
+            "**"
+          ];
           lanes = both;
           taints = true;
         }
         {
-          match = [ "create" ];
+          match = [
+            "create"
+            "**"
+          ];
           lanes = interactive;
           egress = true;
         }
@@ -410,22 +421,34 @@ in
           lanes = both;
         }
         {
-          match = [ "issues" ];
+          match = [
+            "issues"
+            "**"
+          ];
           lanes = both;
           taints = true;
         }
         {
-          match = [ "files" ];
+          match = [
+            "files"
+            "**"
+          ];
           lanes = interactive;
           taints = true;
         }
         {
-          match = [ "read" ];
+          match = [
+            "read"
+            "**"
+          ];
           lanes = interactive;
           taints = true;
         }
         {
-          match = [ "create" ];
+          match = [
+            "create"
+            "**"
+          ];
           lanes = interactive;
           egress = true;
         }
@@ -447,12 +470,18 @@ in
           lanes = both;
         }
         {
-          match = [ "tickets" ];
+          match = [
+            "tickets"
+            "**"
+          ];
           lanes = both;
           taints = true;
         }
         {
-          match = [ "file" ];
+          match = [
+            "file"
+            "**"
+          ];
           lanes = interactive;
         }
       ];
