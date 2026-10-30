@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-10-30: butler can answer framer's Assist pipeline from a voice endpoint on `127.0.0.1:18789`, off behind `butler.voice.enable` until its daemon serves it, with a bearer token it generates once in `/var/lib/secrets/butler-voice-token`.
 - 2026-10-30: butler reads, adds and completes Apple Reminders through iCloud, once `sudo -u butler butler-icloud-login` has trusted its session.
 - 2026-10-30: butler reads and archives mail, reads and adds calendar events, and files GitHub issues and backlogic tickets, through wrappers its daemon runs as tools, and asks Aaron before using the web or sending anything out once a thread has read private data.
 - 2026-10-30: butler keeps a memory in `kranners/butler-memory`, of rules, skills and scheduled prompts Aaron writes and a journal it adds to.
