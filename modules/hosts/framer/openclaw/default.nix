@@ -60,25 +60,25 @@ let
     '';
   };
 
-  # https://github.com/openclaw/openclaw/blob/v2026.6.33/extensions/anthropic/cli-backend.ts
-  claudeAllowedTools = lib.concatStringsSep "," (
-    [ "mcp__openclaw__*" ] ++ map (command: "Bash(${baseNameOf (lib.getExe command)} *)") cfg.commands
+  # https://github.com/openclaw/openclaw/blob/v2026.10.5/extensions/anthropic/cli-shared.ts
+  execApprovals = pkgs.writeText "openclaw-exec-approvals.json" (
+    builtins.toJSON {
+      version = 1;
+      defaults = {
+        security = "deny";
+        ask = "off";
+        askFallback = "deny";
+        autoAllowSkills = false;
+      };
+      agents.main = {
+        security = "allowlist";
+        ask = "off";
+        askFallback = "deny";
+        autoAllowSkills = false;
+        allowlist = map (command: { pattern = lib.getExe command; }) cfg.commands;
+      };
+    }
   );
-  claudeArgs = [
-    "-p"
-    "--output-format"
-    "stream-json"
-    "--include-partial-messages"
-    "--verbose"
-    "--setting-sources"
-    "user"
-    "--permission-mode"
-    "dontAsk"
-    "--allowedTools"
-    claudeAllowedTools
-    "--disallowedTools"
-    "ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor"
-  ];
 
   chromium = pkgs.ungoogled-chromium;
 
@@ -106,29 +106,24 @@ let
 
     agents.defaults = {
       inherit workspace;
-      model.primary = "claude-cli/sonnet";
+      model.primary = "anthropic/claude-sonnet-5-5";
+      models."anthropic/claude-sonnet-5-5".agentRuntime.id = "claude-cli";
       thinkingDefault = "low";
-      cliBackends.claude-cli = {
-        command = lib.getExe pkgs.claude-code;
-        args = claudeArgs;
-        resumeArgs = claudeArgs ++ [
-          "--resume"
-          "{sessionId}"
-        ];
-      };
     };
 
     tools = {
       profile = "minimal";
       alsoAllow = [
         "browser"
+        "exec"
         "web_search"
         "web_fetch"
         "memory_search"
         "memory_get"
       ];
       deny = [
-        "group:runtime"
+        "process"
+        "code_execution"
         "group:messaging"
         "group:automation"
         "group:nodes"
@@ -136,7 +131,10 @@ let
         "edit"
         "apply_patch"
       ];
-      exec.security = "deny";
+      exec = {
+        host = "gateway";
+        mode = "allowlist";
+      };
     };
 
     browser = {
@@ -144,11 +142,7 @@ let
       executablePath = lib.getExe chromium;
       headless = false;
       extraArgs = [ "--ozone-platform=wayland" ];
-      tabCleanup = {
-        enabled = true;
-        idleMinutes = 3;
-        sweepMinutes = 1;
-      };
+      tabCleanup.enabled = true;
     };
   };
 
@@ -158,7 +152,7 @@ let
     mkdir -p $out/skills
     cp ${./SOUL.md} $out/SOUL.md
     cp ${./IDENTITY.md} $out/IDENTITY.md
-    cp ${./TOOLS.md} $out/TOOLS.md
+    cp ${./AGENTS.md} $out/AGENTS.md
     ${lib.concatStrings (
       lib.mapAttrsToList (name: source: ''
         cp -rL ${source} $out/skills/${name}
@@ -170,10 +164,11 @@ let
   # copied in rather than linked into the store.
   installWorkspace = pkgs.writeShellScript "openclaw-install-workspace" ''
     mkdir -p ${workspace}/skills
-    rm -rf ${
+    rm -rf ${workspace}/TOOLS.md ${
       lib.concatMapStringsSep " " (name: "${workspace}/skills/${name}") (lib.attrNames cfg.skills)
     }
     cp -rL --no-preserve=mode ${workspaceFiles}/. ${workspace}/
+    ${lib.getExe pkgs.openclaw} approvals set --file ${execApprovals}
   '';
 
   gateway = pkgs.writeShellScript "openclaw-gateway" ''
