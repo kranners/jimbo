@@ -9,9 +9,6 @@ let
   panelRemotePort = 8124;
 in
 {
-  openclaw.skills.panel = ./skills/panel;
-  openclaw.commands = [ config.kiosk.panelCommand ];
-
   systemd.services.panel-remote = {
     description = "Panel brightness over HTTP for Home Assistant on spike";
     wantedBy = [ "multi-user.target" ];

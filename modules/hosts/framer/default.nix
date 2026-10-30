@@ -16,13 +16,7 @@
         ./wireguard.nix
         ./monitoring.nix
         ./voice.nix
-        ./openclaw
         ./remote-builder.nix
-        ./email.nix
-        ./google-calendar.nix
-        ./google-tasks.nix
-        ./github-issues.nix
-        ./backlogic.nix
         ./panel.nix
         ./butler-browser-view.nix
         ./surface.nix
