@@ -13,7 +13,7 @@ and every request it triggered, so per prompt cost can be watched climbing as th
 context grows. The week figure runs from the start of the weekly limit's window.
 
 With CLAUDE_STATUSLINE_PLAIN=1 it drops the first line, the bars and the colours,
-for the footer discord-threads posts under each reply.
+for the footer claude-discord-threads posts under each reply.
 
 Context is scaled to the point autocompaction fires rather than to the raw
 window. Plan limits come from the endpoint behind /usage, shared between

@@ -31,7 +31,7 @@ let
       mailbox.alias.inbox = "INBOX";
       mailbox.alias.archive = account.archiveMailbox;
       imap.sasl.plain.username = account.address;
-      imap.sasl.plain.password.command = "cat ${credential (mailPassword name)}";
+      imap.sasl.plain.password.command = "${pkgs.coreutils}/bin/cat ${credential (mailPassword name)}";
     }) accounts;
   };
 
@@ -69,9 +69,9 @@ let
 
       if [ "$1" = unread-counts ]; then
         for account in ${lib.escapeShellArgs (lib.attrNames accounts)}; do
-          echo "$account $(himalaya --json --account "$account" envelope search --page-size 1000 not flag seen | jq '.envelopes | length')" &
+          count=$(himalaya --json --account "$account" envelope search --page-size 1000 not flag seen | jq '.envelopes | length')
+          echo "$account $count"
         done
-        wait
         exit
       fi
 
@@ -120,10 +120,8 @@ let
       }
 
       home_assistant() {
-        local token
-        token=$(cat ${credential "home-assistant-token"})
-        curl --silent --show-error --fail-with-body \
-          --header "Authorization: Bearer $token" \
+        curl --silent --show-error --fail-with-body --globoff \
+          --header @<(printf 'Authorization: Bearer %s\n' "$(< ${credential "home-assistant-token"})") \
           --header "Content-Type: application/json" \
           "$@"
       }
@@ -218,16 +216,19 @@ let
       }
 
       github() {
-        local token
-        token=$(cat ${credential "github-issues-token"})
-        curl --silent --show-error --fail-with-body \
-          --header "Authorization: Bearer $token" \
+        curl --silent --show-error --fail-with-body --globoff \
+          --header @<(printf 'Authorization: Bearer %s\n' "$(< ${credential "github-issues-token"})") \
           --header "Accept: application/vnd.github+json" \
           --header "X-GitHub-Api-Version: 2022-11-28" \
           "$@"
       }
 
       [ $# -ge 1 ] || usage
+
+      if [ "$1" != repos ]; then
+        [ $# -ge 2 ] || usage
+        [[ $2 =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ && $2 != *..* ]] || usage
+      fi
 
       case "$1" in
         repos)
@@ -241,6 +242,7 @@ let
           ;;
         read)
           [ $# -eq 3 ] || usage
+          [[ $3 != /* && $3 != *..* && $3 != *[?#]* ]] || usage
           github "https://api.github.com/repos/$2/contents/$3" | jq -r '.content | gsub("\\n"; "") | @base64d'
           ;;
         issues)
@@ -278,10 +280,8 @@ let
       }
 
       backlogic() {
-        local token
-        token=$(cat ${credential "backlogic-token"})
-        curl --silent --show-error --fail-with-body \
-          --header "Authorization: Bearer $token" \
+        curl --silent --show-error --fail-with-body --globoff \
+          --header @<(printf 'Authorization: Bearer %s\n' "$(< ${credential "backlogic-token"})") \
           --header "Content-Type: application/json" \
           "$@"
       }
