@@ -9,7 +9,10 @@
         ./backlogic-tunnel.nix
         ./bowerbird.nix
         ./butler.nix
+        ./butler-imagine.nix
+        ./butler-photos.nix
         ./butler-reminders.nix
+        ./butler-render.nix
         ./butler-tools.nix
         ./caddy.nix
         ./claude.nix
