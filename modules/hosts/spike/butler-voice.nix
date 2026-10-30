@@ -67,6 +67,12 @@ in
         ];
       }
       (lib.mkIf config.butler.credentialedTools {
+        mail.rules = lib.mkBefore [
+          {
+            match = [ "unread-counts" ];
+            lanes = withVoice;
+          }
+        ];
         calendar.rules = lib.mkBefore [
           {
             match = [
