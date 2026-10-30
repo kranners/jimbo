@@ -210,6 +210,10 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `calendar` lists, reads and adds Google Calendar events through Home Assistant on `127.0.0.1:8123`, with a long-lived token of its own, "Butler on spike", from `/var/lib/secrets/butler-home-assistant-token`, and takes only a `calendar.*` entity and ISO dates, never a raw API path.
   `github-issue` reads a fine-grained GitHub token from `/var/lib/secrets/butler-github-issues-token`.
   `backlogic-ticket` files to `backlogic-aaron` on `127.0.0.1:4200` as the backlogic user `butler`, its token minted with `bin/backlogic token-mint butler --label butler` into `/var/lib/secrets/butler-backlogic-token`.
+  `modules/hosts/spike/butler-reminders.nix` gives it `reminders`, which reads, adds and completes Apple Reminders through pyicloud's CloudKit Reminders service, so an assertion requires pyicloud 2026.10.1 or later.
+  Its iCloud session lives in `/var/lib/butler/.local/share/pyicloud`, beside an `apple-id` file naming the account, both written by `sudo -u butler butler-icloud-login <apple-id>`, which asks for the password and 2FA code and keeps only the trusted session.
+  That session lasts about two months, after which `reminders` exits 75 asking for the login to be run again.
+  Both set `PYTHON_KEYRING_BACKEND` to keyring's null backend, so no password is looked up in or written to a keyring.
   Its memory is the private `kranners/butler-memory`, which `butler-memory-pull.timer` clones or pulls into `/var/lib/butler/memory` every 5 minutes as `butler`, with the read-write deploy key `/var/lib/secrets/butler-memory-deploy-key`.
   Each pull relinks every `skills/<name>` there into `~/.claude/skills` and every `core/*.md` into `~/.claude/rules`, skipping a name already taken, so a session loads them.
   `memory-note` appends its stdin to that day's `journal/YYYY-MM-DD.md` there, commits and pushes it, under the same `~/memory.lock` as the pull, so butler can only add to its journal while `core`, `skills` and `cron` are Aaron's to write.
