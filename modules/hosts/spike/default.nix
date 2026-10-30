@@ -9,6 +9,9 @@
         ./backlogic-tunnel.nix
         ./bowerbird.nix
         ./butler.nix
+        ./butler-drive.nix
+        ./butler-mail.nix
+        ./butler-outlook.nix
         ./butler-reminders.nix
         ./butler-tools.nix
         ./caddy.nix
