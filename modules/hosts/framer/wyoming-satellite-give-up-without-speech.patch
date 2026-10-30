@@ -1,0 +1,67 @@
+--- a/wyoming_satellite/satellite.py
++++ b/wyoming_satellite/satellite.py
+@@ -1193,6 +1193,10 @@
+ 
+ 
+ # -----------------------------------------------------------------------------
++
++
++_SECONDS_TO_START_SPEAKING: Final = 6.0
++_SECONDS_TO_ANSWER_QUESTION: Final = 8.0
+ 
+ 
+ class WakeStreamingSatellite(SatelliteBase):
+@@ -1223,8 +1227,37 @@
+         self._wake_info_ready = asyncio.Event()
+ 
+         self._reply_asks_question = False
++        self._speech_timeout: Optional[asyncio.Task] = None
+ 
++    def _cancel_speech_timeout(self) -> None:
++        if self._speech_timeout is not None:
++            self._speech_timeout.cancel()
++            self._speech_timeout = None
++
++    def _expect_speech_within(self, seconds: float) -> None:
++        self._cancel_speech_timeout()
++        self._speech_timeout = asyncio.create_task(self._give_up_without_speech(seconds))
++
++    async def _give_up_without_speech(self, seconds: float) -> None:
++        await asyncio.sleep(seconds)
++        self._speech_timeout = None
++        if not self.is_streaming:
++            return
++
++        _LOGGER.info("No speech %s second(s) after streaming started, giving up", seconds)
++        self.is_streaming = False
++        await self.event_to_server(AudioStop().event())
++
+     async def event_from_server(self, event: Event) -> None:
++        if (
++            VoiceStarted.is_type(event.type)
++            or RunSatellite.is_type(event.type)
++            or PauseSatellite.is_type(event.type)
++            or Transcript.is_type(event.type)
++            or Error.is_type(event.type)
++        ):
++            self._cancel_speech_timeout()
++
+         # Only check event types once
+         is_run_satellite = False
+         is_pause_satellite = False
+@@ -1340,6 +1373,7 @@
+             mute_microphone=self.settings.mic.mute_during_awake_wav,
+         )
+         await self.trigger_streaming_start()
++        self._expect_speech_within(_SECONDS_TO_ANSWER_QUESTION)
+ 
+     async def event_from_wake(self, event: Event) -> None:
+         if Info.is_type(event.type):
+@@ -1401,6 +1435,7 @@
+             await self.forward_event(event)  # forward to event service
+             await self.trigger_detection(Detection.from_event(event))
+             await self.trigger_streaming_start()
++            self._expect_speech_within(_SECONDS_TO_START_SPEAKING)
+ 
+     async def update_info(self, info: Info) -> None:
+         self._wake_info = None
