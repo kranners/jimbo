@@ -11,6 +11,7 @@
         ./butler.nix
         ./butler-reminders.nix
         ./butler-tools.nix
+        ./butler-voice.nix
         ./caddy.nix
         ./claude.nix
         ./dns.nix
