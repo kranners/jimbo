@@ -74,8 +74,9 @@ let
           echo "garmin: Garmin refused the Personal API key (HTTP $status); Aaron may need to make a new one at connect.garmin.com" >&2
           exit 75
         fi
-        (umask 077 && tr -d '[:space:]' <"$body" >"$token.new")
-        mv "$token.new" "$token"
+        fresh=$(mktemp "$cache/token.XXXXXX")
+        tr -d '[:space:]' <"$body" >"$fresh"
+        mv "$fresh" "$token"
       }
 
       bearer() {
@@ -209,7 +210,7 @@ in
         package = hevy;
         description = ''
           Read Aaron's Hevy workouts, exercise history, templates and routines, and change only the routines in its own "Butler plan" folder, through drafts Aaron approves.
-          hevy workouts [since YYYY-MM-DD] | hevy workout <id> | hevy history <template id> [since YYYY-MM-DD] | hevy templates [search words] | hevy routines | hevy routine <id> | hevy folders | hevy routine draft <A|B> (draft JSON on stdin) | hevy routine diff <A|B> <sha256> | hevy routine apply <A|B> <sha256> | hevy bootstrap
+          hevy workouts [since YYYY-MM-DD] | hevy workout <id> | hevy history <template id> [since YYYY-MM-DD] | hevy templates [search words] | hevy routines | hevy routine <id> | hevy folders | hevy routine draft <A|B> (draft JSON on stdin) | hevy routine diff <A|B> <sha256> | hevy routine apply <A|B> <sha256> (the printed diff on stdin) | hevy bootstrap
         '';
         stdin = true;
         rules =
@@ -228,23 +229,23 @@ in
               "diff"
             ]
           ]
-          ++ [
-            {
-              match = [
-                "workout"
-                "*"
-              ];
-              lanes = both;
-              taints = true;
-            }
-            {
-              match = [
-                "routine"
-                "*"
-              ];
-              lanes = both;
-            }
-          ]
+          ++
+            map
+              (match: {
+                inherit match;
+                lanes = both;
+                taints = true;
+              })
+              [
+                [
+                  "workout"
+                  "*"
+                ]
+                [
+                  "routine"
+                  "*"
+                ]
+              ]
           ++
             map
               (match: {
