@@ -205,8 +205,9 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Each command's `skill` is linked into `~/.claude/skills`.
   Its bot token is `DISCORD_BOT_TOKEN` in `/var/lib/secrets/butler.env`, owner `root`, mode 600, written by hand and read by systemd before it drops to `butler`.
   It may spend any of Aaron's Claude accounts, each a one-year token from `claude setup-token`, one `<number> <token>` line per account in `/var/lib/butler/.claude-accounts/tokens`, owner `butler`, mode 600, written by hand with a script that pipes the token over SSH, and denied to its own `Read`.
-  Every turn spawns `butler-claude`, its `CLAUDE_CODE_EXECUTABLE`, which sends each token in number order a one-token Haiku request and runs `claude` with the first that answers 200, so an account at its limit answers 429 and is skipped until it resets, and a turn the limit cut short resumes on the next account when the daemon retries it a minute later.
-  After those it tries the lines of `stopgap` beside it, then `CLAUDE_CODE_OAUTH_TOKEN` from `butler.env`, and when every one is refused it runs the first anyway, so the daemon's retry keeps trying.
+  Every turn spawns `butler-claude`, its `CLAUDE_CODE_EXECUTABLE`, which runs `claude` at once with the first account in number order not cooling down, and meanwhile sends that account a one-token Haiku request in the background, so no turn waits on it.
+  A 429 there writes the account's `anthropic-ratelimit-unified-reset` to `/var/lib/butler/.claude-accounts/cooldown/<number>`, and a 401 or 403 an hour from now, so later spawns skip it until then, and a turn the limit cut short resumes on the next account when the daemon retries it.
+  When every account is cooling down it runs the first anyway, so the daemon's retry keeps trying.
   Each choice is logged by account number to the journal under `butler-claude`.
   Its allowlist is `/var/lib/butler/.claude/channels/discord/access.json`, re-read on every message, written by hand: `{"dmPolicy":"allowlist","allowFrom":["193903125994799114"],"groups":{"<channel id>":{"requireMention":false,"allowFrom":[]}}}`.
   The unit skips starting until `/var/lib/secrets/butler.env` and the checkout exist, so after writing them by hand run `systemctl start butler`.

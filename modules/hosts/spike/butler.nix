@@ -197,43 +197,58 @@ let
       pkgs.util-linux
     ];
     text = ''
-      probe() {
-        curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+      cooldowns=${accounts}/cooldown
+      mkdir -p "$cooldowns"
+      now=$(date +%s)
+
+      numbers=()
+      tokens=()
+      while read -r number token; do
+        [ -n "$token" ] || continue
+        numbers+=("$number")
+        tokens+=("$token")
+      done < <(sort -n ${accounts}/tokens 2>/dev/null || true)
+      [ ''${#tokens[@]} -gt 0 ] || exec ${pkgs.claude-code}/bin/claude "$@"
+
+      chosen=0
+      for i in "''${!tokens[@]}"; do
+        cooling=$(cat "$cooldowns/''${numbers[$i]}" 2>/dev/null || echo 0)
+        if [ "$cooling" -le "$now" ]; then
+          chosen=$i
+          break
+        fi
+      done
+      account=''${numbers[$chosen]}
+
+      check() {
+        local headers status reset
+        headers=$(curl -s -D - -o /dev/null --max-time 10 \
           'https://api.anthropic.com/v1/messages?beta=true' \
           -H "authorization: Bearer $1" \
           -H 'anthropic-version: 2023-06-01' \
           -H 'anthropic-beta: oauth-2025-04-20' \
           -H 'content-type: application/json' \
-          -d @${probeRequest} || true
+          -d @${probeRequest}) || return 0
+        status=$(head -n 1 <<<"$headers" | cut -d ' ' -f 2)
+        case $status in
+          200)
+            rm -f "$cooldowns/$account"
+            ;;
+          429)
+            reset=$(grep -i '^anthropic-ratelimit-unified-reset:' <<<"$headers" | tr -dc 0-9 || true)
+            echo "''${reset:-$((now + 300))}" >"$cooldowns/$account"
+            logger -t butler-claude "account $account is at its limit until $(date -d "@''${reset:-$((now + 300))}")" || true
+            ;;
+          401 | 403)
+            echo $((now + 3600)) >"$cooldowns/$account"
+            logger -t butler-claude "account $account was refused: HTTP $status" || true
+            ;;
+        esac
       }
+      check "''${tokens[$chosen]}" </dev/null >/dev/null 2>&1 &
 
-      names=()
-      tokens=()
-      for file in ${accounts}/tokens ${accounts}/stopgap; do
-        [ -r "$file" ] || continue
-        while read -r name token; do
-          [ -n "$token" ] || continue
-          names+=("$(basename "$file") $name")
-          tokens+=("$token")
-        done < <(sort -n "$file")
-      done
-      if [ -n "''${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
-        names+=("environment")
-        tokens+=("$CLAUDE_CODE_OAUTH_TOKEN")
-      fi
-
-      chosen=""
-      for i in "''${!tokens[@]}"; do
-        status=$(probe "''${tokens[$i]}")
-        if [ "$status" = 200 ]; then
-          chosen=''${tokens[$i]}
-          logger -t butler-claude "using ''${names[$i]}" || true
-          break
-        fi
-        logger -t butler-claude "skipping ''${names[$i]}: HTTP $status" || true
-      done
-
-      export CLAUDE_CODE_OAUTH_TOKEN="''${chosen:-''${tokens[0]:-}}"
+      logger -t butler-claude "using account $account" || true
+      export CLAUDE_CODE_OAUTH_TOKEN=''${tokens[$chosen]}
       exec ${pkgs.claude-code}/bin/claude "$@"
     '';
   };
