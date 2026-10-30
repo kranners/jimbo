@@ -13,6 +13,7 @@ MODEL = "gpt-image-2.5-flare"
 QUALITY = "medium"
 FORMAT = "jpeg"
 AVATAR = "@avatar@"
+CHARACTER = "@character@"
 OUTBOX = "/var/lib/butler/outbox"
 OUTBOX_DAYS = 2
 TIMEOUT_SECONDS = 55
@@ -24,7 +25,7 @@ SIZES = {
     "landscape": "1536x1024",
 }
 
-IN_CHARACTER = "The reference image is Butler, the character in this picture. Keep his look, colours and proportions recognisably the same. "
+IN_CHARACTER = "The reference images are the character sheet and avatar of Butler, the character in this picture. Draw him exactly as they show him, with the same head, monocle, bow tie, outfit, colours and proportions, in the character sheet's hand-painted storybook style. "
 
 USAGE = """usage: imagine <square|portrait|landscape>         (prompt on stdin)
        imagine butler <square|portrait|landscape>  (prompt on stdin)"""
@@ -74,12 +75,15 @@ def request(key, prompt, size, in_character):
     if not in_character:
         return requests.post(f"{API}/generations", headers=headers, json=fields, timeout=TIMEOUT_SECONDS)
     fields["prompt"] = IN_CHARACTER + prompt
-    with open(AVATAR, "rb") as avatar:
+    with open(CHARACTER, "rb") as character, open(AVATAR, "rb") as avatar:
         return requests.post(
             f"{API}/edits",
             headers=headers,
             data=fields,
-            files=[("image[]", ("butler.png", avatar, "image/png"))],
+            files=[
+                ("image[]", ("character.webp", character, "image/webp")),
+                ("image[]", ("avatar.png", avatar, "image/png")),
+            ],
             timeout=TIMEOUT_SECONDS,
         )
 
