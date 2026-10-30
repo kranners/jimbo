@@ -114,6 +114,8 @@ let
           "Read(~/.claude/.credentials.json)"
           "Read(~/.ssh/**)"
           "Read(~/.local/share/pyicloud/**)"
+          "Read(~/.local/share/ortie/**)"
+          "Read(~/.config/rclone/**)"
           "Read(//proc/**)"
           "Read(//run/**)"
         ];
