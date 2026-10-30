@@ -95,6 +95,7 @@ in
     enable = true;
     uri = "tcp://127.0.0.1:10400";
     threshold = 0.7;
+    customModelsDirectories = [ ./wake-words ];
   };
 
   services.wyoming.satellite = {
@@ -119,6 +120,8 @@ in
       "tcp://127.0.0.1:10400"
       "--wake-word-name"
       "hey_mycroft"
+      "--wake-word-name"
+      "hey_butler"
       "--mic-no-mute-during-awake-wav"
       "--detection-command"
       "${wakeAndClearPanel}"
