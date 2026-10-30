@@ -11,7 +11,7 @@ They reach Messenger through a bridge on spike, so a chat's id is a Matrix room 
 - `messenger-chats` lists the 50 most recently active chats, newest first, one per line: room id, time of its last activity, unread count and name, the name starting `marketplace:` for a Marketplace chat.
 - `messenger-chats --marketplace` lists only the Marketplace chats.
 - `messenger-read <room id> [count]` prints a chat's latest messages, oldest first, 20 unless a count up to 100 is given, each as `YYYY-MM-DD HH:MM <sender>: <text>`, with Aaron's own messages from `Aaron`.
-- `messenger-send <room id>` sends one message as Aaron, its text on stdin, at most 1000 characters.
+- `messenger-send <room id>` sends one message as Aaron, its text on stdin, at most 1000 characters, fewer when it has many newlines, quotes or emoji, so the approval shows all of it, and no control characters but newline and tab.
 
 No arg may start with `-`, apart from `--marketplace`.
 

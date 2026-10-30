@@ -12,6 +12,7 @@ let
 
   sendsPerHour = 10;
   maxLength = 1000;
+  maxShown = 1400;
 
   both = [
     "interactive"
@@ -25,9 +26,15 @@ let
         "$@"
     }
 
-    room_path() {
+    chat_path() {
       [[ $1 =~ ^![A-Za-z0-9._~=-]+(:${server_name})?$ ]] || usage
-      jq --raw-output --null-input --arg room "$1" '$room | @uri'
+      path=$(jq --raw-output --null-input --arg room "$1" '$room | @uri')
+      if ! matrix "${client}/rooms/$path/state" \
+        | jq --exit-status 'any(.[]; .type == "m.bridge") and all(.[]; .type != "m.room.create" or .content.type != "m.space")' >/dev/null; then
+        echo "$1 is not a Messenger chat" >&2
+        exit 2
+      fi
+      echo "$path"
     }
   '';
 
@@ -75,7 +82,7 @@ let
               bridged: any(.state[]; .type == "m.bridge"),
               name: ([.state[] | select(.type == "m.room.name") | .content.name] | last // "(no name)")
             })
-          | ([.[] | select(.space and (.name | test("marketplace"; "i"))) | .state[] | select(.type == "m.space.child" and ((.content.via // []) | length > 0)) | .state_key]) as $market
+          | ([.[] | select(.space and .bridged) | .state[] | select(.type == "m.space.child" and ((.content.via // []) | length > 0)) | .state_key]) as $market
           | map(select(.bridged and (.space | not)) | . + {market: (.id | IN($market[]))})
           | map(select(.market or ($marketplace | not)))
           | sort_by(-.last)
@@ -91,9 +98,9 @@ let
     }
 
     [ $# -ge 1 ] && [ $# -le 2 ] || usage
-    path=$(room_path "$1")
     count=''${2:-20}
     [[ $count =~ ^[0-9]{1,3}$ ]] && [ "$count" -ge 1 ] && [ "$count" -le 100 ] || usage
+    path=$(chat_path "$1")
 
     me=$(matrix "${client}/account/whoami" | jq --raw-output .user_id)
     filter='{"types":["m.room.message"],"lazy_load_members":true}'
@@ -126,16 +133,15 @@ let
     }
 
     [ $# -eq 1 ] || usage
-    path=$(room_path "$1")
 
     body=$(head -c $((${toString maxLength} * 4 + 1)))
     [ -n "''${body//[[:space:]]/}" ] || fail "the message on stdin is empty" 2
+    [[ ! ''${body//[$'\n\t']/} =~ [[:cntrl:]] ]] || fail "the message has control characters other than newline and tab" 2
     [ "''${#body}" -le ${toString maxLength} ] || fail "the message is over ${toString maxLength} characters; shorten it" 2
+    shown=$(jq --null-input --arg body "$body" '$body | tojson | explode | map(if . > 65535 then 2 else 1 end) | add')
+    [ "$shown" -le ${toString maxShown} ] || fail "the message is $shown characters as the approval shows it, over ${toString maxShown}; use fewer newlines, quotes, backslashes or emoji" 2
     [[ ! $body =~ ^[[:space:]]*! ]] || fail "a message may not start with !, which the bridge reads as a command" 2
-
-    matrix "${client}/rooms/$path/state" \
-      | jq --exit-status 'any(.[]; .type == "m.bridge") and all(.[]; .type != "m.room.create" or .content.type != "m.space")' >/dev/null \
-      || fail "$1 is not a Messenger chat" 2
+    path=$(chat_path "$1")
 
     sent="$HOME/.local/state/messenger-sent"
     mkdir -p "$(dirname "$sent")"

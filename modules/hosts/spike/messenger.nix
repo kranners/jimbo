@@ -82,6 +82,17 @@ let
       fi
 
       umask 077
+      if [ -s ${matrixToken} ]; then
+        status=$(
+          curl --silent --output /dev/null --write-out '%{http_code}' \
+            --header @<(printf 'Authorization: Bearer %s\n' "$(< ${matrixToken})") \
+            ${homeserver}/_matrix/client/v3/account/whoami
+        )
+        if [ "$status" = 401 ]; then
+          echo "The token in ${matrixToken} was revoked; minting a new one"
+          rm ${matrixToken}
+        fi
+      fi
       if [ ! -s ${matrixToken} ]; then
         if [ -s ${matrixPassword} ]; then
           echo "Logging in as ${owner} to mint a new access token into ${matrixToken}"
@@ -95,10 +106,10 @@ let
           secret=$(< ${registrationSecret})
           password=$(${randomToken})
           nonce=$(curl --silent --show-error --fail-with-body ${homeserver}/_synapse/admin/v1/register | jq --raw-output .nonce)
-          mac=$(printf '%s\0%s\0%s\0admin' "$nonce" ${ownerName} "$password" | openssl dgst -sha1 -hmac "$secret" -r | cut -d ' ' -f 1)
+          mac=$(printf '%s\0%s\0%s\0notadmin' "$nonce" ${ownerName} "$password" | openssl dgst -sha1 -hmac "$secret" -r | cut -d ' ' -f 1)
           response=$(
             jq --null-input --arg nonce "$nonce" --arg password "$password" --arg mac "$mac" \
-              '{nonce: $nonce, username: "${ownerName}", password: $password, admin: true, mac: $mac, initial_device_display_name: "butler"}' \
+              '{nonce: $nonce, username: "${ownerName}", password: $password, admin: false, mac: $mac, initial_device_display_name: "butler"}' \
               | curl --silent --show-error --fail-with-body --data @- ${homeserver}/_synapse/admin/v1/register
           )
           printf '%s' "$password" >${matrixPassword}
@@ -154,7 +165,8 @@ let
           fi
         done
       ) &
-      trap 'kill $!' EXIT
+      poller=$!
+      trap 'kill "$poller"' EXIT
 
       echo "Talking to the bridge bot in $room as ${owner}."
       echo "What you type is hidden and sent as one message per line; the bot's replies print here, and Ctrl-D ends."
