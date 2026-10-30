@@ -1,5 +1,7 @@
 def kept_key:
-  test("(?i)name|title|description|note|comment|location|address|email|url|image|photo|owner|display|uuid|token") | not;
+  (test("(?i)name|title|description|note|comment|location|address|email|url|image|photo|owner|display|uuid|token|latitude|longitude|polyline|gps|geo|coordinate")
+    or test("^(lat|lon|lng)|(Lat|Lon|Lng)([A-Z0-9]|$)"))
+  | not;
 
 def clean:
   if type == "object" then

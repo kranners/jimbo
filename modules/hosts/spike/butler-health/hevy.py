@@ -49,7 +49,7 @@ USAGE = """usage: hevy workouts [since YYYY-MM-DD]
        hevy folders
        hevy routine draft <A|B>        (draft JSON on stdin)
        hevy routine diff <A|B> <sha256>
-       hevy routine apply <A|B> <sha256>
+       hevy routine apply <A|B> <sha256> (the printed diff on stdin)
        hevy bootstrap
        hevy login                       (by hand, as butler, on a terminal)"""
 
@@ -457,9 +457,13 @@ def heaviest(exercise):
 def working_sets_by_muscle(plan, templates):
     counts = {}
     for exercise in plan["exercises"]:
-        muscle = (templates.get(exercise["exercise_template_id"]) or {}).get("muscle_group") or "other"
-        counts[muscle] = counts.get(muscle, 0) + sum(1 for entry in exercise["sets"] if entry["type"] != "warmup")
+        group = muscle(exercise, templates)
+        counts[group] = counts.get(group, 0) + sum(1 for entry in exercise["sets"] if entry["type"] != "warmup")
     return counts
+
+
+def muscle(exercise, templates):
+    return (templates.get(exercise["exercise_template_id"]) or {}).get("muscle_group") or "other"
 
 
 def cap_problems(current, draft, templates):
@@ -467,16 +471,23 @@ def cap_problems(current, draft, templates):
         return []
     problems = []
     before = {exercise["exercise_template_id"]: heaviest(exercise) for exercise in current["exercises"]}
+    by_muscle = {}
+    for exercise in current["exercises"]:
+        group = muscle(exercise, templates)
+        by_muscle[group] = max(by_muscle.get(group, 0), heaviest(exercise))
     for exercise in draft["exercises"]:
-        old = before.get(exercise["exercise_template_id"])
-        if old and heaviest(exercise) - old > MAX_LOAD_STEP_KG:
-            title = templates[exercise["exercise_template_id"]]["title"]
+        template = exercise["exercise_template_id"]
+        old = before.get(template)
+        if old is None:
+            old = by_muscle.get(muscle(exercise, templates), max(by_muscle.values()))
+        if heaviest(exercise) - old > MAX_LOAD_STEP_KG:
+            title = templates[template]["title"]
             problems.append(f"{title} rises {heaviest(exercise) - old:g} kg, more than one {MAX_LOAD_STEP_KG:g} kg step")
     old_sets = working_sets_by_muscle(current, templates)
-    for muscle, count in working_sets_by_muscle(draft, templates).items():
-        allowed = old_sets.get(muscle, 0) + max(1, math.ceil(old_sets.get(muscle, 0) * 0.1))
+    for group, count in working_sets_by_muscle(draft, templates).items():
+        allowed = old_sets.get(group, 0) + max(1, math.ceil(old_sets.get(group, 0) * 0.1))
         if count > allowed:
-            problems.append(f"{muscle} goes to {count} working sets, more than {allowed}")
+            problems.append(f"{group} goes to {count} working sets, more than {allowed}")
     return problems
 
 
@@ -534,10 +545,12 @@ def stored_draft(slot, digest):
     return stored["plan"]
 
 
+def rendered_diff(slot, current, draft, templates):
+    return "\n".join([f"{SLOTS[slot]} in {FOLDER!r}:", *(diff_lines(current, draft, templates) or ["no change"])])
+
+
 def report(slot, current, draft, templates):
-    print(f"{SLOTS[slot]} in {FOLDER!r}:")
-    for line in diff_lines(current, draft, templates) or ["no change"]:
-        print(line)
+    print(rendered_diff(slot, current, draft, templates))
     problems = cap_problems(current, draft, templates)
     for problem in problems:
         print(f"over a cap: {problem}")
@@ -606,7 +619,13 @@ def apply_command(slot, digest):
     found = slot_routine(slot, folder)
     if str(found.get("folder_id")) != str(folder["id"]):
         fail(f"{SLOTS[slot]} is not in {FOLDER!r}, so it was not touched")
-    problems = cap_problems(planned(found), draft, templates)
+    current = planned(found)
+    if sys.stdin.read().strip() != rendered_diff(slot, current, draft, templates):
+        fail(
+            f"stdin is not the diff `hevy routine diff {slot} {digest}` prints now, so nothing was applied; "
+            "show Aaron that diff and pass it on stdin, word for word"
+        )
+    problems = cap_problems(current, draft, templates)
     if problems:
         fail(f"the routine changed since the draft, which now breaks the caps: {'; '.join(problems)}")
     stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
@@ -628,8 +647,11 @@ def apply_command(slot, digest):
 def bootstrap_command():
     folder = plan_folder()
     if folder is None:
-        call("POST", "/routine_folder?sendSyncEventToMobileApp=true", body={"folder": {"title": FOLDER}})
-        folder = plan_folder() or fail(f"Hevy did not create {FOLDER!r}")
+        created = call("POST", "/routine_folder?sendSyncEventToMobileApp=true", body={"folder": {"title": FOLDER}})
+        if isinstance(created, dict) and created.get("id") is not None:
+            folder = {"id": created["id"], "title": FOLDER}
+        else:
+            folder = plan_folder() or fail(f"Hevy did not create {FOLDER!r}; check its folders before running bootstrap again")
         print(f"created folder {FOLDER!r} ({folder['id']})")
     else:
         print(f"folder {FOLDER!r} exists ({folder['id']})")
