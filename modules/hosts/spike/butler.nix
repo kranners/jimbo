@@ -28,6 +28,7 @@ let
           types.enum [
             "interactive"
             "cron"
+            "voice"
           ]
         );
       };
