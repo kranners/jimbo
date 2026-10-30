@@ -24,6 +24,7 @@
         ./github-issues.nix
         ./backlogic.nix
         ./panel.nix
+        ./butler-browser-view.nix
         ./surface.nix
       ];
 

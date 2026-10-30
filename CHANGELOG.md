@@ -6,6 +6,7 @@
 - 2026-10-30: butler can read and send Outlook mail behind `butler.outlook.enable`, once `sudo -u butler butler-outlook-login` has stored its token.
 - 2026-10-30: butler can search and read Google Drive read-only behind `butler.drive.enable`, once `sudo -u butler butler-drive-login` has written its rclone config.
 - 2026-10-30: butler can read Garmin health data through Garmin's Personal API and Hevy workouts through its web app, and change its own two Hevy routines only after Aaron approves the exact diff, each off until `butler.garmin.enable` or `butler.hevy.enable`.
+- 2026-10-30: butler drives its own Chromium on spike through Playwright MCP, logged in by hand over noVNC at `browser.spike.cute.engineer`, and framer's panel shows a view-only copy of that browser while butler uses it.
 - 2026-10-30: butler reads, adds and completes Apple Reminders through iCloud, once `sudo -u butler butler-icloud-login` has trusted its session.
 - 2026-10-30: butler reads and archives mail, reads and adds calendar events, and files GitHub issues and backlogic tickets, through wrappers its daemon runs as tools, and asks Aaron before using the web or sending anything out once a thread has read private data.
 - 2026-10-30: butler keeps a memory in `kranners/butler-memory`, of rules, skills and scheduled prompts Aaron writes and a journal it adds to.
