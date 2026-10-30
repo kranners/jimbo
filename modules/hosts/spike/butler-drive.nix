@@ -130,8 +130,15 @@ let
 
       umask 077
       echo "Open the link rclone prints in a browser on the machine whose port 53682 is forwarded here."
-      rclone --config ${rcloneConfig} config create drive drive \
-        scope=drive.readonly client_id="$client_id" client_secret="$client_secret"
+      cat >${rcloneConfig} <<EOF
+      [drive]
+      type = drive
+      scope = drive.readonly
+      client_id = $client_id
+      client_secret = $client_secret
+      EOF
+      echo "Answer no if rclone asks whether this is a Shared Drive."
+      rclone --config ${rcloneConfig} config reconnect drive:
       rclone --config ${rcloneConfig} about drive:
     '';
   };
@@ -155,25 +162,7 @@ in
       '';
       rules = [
         {
-          match = [
-            "ls"
-            "**"
-          ];
-          lanes = both;
-        }
-        {
-          match = [
-            "search"
-            "**"
-          ];
-          lanes = both;
-          taints = true;
-        }
-        {
-          match = [
-            "cat"
-            "**"
-          ];
+          match = [ "**" ];
           lanes = both;
           taints = true;
         }

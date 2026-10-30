@@ -120,16 +120,20 @@ let
     '';
   };
 
-  mailSendLimit = 1000;
+  subjectLimit = 200;
+  approvalLimit = 1400;
 
   mail-send = pkgs.writeShellApplication {
     name = "mail-send";
 
-    runtimeInputs = [ pkgs.coreutils ];
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.jq
+    ];
 
     text = ''
       usage() {
-        echo "usage: mail-send <account> <to> <subject>  (plain-text body on stdin, at most ${toString mailSendLimit} bytes)" >&2
+        echo "usage: mail-send <account> <to> <subject>  (subject at most ${toString subjectLimit} bytes, plain-text body on stdin)" >&2
         echo "accounts: ${lib.concatStringsSep ", " sendingAccounts}" >&2
         exit 2
       }
@@ -144,14 +148,21 @@ let
         *) usage ;;
       esac
       [[ $to =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]] || usage
-      [[ -n $subject && $subject != *$'\n'* && $subject != *$'\r'* ]] || usage
+      [[ -n $subject && $subject != *[$'\x01'-$'\x1f'$'\x7f']* ]] || usage
+      [ "$(printf %s "$subject" | wc -c)" -le ${toString subjectLimit} ] || usage
 
-      body=$(head -c ${toString (mailSendLimit + 1)})
-      if [ "$(printf %s "$body" | wc -c)" -gt ${toString mailSendLimit} ]; then
-        echo "mail-send: the body is over ${toString mailSendLimit} bytes; shorten it" >&2
+      body=$(head -c ${toString (approvalLimit + 1)})
+      [ -n "$body" ] || usage
+      if [[ $body == *[$'\x01'-$'\x08'$'\x0b'-$'\x1f'$'\x7f']* ]]; then
+        echo "mail-send: the body has control characters other than newlines and tabs; remove them" >&2
         exit 2
       fi
-      [ -n "$body" ] || usage
+      approval=$(jq -n --indent 1 --arg account "$account" --arg to "$to" --arg subject "$subject" --arg body "$body" \
+        '{args: [$account, $to, $subject], stdin: $body}' | wc -c)
+      if [ "$approval" -gt ${toString approvalLimit} ]; then
+        echo "mail-send: the body is too long for Aaron's approval to show all of it; shorten it" >&2
+        exit 2
+      fi
 
       printf '%s\n' "$body" | ${himalaya} --account "$account" message compose --to="$to" --subject="$subject" --send >/dev/null
       echo "Sent \"$subject\" to $to from $account"
@@ -262,7 +273,7 @@ in
         package = mail-send;
         description = ''
           Send a new plain-text email as Aaron, after he approves its exact recipient, subject and body with a button.
-          mail-send <account> <to> <subject> (body on stdin, at most ${toString mailSendLimit} bytes); accounts: ${lib.concatStringsSep ", " sendingAccounts}
+          mail-send <account> <to> <subject> (subject at most ${toString subjectLimit} bytes, body on stdin, about 1000 characters at most, less in short lines); accounts: ${lib.concatStringsSep ", " sendingAccounts}
         '';
         stdin = true;
         rules = [
@@ -277,6 +288,7 @@ in
             egress = true;
           }
         ];
+        credentials = lib.mergeAttrsList (lib.catAttrs "credentials" (lib.attrValues mailAccounts));
         skill = ./butler-skills/mail-send;
       };
     })
