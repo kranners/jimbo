@@ -43,7 +43,13 @@
   # The ALC298's mic jack once read plugged in from boot with nothing in it,
   # moving capture off the internal mic to a silent jack, so jack detection
   # is off and the internal mic and speakers are always used.
-  boot.extraModprobeConfig = "options snd-hda-intel patch=framer-no-jack-detect.fw";
+  #
+  # soc_button_array gives up on the volume and power buttons, silently, when it
+  # loads before the GPIO controller they hang off.
+  boot.extraModprobeConfig = ''
+    options snd-hda-intel patch=framer-no-jack-detect.fw
+    softdep soc_button_array pre: pinctrl_sunrisepoint
+  '';
   hardware.firmware = [
     (pkgs.writeTextDir "lib/firmware/framer-no-jack-detect.fw" ''
       [codec]
