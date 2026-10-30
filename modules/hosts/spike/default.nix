@@ -9,6 +9,7 @@
         ./backlogic-tunnel.nix
         ./bowerbird.nix
         ./butler.nix
+        ./butler-messenger.nix
         ./butler-reminders.nix
         ./butler-tools.nix
         ./caddy.nix
@@ -18,6 +19,7 @@
         ./environments.nix
         ./framer-vnc.nix
         ./home-assistant.nix
+        ./messenger.nix
         ./mise.nix
         ./monitoring.nix
         ./voice.nix
