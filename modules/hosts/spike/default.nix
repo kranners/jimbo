@@ -22,6 +22,7 @@
         ./butler-reminders.nix
         ./butler-render.nix
         ./butler-self-fix.nix
+        ./butler-slack.nix
         ./butler-tools.nix
         ./butler-voice.nix
         ./caddy.nix
