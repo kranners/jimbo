@@ -11,6 +11,9 @@ let
   selfFix = "${home}/self-fix";
   queue = "${selfFix}/queue";
   sessions = "${selfFix}/sessions";
+  refresh = "${selfFix}/refresh";
+  progress = "${selfFix}/progress";
+  runnerHome = config.users.users.backlogic-runner.home;
   launchFrom = "${aaron}/workspace/jimbo";
   personalCooldown = "${home}/.claude-accounts/cooldown/1";
 
@@ -38,6 +41,7 @@ let
     name = "self-fix";
     runtimeInputs = [
       pkgs.coreutils
+      pkgs.gnugrep
       pkgs.jq
     ];
     text = ''
@@ -62,6 +66,23 @@ let
           [[ "$id" =~ ^[0-9]{8}-[0-9]{6}-[0-9]+$ ]] || usage
           if [ -e "${sessions}/$id" ]; then
             cat "${sessions}/$id"
+            grep -q '^Started ' "${sessions}/$id" || exit 0
+            # butler-self-fix-progress reads the session as root, so the token never reaches butler.
+            asked=$(date +%s)
+            touch "${refresh}/$id"
+            for _ in $(seq 30); do
+              if [ -e "${progress}/$id" ] && [ "$(stat -c %Y "${progress}/$id")" -ge "$asked" ]; then
+                cat "${progress}/$id"
+                exit 0
+              fi
+              sleep 1
+            done
+            if [ -e "${progress}/$id" ]; then
+              echo "Could not refresh the progress; as of $(date -d "@$(stat -c %Y "${progress}/$id")" '+%H:%M'):"
+              cat "${progress}/$id"
+            else
+              echo "Could not read the session's progress yet; try again in a minute."
+            fi
           elif [ -e "${queue}/$id.json" ]; then
             echo "Still starting."
           else
@@ -131,6 +152,91 @@ let
     '';
   };
 
+  # Turns a cloud session and its newest events, from /v1/code/sessions, into the summary butler reads.
+  summarise = pkgs.writeText "butler-self-fix-progress.jq" ''
+    def clip($n): tostring | gsub("\\s+"; " ") | if length > $n then .[:$n] + "…" else . end;
+    def step:
+      if .type == "text" then "said: " + (.text | clip(300))
+      elif .type == "tool_use" then
+        "ran " + .name + ": "
+        + ((.input.description // .input.command // .input.file_path // .input.pattern // .input.url // .input) | clip(200))
+      else empty end;
+    ($session[0] | .response_shape // .session // .) as $s
+    | [($events[0].data // [])[] | .payload | select(type == "object")] as $newest
+    | ($newest | map(select(.type == "result")) | first) as $result
+    | ($newest | map(select(.type == "assistant" or .type == "result")) | first) as $last
+    | ($s.external_metadata.pending_action.tool_name // null) as $pending
+    | (if $s.status == "archived" then "archived"
+       elif ($s.startup_failure // null) != null then "failed to start: " + ($s.startup_failure | clip(300))
+       elif $s.worker_status == "requires_action" then "waiting on input" + (if $pending then " (" + $pending + ")" else "" end)
+       elif $s.worker_status == "running" then "running"
+       elif $last.type == "result" then (if $last.is_error then "finished with an error" else "finished" end)
+       else ($s.worker_status // $s.status // "unknown") end) as $state
+    | [
+        "State: " + $state,
+        "Title: " + ($s.title // "untitled"),
+        "Last activity: " + ($s.last_event_at // $s.updated_at // $s.created_at // "unknown"),
+        ($s.config.outcomes // [] | map(select(.type == "git_repository") | .git_info | "Branch: " + ((.repo // .url // "") | tostring) + " " + ((.branches // []) | map(if type == "object" then (.name // tojson) else tostring end) | join(", "))) | .[]),
+        "Recent activity, oldest first:",
+        ($newest | map(select(.type == "assistant") | [.message.content[]? | step] | reverse | .[]) | .[:12] | reverse | map("- " + .) | .[]),
+        (if $result then "Final summary" + (if $result.is_error then " (error)" else "" end) + ": " + (($result.result // $result.subtype // "") | clip(1500)) else empty end)
+      ]
+    | join("\n")
+  '';
+
+  readProgress = pkgs.writeShellApplication {
+    name = "butler-self-fix-progress";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.curl
+      pkgs.gnugrep
+      pkgs.jq
+    ];
+    text = ''
+      # The freshest login for the account the session started on: aaron's, or the runner's, which its own sessions keep fresh.
+      token() {
+        local dir=$1
+        jq -rs 'map(.claudeAiOauth // empty) | max_by(.expiresAt // 0) | .accessToken // empty' \
+          "${aaron}/$dir/.credentials.json" "${runnerHome}/$dir/.credentials.json" 2>/dev/null || true
+      }
+
+      fetch() {
+        curl --silent --show-error --max-time 15 --output "$2" --write-out '%{http_code}' \
+          --header @<(printf 'Authorization: Bearer %s\n' "$bearer") \
+          --header 'anthropic-version: 2023-06-01' \
+          --header 'User-Agent: claude-cli/${pkgs.claude-code.version} (external, cli)' \
+          "https://api.anthropic.com/v1/code/sessions/$cse$1"
+      }
+
+      for request in "${refresh}"/*; do
+        [ -e "$request" ] || continue
+        id=$(basename "$request")
+        rm -f "$request"
+        [[ "$id" =~ ^[0-9]{8}-[0-9]{6}-[0-9]+$ ]] || continue
+        started=$(cat "${sessions}/$id" 2>/dev/null || true)
+        session=$(grep -oE 'session_[A-Za-z0-9]+' <<< "$started" | head -1 || true)
+        [ -n "$session" ] || continue
+        dir=$(grep -oE 'on \.claude(-work)?$' <<< "$started" | cut -c4- || true)
+        work=$(mktemp -d)
+        cse="cse_''${session#session_}"
+        bearer=$(token "''${dir:-.claude}")
+        if [ -z "$bearer" ]; then
+          echo "Could not read the session: no Claude login for $dir." > "$work/out"
+        elif code=$(fetch "" "$work/session") && [ "$code" != 200 ]; then
+          echo "Could not read the session: HTTP $code." > "$work/out"
+        else
+          code=$(fetch "/events?limit=100&sort_order=desc" "$work/events" || true)
+          [ "$code" = 200 ] || echo '{}' > "$work/events"
+          jq -nr --slurpfile session "$work/session" --slurpfile events "$work/events" -f ${summarise} > "$work/out" ||
+            echo "Could not summarise the session." > "$work/out"
+        fi
+        chown butler: "$work/out"
+        mv "$work/out" "${progress}/$id"
+        rm -rf "$work"
+      done
+    '';
+  };
+
   jimbo-switch = pkgs.writeShellApplication {
     name = "jimbo-switch";
     runtimeInputs = [
@@ -163,7 +269,7 @@ in
     package = self-fix;
     description = ''
       Ask a cloud Claude Code session to fix or change butler itself (its jimbo config, the claude-discord-threads daemon or its memory) and land the fix, which then deploys on its own.
-      self-fix start (Aaron's request on stdin) | self-fix status <id> (the session's link once it starts)
+      self-fix start (Aaron's request on stdin) | self-fix status <id> (the session's link once it starts, then its live state, recent activity, branch and final summary)
     '';
     stdin = true;
     rules = [
@@ -187,7 +293,24 @@ in
     "d ${selfFix} 0700 butler butler -"
     "d ${queue} 0700 butler butler -"
     "d ${sessions} 0700 butler butler -"
+    "d ${refresh} 0700 butler butler -"
+    "d ${progress} 0700 butler butler -"
   ];
+
+  systemd.paths.butler-self-fix-progress = {
+    wantedBy = [ "paths.target" ];
+    pathConfig.DirectoryNotEmpty = refresh;
+  };
+
+  systemd.services.butler-self-fix-progress = {
+    description = "Read the progress of the cloud sessions butler asked about";
+    wants = [ "network-online.target" ];
+    after = [ "network-online.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = lib.getExe readProgress;
+    };
+  };
 
   systemd.paths.butler-self-fix = {
     wantedBy = [ "paths.target" ];
