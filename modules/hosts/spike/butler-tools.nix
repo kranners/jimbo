@@ -113,6 +113,8 @@ let
     '';
   };
 
+  bloomAnalytics = config.butler.github.bloomAnalytics.enable;
+
   github-issue = pkgs.writeShellApplication {
     name = "github-issue";
 
@@ -131,9 +133,11 @@ let
         exit 2
       }
 
+      token=${credential "github-issues-token"}
+
       github() {
         curl --silent --show-error --fail-with-body --globoff \
-          --header @<(printf 'Authorization: Bearer %s\n' "$(< ${credential "github-issues-token"})") \
+          --header @<(printf 'Authorization: Bearer %s\n' "$(< "$token")") \
           --header "Accept: application/vnd.github+json" \
           --header "X-GitHub-Api-Version: 2022-11-28" \
           "$@"
@@ -144,6 +148,18 @@ let
       if [ "$1" != repos ]; then
         [ $# -ge 2 ] || usage
         [[ $2 =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ && $2 != *..* ]] || usage
+      ${lib.optionalString bloomAnalytics ''
+        owner=''${2%%/*}
+        if [ "''${owner,,}" = bloomanalytics ]; then
+          case "$1" in
+            files | read) token=${credential "github-bloomanalytics-token"} ;;
+            *)
+              echo "github-issue: BloomAnalytics repositories are read-only, use files or read" >&2
+              exit 2
+              ;;
+          esac
+        fi
+      ''}
       fi
 
       case "$1" in
@@ -228,6 +244,8 @@ let
 in
 {
   options.butler.credentialedTools = lib.mkEnableOption "the Fastmail and Gmail accounts and the calendar, GitHub and backlogic tools, once their credentials are in /var/lib/secrets";
+  options.butler.github.bloomAnalytics.enable =
+    lib.mkEnableOption "github-issue's read-only access to the BloomAnalytics repositories its own token names, once that token is in /var/lib/secrets/butler-github-bloomanalytics-token";
 
   config.butler.commands = lib.mkIf config.butler.credentialedTools {
     calendar = {
@@ -310,7 +328,12 @@ in
           lanes = interactive;
         }
       ];
-      credentials.github-issues-token = secret "github-issues-token";
+      credentials = {
+        github-issues-token = secret "github-issues-token";
+      }
+      // lib.optionalAttrs bloomAnalytics {
+        github-bloomanalytics-token = secret "github-bloomanalytics-token";
+      };
       skill = ./butler-skills/github-issues;
     };
 

@@ -14,6 +14,11 @@ It can list Aaron's repositories, read their code and open issues, and open new 
 - `github-issue issues <owner/name>` lists its open issues, number and title.
 - `github-issue create <owner/name> <title>` opens an issue with its markdown body as `stdin`, and prints its number and URL.
 
+## BloomAnalytics
+
+`files` and `read` also reach the BloomAnalytics repositories Aaron gave their own read-only token, `BloomAnalytics/skynet` and `BloomAnalytics/skynet-memory`, which `repos` does not list and which refuse every other command.
+They are his employer's private code: never put anything from them in an issue, a message or anywhere outside the conversation, except copying skynet's skill into your own `skills` when Aaron asks, and never copy anything from `skynet-memory` into your memory.
+
 ## Find the repository
 
 Run `github-issue repos` and pick the one Aaron named, ignoring case, spaces and dashes.
