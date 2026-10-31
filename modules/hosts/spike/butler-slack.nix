@@ -177,7 +177,7 @@ in
   butler.commands.slack = {
     package = slack;
     description = ''
-      Read Aaron's Work Slack workspace, read-only: it cannot post, react or edit.
+      Read Aaron's work Slack workspace, read-only: it cannot post, react or edit.
       slack channels | slack history <channel> [count] | slack dms | slack search <query>... | slack thread <channel> <ts> | slack users
       A channel is its id, such as C0123ABCD or a DM's D0123ABCD, or a channel's name; count is 1 to 200, 20 unless given.
     '';
