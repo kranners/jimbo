@@ -168,6 +168,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `nodejs_24`, the Node the worker unit runs, is also on the system path so `npm ci` works for `aaron`.
   To deploy by hand: `ssh aaron@spike.local /srv/bowerbird/bin/deploy`, the repository's script, which pulls `main`, runs `npm ci` and restarts only the units whose code changed.
   GitHub Actions runs the same script on every push to Bowerbird's `main`: it joins `wg0` as the peer `github-actions` and logs in as `aaron@10.100.0.1` with a key whose forced command is `/srv/bowerbird/bin/deploy`.
+  Backlogic's runner sessions, which land Bowerbird branches as `backlogic-runner`, run it as `ssh bowerbird-deploy`, an alias in the runner's `~/.ssh/config` logging in as `aaron@localhost` with the runner's own key `~/.ssh/bowerbird-deploy`, made by hand, whose forced command is the same script, so that is all it reaches as `aaron`.
   The script refuses to deploy while a branch other than `main` is checked out in `/srv/bowerbird`, so checking one out there pauses deploys while it is tested.
 - Hardware watchdog (`wdat_wdt`) is armed by systemd, and the kernel reboots 10 s after a panic.
 - Its only swap is `zramSwap` at the module's defaults, half of RAM compressed with zstd, so cold pages compress in memory and pressure builds gradually instead of running straight into the OOM killer.

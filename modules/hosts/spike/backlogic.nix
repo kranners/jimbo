@@ -56,6 +56,21 @@ let
   '';
   aaronUidGid = "1000:100";
 
+  # The runner reaches aaron for Bowerbird's bin/deploy alone, its key's forced command in bowerbird.nix.
+  # The key itself, ~/.ssh/bowerbird-deploy, was made by hand and never enters the store.
+  runnerKnownHosts = pkgs.writeText "backlogic-runner-known-hosts" ''
+    localhost ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICx43TohNiz/wJmnsiv1PzwVeVRRp3PhBTMFs5Ho9cp9
+  '';
+  runnerSshConfig = pkgs.writeText "backlogic-runner-ssh-config" ''
+    Host bowerbird-deploy
+      HostName localhost
+      User aaron
+      IdentityFile ~/.ssh/bowerbird-deploy
+      IdentitiesOnly yes
+      StrictHostKeyChecking yes
+      UserKnownHostsFile ${runnerKnownHosts}
+  '';
+
   lanInterfaces = [
     "wlp2s0"
     "wg0"
@@ -306,6 +321,8 @@ in
     "L+ ${runnerHome}/.config/git/config - - - - ${aaronHome.xdg.configFile."git/config".source}"
     "L+ ${runnerHome}/.gitconfig - - - - ${runnerGitConfig}"
     "d ${runnerTokens} 0700 backlogic-runner backlogic-runner -"
+    "d ${runnerHome}/.ssh 0700 backlogic-runner backlogic-runner -"
+    "L+ ${runnerHome}/.ssh/config - - - - ${runnerSshConfig}"
   ];
 
   # Its sessions run inside the unit, so a switch never restarts it.
