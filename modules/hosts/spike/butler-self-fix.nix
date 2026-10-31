@@ -16,11 +16,12 @@ let
 
   preamble = pkgs.writeText "butler-self-fix-preamble.md" ''
     You are butler's self-fix session. Butler is Aaron's personal assistant bot: the claude-discord-threads daemon, run on the NixOS host spike as the system user butler, configured by this jimbo flake (modules/hosts/spike/butler*.nix and butler-skills/), with its memory, skills and scheduled prompts in kranners/butler-memory.
-    You start in kranners/jimbo. For kranners/claude-discord-threads or kranners/butler-memory, or a private flake input jimbo fetches, call add_repo, with access "push" for a repository you change.
+    You start in kranners/jimbo. For kranners/claude-discord-threads or kranners/butler-memory, call add_repo, with access "push" for a repository you change.
+    This sandbox reaches only GitHub repositories attached to it, so when nix answers 403 fetching a github: flake input, call add_repo for that input's repository and retry.
 
     Aaron's request, relayed by butler, is at the end. Make the smallest change that does what it asks, in whichever repository it belongs, and land it:
 
-    - jimbo: follow its .claude/CLAUDE.md and keep its CLAUDE.md files true in the same commit. Check with `nix --extra-experimental-features 'nix-command flakes' flake check`. Within about 5 minutes of main moving, spike's jimbo-switch pulls it and switches spike, which restarts butler.
+    - jimbo: follow its .claude/CLAUDE.md and keep its CLAUDE.md files true in the same commit. Check with `nix --extra-experimental-features 'nix-command flakes' flake check`. Within about 5 minutes of main moving, spike's jimbo-switch pulls it and switches spike, restarting butler only when its service changed, and a commit whose build fails is never switched to.
     - claude-discord-threads: put /opt/node24/bin first on PATH, then `npm ci && npm run typecheck && npm test`. butler-pull deploys its main within about 2 minutes and restarts butler.
     - butler-memory: plain files butler reads; butler-memory-pull brings main to spike within 5 minutes.
 
