@@ -241,6 +241,10 @@
           "${configDir}/CLAUDE.md".text = builtins.readFile ./CLAUDE.md;
           "${configDir}/skills/commit/SKILL.md".source = ./skills/commit/SKILL.md;
           "${configDir}/skills/butler/SKILL.md".source = ./skills/butler/SKILL.md;
+          "${configDir}/skills/butler/send" = {
+            source = ./skills/butler/send;
+            executable = true;
+          };
           "${configDir}/settings.json".text = settings;
         }) configDirs
       );

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -o errexit -o nounset -o pipefail
+
+[ "$#" -ge 1 ] || { echo "usage: send 'message' [file...]" >&2; exit 2; }
+text=$1
+shift
+
+if command -v butler-notify >/dev/null; then
+  exec butler-notify "$@" <<<"$text"
+fi
+
+host=${BUTLER_HOST:-}
+if [ -z "$host" ]; then
+  for candidate in aaron@10.100.0.1 aaron@spike.local; do
+    if ssh -o ConnectTimeout=5 -o BatchMode=yes "$candidate" true 2>/dev/null; then
+      host=$candidate
+      break
+    fi
+  done
+fi
+[ -n "$host" ] || { echo "send: spike is unreachable at 10.100.0.1 and spike.local" >&2; exit 1; }
+
+if [ "$#" -eq 0 ]; then
+  exec ssh "$host" butler-notify <<<"$text"
+fi
+
+remote_dir=$(ssh "$host" mktemp -d)
+scp -q "$@" "$host:$remote_dir/"
+remote_files=()
+for file in "$@"; do
+  remote_files+=("$(printf '%q' "$remote_dir/$(basename "$file")")")
+done
+status=0
+ssh "$host" butler-notify "${remote_files[@]}" <<<"$text" || status=$?
+ssh "$host" rm -rf "$remote_dir"
+exit "$status"

@@ -230,3 +230,4 @@
 - 2026-10-28: pilot runs the kanban board as a launchd agent on `127.0.0.1:7420`, and puts cmux in socket password mode with a generated password written into `cmux.json`, so the agent can drive cmux panes without the password reaching this repository.
 - 2026-11-01: pilot runs `kanban-sync` every minute, which fast-forwards the kanban checkout to `origin/main`, rebuilds and restarts the board, and its server agent is labelled `kanban` so that restart finds it.
 - 2026-11-01: Any session can message Aaron on Discord through butler with `butler-notify` on spike, and read and add to butler's memory with the `butler` skill.
+- 2026-11-01: The `butler` skill ships `send`, which DMs Aaron through butler from any machine, running `butler-notify` on spike or over SSH elsewhere.
