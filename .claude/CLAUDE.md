@@ -263,6 +263,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `memory-note` appends its stdin to that day's `journal/YYYY-MM-DD.md`, commits and pushes it, and `memory-save` runs the repository's `scripts/check.sh`, which refuses a skill setting `allowed-tools`, then commits and pushes every change under `core`, `skills` and `journal` with its stdin as the message, both under the same `~/memory.lock` as the pull.
   Every pull rebases with `--autostash`, so edits butler has not saved yet survive it.
   Each `cron/<name>.md` there, through `DISCORD_CRON_DIR`, is a prompt the daemon runs at its `at` time on its `days`, in a new thread of `DISCORD_CRON_CHANNEL`, butler's `#general`, re-read every 30 seconds.
+  `modules/hosts/spike/butler-notify.nix` gives it a notify spool, `/var/lib/butler-notify`, its `DISCORD_NOTIFY_DIR`, mode `2770` and group `butler-notify`, which holds `butler` and `aaron`, so whoever can write it can DM Aaron and no one else can.
+  `butler-notify [file...]` writes its stdin as a notice there, copying the files beside it, and the daemon sends it to `allowFrom` within 5 seconds, then deletes it.
   `modules/hosts/spike/butler-voice.nix` gives it a voice endpoint, off until `butler.voice.enable = true`, set once the daemon on `main` serves it, because today's daemon refuses a manifest naming the `voice` lane.
   It sets the daemon's `DISCORD_VOICE_*` so it serves an OpenAI-compatible `/v1/chat/completions` on `127.0.0.1:18789`, loopback only because Home Assistant runs on the same box, and Home Assistant's llama.cpp integration calls it as the conversation agent of framer's Assist pipeline for anything its own intents cannot answer.
   It answers with `haiku` on butler's own Claude login, in the spoken persona `modules/hosts/spike/butler-voice.md`, hands a longer task to a Discord thread, and speaks that task's result on `assist_satellite.framer` through Home Assistant on `DISCORD_HA_URL`, with the calendar's Home Assistant token once `butler.credentialedTools` is on.
@@ -388,6 +390,7 @@ On `pilot` its tunnel `Home network` is spike's peer `pilot`, imported by hand f
 ### Claude Code
 
 `modules/claude` writes the personal `CLAUDE.md`, skills and `settings.json` on every host.
+Its `butler` skill lets any session read and add to butler's memory from a clone of `kranners/butler-memory` and message Aaron through `butler-notify` on spike, over SSH from other hosts.
 Backlogic's plugin is on everywhere on the Linux hosts, and on the Macs nowhere but `pilot`'s backlogic checkouts.
 Claude Code turns a plugin on for one repository only through that repository's settings, so on `pilot` every switch sets `backlogic@backlogic` in the gitignored `.claude/settings.local.json` of `~/workspace/backlogic`, each `~/workspace/backlogic--*` and each worktree under `~/workspace/backlogic/.claude/worktrees`, and a checkout made since the last switch has it from the next.
 Every `pilot` session starts in ultracode, through `settings.json`'s `ultracode`.

@@ -15,6 +15,7 @@
         ./butler-imagine.nix
         ./butler-mail.nix
         ./butler-messenger.nix
+        ./butler-notify.nix
         ./butler-outlook.nix
         ./butler-photos.nix
         ./butler-reminders.nix
