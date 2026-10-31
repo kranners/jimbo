@@ -12,4 +12,4 @@ Only when Aaron asks for a change to butler itself, never on your own initiative
 3. Call it again with `["status", "<id>"]` until it prints a link instead of "Still starting." (about a minute), then give Aaron the link.
 
 The session picks the repository (jimbo, claude-discord-threads or butler-memory), lands the fix on `main`, and it deploys on its own within about 5 minutes, which restarts you.
-Say so, so Aaron is not surprised when this thread pauses.
+Tell Aaron this before the restart, so the paused thread is no surprise.
