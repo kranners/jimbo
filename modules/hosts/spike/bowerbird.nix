@@ -145,6 +145,8 @@ in
 
   users.users.aaron.openssh.authorizedKeys.keys = [
     ''restrict,command="${checkout}/bin/deploy" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINT4kcEV+h7YOOgCnRftVu+KaZJ8o1mM6rtRoOeshOGx github-actions@bowerbird''
+    # backlogic's runner sessions land Bowerbird branches and run the deploy as `ssh bowerbird-deploy` (backlogic.nix).
+    ''restrict,command="${checkout}/bin/deploy" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICesD7u43qlc9ZnIfooU9eNto7V8gq/N0KXeKOBet7jx backlogic-runner@spike''
   ];
 
   systemd.tmpfiles.rules = [
