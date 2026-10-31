@@ -9,6 +9,7 @@
         ./backlogic-tunnel.nix
         ./bowerbird.nix
         ./butler.nix
+        ./butler-bank.nix
         ./butler-browser.nix
         ./butler-drive.nix
         ./butler-health.nix
