@@ -1,6 +1,6 @@
 ---
 name: slack
-description: Read Aaron's Bloom Slack workspace, read-only, to answer questions about it or summarise channels, DMs and threads. Use for "what's happening in #eng", "did anyone message me on Slack", "find the Slack thread about the release".
+description: Read Aaron's work Slack workspace, read-only, to answer questions about it or summarise channels, DMs and threads. Use for "what's happening in #eng", "did anyone message me on Slack", "find the Slack thread about the release".
 ---
 
 # Slack
