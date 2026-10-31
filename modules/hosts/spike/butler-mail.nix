@@ -245,7 +245,6 @@ in
                 "**"
               ];
               lanes = both;
-              taints = true;
             })
             [
               "unread"

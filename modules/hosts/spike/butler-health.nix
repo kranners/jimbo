@@ -14,10 +14,10 @@ let
   interactive = [ "interactive" ];
 
   verbs =
-    lanes: taints:
+    lanes:
     map (verb: {
       match = verb ++ [ "**" ];
-      inherit lanes taints;
+      inherit lanes;
     });
 
   garmin = pkgs.writeShellApplication {
@@ -183,7 +183,7 @@ in
           garmin summary [day] | garmin sleep [day] | garmin sleep-range [from [to]] | garmin hrv [day] | garmin hrv-range [from [to]] | garmin body-battery [from [to]] | garmin stress [from [to]] | garmin steps [from [to]] | garmin activities [count] | garmin activity <id> | garmin profile
           A day is YYYY-MM-DD, today or yesterday; a range defaults to the last 7 days.
         '';
-        rules = verbs both false (
+        rules = verbs both (
           map lib.singleton [
             "summary"
             "sleep"
@@ -214,7 +214,7 @@ in
         '';
         stdin = true;
         rules =
-          verbs both false [
+          verbs both [
             [ "workouts" ]
             [ "history" ]
             [ "templates" ]
@@ -234,7 +234,6 @@ in
               (match: {
                 inherit match;
                 lanes = both;
-                taints = true;
               })
               [
                 [
@@ -251,8 +250,6 @@ in
               (match: {
                 inherit match;
                 lanes = interactive;
-                taints = true;
-                egress = true;
               })
               [
                 [
