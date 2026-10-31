@@ -228,3 +228,4 @@
 - 2026-10-27: spike's backlogic runner sessions run at medium effort, while aaron's own sessions stay at high.
 - 2026-10-30: framer's avahi runs on IPv4 alone, so IPv6 address churn no longer makes it rename itself `framer-2.local`.
 - 2026-10-28: pilot runs the kanban board as a launchd agent on `127.0.0.1:7420`, and puts cmux in socket password mode with a generated password written into `cmux.json`, so the agent can drive cmux panes without the password reaching this repository.
+- 2026-11-01: pilot runs `kanban-sync` every minute, which fast-forwards the kanban checkout to `origin/main`, rebuilds and restarts the board, and its server agent is labelled `kanban` so that restart finds it.

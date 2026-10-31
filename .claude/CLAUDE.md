@@ -8,7 +8,7 @@ Nix flake configuring five machines for a single user (`aaron`, `aaronpierce` on
 
 - `jimbo`, NixOS PC, `x86_64-linux`
 - `piggys-MBP`, MacBook via nix-darwin, `aarch64-darwin`
-- `pilot`, second MacBook via nix-darwin, `aarch64-darwin`, same setup as `piggys-MBP` plus the tooling its work repositories expect (`modules/hosts/pilot/work-tools.nix`), the kanban board as a launchd agent (`modules/hosts/pilot/kanban.nix`), its computer and network names set to `pilot` by nix-darwin
+- `pilot`, second MacBook via nix-darwin, `aarch64-darwin`, same setup as `piggys-MBP` plus the tooling its work repositories expect (`modules/hosts/pilot/work-tools.nix`), the kanban board and its `kanban-sync` updater as launchd agents (`modules/hosts/pilot/kanban.nix`), its computer and network names set to `pilot` by nix-darwin
 - `spike`, always-on NixOS box, `x86_64-linux`
 - `framer`, NixOS Surface Book 2 laptop, `x86_64-linux`
 
