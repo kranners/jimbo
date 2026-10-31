@@ -67,7 +67,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 
 - SSH: `ssh aaron@spike.local` (key auth, resolved over mDNS).
 - The repo is cloned at `~/workspace/jimbo` on `main`.
-  To deploy, push to `main`, then on spike: `git pull && just`.
+  To deploy, push to `main`; `jimbo-switch.timer` pulls and switches spike within 5 minutes, or run `git pull && just` there at once.
 - SSH accepts keys only, declared in `modules/hosts/spike`.
   Rylee logs in as `rylee` from her laptop, noodlebook, in `wheel` and `docker` like `aaron`.
   `sudo` is passwordless (`wheelNeedsPassword = false`), so run the deploy over SSH directly.
@@ -234,6 +234,10 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Both set `PYTHON_KEYRING_BACKEND` to keyring's null backend, so no password is looked up in or written to a keyring.
   It answers with pictures through the daemon's `attach_file` tool, which `DISCORD_ATTACH_PATHS` limits to `/var/lib/butler/outbox` and the mood pictures, since the tool reads files outside Claude Code's own `Read` rules.
   `modules/hosts/spike/butler-render.nix` gives it `render`, which screenshots HTML, SVG, Mermaid or Vega-Lite from stdin into a PNG in the outbox with Playwright's Chromium, its libraries inlined from pinned bundles and the page cut off from the network by offline mode, routes that abort every request and a dead proxy and resolver, because it runs in threads that read private data without approval.
+  `modules/hosts/spike/butler-self-fix.nix` gives it `self-fix`, so Aaron can ask it to fix itself: `self-fix start` writes the request from stdin to `/var/lib/butler/self-fix/queue/<id>.json`, and `self-fix status <id>` prints the session's link from `/var/lib/butler/self-fix/sessions/<id>`.
+  `butler-self-fix.path` runs `butler-self-fix.service` as root whenever the queue is not empty, which runs `claude --cloud` as `aaron` from `~/workspace/jimbo` under `script`, since it refuses without a terminal, with a preamble telling the session to `add_repo` the other repositories and land the fix on `main`.
+  It uses `~/.claude`, the personal account, unless butler's `cooldown/1` is in the future, then `~/.claude-work`, and marks `~/workspace/jimbo` trusted in that account's `.claude.json` first.
+  The module's `jimbo-switch.timer` then deploys a jimbo fix: every 5 minutes, as `aaron` in `~/workspace/jimbo`, it fast-forwards to `origin/main` and runs `nh os switch .`, only while the checkout is on `main` and clean, never restarted by the switch it runs, and it records a commit whose switch failed in `/var/lib/jimbo-switch/failed` so it waits for the next one.
   `modules/hosts/spike/butler-photos.nix` gives it `photos`, which lists and saves Aaron's iCloud Photos as JPEGs in the outbox through the reminders' pyicloud session.
   `modules/hosts/spike/butler-imagine.nix` gives it `imagine`, which generates pictures, of Butler himself from his avatar when asked, with OpenAI's image API and the restricted key `/var/lib/secrets/butler-openai-api-key`, behind `butler.imagine.enable`.
   Each picture command deletes outbox files older than two days when it writes one.

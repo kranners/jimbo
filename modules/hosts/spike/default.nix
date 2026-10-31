@@ -19,6 +19,7 @@
         ./butler-photos.nix
         ./butler-reminders.nix
         ./butler-render.nix
+        ./butler-self-fix.nix
         ./butler-tools.nix
         ./butler-voice.nix
         ./caddy.nix
