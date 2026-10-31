@@ -11,6 +11,19 @@
       passwordFile = "${config.xdg.configHome}/kanban/cmux-socket-password";
       cmuxConfig = "${config.xdg.configHome}/cmux/cmux.json";
       cmuxSettings = pkgs.writeText "cmux.json" config.xdg.configFile.cmux.text;
+      checkout = "${home}/workspace/kanban";
+      logs = "${home}/Library/Logs/kanban";
+      path = lib.concatStringsSep ":" [
+        "${pkgs.nodejs_24}/bin"
+        "${home}/.local/bin"
+        "/opt/homebrew/bin"
+        "/etc/profiles/per-user/${config.home.username}/bin"
+        "/run/current-system/sw/bin"
+        "/usr/bin"
+        "/bin"
+        "/usr/sbin"
+        "/sbin"
+      ];
     in
     {
       xdg.configFile.cmux.enable = false;
@@ -29,29 +42,39 @@
         enable = true;
 
         config = {
+          Label = "kanban";
           ProgramArguments = [
             "${pkgs.nodejs_24}/bin/node"
             "--watch"
             "src/server/main.ts"
           ];
-          WorkingDirectory = "${home}/workspace/kanban";
+          WorkingDirectory = checkout;
           EnvironmentVariables = {
             KANBAN_AUTH = "off";
-            PATH = lib.concatStringsSep ":" [
-              "${home}/.local/bin"
-              "/opt/homebrew/bin"
-              "/etc/profiles/per-user/${config.home.username}/bin"
-              "/run/current-system/sw/bin"
-              "/usr/bin"
-              "/bin"
-              "/usr/sbin"
-              "/sbin"
-            ];
+            PATH = path;
           };
           RunAtLoad = true;
           KeepAlive = true;
-          StandardOutPath = "${home}/Library/Logs/kanban/server.log";
-          StandardErrorPath = "${home}/Library/Logs/kanban/server.log";
+          StandardOutPath = "${logs}/server.log";
+          StandardErrorPath = "${logs}/server.log";
+        };
+      };
+
+      launchd.agents.kanban-sync = {
+        enable = true;
+
+        config = {
+          Label = "kanban-sync";
+          ProgramArguments = [
+            "${pkgs.nodejs_24}/bin/node"
+            "scripts/sync.ts"
+          ];
+          WorkingDirectory = checkout;
+          EnvironmentVariables.PATH = path;
+          RunAtLoad = true;
+          StartInterval = 60;
+          StandardOutPath = "${logs}/sync.log";
+          StandardErrorPath = "${logs}/sync.log";
         };
       };
     };
