@@ -131,6 +131,7 @@ let
           "Read(~/.local/share/pyicloud/**)"
           "Read(~/.local/share/ortie/**)"
           "Read(~/.config/rclone/**)"
+          "Read(//var/lib/butler-index/**)"
           "Read(//proc/**)"
           "Read(//run/**)"
         ];
