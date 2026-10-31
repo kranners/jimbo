@@ -117,7 +117,13 @@ let
           "PushNotification"
           "EnterWorktree"
           "ExitWorktree"
-          "Read(~/.claude/channels/**)"
+          # Everything the daemon keeps in its state directory but inbox/,
+          # where Aaron's attachments land, since a deny beats any allow.
+          "Read(~/.claude/channels/discord/.env)"
+          "Read(~/.claude/channels/discord/access.json)"
+          "Read(~/.claude/channels/discord/approved/**)"
+          "Read(~/.claude/channels/discord/threads.db*)"
+          "Read(~/.claude/channels/discord/daemon.lock)"
           "Read(~/.claude/.credentials.json)"
           "Read(~/.claude-accounts/**)"
           "Read(~/.ssh/**)"
