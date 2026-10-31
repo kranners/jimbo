@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__claude-code-remote__add_repo",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -c 'select((.tool_input.access // \"read\") != \"push\" or (.tool_input.owner == \"kranners\" and (.tool_input.repo | IN(\"jimbo\", \"claude-discord-threads\", \"butler-memory\")))) | {hookSpecificOutput: {hookEventName: \"PreToolUse\", permissionDecision: \"allow\", permissionDecisionReason: \"Read access, or push to one of butler'\\''s own repositories\"}}'"
+          }
+        ]
+      }
+    ]
+  }
+}

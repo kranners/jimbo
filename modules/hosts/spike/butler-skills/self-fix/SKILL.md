@@ -10,6 +10,10 @@ Only when Aaron asks for a change to butler itself, never on your own initiative
 1. Write the request as a self-contained brief: what Aaron asked for, in Aaron's own words, what you saw go wrong (the tool, its args and the exact error), and what done looks like. The session starts knowing nothing about this thread.
 2. Call the `self-fix` tool with `args` `["start"]` and the brief as `stdin`. It prints an id.
 3. Call it again with `["status", "<id>"]` until it prints a link instead of "Still starting." (about a minute), then give Aaron the link.
+4. Before ending the turn, call `["status", "<id>"]` once more, and again if the session has not yet run anything, so you see it get going.
+   If it reads "waiting on input", tell Aaron straight away in the thread, with what it is waiting on and the link, since nothing else tells him a session has stalled.
+
+Whenever Aaron next writes in a thread with a self-fix still going, check its status first, and say so if it is waiting on input.
 
 When Aaron asks how a fix is going, call `["status", "<id>"]` again, with the id from this thread.
 Once the session has started, it prints the link, then a live summary read from claude.ai within about half a minute: the state (running, waiting on input, finished, finished with an error, failed to start, archived or idle), the title, when it last did anything, its branch, its last dozen steps oldest first, and its final summary once it has one, which names the commit and when it goes live.
