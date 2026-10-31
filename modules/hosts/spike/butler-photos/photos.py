@@ -59,7 +59,8 @@ USAGE = """usage: photos albums
        photos recent [count]
        photos album <name> [count]
        photos on <YYYY-MM-DD> [YYYY-MM-DD]
-       photos get <id> [small|medium|large]"""
+       photos get <id> [small|medium|large]
+       photos collage <id> <id> [id...]   (2 to 9 photos, tiled into one JPEG)"""
 
 EXPIRED = (
     PyiCloud2FARequiredException,
@@ -339,12 +340,44 @@ def get_command(service, args):
     sys.exit(1)
 
 
+COLLAGE_TILE = 600
+COLLAGE_GAP = 8
+
+
+def collage_command(service, args):
+    if not 2 <= len(args) <= 9 or len(set(args)) != len(args):
+        usage()
+    tiles = []
+    for photo_id in args:
+        photo = find_photo(service, photo_id)
+        for url in picture_urls(photo, "medium"):
+            try:
+                with Image.open(io.BytesIO(as_jpeg(service.private_client.download_asset_bytes(url)))) as image:
+                    tiles.append(ImageOps.fit(image.convert("RGB"), (COLLAGE_TILE, COLLAGE_TILE)))
+                break
+            except (OSError, Image.DecompressionBombError):
+                continue
+    if len(tiles) < 2:
+        print("fewer than two of those photos convert to JPEG", file=sys.stderr)
+        sys.exit(1)
+    columns = 2 if len(tiles) <= 4 else 3
+    rows = -(-len(tiles) // columns)
+    step = COLLAGE_TILE + COLLAGE_GAP
+    sheet = Image.new("RGB", (columns * step + COLLAGE_GAP, rows * step + COLLAGE_GAP), "white")
+    for index, tile in enumerate(tiles):
+        sheet.paste(tile, (COLLAGE_GAP + (index % columns) * step, COLLAGE_GAP + (index // columns) * step))
+    output = io.BytesIO()
+    sheet.save(output, "JPEG", quality=85, optimize=True)
+    print(write_outbox("collage", output.getvalue(), "jpg"))
+
+
 COMMANDS = {
     "albums": albums_command,
     "recent": recent_command,
     "album": album_command,
     "on": on_command,
     "get": get_command,
+    "collage": collage_command,
 }
 
 

@@ -39,7 +39,7 @@ in
     package = photos;
     description = ''
       Read Aaron's iCloud Photos. Prints JSON, except get, which saves a JPEG to attach and prints its path.
-      photos albums | photos recent [count] | photos album <name> [count] | photos on <YYYY-MM-DD> [YYYY-MM-DD] | photos get <id> [small|medium|large]
+      photos albums | photos recent [count] | photos album <name> [count] | photos on <YYYY-MM-DD> [YYYY-MM-DD] | photos get <id> [small|medium|large] | photos collage <id> <id> [id...] (2 to 9, tiled into one JPEG to attach)
     '';
     rules = map private [
       "albums"
@@ -47,6 +47,7 @@ in
       "album"
       "on"
       "get"
+      "collage"
     ];
     skill = ./butler-skills/photos;
   };
