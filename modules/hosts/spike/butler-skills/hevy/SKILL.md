@@ -23,10 +23,10 @@ Aaron takes every set to failure, so reps are the signal, and RPE is logged only
 
 The tool changes only two routines, `Butler A` (Saturday morning, heavy legs) and `Butler B` (Monday evening, moderate legs plus push and pull), in the folder `Butler plan`, and refuses any other routine.
 
-1. `hevy bootstrap` creates that folder and the two empty routines when they are missing, and does nothing when they exist; it needs Aaron's approval, and is needed only once.
+1. `hevy bootstrap` creates that folder and the two empty routines when they are missing, and does nothing when they exist; it is needed only once.
 2. `hevy routine draft <A|B>` takes the new routine as JSON on `stdin`, checks it, and prints the diff against the routine in Hevy and a line `draft <slot> <sha256>`.
 3. `hevy routine diff <A|B> <sha256>` prints that diff again later.
-4. `hevy routine apply <A|B> <sha256>` takes on `stdin` the diff `draft` or `diff` printed, from its first line to the last line before any `over a cap` or `draft` line, refuses unless that is still the diff for that hash, then writes the stored draft and reads it back to check nothing was lost; it runs only in a conversation and only after Aaron presses Approve on its button, which shows that diff.
+4. `hevy routine apply <A|B> <sha256>` takes on `stdin` the diff `draft` or `diff` printed, from its first line to the last line before any `over a cap` or `draft` line, refuses unless that is still the diff for that hash, then writes the stored draft and reads it back to check nothing was lost; it runs only in a conversation, never in a scheduled run.
 
 A draft is:
 
@@ -53,7 +53,7 @@ A draft is:
 - `apply` replaces the whole routine, so a draft always lists every exercise the routine should keep.
 - A draft is refused when an exercise's heaviest set rises more than 7 kg over the routine in Hevy, a new exercise's over the heaviest of its muscle group there, or the routine's heaviest when the group is new, or a muscle group gains more working sets than one or a tenth, whichever is more, so progress comes in small steps; the first fill of an empty routine is not capped.
 
-Before asking Aaron to approve, show him the diff the tool printed, word for word, and the hash, so the button he presses matches what he read.
-Never apply a draft Aaron has not seen, and never call `apply` in a scheduled run, which refuses it anyway.
+Apply a draft without asking once Aaron has asked for the change or agreed to the plan, and show him the diff the tool printed, word for word.
+Never call `apply` in a scheduled run, which refuses it anyway.
 
 When a call fails saying the Hevy session is missing or was refused, tell Aaron in one line that he needs to run `sudo -u butler hevy login` on spike with the `auth2.0-token` cookie from hevy.com, then carry on without Hevy.

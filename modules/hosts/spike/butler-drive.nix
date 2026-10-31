@@ -164,7 +164,6 @@ in
         {
           match = [ "**" ];
           lanes = both;
-          taints = true;
         }
       ];
       skill = ./butler-skills/drive;

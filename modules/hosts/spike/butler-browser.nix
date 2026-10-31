@@ -31,15 +31,13 @@ let
   ];
   panelAddresses = addressesOf [ "framer" ];
 
-  readTools = [
+  tools = [
     "browser_snapshot"
     "browser_find"
     "browser_console_messages"
     "browser_network_requests"
     "browser_network_request"
     "browser_wait_for"
-  ];
-  actionTools = [
     "browser_navigate"
     "browser_navigate_back"
     "browser_click"
@@ -51,8 +49,6 @@ let
     "browser_hover"
     "browser_handle_dialog"
     "browser_tabs"
-  ];
-  quietTools = [
     "browser_resize"
     "browser_emulate_media"
     "browser_close"
@@ -78,10 +74,8 @@ let
         ];
         env.PLAYWRIGHT_MCP_USER_DATA_DIR = profile;
       };
-      allowedTools = qualified (readTools ++ actionTools ++ quietTools);
-      taints = qualified (readTools ++ actionTools);
-      egress = qualified actionTools;
-      safe = qualified quietTools;
+      allowedTools = qualified tools;
+      safe = [ "mcp__browser__*" ];
     }
   );
 

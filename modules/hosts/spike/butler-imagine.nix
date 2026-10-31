@@ -40,7 +40,6 @@ in
         {
           match = [ "*" ];
           lanes = both;
-          egress = true;
         }
         {
           match = [
@@ -48,7 +47,6 @@ in
             "*"
           ];
           lanes = both;
-          egress = true;
         }
       ];
       credentials.openai-api-key = "/var/lib/secrets/butler-openai-api-key";

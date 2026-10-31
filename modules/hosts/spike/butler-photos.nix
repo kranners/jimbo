@@ -25,7 +25,6 @@ let
       "**"
     ];
     lanes = both;
-    taints = true;
   };
 in
 {

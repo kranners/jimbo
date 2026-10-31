@@ -80,7 +80,6 @@ in
               "**"
             ];
             lanes = withVoice;
-            taints = true;
           }
         ];
       })

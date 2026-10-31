@@ -177,12 +177,10 @@ in
         {
           match = [ ];
           lanes = both;
-          taints = true;
         }
         {
           match = [ "--marketplace" ];
           lanes = both;
-          taints = true;
         }
       ];
       inherit credentials;
@@ -199,7 +197,6 @@ in
         {
           match = [ "*" ];
           lanes = both;
-          taints = true;
         }
         {
           match = [
@@ -207,7 +204,6 @@ in
             "*"
           ];
           lanes = both;
-          taints = true;
         }
       ];
       inherit credentials;

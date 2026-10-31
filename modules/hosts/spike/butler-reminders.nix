@@ -47,7 +47,6 @@ in
           "**"
         ];
         lanes = both;
-        taints = true;
       }
       {
         match = [
@@ -55,7 +54,6 @@ in
           "**"
         ];
         lanes = both;
-        taints = true;
       }
       {
         match = [

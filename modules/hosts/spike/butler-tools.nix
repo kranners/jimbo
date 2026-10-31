@@ -249,7 +249,6 @@ in
             "**"
           ];
           lanes = both;
-          taints = true;
         }
         {
           match = [
@@ -257,7 +256,6 @@ in
             "**"
           ];
           lanes = both;
-          taints = true;
         }
         {
           match = [
@@ -265,7 +263,6 @@ in
             "**"
           ];
           lanes = interactive;
-          egress = true;
         }
       ];
       credentials.home-assistant-token = secret "home-assistant-token";
@@ -290,7 +287,6 @@ in
             "**"
           ];
           lanes = both;
-          taints = true;
         }
         {
           match = [
@@ -298,7 +294,6 @@ in
             "**"
           ];
           lanes = interactive;
-          taints = true;
         }
         {
           match = [
@@ -306,7 +301,6 @@ in
             "**"
           ];
           lanes = interactive;
-          taints = true;
         }
         {
           match = [
@@ -314,7 +308,6 @@ in
             "**"
           ];
           lanes = interactive;
-          egress = true;
         }
       ];
       credentials.github-issues-token = secret "github-issues-token";
@@ -339,7 +332,6 @@ in
             "**"
           ];
           lanes = both;
-          taints = true;
         }
         {
           match = [
