@@ -14,12 +14,22 @@ let
   inbox = "${state}/inbox";
   openaiKey = "/var/lib/secrets/butler-openai-api-key";
   upToken = "/var/lib/secrets/butler-index-up-token";
+  slackToken = "/var/lib/secrets/butler-index-slack-token";
+  exportDirectories = [
+    "discord"
+    "location"
+    "messenger-e2ee"
+    "facebook"
+    "instagram"
+    "hevy"
+    "paypal"
+    "steam"
+  ];
   appleId = "/var/lib/butler/.local/share/pyicloud/apple-id";
 
   substitutions = {
     "@database@" = database;
     "@inbox@" = inbox;
-    "@discordSelfIds@" = lib.concatStringsSep "," cfg.discordSelfIds;
     "@captionModel@" = cfg.captions.model;
     "@inputUsdPerMillion@" = toString cfg.captions.inputUsdPerMillion;
     "@outputUsdPerMillion@" = toString cfg.captions.outputUsdPerMillion;
@@ -108,11 +118,6 @@ let
 in
 {
   options.butler.index = {
-    discordSelfIds = mkOption {
-      type = types.listOf types.str;
-      default = [ ];
-      description = "Aaron's Discord user IDs; a message export naming its authors keeps only these, while the data package, which holds only his own messages, needs none.";
-    };
     captions = {
       enable = mkOption {
         type = types.bool;
@@ -147,8 +152,8 @@ in
     butler.commands.life = {
       package = life;
       description = ''
-        Search Aaron's personal data index, read-only: Up bank payments, Google location history, his own Discord messages and captioned iCloud Photos. Prints capped JSON.
-        life sources | life search <words...> [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--source up|location|discord|photos] [--limit N] | life day <YYYY-MM-DD> [YYYY-MM-DD] [--source S] [--limit N] | life spending <YYYY-MM-DD> <YYYY-MM-DD> | life photos <words...> [--from D] [--to D] [--limit N]
+        Search Aaron's personal data index, read-only: Up bank, PayPal and Steam payments, Google location history, Messenger, Instagram, Slack and Discord messages, Hevy workouts and captioned iCloud Photos. Prints capped JSON.
+        life sources | life search <words...> [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--source up|paypal|steam|location|messenger|instagram|slack|discord|hevy|photos] [--limit N] | life day <YYYY-MM-DD> [YYYY-MM-DD] [--source S] [--limit N] | life spending <YYYY-MM-DD> <YYYY-MM-DD> | life photos <words...> [--from D] [--to D] [--limit N]
       '';
       rules = [
         {
@@ -169,30 +174,27 @@ in
       "d ${state} 0700 butler butler -"
       "d ${state}/db 0700 butler butler -"
       "d ${inbox} 0700 butler butler -"
-      "d ${inbox}/discord 0700 butler butler -"
-      "d ${inbox}/location 0700 butler butler -"
-    ];
+    ]
+    ++ map (directory: "d ${inbox}/${directory} 0700 butler butler -") exportDirectories;
 
     # The daemon sees the index read-only, and its own Read, Glob and Grep are denied it, so only `life`'s capped output reaches a thread.
     systemd.services.butler.serviceConfig.BindReadOnlyPaths = [ "-${state}/db" ];
 
     systemd.services.butler-index-ingest = {
-      description = "Ingest the Discord and location history exports in butler's index inbox";
+      description = "Ingest the chat, location, workout and payment exports in butler's index inbox";
       serviceConfig = hardening // {
         Type = "oneshot";
         ReadOnlyPaths = [ inbox ];
         ExecStart = "${lib.getExe ingest} files";
+        Nice = 19;
+        IOSchedulingClass = "idle";
+        MemoryMax = "512M";
       };
     };
 
     systemd.paths.butler-index-ingest = {
       wantedBy = [ "paths.target" ];
-      pathConfig = {
-        PathChanged = [
-          "${inbox}/discord"
-          "${inbox}/location"
-        ];
-      };
+      pathConfig.PathChanged = map (directory: "${inbox}/${directory}") exportDirectories;
     };
 
     systemd.timers.butler-index-ingest = {
@@ -219,6 +221,30 @@ in
       wantedBy = [ "timers.target" ];
       timerConfig = {
         OnBootSec = "10min";
+        OnUnitInactiveSec = "6h";
+      };
+    };
+
+    systemd.services.butler-index-slack = {
+      description = "Ingest both sides of Aaron's Slack conversations into butler's index";
+      wants = [ "network-online.target" ];
+      after = [ "network-online.target" ];
+      unitConfig.ConditionPathExists = slackToken;
+      serviceConfig = hardening // {
+        Type = "oneshot";
+        LoadCredential = [ "slack-token:${slackToken}" ];
+        ExecStart = "${lib.getExe ingest} slack";
+        Nice = 19;
+        IOSchedulingClass = "idle";
+        MemoryMax = "384M";
+        TimeoutStartSec = "12h";
+      };
+    };
+
+    systemd.timers.butler-index-slack = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "20min";
         OnUnitInactiveSec = "6h";
       };
     };
