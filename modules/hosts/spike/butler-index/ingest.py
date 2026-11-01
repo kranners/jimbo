@@ -507,8 +507,17 @@ SLACK_PAUSE = 1.3
 
 
 def slack_call(session, method, **params):
+    failures = 0
     while True:
-        response = session.get(f"{SLACK_API}/{method}", params=params, timeout=60)
+        try:
+            response = session.get(f"{SLACK_API}/{method}", params=params, timeout=60)
+        except requests.RequestException:
+            # A dropped or garbled connection is retried with backoff, since one ended a 35-minute backfill.
+            failures += 1
+            if failures > 6:
+                raise
+            time.sleep(min(2 ** failures, 120))
+            continue
         if response.status_code == 429:
             time.sleep(int(response.headers.get("Retry-After", "30")) + 1)
             continue
