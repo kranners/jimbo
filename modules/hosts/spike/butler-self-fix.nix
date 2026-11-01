@@ -13,6 +13,7 @@ let
   sessions = "${selfFix}/sessions";
   refresh = "${selfFix}/refresh";
   progress = "${selfFix}/progress";
+  watch = "${selfFix}/watch";
   runnerHome = config.users.users.backlogic-runner.home;
   launchFrom = "${aaron}/workspace/jimbo";
   personalCooldown = "${home}/.claude-accounts/cooldown/1";
@@ -20,11 +21,11 @@ let
   preamble = pkgs.writeText "butler-self-fix-preamble.md" ''
     You are butler's self-fix session. Butler is Aaron's personal assistant bot: the claude-discord-threads daemon, run on the NixOS host spike as the system user butler, configured by this jimbo flake (modules/hosts/spike/butler*.nix and butler-skills/), with its memory, skills and scheduled prompts in kranners/butler-memory.
     You start in kranners/jimbo. For kranners/claude-discord-threads or kranners/butler-memory, call add_repo, with access "push" for a repository you change.
-    This sandbox reaches only GitHub repositories attached to it, so when nix answers 403 fetching a github: flake input, call add_repo for that input's repository and retry.
+    Nobody watches this session and Aaron is told when it ends, so never stop to ask.
 
     Aaron's request, relayed by butler, is at the end. Make the smallest change that does what it asks, in whichever repository it belongs, and land it:
 
-    - jimbo: follow its .claude/CLAUDE.md and keep its CLAUDE.md files true in the same commit. Check with `nix --extra-experimental-features 'nix-command flakes' flake check`. Within about 5 minutes of main moving, spike's jimbo-switch pulls it and switches spike, restarting butler only when its service changed, and a commit whose build fails is never switched to.
+    - jimbo: follow its .claude/CLAUDE.md and keep its CLAUDE.md files true in the same commit. Check with the cloud session's `nix flake check` in its .claude/CLAUDE.md. Within about 5 minutes of main moving, spike's jimbo-switch pulls it and switches spike, restarting butler only when its service changed, and a commit whose build fails is never switched to.
     - claude-discord-threads: put /opt/node24/bin first on PATH, then `npm ci && npm run typecheck && npm test`. butler-pull deploys its main within about 2 minutes and restarts butler.
     - butler-memory: plain files butler reads; butler-memory-pull brings main to spike within 5 minutes.
 
@@ -96,7 +97,7 @@ let
   };
 
   cloudFromFile = pkgs.writeShellScript "claude-cloud-from-file" ''
-    exec ${lib.getExe pkgs.claude-code} --cloud="$(cat "$1")"
+    exec ${lib.getExe pkgs.claude-code} --cloud="$(cat "$1")" --permission-mode auto
   '';
 
   launch = pkgs.writeShellApplication {
@@ -143,6 +144,7 @@ let
         session=$(sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' "$work/log" | grep -aoE 'session_[A-Za-z0-9]+' | head -1 || true)
         if [ -n "$session" ]; then
           echo "Started https://claude.ai/code/$session on $(basename "$config")" > "${sessions}/$id"
+          touch "${watch}/$id"
         else
           echo "Could not start a cloud session: $(sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' "$work/log" | tr -s '\r\n ' ' ' | tail -c 400)" > "${sessions}/$id"
         fi
@@ -189,7 +191,9 @@ let
     runtimeInputs = [
       pkgs.coreutils
       pkgs.curl
+      pkgs.findutils
       pkgs.gnugrep
+      pkgs.gnused
       pkgs.jq
     ];
     text = ''
@@ -208,10 +212,31 @@ let
           "https://api.anthropic.com/v1/code/sessions/$cse$1"
       }
 
-      for request in "${refresh}"/*; do
-        [ -e "$request" ] || continue
-        id=$(basename "$request")
-        rm -f "$request"
+      tell_aaron_when_ended_or_waiting() {
+        local id=$1 state title link
+        state=$(sed -n 's/^State: //p' "${progress}/$id")
+        title=$(sed -n 's/^Title: //p' "${progress}/$id")
+        link=$(grep -oE 'https://claude.ai/code/session_[A-Za-z0-9]+' "${sessions}/$id")
+        case "$state" in
+          finished* | archived | "failed to start"*)
+            { echo "Self-fix $state: $title"; echo "$link"; sed -n 's/^Final summary[^:]*: //p' "${progress}/$id"; } | butler-notify > /dev/null
+            rm -f "${watch}/$id"
+            ;;
+          "waiting on input"*)
+            if [ "$(cat "${watch}/$id")" != "$state" ]; then
+              printf 'Self-fix %s: %s\n%s\n' "$state" "$title" "$link" | butler-notify > /dev/null
+              echo "$state" > "${watch}/$id"
+            fi
+            ;;
+          *) echo "$state" > "${watch}/$id" ;;
+        esac
+        if [ -e "${watch}/$id" ] && [ -n "$(find "${sessions}/$id" -mmin +2880)" ]; then
+          rm -f "${watch}/$id"
+        fi
+      }
+
+      find "${refresh}" "${watch}" -mindepth 1 -printf '%f\n' | sort -u | while read -r id; do
+        rm -f "${refresh}/$id"
         [[ "$id" =~ ^[0-9]{8}-[0-9]{6}-[0-9]+$ ]] || continue
         started=$(cat "${sessions}/$id" 2>/dev/null || true)
         session=$(grep -oE 'session_[A-Za-z0-9]+' <<< "$started" | head -1 || true)
@@ -233,6 +258,7 @@ let
         chown butler: "$work/out"
         mv "$work/out" "${progress}/$id"
         rm -rf "$work"
+        [ ! -e "${watch}/$id" ] || tell_aaron_when_ended_or_waiting "$id"
       done
     '';
   };
@@ -295,6 +321,7 @@ in
     "d ${sessions} 0700 butler butler -"
     "d ${refresh} 0700 butler butler -"
     "d ${progress} 0700 butler butler -"
+    "d ${watch} 0700 root root -"
   ];
 
   systemd.paths.butler-self-fix-progress = {
@@ -302,8 +329,17 @@ in
     pathConfig.DirectoryNotEmpty = refresh;
   };
 
+  systemd.timers.butler-self-fix-progress = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnActiveSec = "2min";
+      OnUnitInactiveSec = "2min";
+    };
+  };
+
   systemd.services.butler-self-fix-progress = {
-    description = "Read the progress of the cloud sessions butler asked about";
+    description = "Read the progress of the cloud sessions butler asked about or started, and tell Aaron when one ends or waits on him";
+    path = [ "/run/current-system/sw" ];
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
     serviceConfig = {

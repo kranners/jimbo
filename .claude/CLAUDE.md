@@ -31,6 +31,13 @@ It also runs `modules/browser/update-extensions.sh`, which pins each browser ext
 The flake check `browser-extensions` fetches every pinned extension, so CI's `cachix watch-store` pushes each one to the `kranners` cache, from which every host substitutes it after the store has moved on, so a pin that lags the store still builds.
 `.claude/worktrees/` is gitignored so the `git add .` in `just` never stages a worktree.
 
+A claude.ai cloud session's proxy refuses nix's `github:` tarball downloads, so check there with every locked `github:` input fetched over git instead, where `browser-extensions` fails on any pin that lags the store:
+
+```sh
+overrides=$(jq -r '.nodes as $n | def walk($node; $path): ($n[$node].inputs // {}) | to_entries[] | select(.value | type == "string") | ($path + [.key]) as $p | ($n[.value].locked | select(.type == "github") | "--override-input \($p | join("/")) git+https://github.com/\(.owner)/\(.repo)?rev=\(.rev)&shallow=1"), walk(.value; $p); walk(.root; [])' flake.lock)
+nix --extra-experimental-features 'nix-command flakes' flake check --keep-going $overrides
+```
+
 Update this file, or `modules/hosts/spike/CLAUDE.md`, in the same branch as any change that makes it wrong.
 It keeps one sentence per line, so git merges edits from two branches sentence by sentence.
 
@@ -237,12 +244,13 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   It answers with pictures through the daemon's `attach_file` tool, which `DISCORD_ATTACH_PATHS` limits to `/var/lib/butler/outbox` and the mood pictures, since the tool reads files outside Claude Code's own `Read` rules.
   `modules/hosts/spike/butler-render.nix` gives it `render`, which screenshots HTML, SVG, Mermaid or Vega-Lite from stdin into a PNG in the outbox with Playwright's Chromium, its libraries inlined from pinned bundles and the page cut off from the network by offline mode, routes that abort every request and a dead proxy and resolver, because it runs in threads that read private data without approval.
   `modules/hosts/spike/butler-self-fix.nix` gives it `self-fix`, so Aaron can ask it to fix itself: `self-fix start` writes the request from stdin to `/var/lib/butler/self-fix/queue/<id>.json`, and `self-fix status <id>` prints the session's link from `/var/lib/butler/self-fix/sessions/<id>`.
-  `butler-self-fix.path` runs `butler-self-fix.service` as root whenever the queue is not empty, which runs `claude --cloud` as `aaron` from `~/workspace/jimbo` under `script`, since it refuses without a terminal, with a preamble telling the session to `add_repo` the other repositories and land the fix on `main`.
+  `butler-self-fix.path` runs `butler-self-fix.service` as root whenever the queue is not empty, which runs `claude --cloud --permission-mode auto` as `aaron` from `~/workspace/jimbo` under `script`, since it refuses without a terminal, with a preamble telling the session to `add_repo` the other repositories and land the fix on `main`.
+  Auto mode is the one mode a cloud session takes that runs without a person, since `--cloud` never forwards `bypassPermissions`, and its classifier approves even edits to `.claude/CLAUDE.md`, which every other mode asks about.
   It uses `~/.claude`, the personal account, unless butler's `cooldown/1` is in the future, then `~/.claude-work`, and marks `~/workspace/jimbo` trusted in that account's `.claude.json` first.
   Once the session has started, `self-fix status <id>` also touches `/var/lib/butler/self-fix/refresh/<id>`, and `butler-self-fix-progress.path` runs `butler-self-fix-progress.service` as root, which reads the session and its newest 100 events from claude.ai's `/v1/code/sessions` API with the fresher of `aaron`'s and the runner's login for that account, so the token never reaches butler.
   It writes a summary to `/var/lib/butler/self-fix/progress/<id>`, the state, title, last activity, branch, last dozen steps and final summary, which `status` prints once it is newer than the request, waiting up to 30 seconds.
-  Its skill has butler check the status again before ending the turn that started it, and whenever Aaron next writes in that thread, and tell him at once with the link when the session is waiting on input.
-  jimbo's `.claude/settings.json` approves a cloud session's `add_repo` through a `PreToolUse` hook, for read access to any repository, such as a flake input, and push access to `jimbo`, `claude-discord-threads` and `butler-memory` alone, because a self-fix session waiting on that approval stalled where no one was watching.
+  `butler-self-fix.service` also lists each session it starts in `/var/lib/butler/self-fix/watch`, and `butler-self-fix-progress.timer` reads those every 2 minutes too, DMing Aaron through `butler-notify` with the link and final summary once one finishes, fails or is archived, and with the link each time one starts waiting on input, giving up on a session after 2 days.
+  jimbo's `.claude/settings.json` approves a cloud session's `add_repo` through a `PreToolUse` hook, for read access to any repository and push access to `jimbo`, `claude-discord-threads` and `butler-memory` alone, because a self-fix session waiting on that approval stalled where no one was watching.
   The module's `jimbo-switch.timer` then deploys a jimbo fix: every 5 minutes, as `aaron` in `~/workspace/jimbo`, it fast-forwards to `origin/main` and runs `nh os switch .`, only while the checkout is on `main` and clean, never restarted by the switch it runs, and it records a commit whose switch failed in `/var/lib/jimbo-switch/failed` so it waits for the next one.
   `modules/hosts/spike/butler-slack.nix` gives it `slack`, which reads Aaron's work Slack workspace, its channels, DMs, users, a channel's history, a thread and a search, through GETs of Slack's Web API alone, so it cannot post, react or edit.
   It sends Aaron's user token, `xoxp-…` with the `channels`, `groups`, `im` and `mpim` `history` and `read` scopes, `search:read` and `users:read`, from `/var/lib/secrets/butler-slack-token`, owner `root`, mode 600, written by hand.
