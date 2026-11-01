@@ -45,6 +45,7 @@
       butler.imagine.enable = true;
       butler.credentialedTools = true;
       butler.voice.enable = true;
+      butler.drive.enable = true;
 
       boot.loader.systemd-boot.enable = true;
       boot.loader.efi.canTouchEfiVariables = true;
