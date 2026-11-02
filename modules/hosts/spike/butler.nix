@@ -290,6 +290,29 @@ let
     }
   '';
 
+  # Pulls and pushes the memory checkout under its lock. memory-note and
+  # memory-save start it in the background once they have committed, so a
+  # turn never waits on GitHub, and butler-memory-pull pushes whatever it left.
+  memory-push = pkgs.writeShellApplication {
+    name = "memory-push";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.git
+      pkgs.openssh
+      pkgs.util-linux
+    ];
+    text = ''
+      ${lockedMemory}
+
+      if ! (pull && { git push --quiet || { pull && git push --quiet; }; }); then
+        logger -t memory-push "could not push butler's memory; butler-memory-pull retries it" || true
+        exit 1
+      fi
+    '';
+  };
+
+  pushInBackground = "setsid --fork ${lib.getExe memory-push} </dev/null >/dev/null 2>&1 9>&-";
+
   memory-note = pkgs.writeShellApplication {
     name = "memory-note";
     runtimeInputs = [
@@ -316,13 +339,12 @@ let
 
       ${lockedMemory}
 
-      pull
       day=$(date +%F)
       time=$(date +%H:%M)
       printf '\n## %s\n%s\n' "$time" "$note" >>"journal/$day.md"
       git add "journal/$day.md"
       git -c user.name=Butler -c user.email=butler@spike commit --quiet --message "Journal $day $time"
-      git push --quiet || { pull && git push --quiet; }
+      ${pushInBackground}
       echo "Noted in journal/$day.md"
     '';
   };
@@ -361,8 +383,7 @@ let
       fi
       files=$(git diff --cached --name-only)
       git -c user.name=Butler -c user.email=butler@spike commit --quiet --message "$message"
-      pull
-      git push --quiet || { pull && git push --quiet; }
+      ${pushInBackground}
       echo "Saved $files"
     '';
   };
@@ -382,6 +403,9 @@ let
 
       if [ -d ${memory}/.git ]; then
         git -C ${memory} pull --rebase --autostash --quiet || { git -C ${memory} rebase --abort 2>/dev/null; exit 1; }
+        if [ -n "$(git -C ${memory} rev-list '@{upstream}..HEAD')" ]; then
+          git -C ${memory} push --quiet
+        fi
       else
         git clone --quiet ${memoryRepository} ${memory}
       fi
@@ -442,7 +466,7 @@ in
 
     butler.commands.memory-note = {
       package = memory-note;
-      description = "Append a note, given as stdin, to today's journal in ~/memory and push it. Takes no args.";
+      description = "Append a note, given as stdin, to today's journal in ~/memory, committed at once and pushed in the background. Takes no args.";
       stdin = true;
       rules = [
         {
@@ -458,7 +482,7 @@ in
 
     butler.commands.memory-save = {
       package = memory-save;
-      description = "Commit and push every change you made under ~/memory/core, ~/memory/skills and ~/memory/journal, with what changed in one line on stdin. Takes no args.";
+      description = "Commit every change you made under ~/memory/core, ~/memory/skills and ~/memory/journal, with what changed in one line on stdin, and push it in the background. Takes no args.";
       stdin = true;
       rules = [
         {
