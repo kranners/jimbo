@@ -51,6 +51,7 @@
       butler.credentialedTools = true;
       butler.voice.enable = true;
       butler.drive.enable = true;
+      butler.hevy.enable = true;
       butler.index.captions.photosScript = ./butler-photos/photos.py;
 
       boot.loader.systemd-boot.enable = true;
