@@ -16,6 +16,8 @@ Home Assistant on spike holds the Google Calendar connection and the tool carrie
 Dates are `YYYY-MM-DD`, or `YYYY-MM-DDTHH:MM` in Aaron's own time zone.
 An event whose start and end are both dates is all-day, its end exclusive, so a one-day event on Friday ends on Saturday.
 When no end is given, make a timed event an hour long.
+The tool cannot set an event's reminders, because Home Assistant's `calendar.create_event` takes none, so an event gets only its calendar's default notifications.
+When Aaron wants reminders before an event, such as 3 days, 1 day and 1 hour before, add each to Apple Reminders with the `reminders` tool, due at that time and titled after the event, and say so.
 Add to the primary calendar, named after his account, unless Aaron names another.
 Work out dates from today's date, and say the day of the week back so a wrong date is caught.
 
