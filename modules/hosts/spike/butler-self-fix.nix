@@ -119,11 +119,28 @@ let
         fi
       }
 
+      # The personal account is claude's default, so its state sits beside ~/.claude, and naming it in CLAUDE_CONFIG_DIR would move that state inside.
+      statePath() {
+        if [ "$1" = "${aaron}/.claude" ]; then
+          echo "${aaron}/.claude.json"
+        else
+          echo "$1/.claude.json"
+        fi
+      }
+
+      configOverride() {
+        if [ "$1" != "${aaron}/.claude" ]; then
+          echo "CLAUDE_CONFIG_DIR=$1"
+        fi
+      }
+
       trust() {
-        local state="$1/.claude.json"
+        local state
+        state=$(statePath "$1")
         if [ "$(jq -r --arg dir "${launchFrom}" '.projects[$dir].hasTrustDialogAccepted // false' "$state")" != true ]; then
           jq --arg dir "${launchFrom}" '.projects[$dir].hasTrustDialogAccepted = true' "$state" > "$state.tmp"
-          chown aaron: "$state.tmp"
+          chown --reference="$state" "$state.tmp"
+          chmod --reference="$state" "$state.tmp"
           mv "$state.tmp" "$state"
         fi
       }
@@ -139,7 +156,8 @@ let
         (
           cd "${launchFrom}"
           # claude --cloud refuses without a terminal, so script gives it one; it stays attached, so timeout ends it once the session exists.
-          timeout 60 runuser -u aaron -- env HOME=${aaron} CLAUDE_CONFIG_DIR="$config" \
+          # shellcheck disable=SC2046
+          timeout 60 runuser -u aaron -- env HOME=${aaron} $(configOverride "$config") \
             script -q -c "${cloudFromFile} $work/prompt" "$work/log" < /dev/null > /dev/null 2>&1 || true
         )
         session=$(sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' "$work/log" | grep -aoE 'session_[A-Za-z0-9]+' | head -1 || true)
