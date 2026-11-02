@@ -17,6 +17,7 @@ SHOT_WIDTH = 1512
 SETTLE = 0.6
 RECORD_INTERVAL = 0.5
 RECORD_LIMIT = 15 * 60
+RECORD_TAIL = 1.5
 IDLE = 600
 DRAG_STEPS = 12
 BUTTONS = {'left': 1, 'middle': 2, 'right': 3}
@@ -377,8 +378,9 @@ def record(host, verb):
         if not alive(folder):
             print(outcome(folder) or 'not recording %s' % host)
             return
+        time.sleep(RECORD_TAIL)
         open(os.path.join(folder, 'stop'), 'w').close()
-        deadline = time.time() + 55
+        deadline = time.time() + 53
         while alive(folder) and time.time() < deadline:
             time.sleep(0.5)
         print(outcome(folder) or 'still encoding; run mac %s record stop again shortly for the path' % host)
