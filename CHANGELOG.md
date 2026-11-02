@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-11-03: butler can see and drive Aaron's MacBooks with `mac`, his real screen, mouse and keyboard through Screen Sharing and a shell through ssh, and record what it did, once Screen Sharing is switched on by hand on each Mac.
 - 2026-11-03: framer wakes on hey_butler alone.
 - 2026-11-03: framer's voice overlay is butler himself, rising from the bottom of the dimmed panel and reacting as he listens, thinks and answers, with the reply in a speech bubble, and sliding back off when the conversation ends.
 - 2026-11-03: butler speaks as a Jeeves-like gentleman's gentleman in Kokoro's British `bm_george` voice, which replaces piper on spike for framer's Assist pipeline, and is wired to join Aaron's Discord voice calls once its daemon serves `/call`.
