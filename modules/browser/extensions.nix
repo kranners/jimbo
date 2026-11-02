@@ -24,15 +24,15 @@ map fetchExtension [
   {
     # Bitwarden
     id = "nngceckbapebfimnlniiiahkandclblb";
-    version = "2026.10.0";
-    hash = "sha256-8v63/EbSVQvvm2mvHMNYrqJrkKlHZF+d4W7BTZKW72k=";
+    version = "2026.10.1";
+    hash = "sha256-2SlT6sQNZPWzjiVNIZa6uwvwxegcHZr6rkzYilW6tCw=";
   }
   {
     # uBlock Origin Lite, the store no longer serves the Manifest V2 uBlock
     # Origin to Chromium 139 and later.
     id = "ddkjiahejlhfcafbddmgiahcphecmpfh";
-    version = "2026.1021.1354";
-    hash = "sha256-CIdVnrnmhk6RtS5KDGYJla3kfAhNzHFQ7ZrnQ8lHWnY=";
+    version = "2026.1026.1812";
+    hash = "sha256-Z2P/MMt7ib87QRkIwDZ0tdTpjBKjj7rndv0FfRqNGDc=";
   }
   {
     # Vimium C
@@ -43,14 +43,14 @@ map fetchExtension [
   {
     # Refined GitHub
     id = "hlepfoohegkhhmjieoechaddaejaokhf";
-    version = "26.10.20";
-    hash = "sha256-uij61TGNjBAqIVkKQjYNpfrK07EH8oNJxBA/WHVcMRE=";
+    version = "26.10.26";
+    hash = "sha256-Zc1hPio5K0R+SL3dtq9ZrTTxstchX86vswkpbpGCM8Q=";
   }
   {
     # Claude in Chrome
     id = "fcoeoabgfenejglbffodgkkbkcdhcgfn";
-    version = "1.0.102";
-    hash = "sha256-uG3+/qtOQn8dwqBxn+Je8zyJmVXV1WFC/qV0AHznzZ8=";
+    version = "1.0.104";
+    hash = "sha256-yg//bd67w3gl2cE1c18MetXAJJYDj69mkh15uy5Ltpo=";
   }
   {
     # Tampermonkey
