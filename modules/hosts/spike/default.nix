@@ -19,6 +19,7 @@
         ./butler-health.nix
         ./butler-imagine.nix
         inputs.butler.nixosModules.index
+        ./butler-mac.nix
         ./butler-mail.nix
         ./butler-messenger.nix
         ./butler-notify.nix
