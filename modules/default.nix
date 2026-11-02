@@ -29,6 +29,7 @@ in
     ./networking
     ./gnupg
     ./formatting
+    ./butler-access
   ]
   ++ lib.optionals host.desktop [
     ./hyprland
