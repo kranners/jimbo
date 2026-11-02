@@ -58,6 +58,12 @@
       };
       butler.hevy.enable = true;
       butler.index.captions.photosScript = ./butler-photos/photos.py;
+      butler.index.browserHistory.devices.pilot = {
+        address = "10.100.0.11";
+        keys = [
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGtqizfD3BqSqW9So42zNpzbxV5/F8W9CvQsOELTPdfe browser-history@pilot"
+        ];
+      };
 
       boot.loader.systemd-boot.enable = true;
       boot.loader.efi.canTouchEfiVariables = true;
