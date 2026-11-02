@@ -59,16 +59,6 @@ in
     stdin = true;
     rules = [
       {
-        match = [
-          "*"
-          "run"
-          "**"
-        ];
-        lanes = [ "interactive" ];
-        taints = true;
-        egress = true;
-      }
-      {
         match = [ "**" ];
         lanes = [ "interactive" ];
         egress = true;
