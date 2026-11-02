@@ -43,12 +43,14 @@ let
     name = "self-fix";
     runtimeInputs = [
       pkgs.coreutils
+      pkgs.findutils
       pkgs.gnugrep
+      pkgs.gnused
       pkgs.jq
     ];
     text = ''
       usage() {
-        echo "usage: self-fix start (the request on stdin) | self-fix status <id>" >&2
+        echo "usage: self-fix start (the request on stdin) | self-fix status <id> | self-fix list" >&2
         exit 2
       }
 
@@ -91,6 +93,54 @@ let
             echo "No self-fix $id." >&2
             exit 1
           fi
+          ;;
+        list)
+          [ "$#" -eq 1 ] || usage
+          # Every self-fix asked for in the last 7 days, newest first, from the records start and the launcher leave behind.
+          mapfile -t ids < <(find "${sessions}" "${queue}" -mindepth 1 -maxdepth 1 -mtime -7 -printf '%f\n' |
+            sed 's/\.json$//' | grep -E '^[0-9]{8}-[0-9]{6}-[0-9]+$' | sort -ru || true)
+          if [ "''${#ids[@]}" -eq 0 ]; then
+            echo "No self-fixes in the last 7 days."
+            exit 0
+          fi
+          asked=$(date +%s)
+          started=()
+          for id in "''${ids[@]}"; do
+            if [ -e "${sessions}/$id" ] && grep -q '^Started ' "${sessions}/$id"; then
+              started+=("$id")
+              touch "${refresh}/$id"
+            fi
+          done
+          for _ in $(seq 30); do
+            fresh=1
+            for id in "''${started[@]}"; do
+              if [ ! -e "${progress}/$id" ] || [ "$(stat -c %Y "${progress}/$id")" -lt "$asked" ]; then
+                fresh=0
+                break
+              fi
+            done
+            [ "$fresh" = 0 ] || break
+            sleep 1
+          done
+          for id in "''${ids[@]}"; do
+            echo "Self-fix $id"
+            if [ ! -e "${sessions}/$id" ]; then
+              echo "State: still starting"
+            elif ! grep -q '^Started ' "${sessions}/$id"; then
+              echo "State: failed to start"
+              cat "${sessions}/$id"
+            else
+              if [ -e "${progress}/$id" ]; then
+                grep -E '^(State|Title|Last activity): ' "${progress}/$id" || true
+                [ "$(stat -c %Y "${progress}/$id")" -ge "$asked" ] ||
+                  echo "(as of $(date -d "@$(stat -c %Y "${progress}/$id")" '+%a %H:%M'); could not refresh it)"
+              else
+                echo "State: unknown, its progress could not be read yet"
+              fi
+              grep -oE 'https://claude.ai/code/session_[A-Za-z0-9]+' "${sessions}/$id" | sed 's/^/Link: /'
+            fi
+            echo
+          done
           ;;
         *) usage ;;
       esac
@@ -314,7 +364,7 @@ in
     package = self-fix;
     description = ''
       Ask a cloud Claude Code session to fix or change butler itself (its jimbo config, the claude-discord-threads daemon or its memory) and land the fix, which then deploys on its own.
-      self-fix start (Aaron's request on stdin) | self-fix status <id> (the session's link once it starts, then its live state, recent activity, branch and final summary)
+      self-fix start (Aaron's request on stdin) | self-fix status <id> (the session's link once it starts, then its live state, recent activity, branch and final summary) | self-fix list (every self-fix of the last 7 days, newest first, with its id, title, state, last activity and link; use it when Aaron asks how his fixes are going without an id)
     '';
     stdin = true;
     rules = [
@@ -328,6 +378,10 @@ in
           "status"
           "*"
         ];
+        lanes = [ "interactive" ];
+      }
+      {
+        match = [ "list" ];
         lanes = [ "interactive" ];
       }
     ];
