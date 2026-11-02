@@ -20,6 +20,11 @@
       url = "github:NixOS/nixos-hardware";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    butler = {
+      url = "git+ssh://git@github.com/kranners/butler";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =

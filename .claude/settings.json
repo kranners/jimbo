@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -c 'select((.tool_input.access // \"read\") != \"push\" or (.tool_input.owner == \"kranners\" and (.tool_input.repo | IN(\"jimbo\", \"claude-discord-threads\", \"butler-memory\")))) | {hookSpecificOutput: {hookEventName: \"PreToolUse\", permissionDecision: \"allow\", permissionDecisionReason: \"Read access, or push to one of butler'\\''s own repositories\"}}'"
+            "command": "jq -c 'select((.tool_input.access // \"read\") != \"push\" or (.tool_input.owner == \"kranners\" and (.tool_input.repo | IN(\"jimbo\", \"claude-discord-threads\", \"butler-memory\", \"butler\")))) | {hookSpecificOutput: {hookEventName: \"PreToolUse\", permissionDecision: \"allow\", permissionDecisionReason: \"Read access, or push to one of butler'\\''s own repositories\"}}'"
           }
         ]
       }

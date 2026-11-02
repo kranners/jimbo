@@ -1,4 +1,9 @@
-{ host, lib, ... }:
+{
+  host,
+  lib,
+  inputs,
+  ...
+}:
 {
   nixosSystemModule =
     { pkgs, ... }:
@@ -13,7 +18,7 @@
         ./butler-drive.nix
         ./butler-health.nix
         ./butler-imagine.nix
-        ./butler-index.nix
+        inputs.butler.nixosModules.index
         ./butler-mail.nix
         ./butler-messenger.nix
         ./butler-notify.nix
@@ -46,6 +51,7 @@
       butler.credentialedTools = true;
       butler.voice.enable = true;
       butler.drive.enable = true;
+      butler.index.captions.photosScript = ./butler-photos/photos.py;
 
       boot.loader.systemd-boot.enable = true;
       boot.loader.efi.canTouchEfiVariables = true;
