@@ -11,6 +11,7 @@ let
   tokenDirectory = "${home}/.local/share/ortie";
   token = "${tokenDirectory}/outlook.json";
   microsoft = "https://login.microsoftonline.com/consumers/oauth2/v2.0";
+  thunderbirdClientId = "9e5f94bc-e8a4-4e73-b8be-63364c29d753";
 
   ortieConfig = (pkgs.formats.toml { }).generate "butler-ortie.toml" {
     accounts.outlook = {
@@ -73,7 +74,8 @@ in
 
     clientId = lib.mkOption {
       type = lib.types.str;
-      description = "The application (client) ID of Aaron's own Entra app for personal Microsoft accounts.";
+      default = thunderbirdClientId;
+      description = "The application (client) ID of a public client for personal Microsoft accounts with device code flow, Thunderbird's by default, since registering an app of his own needs an Entra directory.";
     };
   };
 

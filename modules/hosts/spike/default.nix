@@ -52,6 +52,10 @@
       butler.voice.enable = true;
       butler.drive.enable = true;
       butler.garmin.enable = true;
+      butler.outlook = {
+        enable = true;
+        address = "aaronpierce@outlook.com.au";
+      };
       butler.hevy.enable = true;
       butler.index.captions.photosScript = ./butler-photos/photos.py;
 
