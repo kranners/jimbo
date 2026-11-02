@@ -144,25 +144,18 @@ def look(host, client):
     return '%s (%dx%d, read it to see the screen)' % (path, image.width, image.height)
 
 
-def keys(combo):
-    parts = combo[:-2].split('-') + ['-'] if combo.endswith('--') else combo.split('-')
-    return [ALIASES.get(part.lower(), part.lower() if len(part) > 1 else part) for part in parts]
-
-
-def keysym(character):
+def keymap():
     from vncdotool import client as vnc
-    return vnc.KEYMAP.get(TYPED.get(character, character)) or ord(character)
+    vnc.KEYMAP.setdefault('minus', ord('-'))
+    return vnc.KEYMAP
 
 
-def press(client, symbols):
-    for symbol in symbols:
-        client.keyEvent(symbol, 1)
-    for symbol in reversed(symbols):
-        client.keyEvent(symbol, 0)
+def keys(combo):
+    parts = combo[:-2].split('-') + ['minus'] if combo.endswith('--') else combo.split('-')
+    return '-'.join(ALIASES.get(part.lower(), part.lower() if len(part) > 1 else part) for part in parts)
 
 
 def act(client, verb, args, stdin=''):
-    from vncdotool import client as vnc
     if verb == 'click':
         x, y = point(client, args[0], args[1])
         how = args[2] if len(args) > 2 else 'left'
@@ -188,10 +181,11 @@ def act(client, verb, args, stdin=''):
             client.mousePress(button)
     elif verb == 'type':
         for character in ' '.join(args) if args else stdin:
-            press(client, [keysym(character)])
+            client.keyPress(TYPED.get(character, character))
     elif verb == 'key':
+        keymap()
         for combo in args:
-            press(client, [vnc.KEYMAP.get(part) or ord(part) for part in keys(combo)])
+            client.keyPress(keys(combo))
     return '%s %s' % (verb, ' '.join(args)) if args else verb
 
 
@@ -208,9 +202,8 @@ def check(verb, args):
     if verb == 'scroll' and (len(args) < 3 or args[2] not in ('up', 'down') or (len(args) > 3 and not args[3].isdigit())):
         raise Refused('scroll takes <x> <y> <up|down> [clicks]')
     if verb == 'key':
-        from vncdotool import client as vnc
         for combo in args:
-            unknown = [part for part in keys(combo) if len(part) != 1 and part not in vnc.KEYMAP]
+            unknown = [part for part in keys(combo).split('-') if len(part) != 1 and part not in keymap()]
             if not combo or unknown:
                 raise Refused('unknown key %s in %s' % (', '.join(unknown) or '(empty)', combo))
 
