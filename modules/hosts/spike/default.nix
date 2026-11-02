@@ -30,6 +30,7 @@
         ./butler-slack.nix
         ./butler-tools.nix
         ./butler-voice.nix
+        ./butler-work-mail.nix
         ./caddy.nix
         ./claude.nix
         ./dns.nix
@@ -57,6 +58,7 @@
         address = "aaronpierce@outlook.com.au";
       };
       butler.hevy.enable = true;
+      butler.workMail.enable = true;
       butler.index.captions.photosScript = ./butler-photos/photos.py;
 
       boot.loader.systemd-boot.enable = true;

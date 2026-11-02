@@ -21,6 +21,18 @@ let
     lib.filterAttrs (_: account: account.himalaya ? smtp) mailAccounts
   );
 
+  gmailApiAccounts = lib.attrNames (
+    lib.filterAttrs (_: account: account.himalaya ? gmail) mailAccounts
+  );
+  readOnlyAccounts = lib.attrNames (lib.filterAttrs (_: account: account.readOnly) mailAccounts);
+  accountList =
+    "Accounts: ${lib.concatStringsSep ", " (lib.attrNames mailAccounts)}"
+    + lib.optionalString (
+      readOnlyAccounts != [ ]
+    ) "; read-only, so no archive: ${lib.concatStringsSep ", " readOnlyAccounts}"
+    + ".";
+  casePatterns = names: lib.concatMapStrings (name: "${name}) return 0 ;;\n") names;
+
   mailPassword = name: "email-${name}-password";
 
   passwordLogin = name: address: {
@@ -79,6 +91,20 @@ let
         ${himalaya} "$@"
       }
 
+      gmail_api() {
+        case "$1" in
+          ${casePatterns gmailApiAccounts}
+        esac
+        return 1
+      }
+
+      read_only() {
+        case "$1" in
+          ${casePatterns readOnlyAccounts}
+        esac
+        return 1
+      }
+
       [ $# -ge 1 ] || usage
 
       if [ "$1" = accounts ]; then
@@ -88,7 +114,12 @@ let
 
       if [ "$1" = unread-counts ]; then
         for account in ${lib.escapeShellArgs (lib.attrNames mailAccounts)}; do
-          if count=$(himalaya --json --account "$account" envelope search --page-size 1000 not flag seen | jq '.envelopes | length'); then
+          if gmail_api "$account"; then
+            count=$(himalaya --json --account "$account" gmail labels get INBOX | jq '.labels[0].messagesUnread // 0') || count=""
+          else
+            count=$(himalaya --json --account "$account" envelope search --page-size 1000 not flag seen | jq '.envelopes | length') || count=""
+          fi
+          if [ -n "$count" ]; then
             echo "$account $count"
           else
             echo "$account unavailable"
@@ -114,7 +145,13 @@ let
         list) himalaya --account "$account" envelope list --page-size "''${1:-10}" ;;
         search) himalaya --account "$account" envelope search "$@" ;;
         read) [ $# -eq 1 ] || usage; himalaya --account "$account" message read "$1" ;;
-        archive) [ $# -ge 1 ] || usage; himalaya --account "$account" message move --to archive "$@" ;;
+        archive)
+          [ $# -ge 1 ] || usage
+          if read_only "$account"; then
+            echo "mail: $account is read-only, so its messages cannot be archived here" >&2
+            exit 1
+          fi
+          himalaya --account "$account" message move --to archive "$@" ;;
         *) usage ;;
       esac
     '';
@@ -176,6 +213,11 @@ in
       lib.types.submodule {
         options = {
           himalaya = lib.mkOption { inherit (toml) type; };
+          readOnly = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = "Whether mail refuses to archive in this account, whose token can only read.";
+          };
           credentials = lib.mkOption {
             type = lib.types.attrsOf lib.types.str;
             default = { };
@@ -216,7 +258,7 @@ in
       mail = {
         package = mail;
         description = ''
-            Read and archive Aaron's email; it cannot delete or move mail anywhere else, and sends only through mail-send.
+            Read and archive Aaron's email; it cannot delete or move mail anywhere else, and sends only through mail-send. ${accountList}
           mail accounts | mail unread-counts | mail <account> mailboxes | mail <account> unread [count] | mail <account> list [count] | mail <account> search <query>... | mail <account> read <id> | mail <account> archive <id>...
         '';
         rules = [
