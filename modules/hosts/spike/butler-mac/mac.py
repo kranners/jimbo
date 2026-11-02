@@ -1,5 +1,7 @@
 import json
 import os
+import socket
+import socketserver
 import subprocess
 import sys
 import time
@@ -18,7 +20,8 @@ SHOT_WIDTH = 1512
 SETTLE = 0.6
 RECORD_INTERVAL = 0.5
 RECORD_LIMIT = 15 * 60
-ENCODING = rfb.Encoding.ZRLE
+ENCODING = rfb.Encoding.RAW
+IDLE = 600
 BUTTONS = {'left': 1, 'middle': 2, 'right': 3}
 ALIASES = {
     'cmd': 'super', 'command': 'super', 'opt': 'alt', 'option': 'alt',
@@ -54,6 +57,7 @@ def ssh_args(host, *options):
         '-o', 'BatchMode=yes',
         '-o', 'StrictHostKeyChecking=accept-new',
         '-o', 'ConnectTimeout=5',
+        '-o', 'Compression=yes',
         '-o', 'ServerAliveInterval=15',
         '-o', 'ControlPath=' + os.path.join(RUNTIME, '%C'),
         '-o', 'StreamLocalBindUnlink=yes',
@@ -127,7 +131,7 @@ def picture(client):
 
 def look(host, client):
     time.sleep(SETTLE)
-    client.refreshScreen()
+    client.refreshScreen(incremental=True)
     image = picture(client)
     shots = os.path.join(RUNTIME, 'shots')
     os.makedirs(shots, exist_ok=True)
@@ -143,7 +147,7 @@ def keys(combo):
     return '-'.join(ALIASES.get(part.lower(), part) for part in combo.split('-'))
 
 
-def act(client, verb, args):
+def act(client, verb, args, stdin=''):
     if verb == 'click':
         x, y = point(client, args[0], args[1])
         how = args[2] if len(args) > 2 else 'left'
@@ -163,13 +167,86 @@ def act(client, verb, args):
         for _ in range(int(args[3]) if len(args) > 3 else 3):
             client.mousePress(button)
     elif verb == 'type':
-        text = ' '.join(args) if args else sys.stdin.read()
+        text = ' '.join(args) if args else stdin
         for character in text:
             client.keyPress(TYPED.get(character, character))
     elif verb == 'key':
         for combo in args:
             client.keyPress(keys(combo))
     return '%s %s' % (verb, ' '.join(args)) if args else verb
+
+
+ACTIONS = ('look', 'click', 'move', 'drag', 'scroll', 'type', 'key')
+
+
+def session(host):
+    return os.path.join(RUNTIME, host + '.session')
+
+
+def serve(host):
+    client = screen(host)
+
+    class Handler(socketserver.StreamRequestHandler):
+        def handle(self):
+            request = json.loads(self.rfile.readline())
+            try:
+                if request['verb'] != 'look':
+                    journal(host, act(client, request['verb'], request['args'], request['stdin']))
+                reply = {'ok': True, 'text': look(host, client)}
+            except Exception as error:
+                reply = {'ok': False, 'text': '%s: %s' % (type(error).__name__, error)}
+            self.wfile.write(json.dumps(reply).encode() + b'\n')
+            self.server.done = not reply['ok']
+
+    class Server(socketserver.UnixStreamServer):
+        timeout = IDLE
+        done = False
+
+        def handle_timeout(self):
+            self.done = True
+
+    path = session(host)
+    if os.path.exists(path):
+        os.remove(path)
+    server = Server(path, Handler)
+    try:
+        while not server.done:
+            server.handle_request()
+    finally:
+        os.remove(path)
+        client.disconnect()
+        api.shutdown()
+
+
+def ask(host, request, retry=True):
+    path = session(host)
+    if not os.path.exists(path):
+        os.makedirs(RUNTIME, mode=0o700, exist_ok=True)
+        log = open(os.path.join(RUNTIME, host + '.log'), 'w')
+        subprocess.Popen([sys.argv[0], host, 'serve'], stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
+        deadline = time.time() + 40
+        while not os.path.exists(path):
+            if time.time() > deadline:
+                with open(os.path.join(RUNTIME, host + '.log')) as failed:
+                    raise Refused('could not reach %s screen: %s' % (host, failed.read().strip().splitlines()[-1:] or 'timed out'))
+            time.sleep(0.2)
+    try:
+        with socket.socket(socket.AF_UNIX) as connection:
+            connection.settimeout(50)
+            connection.connect(path)
+            connection.sendall(json.dumps(request).encode() + b'\n')
+            reply = json.loads(connection.makefile().readline())
+    except (ConnectionError, FileNotFoundError, json.JSONDecodeError):
+        if not retry:
+            raise
+        if os.path.exists(path):
+            os.remove(path)
+        return ask(host, request, retry=False)
+    if not reply['ok']:
+        if retry:
+            return ask(host, request, retry=False)
+        raise Refused(reply['text'])
+    return reply['text']
 
 
 def journal(host, entry):
@@ -292,17 +369,12 @@ def main():
         return run(host, rest)
     if verb == 'record':
         return record(host, rest[0] if rest else '')
-    if verb not in ('look', 'click', 'move', 'drag', 'scroll', 'type', 'key'):
+    if verb == 'serve':
+        return serve(host)
+    if verb not in ACTIONS:
         print(USAGE, file=sys.stderr)
         return 2
-    client = screen(host)
-    try:
-        if verb != 'look':
-            journal(host, act(client, verb, rest))
-        print(look(host, client))
-    finally:
-        client.disconnect()
-        api.shutdown()
+    print(ask(host, {'verb': verb, 'args': rest, 'stdin': '' if rest or verb != 'type' else sys.stdin.read()}))
 
 
 if __name__ == '__main__':
