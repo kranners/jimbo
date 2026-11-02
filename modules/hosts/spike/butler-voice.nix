@@ -53,6 +53,12 @@ in
 
     butler.commands = lib.mkMerge [
       {
+        memory-recall.rules = lib.mkBefore [
+          {
+            match = [ "**" ];
+            lanes = withVoice;
+          }
+        ];
         reminders.rules = lib.mkBefore [
           {
             match = [

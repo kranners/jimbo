@@ -313,6 +313,18 @@ let
 
   pushInBackground = "setsid --fork ${lib.getExe memory-push} </dev/null >/dev/null 2>&1 9>&-";
 
+  memory-recall = pkgs.writeShellApplication {
+    name = "memory-recall";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnugrep
+    ];
+    text = ''
+      cd ${memory}
+    ''
+    + builtins.readFile ./butler-memory-recall.sh;
+  };
+
   memory-note = pkgs.writeShellApplication {
     name = "memory-note";
     runtimeInputs = [
@@ -478,6 +490,20 @@ in
         }
       ];
       credentials.memory-deploy-key = memoryDeployKey;
+    };
+
+    butler.commands.memory-recall = {
+      package = memory-recall;
+      description = "Print the lines of ~/memory/core and the journal, newest day first, that mention any of one to six words given as args, such as `memory-recall monstera plant`. Read-only.";
+      rules = [
+        {
+          match = [ "**" ];
+          lanes = [
+            "interactive"
+            "cron"
+          ];
+        }
+      ];
     };
 
     butler.commands.memory-save = {
