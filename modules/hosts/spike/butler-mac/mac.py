@@ -18,7 +18,7 @@ SETTLE = 0.6
 RECORD_INTERVAL = 0.5
 RECORD_LIMIT = 15 * 60
 RECORD_TAIL = 1.5
-STREAM_INTERVAL = 0.1
+STREAM_INTERVAL = 0.02
 IDLE = 600
 DRAG_STEPS = 12
 BUTTONS = {'left': 1, 'middle': 2, 'right': 3}
@@ -148,7 +148,7 @@ def picture(client):
 
 
 def look(host, client):
-    time.sleep(STREAM_INTERVAL * 3)
+    time.sleep(0.2)
     image = picture(client)
     shots = os.path.join(RUNTIME, 'shots')
     os.makedirs(shots, exist_ok=True)
