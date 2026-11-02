@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793632177,
-        "narHash": "sha256-UxeRD9U07DzpGPbIfYVqj72hFqRTuX4PHoFnoWjZcws=",
+        "lastModified": 1793634479,
+        "narHash": "sha256-ZUYORWNp9ZKWXXkVPVDLQVtLE9N+LwPfq7DgtQigKUo=",
         "ref": "refs/heads/main",
-        "rev": "cecf4d17da18db3570a8496bea4e56253df48d85",
-        "revCount": 26,
+        "rev": "39b8e7ab26169da43a97d932fcb77ae5415f7c20",
+        "revCount": 27,
         "type": "git",
         "url": "ssh://git@github.com/kranners/butler"
       },
