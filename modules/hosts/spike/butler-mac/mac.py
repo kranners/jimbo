@@ -151,10 +151,7 @@ def keys(combo):
 
 def keysym(character):
     from vncdotool import client as vnc
-    named = vnc.KEYMAP.get(TYPED.get(character, character))
-    if named:
-        return named
-    return ord(character) if ord(character) <= 0xFF else 0x01000000 | ord(character)
+    return vnc.KEYMAP.get(TYPED.get(character, character)) or ord(character)
 
 
 def press(client, symbols):
@@ -281,7 +278,7 @@ def start_session(host, path):
             time.sleep(0.2)
 
 
-def ask(host, request):
+def ask(host, request, retried=False):
     os.makedirs(RUNTIME, mode=0o700, exist_ok=True)
     path = session(host)
     for attempt in range(2):
@@ -300,8 +297,8 @@ def ask(host, request):
         raise Refused('could not reach %s screen' % host)
     if reply['ok']:
         return reply['text']
-    if reply['did'] == 'nothing' and attempt == 0:
-        return ask(host, request)
+    if reply['did'] == 'nothing' and not retried:
+        return ask(host, request, retried=True)
     raise Refused('%s (did: %s); the session restarts on the next call' % (reply['text'], reply['did']))
 
 
@@ -464,7 +461,11 @@ def main():
         print(USAGE, file=sys.stderr)
         return 2
     check(verb, rest)
-    print(ask(host, {'verb': verb, 'args': rest, 'stdin': '' if rest or verb != 'type' else sys.stdin.read()}))
+    stdin = sys.stdin.read() if verb == 'type' and not rest else ''
+    wide = sorted({character for character in ' '.join(rest) + stdin if ord(character) > 0xFF})
+    if wide:
+        raise Refused('type sends Latin-1 only, not %s; run pbcopy with the text on stdin, then key cmd-v' % ' '.join(wide))
+    print(ask(host, {'verb': verb, 'args': rest, 'stdin': stdin}))
 
 
 if __name__ == '__main__':

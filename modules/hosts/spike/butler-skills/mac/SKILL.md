@@ -20,7 +20,7 @@ Start with `mac hosts`, which says which Macs are up, whether each is locked and
 Prefer the keyboard to the mouse, since it does not depend on reading pixels:
 - `key cmd-space`, then `type` an app's name, then `key enter` opens any app. On pilot, Cmd-Space opens Raycast.
 - `key cmd-tab`, `cmd-w`, `cmd-t`, `cmd-l`, `cmd-shift-t`, `cmd-c`, `cmd-v` work as they do for him. `cmd`, `option`, `ctrl` and `shift` combine with dashes.
-- `type` sends text as keystrokes on a US layout. Pass long or multi-line text on stdin, where a newline presses Enter. For a lot of text, `run` `pbcopy` with it on stdin, then `key cmd-v`.
+- `type` sends text as keystrokes on a US layout. Pass long or multi-line text on stdin, where a newline presses Enter. It refuses characters outside Latin-1, such as curly quotes, dashes and emoji: for those, and for a lot of text, `run` `pbcopy` with the text on stdin, then `key cmd-v`.
 - An arg that starts with `-` is refused, so pass any shell command with flags on stdin to `mac <host> run`.
 
 Prefer `run` to the screen for anything a shell can do: reading files, git, builds, tests, `open -a <App>`, `open <url>`.
