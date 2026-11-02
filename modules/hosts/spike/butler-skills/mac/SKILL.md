@@ -38,7 +38,7 @@ When Aaron asks you to pair, or calls you, you drive and he navigates:
 ## Recording
 
 `mac <host> record start` films the screen at two frames a second until `mac <host> record stop`, or for at most 15 minutes. `stop` saves an MP4 in your outbox and prints its path, which you attach with `attach_file`.
-Record when Aaron asks for proof or a replay of something you did, and stop the recording as soon as the task is done.
+Record when Aaron asks for proof or a replay of something you did. Call `record stop` on its own, only after the screenshot of your last action shows it done, never in the same batch of tool calls as an action, or the video ends before it.
 `mac log` lists the last actions you took on either Mac, with times.
 
 ## Limits
