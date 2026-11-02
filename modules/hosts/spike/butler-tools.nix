@@ -103,7 +103,9 @@ let
             end=$(instant "$5")
             span="date_time"
           fi
-          jq --null-input --arg entity "$2" --arg summary "$3" --arg span "$span" --arg start "$start" --arg end "$end" --rawfile description /dev/stdin \
+          # Node hands a child its stdin as a socket, which /dev/stdin cannot open, so read fd 0 itself.
+          description=$(cat 2>/dev/null) || description=""
+          jq --null-input --arg entity "$2" --arg summary "$3" --arg span "$span" --arg start "$start" --arg end "$end" --arg description "$description" \
             '{entity_id: $entity, summary: $summary, description: $description, "start_\($span)": $start, "end_\($span)": $end}' \
             | home_assistant --data @- "${homeAssistant}/api/services/calendar/create_event" >/dev/null
           echo "Created \"$3\" on $2 from $start to $end"
@@ -168,7 +170,8 @@ let
           ;;
         create)
           [ $# -eq 3 ] || usage
-          jq --null-input --arg title "$3" --rawfile body /dev/stdin '{title: $title, body: $body}' \
+          body=$(cat 2>/dev/null) || body=""
+          jq --null-input --arg title "$3" --arg body "$body" '{title: $title, body: $body}' \
             | github --data @- "https://api.github.com/repos/$2/issues" \
             | jq -r '"#\(.number) \(.html_url)"'
           ;;
@@ -216,7 +219,8 @@ let
           ;;
         file)
           [ $# -eq 3 ] || usage
-          jq --null-input --arg project "$2" --arg title "$3" --rawfile text /dev/stdin \
+          text=$(cat 2>/dev/null) || text=""
+          jq --null-input --arg project "$2" --arg title "$3" --arg text "$text" \
             '{project: $project, title: $title, text: $text, assignee: "owner"}' \
             | backlogic --data @- "${backlogic}/api/tickets" \
             | jq -r '.id'
@@ -236,6 +240,7 @@ in
         Read and add events on Aaron's Google calendars through Home Assistant.
         calendar calendars | calendar agenda [days] | calendar events <calendar.entity> <start> <end> | calendar create <calendar.entity> <summary> <start> <end> (description on stdin)
         Dates are YYYY-MM-DD, or YYYY-MM-DDTHH:MM in local time.
+        Home Assistant's calendar.create_event cannot set reminders, so an event gets its calendar's default notifications; add any other reminder with the reminders tool.
       '';
       stdin = true;
       rules = [
