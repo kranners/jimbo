@@ -6,9 +6,6 @@ import subprocess
 import sys
 import time
 
-from PIL import Image
-from vncdotool import api, client as vnc, rfb
-
 HOSTS = json.loads('@hosts@')
 SSH = '@ssh@'
 FFMPEG = '@ffmpeg@'
@@ -20,7 +17,6 @@ SHOT_WIDTH = 1512
 SETTLE = 0.6
 RECORD_INTERVAL = 0.5
 RECORD_LIMIT = 15 * 60
-ENCODING = rfb.Encoding.RAW
 IDLE = 600
 BUTTONS = {'left': 1, 'middle': 2, 'right': 3}
 ALIASES = {
@@ -106,8 +102,9 @@ def screen(host):
     password = remote(host, 'cat ' + PASSWORD)
     if password.returncode != 0:
         raise Refused('%s has no VNC password yet; switch it to jimbo with butler-access' % host)
+    from vncdotool import api, client as vnc, rfb
     rfb.RFBClient.SUPPORTED_AUTHS = {rfb.AuthTypes.VNC_AUTHENTICATION}
-    vnc.VNCDoToolClient.encoding = ENCODING
+    vnc.VNCDoToolClient.encoding = rfb.Encoding.RAW
     client = api.connect(path, password=password.stdout.strip(), timeout=20)
     client.refreshScreen()
     return client
@@ -124,13 +121,16 @@ def point(client, x, y):
 
 
 def picture(client):
+    from PIL import Image
     factor = scale(client)
     width, height = client.screen.size
-    return client.screen.convert('RGB').resize((round(width / factor), round(height / factor)), Image.LANCZOS)
+    image = client.screen.convert('RGB')
+    if factor == int(factor):
+        return image.reduce(int(factor))
+    return image.resize((round(width / factor), round(height / factor)), Image.BILINEAR)
 
 
 def look(host, client):
-    time.sleep(SETTLE)
     client.refreshScreen(incremental=True)
     image = picture(client)
     shots = os.path.join(RUNTIME, 'shots')
@@ -139,7 +139,7 @@ def look(host, client):
         if os.path.getmtime(os.path.join(shots, old)) < time.time() - 3600:
             os.remove(os.path.join(shots, old))
     path = os.path.join(shots, '%s-%s.png' % (host, time.strftime('%H%M%S')))
-    image.save(path)
+    image.save(path, compress_level=1)
     return '%s (%dx%d, read it to see the screen)' % (path, image.width, image.height)
 
 
@@ -192,6 +192,7 @@ def serve(host):
             try:
                 if request['verb'] != 'look':
                     journal(host, act(client, request['verb'], request['args'], request['stdin']))
+                    time.sleep(SETTLE)
                 reply = {'ok': True, 'text': look(host, client)}
             except Exception as error:
                 reply = {'ok': False, 'text': '%s: %s' % (type(error).__name__, error)}
@@ -215,6 +216,7 @@ def serve(host):
     finally:
         os.remove(path)
         client.disconnect()
+        from vncdotool import api
         api.shutdown()
 
 
@@ -350,6 +352,7 @@ def record_loop(host, folder):
         for name in ('pid', 'stop'):
             if os.path.exists(os.path.join(folder, name)):
                 os.remove(os.path.join(folder, name))
+        from vncdotool import api
         api.shutdown()
 
 
