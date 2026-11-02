@@ -21,7 +21,7 @@ in
     };
 
     users.users.${host.username}.openssh.authorizedKeys.keys = [
-      ''from="${spike}",no-agent-forwarding,no-X11-forwarding,no-pty,permitopen="127.0.0.1:5900" ${butlerKey}''
+      ''from="${spike}",restrict,port-forwarding,permitopen="127.0.0.1:5900" ${butlerKey}''
     ];
 
     environment.etc."pf.anchors/butler-access".text = ''
@@ -36,12 +36,15 @@ in
         loadRules
       ];
       RunAtLoad = true;
+      StartInterval = 60;
       WatchPaths = [ rules ];
     };
 
     system.activationScripts.postActivation.text = lib.mkAfter ''
       echo "letting butler on spike drive this Mac" >&2
-      ${loadRules}
+      /sbin/pfctl -q -a ${anchor} -f ${rules} 2> /dev/null
+      /sbin/pfctl -q -E 2> /dev/null
+      /sbin/pfctl -a ${anchor} -s rules 2> /dev/null | grep -q "block drop in quick proto tcp from any to any port = 5900"
 
       defaults write ${remoteManagement} VNCLegacyConnectionsEnabled -bool true
       defaults write ${remoteManagement} VNCAlwaysStartOnConsole -bool true
@@ -50,8 +53,7 @@ in
         /usr/bin/sudo -u ${host.username} /bin/mkdir -p -m 700 ${dirOf passwordFile}
         password=$(/usr/bin/openssl rand -base64 24 | LC_ALL=C tr -dc 'A-Za-z0-9' | cut -c 1-8)
         ${kickstart} -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$password" > /dev/null
-        (umask 077; printf '%s\n' "$password" > ${passwordFile})
-        chown ${host.username} ${passwordFile}
+        printf '%s\n' "$password" | /usr/bin/sudo -u ${host.username} /bin/sh -c 'umask 077; cat > ${passwordFile}'
         pkill -x screensharingd || true
       fi
 
