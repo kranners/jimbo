@@ -119,8 +119,6 @@ in
       "--wake-uri"
       "tcp://127.0.0.1:10400"
       "--wake-word-name"
-      "hey_mycroft"
-      "--wake-word-name"
       "hey_butler"
       "--mic-no-mute-during-awake-wav"
       "--detection-command"

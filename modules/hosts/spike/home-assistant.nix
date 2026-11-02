@@ -84,6 +84,22 @@ let
     };
   };
 
+  butler-card = pkgs.stdenvNoCC.mkDerivation {
+    pname = "butler-card";
+    version = builtins.substring 0 12 (builtins.hashFile "sha256" ./butler-card/butler-card.js);
+
+    src = ./butler-card/butler-card.js;
+
+    dontUnpack = true;
+
+    installPhase = ''
+      mkdir -p $out
+      cp $src $out/butler-card.js
+    '';
+
+    passthru.entrypoint = "butler-card.js";
+  };
+
   spokenConditions = {
     clear-night = "clear";
     partlycloudy = "partly cloudy";
@@ -131,65 +147,10 @@ let
   ];
 
   voiceCard = {
-    type = "conditional";
-    conditions = [
-      {
-        condition = "state";
-        entity = framerConversation;
-        state = "on";
-      }
-    ];
-    card = {
-      type = "markdown";
-      content = ''
-        {% set satellite = states('${framerSatellite}') %}
-        {% set heard = state_attr('${framerVoice}', 'heard') or "" %}
-        {% set reply = state_attr('${framerVoice}', 'reply') or "" %}
-        {% if satellite == 'listening' %}
-        # <ha-icon icon="mdi:microphone"></ha-icon> Listening…
-        {% elif satellite == 'processing' %}
-        # <ha-icon icon="mdi:dots-horizontal"></ha-icon> Thinking…
-        {% else %}
-        # <ha-icon icon="mdi:account-voice"></ha-icon>
-        {% endif %}
-        {% if heard %}
-        > {{ heard }}
-        {% endif %}
-
-        {{ reply }}
-      '';
-      card_mod.style = ''
-        ha-card {
-          position: fixed;
-          inset: 0;
-          height: auto;
-          z-index: 10;
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-end;
-          padding: 0 6vw 12vh;
-          box-sizing: border-box;
-          pointer-events: none;
-          background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.6) 40%, transparent 75%);
-          border: none;
-          border-radius: 0;
-          box-shadow: none;
-          text-align: center;
-          font-size: 3.5em;
-          line-height: 1.3;
-          text-shadow: 0 0.05em 0.2em black;
-          --primary-text-color: white;
-          --secondary-text-color: rgba(255, 255, 255, 0.75);
-          --mdc-icon-size: 1em;
-          {% if is_state('${framerSatellite}', 'listening') %}
-          animation: listening 1.2s ease-in-out infinite;
-          {% endif %}
-        }
-        @keyframes listening {
-          50% { background: linear-gradient(to top, var(--primary-color), rgba(0, 0, 0, 0.6) 40%, transparent 75%); }
-        }
-      '';
-    };
+    type = "custom:butler-voice-card";
+    conversation = framerConversation;
+    satellite = framerSatellite;
+    voice = framerVoice;
   };
 
   assistantOffCard = {
@@ -294,6 +255,7 @@ in
       card-mod
       mushroom
       wallpanel
+      butler-card
     ];
 
     config = {

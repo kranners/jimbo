@@ -1,5 +1,8 @@
 # Changelog
 
+- 2026-11-03: framer wakes on hey_butler alone.
+- 2026-11-03: framer's voice overlay is butler himself, rising from the bottom of the dimmed panel and reacting as he listens, thinks and answers, with the reply in a speech bubble, and sliding back off when the conversation ends.
+- 2026-11-03: butler speaks as a Jeeves-like gentleman's gentleman in Kokoro's British `bm_george` voice, which replaces piper on spike for framer's Assist pipeline, and is wired to join Aaron's Discord voice calls once its daemon serves `/call`.
 - 2026-11-02: The life explorer shows chat photos, videos and files, Claude artifacts and photo thumbnails, and maps places on an offline basemap that spike downloads and serves itself.
 - 2026-11-02: Aaron can browse his personal data index on a dashboard of insights and a full-text explorer at `life.spike.cute.engineer`, from his own WireGuard devices alone.
 - 2026-11-03: Sessions that hit a login in cmux's browser refresh its copy of Chromium's logins first, and otherwise raise it in Chromium, never in cmux.
