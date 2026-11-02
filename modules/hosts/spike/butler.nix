@@ -231,21 +231,11 @@ let
       done < <(sort -n ${accounts}/tokens 2>/dev/null || true)
       [ ''${#tokens[@]} -gt 0 ] || exec ${pkgs.claude-code}/bin/claude "$@"
 
-      chosen=0
-      for i in "''${!tokens[@]}"; do
-        cooling=$(cat "$cooldowns/''${numbers[$i]}" 2>/dev/null || echo 0)
-        if [ "$cooling" -le "$now" ]; then
-          chosen=$i
-          break
-        fi
-      done
-      account=''${numbers[$chosen]}
-
       check() {
-        local headers status reset
+        local account=$1 headers status reset
         headers=$(curl -s -D - -o /dev/null --max-time 10 \
           'https://api.anthropic.com/v1/messages?beta=true' \
-          -H "authorization: Bearer $1" \
+          -H "authorization: Bearer $2" \
           -H 'anthropic-version: 2023-06-01' \
           -H 'anthropic-beta: oauth-2025-04-20' \
           -H 'content-type: application/json' \
@@ -259,14 +249,29 @@ let
             reset=$(grep -i '^anthropic-ratelimit-unified-reset:' <<<"$headers" | tr -dc 0-9 || true)
             echo "''${reset:-$((now + 300))}" >"$cooldowns/$account"
             logger -t butler-claude "account $account is at its limit until $(date -d "@''${reset:-$((now + 300))}")" || true
+            return 1
             ;;
           401 | 403)
             echo $((now + 3600)) >"$cooldowns/$account"
             logger -t butler-claude "account $account was refused: HTTP $status" || true
+            return 1
             ;;
         esac
       }
-      check "''${tokens[$chosen]}" </dev/null >/dev/null 2>&1 &
+
+      chosen=0
+      for i in "''${!tokens[@]}"; do
+        cooldown=$cooldowns/''${numbers[$i]}
+        [ "$(cat "$cooldown" 2>/dev/null || echo 0)" -le "$now" ] || continue
+        if [ -e "$cooldown" ]; then
+          check "''${numbers[$i]}" "''${tokens[$i]}" || continue
+        else
+          check "''${numbers[$i]}" "''${tokens[$i]}" </dev/null >/dev/null 2>&1 &
+        fi
+        chosen=$i
+        break
+      done
+      account=''${numbers[$chosen]}
 
       logger -t butler-claude "using account $account" || true
       export CLAUDE_CODE_OAUTH_TOKEN=''${tokens[$chosen]}
