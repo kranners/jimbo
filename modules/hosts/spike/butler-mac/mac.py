@@ -139,7 +139,7 @@ def look(host, client):
     for old in os.listdir(shots):
         if os.path.getmtime(os.path.join(shots, old)) < time.time() - 3600:
             os.remove(os.path.join(shots, old))
-    path = os.path.join(shots, '%s-%s.png' % (host, time.strftime('%H%M%S')))
+    path = os.path.join(shots, '%s-%s-%03d.png' % (host, time.strftime('%H%M%S'), time.time() * 1000 % 1000))
     image.save(path, compress_level=1)
     return '%s (%dx%d, read it to see the screen)' % (path, image.width, image.height)
 
