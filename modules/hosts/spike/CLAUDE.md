@@ -36,6 +36,7 @@ Besides reading files and the web, it runs only the wrappers in `butler.commands
 `butler-memory-pull` mirrors its memory, `kranners/butler-memory`, into `/var/lib/butler/memory` every 5 minutes, and the daemon runs the scheduled prompts in its `cron`.
 `butler-notify`, run by `aaron` or anything in the group `butler-notify`, has butler DM Aaron its stdin and any files named, through the spool `/var/lib/butler-notify`.
 Once `butler.voice.enable` is on, butler also answers framer's Assist pipeline, through Home Assistant's llama.cpp integration, on `127.0.0.1:18789`, with the bearer token in `/var/lib/secrets/butler-voice-token`.
+It logs each voice request and its answer to `/var/lib/butler/voice-log/YYYY-MM-DD.md`.
 `aaron`'s `~/.claude` is the personal `aaron@cute.engineer` account, and backlogic's runner, logged in to both accounts under its own home, spends personal first and moves to the work account only while personal is at its limit.
 python3 is installed system-wide because Claude Code hooks in repositories here run with it, and one that fails to start is treated as allowing the call, so a guard without it refuses nothing.
 google-chrome is installed system-wide because backlogic's `bin/check` and its board publishing load each board in a headless Chrome they find on PATH, and refuse without one.

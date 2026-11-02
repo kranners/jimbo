@@ -42,6 +42,7 @@ in
         DISCORD_VOICE_MODEL = "haiku";
         DISCORD_VOICE_PROMPT_FILE = "${./butler-voice.md}";
         DISCORD_VOICE_ANNOUNCE_ENTITY = "assist_satellite.framer";
+        DISCORD_VOICE_LOG_DIR = "${config.users.users.butler.home}/voice-log";
         DISCORD_HA_URL = "http://127.0.0.1:8123";
       }
       // lib.optionalAttrs config.butler.credentialedTools {
