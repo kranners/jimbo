@@ -339,6 +339,7 @@ let
       pkgs.git
       pkgs.nh
       pkgs.nix
+      pkgs.openssh
     ];
     text = ''
       failed_record="$STATE_DIRECTORY/failed"
