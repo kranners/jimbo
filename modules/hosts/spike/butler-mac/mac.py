@@ -14,7 +14,10 @@ STATE = os.path.expanduser('~/.local/state/mac')
 RUNTIME = '/tmp/mac'
 PASSWORD = '.local/state/butler-access/vnc-password'
 SHOT_WIDTH = 1512
-SETTLE = 0.6
+QUIET = 0.3
+FIRST_CHANGE = 1.0
+SETTLE_LIMIT = 2.5
+CARET_AREA = 4000
 RECORD_INTERVAL = 0.5
 RECORD_LIMIT = 15 * 60
 RECORD_TAIL = 1.5
@@ -116,6 +119,8 @@ def screen(host):
         protocol.framebufferUpdateRequest(incremental=1)
 
     def streamed(protocol, rectangles=None):
+        if sum(width * height for _, _, width, height in rectangles or []) > CARET_AREA:
+            protocol.changed = time.time()
         committed(protocol, rectangles)
         if not getattr(protocol, 'streaming', False):
             protocol.streaming = True
@@ -147,8 +152,21 @@ def picture(client):
     return image.resize((round(width / factor), round(height / factor)), Image.BILINEAR)
 
 
-def look(host, client):
-    time.sleep(0.2)
+def settle(client, acted):
+    while time.time() - acted < SETTLE_LIMIT:
+        changed = getattr(client.protocol, 'changed', 0)
+        if changed > acted and time.time() - changed >= QUIET:
+            return
+        if changed <= acted and time.time() - acted >= FIRST_CHANGE:
+            return
+        time.sleep(0.05)
+
+
+def look(host, client, acted=None):
+    if acted:
+        settle(client, acted)
+    else:
+        time.sleep(0.2)
     image = picture(client)
     shots = os.path.join(RUNTIME, 'shots')
     os.makedirs(shots, exist_ok=True)
@@ -236,11 +254,12 @@ def serve(host):
             request = json.loads(self.rfile.readline())
             done = 'nothing'
             try:
+                acted = None
                 if request['verb'] != 'look':
                     done = act(client, request['verb'], request['args'], request['stdin'])
+                    acted = time.time()
                     journal(host, done)
-                    time.sleep(SETTLE)
-                reply = {'ok': True, 'text': look(host, client)}
+                reply = {'ok': True, 'text': look(host, client, acted)}
                 self.server.done = client.screen.size != (client.protocol.width, client.protocol.height)
             except Exception as error:
                 self.server.done = True
