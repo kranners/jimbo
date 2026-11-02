@@ -325,6 +325,12 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   It also aborts every request carrying an `Origin` other than the site itself, because websockify never checks it, so a page open on one of those peers cannot open a cross-origin WebSocket to the VNC.
   Its matchers sit in a `route` block, because Caddy otherwise orders `abort` after `handle`, and the allowlist would never fire.
   `butler-browser-activity.service` writes `1` to `/run/butler-browser/active` while anything holds a DevTools connection open and `0` otherwise, and Caddy serves it at `/active`; playwright-mcp's `--idle-timeout` drops its connection a minute after its last tool call.
+  `modules/hosts/spike/butler-mac.nix` gives it `mac`, which sees and drives Aaron's MacBooks `pilot` and `piggys-MBP` as he watches, in the `interactive` lane alone, since anyone in the kitchen can speak to the `voice` lane.
+  It reaches each Mac over WireGuard with ssh as Aaron, by the key `/var/lib/secrets/butler-mac-key`, loaded as the credential `butler-mac-key`, whose public half `modules/butler-access` authorizes.
+  Its ssh master and a unix-socket tunnel to the Mac's Screen Sharing live in `/tmp/mac` of butler's private temp, so no other user on spike reaches a Mac's screen, and the master compresses, since vncdotool asks for raw pixels.
+  The first screen action starts `mac <host> serve`, which stays connected through vncdotool for 10 idle minutes, so each later look fetches only what changed: about 0.4 s, and 1 s for an action and the screenshot after it, against 3.4 s cold.
+  It logs in with the Mac's legacy VNC password, which it reads over ssh each time and never stores, shows each screenshot at the display's points, writes them to `/tmp/mac/shots` for butler to read, and logs each action to `~/.local/state/mac/actions.jsonl`.
+  `mac <host> record start` films the screen at two frames a second, for at most 15 minutes, into an MP4 in butler's outbox when `record stop` comes.
 - Messenger (`modules/hosts/spike/messenger.nix`) bridges Aaron's Facebook Messenger, Marketplace chats included, into Matrix on spike, so butler can read and send it through plain HTTP on loopback.
   `tuwunel.service` is the homeserver `spike`, on `127.0.0.1:6167` alone, with federation, registration and encryption off.
   `mautrix-meta-facebook.service` is the bridge, an appservice on `127.0.0.1:29321`, built with goolm, since Matrix-side encryption is off and nixpkgs marks libolm insecure, with backfill on and only `@aaron:spike` allowed to use it, as admin.
@@ -427,6 +433,13 @@ Adding that directory under Raycast's Script Commands and giving the command a h
 
 `modules/wireguard` installs the WireGuard app from the App Store on the Macs.
 On `pilot` its tunnel `Home network` is spike's peer `pilot`, imported by hand from `~/.config/wireguard/Home network.conf`, which holds its private key and never enters the repo.
+
+### Butler's access
+
+`modules/butler-access` lets butler on spike drive both Macs: it turns on Apple's Remote Login with password logins off, and authorizes butler's key from `10.100.0.1` alone, with no pty or agent and only `127.0.0.1:5900` to forward.
+On every switch it loads the pf anchor `com.apple/butler-access`, which drops Screen Sharing on every interface but loopback, as does the launchd daemon `butler-access-pf` at boot, sets `VNCLegacyConnectionsEnabled` and `VNCAlwaysStartOnConsole`, which sends a legacy VNC session to Aaron's console rather than a login window on a virtual display, and starts `com.apple.screensharing`.
+The first switch gives Screen Sharing a random 8-character legacy VNC password with `kickstart`, kept in `~/.local/state/butler-access/vnc-password` for butler to read over ssh.
+Screen Sharing must also be switched on once by hand in System Settings, General, Sharing, because since macOS 12.1 only that switch or an MDM lets its agent capture the screen and post input; started by `launchctl` alone, it serves a black screen.
 
 ### Claude Code
 
