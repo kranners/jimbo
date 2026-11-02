@@ -18,6 +18,8 @@ SETTLE = 0.6
 RECORD_INTERVAL = 0.5
 RECORD_LIMIT = 15 * 60
 RECORD_TAIL = 1.5
+LOOK_DRAIN = 1.0
+RECORD_DRAIN = 0.4
 IDLE = 600
 DRAG_STEPS = 12
 BUTTONS = {'left': 1, 'middle': 2, 'right': 3}
@@ -107,6 +109,13 @@ def screen(host):
     from vncdotool import api, client as vnc, rfb
     rfb.RFBClient.SUPPORTED_AUTHS = {rfb.AuthTypes.VNC_AUTHENTICATION}
     vnc.VNCDoToolClient.encoding = rfb.Encoding.RAW
+    committed = vnc.VNCDoToolClient.commitUpdate
+
+    def counted(protocol, rectangles=None):
+        protocol.updated = len(rectangles or [])
+        committed(protocol, rectangles)
+
+    vnc.VNCDoToolClient.commitUpdate = counted
     client = api.connect(path, password=password.stdout.strip(), timeout=20)
     client.refreshScreen()
     return client
@@ -132,8 +141,15 @@ def picture(client):
     return image.resize((round(width / factor), round(height / factor)), Image.BILINEAR)
 
 
-def look(host, client):
+def drain(client, seconds):
+    deadline = time.time() + seconds
     client.refreshScreen(incremental=True)
+    while client.protocol.updated and time.time() < deadline:
+        client.refreshScreen(incremental=True)
+
+
+def look(host, client):
+    drain(client, LOOK_DRAIN)
     image = picture(client)
     shots = os.path.join(RUNTIME, 'shots')
     os.makedirs(shots, exist_ok=True)
@@ -397,7 +413,7 @@ def record_loop(host, folder):
         open(os.path.join(folder, 'recording'), 'w').close()
         started = time.time()
         while not os.path.exists(os.path.join(folder, 'stop')) and time.time() - started < RECORD_LIMIT:
-            client.refreshScreen(incremental=True)
+            drain(client, RECORD_DRAIN)
             image = picture(client)
             image = image.crop((0, 0, image.width - image.width % 2, image.height - image.height % 2))
             stamps.append(time.time())
