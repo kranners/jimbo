@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-11-02: Aaron can browse his personal data index on a dashboard of insights and a full-text explorer at `life.spike.cute.engineer`, from his own WireGuard devices alone.
 - 2026-10-30: butler can answer framer's Assist pipeline from a voice endpoint on `127.0.0.1:18789`, off behind `butler.voice.enable` until its daemon serves it, with a bearer token it generates once in `/var/lib/secrets/butler-voice-token`.
 - 2026-10-30: spike bridges Messenger into a loopback Matrix homeserver with mautrix-meta and tuwunel, and butler reads Messenger and Marketplace chats and sends replies Aaron approves, once `butler.messenger.enable` is set after `sudo messenger-setup`.
 - 2026-10-30: butler sends plain-text mail from Fastmail and Gmail with `mail-send`, each send waiting for Aaron's approval.
