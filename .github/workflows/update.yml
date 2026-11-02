@@ -16,10 +16,14 @@ jobs:
         with:
           token: ${{ secrets.REPO_SCOPED_TOKEN }}
       - uses: cachix/install-nix-action@v30
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.BUTLER_DEPLOY_KEY }}
       - uses: cachix/cachix-action@v14
         with:
           name: kranners
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          pushFilter: '-source$'
       - run: |
           git config --global user.email "flake-updater@cute.engineer"
           git config --global user.name "Flake Updater"
