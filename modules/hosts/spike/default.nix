@@ -151,6 +151,7 @@
         ./voice.nix
         ./watchdog.nix
         ./remote-builder.nix
+        ./remote-desk.nix
         ./tmp.nix
         ./wireguard.nix
       ];
