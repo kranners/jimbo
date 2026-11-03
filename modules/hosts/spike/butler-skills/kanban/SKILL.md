@@ -12,6 +12,16 @@ It goes over ssh to pilot, so it fails with exit 75 when pilot is asleep or off 
 Start with `["board_snapshot"]`, which lists every session with its id, short id, name, state, what it is doing and where its card sits, the regions, notes, stickers, your cards (`butlerCards`) and the sessions you watch.
 A session's `id` or `short` works wherever a tool takes `session` or `target`.
 
+## Showing Aaron the board
+
+You can see pilot's screen with the `mac` tool, so when Aaron asks to see the board, or for a screenshot of something you did on it, show him the board itself; never say you cannot see his screen.
+The board is a web page served on pilot at `http://127.0.0.1:7420/`, titled `kanban`, open in a browser tab there.
+1. `mac pilot run` with `open http://127.0.0.1:7420/` on stdin opens the board in a new tab of his default browser and brings it to the front.
+2. Read the screenshot from `mac pilot look`. If another app or tab is still in front, bring the board forward with `key cmd-tab`, clicks or `open` again, and look again; whatever was showing before is never a reason to give up.
+3. To show a particular card, type its name into the board's search, then look again.
+4. Attach the screenshot with `attach_file` once it shows the board and nothing private beyond it.
+Only tell Aaron you could not get a screenshot when a step actually failed, such as `mac hosts` saying pilot is down or LOCKED, and say which step.
+
 ## Your own cards
 
 Your cards sit on the board in your teal, with your bow tie, beside Aaron's sessions.
