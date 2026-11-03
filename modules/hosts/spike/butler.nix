@@ -73,6 +73,11 @@ let
         type = types.bool;
         default = false;
       };
+      # Options a wildcard may take, spelled out exactly, since the daemon's wildcards otherwise refuse any argument starting with `-`.
+      options = mkOption {
+        type = types.listOf (types.strMatching "--?[a-z][a-z0-9-]*");
+        default = [ ];
+      };
     };
   };
 
@@ -98,6 +103,11 @@ let
         type = types.bool;
         default = false;
       };
+      # Options every one of its rules' wildcards may take as well.
+      options = mkOption {
+        type = types.listOf (types.strMatching "--?[a-z][a-z0-9-]*");
+        default = [ ];
+      };
     };
   };
 
@@ -108,7 +118,14 @@ let
         path = lib.getExe' c.package name;
         description = lib.trim c.description;
         inherit (c) stdin;
-        rules = map (r: r // { taints = r.taints || c.private; }) c.rules;
+        rules = map (
+          r:
+          removeAttrs r [ "options" ]
+          // {
+            taints = r.taints || c.private;
+          }
+          // lib.optionalAttrs (r.options ++ c.options != [ ]) { options = lib.unique (r.options ++ c.options); }
+        ) c.rules;
       }) commands;
     }
   );

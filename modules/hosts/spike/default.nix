@@ -66,6 +66,14 @@
       butler.index.captions.photosScript = ./butler-photos/photos.py;
       # The index holds Aaron's payments, messages and more, so a thread that searched it counts as having read private data.
       butler.commands.life.private = true;
+      # Its searches narrow by these options, which the daemon refuses unless a rule spells them out.
+      butler.commands.life.options = [
+        "--from"
+        "--to"
+        "--source"
+        "--kind"
+        "--limit"
+      ];
       butler.index.browserHistory.devices.pilot = {
         address = "10.100.0.11";
         keys = [
