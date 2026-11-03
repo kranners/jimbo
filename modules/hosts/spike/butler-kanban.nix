@@ -77,7 +77,7 @@ in
         description = ''
           Aaron's kanban board of Claude Code sessions on pilot, as a collaborator beside him: read it, keep his own cards and notes on it, show where he is, watch sessions and drive them.
           kanban <tool>, with the tool's arguments as a JSON object on stdin (nothing for none).
-          Reading: ${lib.concatStringsSep ", " reading}. Butler's cards, notes and presence, and tidying: ${lib.concatStringsSep ", " tidying}. Through a session, each asking Aaron first: ${lib.concatStringsSep ", " driving}.
+          Reading: ${lib.concatStringsSep ", " reading}. Butler's cards, notes and presence, and tidying: ${lib.concatStringsSep ", " tidying}. Through a session, each asking Aaron first unless he asked from the board: ${lib.concatStringsSep ", " driving}.
           Aaron's messages from the board's / popup arrive as turns of their own, and the reply goes back to the board.
         '';
         stdin = true;
@@ -91,17 +91,20 @@ in
             ];
             egress = true;
             lookup = true;
+            board = true;
           }) reading
           ++ map (tool: {
             match = [ tool ];
             lanes = [ "interactive" ];
             egress = true;
+            board = true;
           }) tidying
           ++ map (tool: {
             match = [ tool ];
             lanes = [ "interactive" ];
             taints = true;
             egress = true;
+            board = true;
           }) driving;
         credentials.butler-mac-key = "/var/lib/secrets/butler-mac-key";
         skill = ./butler-skills/kanban;

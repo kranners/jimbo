@@ -73,6 +73,11 @@ let
         type = types.bool;
         default = false;
       };
+      # Runs without asking in a thread Aaron began from his kanban board, whatever else the thread did.
+      board = mkOption {
+        type = types.bool;
+        default = false;
+      };
     };
   };
 
