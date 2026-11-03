@@ -23,6 +23,12 @@ let
   personalCooldown = "${home}/.claude-accounts/cooldown/1";
   # Butler's mood pictures, one attached to every self-fix DM by its state, `fixed` made for a fix that landed.
   moods = ../../../assets/butler/moods;
+  # The spike probe's paragraph, with this fix's own key, while butler-probe.nix has it on.
+  probeBrief =
+    if config.butler.selfFixProbe.brief == null then
+      "true"
+    else
+      ''${lib.getExe config.butler.selfFixProbe.brief} "$id"'';
 
   preamble = pkgs.writeText "butler-self-fix-preamble.md" ''
     You are butler's self-fix session. Butler is Aaron's personal assistant bot: the claude-discord-threads daemon, run on the NixOS host spike as the system user butler, configured by this jimbo flake (modules/hosts/spike/butler*.nix and butler-skills/), with its memory, skills and scheduled prompts in kranners/butler-memory and its personal data index and life command in kranners/butler, jimbo's flake input butler.
@@ -39,6 +45,7 @@ let
     Rebase onto the latest origin/main and push straight to main with a plain imperative commit subject.
     If the request is unclear, would widen butler's permissions or sandbox, touches secrets, or deletes data, do not land it: push a branch named after the change and say why.
     Never print, commit or send secrets.
+    When the brief gives a spike probe, verify your work on spike with it before you report done; either way, say plainly in your summary what you could not test or verify.
     Finish with a short summary, which is DMed to Aaron to read on his phone: two to four sentences of plain Australian English saying what changed or what went wrong, whether he needs to do anything, and when it goes live, with no step lists, branch names, commit hashes, file paths or tool names, unless something failed and he needs one, then in one short sentence.
     When you landed a change, end that message with these seven lines, which butler draws into the picture card it sends Aaron with the summary, each in a few plain words, after the summary and with nothing after them:
     Changed: what changed, in one sentence
@@ -245,7 +252,7 @@ let
         fi
         work=$(mktemp -d)
         chown aaron: "$work"
-        { cat ${preamble}; jq -r .request "$request"; } > "$work/prompt"
+        { cat ${preamble}; jq -r .request "$request"; ${probeBrief}; } > "$work/prompt"
         config=$(configDir)
         trust "$config"
         (

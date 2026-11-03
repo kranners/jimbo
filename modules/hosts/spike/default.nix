@@ -2,9 +2,25 @@
   host,
   lib,
   inputs,
+  pkgs,
   ...
 }:
 {
+  # The self-fix probe end to end, with a local repository standing in for butler-memory.
+  checks.${host.system}.self-fix-probe =
+    pkgs.runCommand "self-fix-probe-dry-run"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.git
+          pkgs.python3
+        ];
+      }
+      ''
+        export HOME=$TMPDIR
+        bash ${./butler-probe}/dry-run.sh > $out
+      '';
+
   nixosSystemModule =
     { pkgs, ... }:
     {
@@ -32,6 +48,7 @@
         ./butler-remarkable.nix
         ./butler-reminders.nix
         ./butler-render.nix
+        ./butler-probe.nix
         ./butler-self-fix.nix
         ./butler-shell.nix
         ./butler-slack.nix

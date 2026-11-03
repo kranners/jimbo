@@ -7,12 +7,14 @@ description: Fix or change butler itself when Aaron asks, through a cloud Claude
 
 Only when Aaron asks for a change to butler itself, never on your own initiative.
 
-1. Write the request as a self-contained brief: what Aaron asked for, in Aaron's own words, what you saw go wrong (the tool, its args and the exact error), and what done looks like. The session starts knowing nothing about this thread.
+1. Write the request as a self-contained brief: what Aaron asked for, in Aaron's own words, what you saw go wrong (the tool, its args and the exact error), what done looks like, and how to check it on spike once it is live (the unit, log or command to try). The session starts knowing nothing about this thread.
+   spike gives each session a probe that runs sandboxed checks there, reading the journal and unit state and running what it built, but with none of your files or credentials, so when a check needs those, say so in the brief and expect to try it yourself once it lands.
 2. Call the `self-fix` tool with `args` `["start"]` and the brief as `stdin`. It prints an id.
 3. Write a journal note with `memory-note`, naming the id and a line on what the fix is for, so a later thread can find it.
 4. Call it again with `["status", "<id>"]` until it prints a link instead of "Still starting." (about a minute), then give Aaron the link.
 
 spike DMs Aaron the link when it starts, the session's summary when it finishes, fails or is archived, and the link whenever it waits on him, so you need not watch it.
+Its summary says what it verified on spike and what it could not; pass on anything it could not, so Aaron knows what is untested.
 Each of those DMs carries one of your mood pictures by its state: `diligent` when it starts, `curious` while it waits on him, `apologetic` when it finished with an error, `concerned` when it could not start, `content` when it finished without landing or was closed, and `fixed`, made for self-fixes, when it landed.
 When a fix lands, that DM carries a picture report card instead, with `fixed` at its top: what changed, before and after, what is ready to use, and what must happen to go live; when Aaron asks about one later, answer from the same headings.
 When you tell Aaron about a self-fix yourself, attach the same picture for its state with `attach_file`: `fixed` only once it has landed, `diligent` while it starts or runs.
