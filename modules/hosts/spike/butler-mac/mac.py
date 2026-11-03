@@ -43,6 +43,7 @@ USAGE = '''usage: mac hosts
        mac <host> scroll <x> <y> <up|down> [clicks]
        mac <host> type [text]          (text on stdin when no arg)
        mac <host> key <combo> [combo...]   (e.g. cmd-space, enter, cmd-shift-t)
+       mac <host> windows              (front app, running apps, windows front to back)
        mac <host> run [shell words]    (script on stdin when no arg)
        mac <host> record start | stop
        mac <host> keepawake [status|on|off]
@@ -378,6 +379,35 @@ def run(host, words):
     print('[exit %d]' % result.returncode)
 
 
+WINDOWS = r'''
+echo "front: $(lsappinfo info -only name `lsappinfo front` | cut -d= -f2 | tr -d '"')"
+echo "apps: $(lsappinfo visibleProcessList | grep -o '"[^"]*"' | tr -d '"' | paste -sd, - | sed 's/,/, /g')"
+osascript -l JavaScript <<'EOF'
+ObjC.import('CoreGraphics');
+ObjC.import('AppKit');
+var lines = [];
+try {
+  var size = $.NSScreen.mainScreen.frame.size;
+  lines.push('screen: ' + size.width + 'x' + size.height + ' points');
+} catch (error) {}
+lines.push('windows, front to back, as app, state, x,y widthxheight in points:');
+ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo(16, 0))).forEach(function (w) {
+  var b = w.kCGWindowBounds;
+  if (w.kCGWindowLayer !== 0 || b.Width < 60 || b.Height < 60) return;
+  lines.push('  ' + w.kCGWindowOwnerName + ', ' + (w.kCGWindowIsOnscreen ? 'on screen' : 'minimised, hidden or on another space') + ', ' + b.X + ',' + b.Y + ' ' + b.Width + 'x' + b.Height + (w.kCGWindowName ? ', ' + w.kCGWindowName : ''));
+});
+lines.join('\n');
+EOF
+'''
+
+
+def windows(host):
+    result = remote(host, WINDOWS, timeout=20)
+    print(result.stdout, end='')
+    if result.returncode != 0:
+        raise Refused('could not list the windows on %s: %s' % (host, result.stderr.strip() or 'exit %d' % result.returncode))
+
+
 def keepawake(host, verb):
     if verb not in ('status', 'on', 'off', 'sleep'):
         raise Refused('keepawake takes status, on or off')
@@ -504,6 +534,8 @@ def main():
     if verb == 'run':
         journal(host, 'run ' + (' '.join(rest) or '(script on stdin)'))
         return run(host, rest)
+    if verb == 'windows':
+        return windows(host)
     if verb == 'record':
         return record(host, rest[0] if rest else '')
     if verb == 'keepawake':

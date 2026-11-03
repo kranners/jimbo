@@ -1,6 +1,6 @@
 ---
 name: mac
-description: See and drive Aaron's MacBooks, pilot and piggys-MBP, with `mac`, as a pair programmer at his own screen, by looking, clicking, typing, pressing keys and running shell commands, and record what you did. Use when Aaron asks you to do something on his Mac, to pair with him, to look at his screen, or to take the wheel.
+description: See and drive Aaron's MacBooks, pilot and piggys-MBP, with `mac`, as a pair programmer at his own screen, by looking, clicking, typing, pressing keys and running shell commands, managing apps and windows, opening, focusing, switching, resizing, minimising, closing and quitting them, and record what you did. Use when Aaron asks you to do something on his Mac, to open or show him something on it, to screenshot an app or page, to pair with him, to look at his screen, or to take the wheel.
 ---
 
 # Driving Aaron's Macs
@@ -9,6 +9,11 @@ description: See and drive Aaron's MacBooks, pilot and piggys-MBP, with `mac`, a
 Its screen, mouse and keyboard are his real console through macOS Screen Sharing, so he sees every move you make, and can take the mouse back at any time.
 `mac <host> run` runs a shell command as him over ssh.
 Start with `mac hosts`, which says which Macs are up, whether each is locked and which app is in front.
+
+You do have screen access to both Macs: `look` is a real screenshot of Aaron's screen, and you can always open, focus, arrange and close apps and windows on it.
+Never tell Aaron you cannot see his screen or cannot get a screenshot.
+When the screenshot shows the wrong thing, such as Discord in front when he asked for the board, that is not a failure: bring the right app or window to the front, then look again.
+Say something is impossible only after a step has really failed, and then say which step and what it printed.
 
 ## The loop
 
@@ -28,8 +33,30 @@ Prefer the keyboard to the mouse, since it does not depend on reading pixels:
 - An arg that starts with `-` is refused, so pass any shell command with flags on stdin to `mac <host> run`.
 
 Prefer `run` to the screen for anything a shell can do: reading files, git, builds, tests, `open -a <App>`, `open <url>`.
-Never use `osascript` through `run` to control an app: macOS asks Aaron whether `sshd-keygen-wrapper` may control it, and the command hangs until he answers. Drive apps with the keyboard instead.
+Never use `osascript` through `run` to control an app, that is any AppleScript `tell application`, System Events, or JXA `Application(...)`: macOS asks Aaron whether `sshd-keygen-wrapper` may control it, and the command hangs until he answers. Drive apps with `open` and the keyboard instead, as below.
 It runs in a non-interactive zsh as Aaron with his PATH, from his home directory. It has no terminal and gives up after 50 seconds, so start anything longer in the background with its output redirected, like `nohup make test > /tmp/test.log 2>&1 &`, and poll the log.
+
+## Apps and windows
+
+`mac <host> windows` prints the front app, the running apps, and every window front to back, each with its app, whether it is on screen or minimised, hidden or on another space, and its place and size in points.
+It shows window titles only where macOS lets it, so tell windows of one app apart by `look`.
+Points match screenshot pixels when the screenshot is 1512 wide and the screen line says 1512 wide; otherwise scale by screenshot width over screen width.
+
+Recipes, each followed by a `look` to check it worked. A command with a flag goes on stdin to `mac <host> run`, since an arg starting with `-` is refused:
+- Open or bring an app to the front, unhiding it and switching to its space: `open -a "<App>"` on stdin to `mac <host> run`. This is how to fix a screenshot of the wrong app.
+- Open a URL in his default browser: `mac <host> run open "<url>"`, or in one browser, on stdin, `open -a "<Browser>" "<url>"`. A file or folder: `open <path>`, or `open -R <path>` to show it in Finder.
+- A local web app, such as the kanban board on pilot, is a URL: open it, then look.
+- Bring a particular window of the front app forward: ``key cmd-` ``, repeated, checking each look, or click its title bar. Another app's window: `open -a` that app first.
+- Switch apps: `key cmd-tab`, or `open -a`. Mission Control: `key ctrl-up`. The front app's windows: `key ctrl-down`. Switch spaces: `key ctrl-left` or `ctrl-right`, or `open -a` an app on that space.
+- Tabs: `key cmd-t` for a new one, `cmd-1` to `cmd-9` to pick one, `cmd-shift-]` and `cmd-shift-[` or `ctrl-tab` to step, `cmd-l` to type a URL into the current one.
+- Resize or move: drag the window's bottom-right corner, or its title bar, using the place and size from `windows`; a double-click on the title bar fills or zooms it. `key cmd-ctrl-f` toggles full screen in most apps.
+- Minimise the front window: `key cmd-m`. Hide the front app: `key cmd-h`. Bring either back with `open -a`.
+- Close the front window or tab: `key cmd-w`. Quit the front app: `key cmd-q`. So to close or quit something, `open -a` it first, check with `look` that it is in front, then press the key.
+- Close only windows and tabs you opened, and quit only apps you launched, unless Aaron asks for one by name. If a dialog asks to save, cancel with `key esc` and ask him.
+- Never `kill`, `pkill` or `killall` an app.
+- Never send function keys, f1 to f12: they reach the front app, not the Mac.
+
+To show Aaron something, such as a screenshot of the board: open or focus it, `look`, check it shows what he asked for and nothing private, and attach that screenshot.
 
 ## Pair programming
 
@@ -77,6 +104,8 @@ Researched and built on 3 November 2026, on macOS 26.6.
 - macOS shows "Your screen is being controlled" and a Screen Sharing icon in the menu bar while you are connected, so Aaron always knows.
 - An MDM profile could not do it: a Mac takes one MDM, pilot already has its employer's, and no profile can grant screen recording anyway.
 - An agent installed on the Mac, such as Peekaboo or Cua, would read the accessibility tree too, but it needs Accessibility and Screen Recording granted by hand. Rebuilding it in the Nix store loses those grants, and macOS keeps asking to re-approve screen recording. It is the next step only if screenshots prove too coarse.
+- `mac <host> windows` runs `lsappinfo` and a JXA script that calls only `CGWindowListCopyWindowInfo` and `NSScreen` through the ObjC bridge, sending no Apple Events, so macOS asks for no Automation permission. Without Screen Recording, which ssh has not got, macOS leaves out most window titles but still gives each window's app, place, size and whether it is on screen.
+- `open -a` and keystrokes over Screen Sharing need no permission either, which is why the recipes use them rather than AppleScript.
 - `mac` runs the ssh master and the tunnel in `/tmp/mac` of butler's private temp, and the tunnel is a unix socket, so no other user on spike reaches the Macs' screens.
 - Keep-awake is `caffeinate -d -i -m -s -u` run 30 s at a time by the user LaunchAgent `butler-keepawake`, from `butler-access`, so it needs no sudo and comes back after every reboot and update. `-u` declares Aaron active, so the idle timer never reaches the screen saver or display sleep, which is what triggers the lock. Its state is `~/.local/state/butler-access/keepawake` on each Mac, `on` or `off`, the Mac's default while it is missing.
 - caffeinate cannot stop a closed lid sleeping the Mac, and `-s` holds system sleep only on AC. Only root can change those, with `pmset`, so they are steps Aaron takes himself, never you.
