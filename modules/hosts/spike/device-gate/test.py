@@ -15,23 +15,23 @@ password_file = os.path.join(directory, "password")
 with open(password_file, "w") as handle:
     handle.write(gate.hash_password("correct horse", n=2**10) + "\n")
 now = [1_800_000_000.0]
-state = gate.Gate(password_file, os.path.join(directory, "session-key"))
+state = gate.Gate(password_file, os.path.join(directory, "session-key"), {"10.100.0.13": "ipad", "10.100.0.9": "phone-2"})
 server = ThreadingHTTPServer(("127.0.0.1", 0), gate.handler_for(state, clock=lambda: now[0], sleep=lambda seconds: None))
 threading.Thread(target=server.serve_forever, daemon=True).start()
 port = server.server_address[1]
 
 
-def request(method, path, headers=None, body=None, host="kanban.spike.cute.engineer"):
+def request(method, path, headers=None, body=None, host="kanban.spike.cute.engineer", peer="10.100.0.13"):
     connection = http.client.HTTPConnection("127.0.0.1", port)
-    connection.request(method, path, body=body, headers={"Host": host, **(headers or {})})
+    connection.request(method, path, body=body, headers={"Host": host, "X-Forwarded-For": peer, **(headers or {})})
     response = connection.getresponse()
     response.read()
     return response
 
 
-def login(password, host="kanban.spike.cute.engineer"):
+def login(password, host="kanban.spike.cute.engineer", peer="10.100.0.13"):
     body = f"password={password}&next=/board"
-    return request("POST", "/.gate/login", {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": str(len(body))}, body, host)
+    return request("POST", "/.gate/login", {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": str(len(body))}, body, host, peer)
 
 
 page = request("GET", "/.gate/verify", {"X-Forwarded-Method": "GET", "X-Forwarded-Uri": "/x?y=1", "Sec-Fetch-Mode": "navigate"})
@@ -49,6 +49,18 @@ assert "HttpOnly" in right.getheader("Set-Cookie") and "SameSite=Strict" in righ
 assert request("GET", "/.gate/verify", {"Cookie": cookie}).status == 200
 assert request("GET", "/.gate/verify", {"Cookie": cookie, "Sec-Fetch-Mode": "cors", "X-Forwarded-Method": "GET"}, host="life.spike.cute.engineer").status == 401
 assert request("GET", "/.gate/verify", {"Cookie": cookie[:-2] + "xx", "Sec-Fetch-Mode": "cors"}).status == 401
+
+# A cookie is bound to the peer it signed in from, and revoking one peer signs out that peer alone.
+assert request("GET", "/.gate/verify", {"Cookie": cookie, "Sec-Fetch-Mode": "cors"}, peer="10.100.0.9").status == 401
+phone = login("correct+horse", peer="10.100.0.9").getheader("Set-Cookie").split(";")[0]
+assert request("GET", "/.gate/verify", {"Cookie": phone, "Sec-Fetch-Mode": "cors"}, peer="10.100.0.9").status == 200
+now[0] += 1
+gate.revoke(directory, "phone-2", clock=lambda: now[0])
+assert request("GET", "/.gate/verify", {"Cookie": phone, "Sec-Fetch-Mode": "cors"}, peer="10.100.0.9").status == 401
+assert request("GET", "/.gate/verify", {"Cookie": cookie, "Sec-Fetch-Mode": "cors"}).status == 200
+now[0] += 1
+phone = login("correct+horse", peer="10.100.0.9").getheader("Set-Cookie").split(";")[0]
+assert request("GET", "/.gate/verify", {"Cookie": phone, "Sec-Fetch-Mode": "cors"}, peer="10.100.0.9").status == 200
 
 now[0] += gate.LIFETIME + 1
 assert request("GET", "/.gate/verify", {"Cookie": cookie, "Sec-Fetch-Mode": "cors"}).status == 401

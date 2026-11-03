@@ -1,15 +1,18 @@
 """A login in front of the sites spike serves to a device that should not get in on its address alone.
 
 Caddy asks it about every request with forward_auth at /.gate/verify and proxies /.gate/* to it.
-A device logs in once with Aaron's password and keeps a signed cookie for 30 days, bound to the site's host.
+A device logs in once with Aaron's password and keeps a signed cookie for 30 days, bound to the site's host and to
+the WireGuard peer it signed in from, named by the address Caddy forwards and the peers in DEVICE_GATE_PEERS.
 The password is a scrypt hash in the credential `password`, and the signing key lives in the state directory,
-so deleting the key logs every device out.
+so deleting the key logs every device out, while `revoke <peer>` signs one device out, recording the time in
+`revoked.json` beside the key, so every cookie that peer was given before then stops working.
 """
 
 import base64
 import hashlib
 import hmac
 import html
+import json
 import os
 import secrets
 import socket
@@ -46,23 +49,24 @@ def check_password(password, stored):
     return hmac.compare_digest(actual, expected)
 
 
-def sign(key, host, expires):
-    message = f"{host}|{expires}".encode()
+def sign(key, host, expires, issued, device):
+    message = f"{host}|{expires}|{issued}|{device}".encode()
     return base64.urlsafe_b64encode(hmac.new(key, message, hashlib.sha256).digest()).decode().rstrip("=")
 
 
-def make_cookie(key, host, now):
-    expires = int(now) + LIFETIME
-    return f"{expires}.{sign(key, host, expires)}"
+def make_cookie(key, host, now, device):
+    issued = int(now)
+    expires = issued + LIFETIME
+    return f"{expires}.{issued}.{sign(key, host, expires, issued, device)}"
 
 
-def cookie_valid(key, host, value, now):
+def cookie_valid(key, host, value, now, device, revoked_at=0):
     try:
-        expires, signature = value.split(".", 1)
-        expires = int(expires)
+        expires, issued, signature = value.split(".", 2)
+        expires, issued = int(expires), int(issued)
     except (AttributeError, ValueError):
         return False
-    return expires > now and hmac.compare_digest(signature, sign(key, host, expires))
+    return expires > now and issued > revoked_at and hmac.compare_digest(signature, sign(key, host, expires, issued, device))
 
 
 def read_cookie(header, name=COOKIE):
@@ -96,10 +100,24 @@ class Failures:
 
 
 class Gate:
-    def __init__(self, password_file, key_file):
+    def __init__(self, password_file, key_file, peers=None):
         self.password_file = password_file
         self.key_file = key_file
+        self.revoked_file = os.path.join(os.path.dirname(key_file), "revoked.json")
+        self.peers = peers or {}
         self.failures = Failures()
+
+    def device(self, forwarded_for):
+        # Caddy sets X-Forwarded-For to the WireGuard address the request came from; the last entry is its own.
+        address = (forwarded_for or "").split(",")[-1].strip()
+        return self.peers.get(address, f"unknown {address}" if address else "unknown")
+
+    def revoked_at(self, device):
+        try:
+            with open(self.revoked_file) as handle:
+                return int(json.load(handle).get(device, 0))
+        except (FileNotFoundError, ValueError, TypeError, AttributeError):
+            return 0
 
     def key(self):
         try:
@@ -184,8 +202,12 @@ def handler_for(gate, clock=time.time, sleep=time.sleep):
             self.end_headers()
             self.wfile.write(body)
 
+        def device(self):
+            return gate.device(self.headers.get("X-Forwarded-For"))
+
         def signed_in(self):
-            return cookie_valid(gate.key(), self.host(), read_cookie(self.headers.get("Cookie")), clock())
+            device = self.device()
+            return cookie_valid(gate.key(), self.host(), read_cookie(self.headers.get("Cookie")), clock(), device, gate.revoked_at(device))
 
         def do_GET(self):
             url = urlparse(self.path)
@@ -215,18 +237,34 @@ def handler_for(gate, clock=time.time, sleep=time.sleep):
             target = safe_next(form.get("next", ["/"])[0])
             now = clock()
             if gate.failures.locked(now):
-                print(f"refused a login to {self.host()}: too many failures", file=sys.stderr, flush=True)
+                print(f"refused a login from {self.device()} to {self.host()}: too many failures", file=sys.stderr, flush=True)
                 return self.finish_with(429, login_page(self.host(), target, "Too many wrong passwords. Try again in 15 minutes."), "text/html; charset=utf-8")
             if not check_password(form.get("password", [""])[0], gate.stored_password()):
                 gate.failures.add(now)
-                print(f"a wrong password for {self.host()}", file=sys.stderr, flush=True)
+                print(f"a wrong password from {self.device()} for {self.host()}", file=sys.stderr, flush=True)
                 sleep(FAILURE_DELAY)
                 return self.finish_with(403, login_page(self.host(), target, "That password is wrong."), "text/html; charset=utf-8")
-            print(f"signed a device in to {self.host()}", file=sys.stderr, flush=True)
-            cookie = f"{COOKIE}={make_cookie(gate.key(), self.host(), now)}; Max-Age={LIFETIME}; Path=/; Secure; HttpOnly; SameSite=Strict"
+            print(f"signed {self.device()} in to {self.host()}", file=sys.stderr, flush=True)
+            cookie = f"{COOKIE}={make_cookie(gate.key(), self.host(), now, self.device())}; Max-Age={LIFETIME}; Path=/; Secure; HttpOnly; SameSite=Strict"
             return self.finish_with(303, headers=[("Location", target), ("Set-Cookie", cookie)])
 
     return Handler
+
+
+def revoke(state_directory, device, clock=time.time):
+    # Every cookie the device was given until now stops working; it can sign in again with the password.
+    path = os.path.join(state_directory, "revoked.json")
+    try:
+        with open(path) as handle:
+            revoked = json.load(handle)
+    except (FileNotFoundError, ValueError):
+        revoked = {}
+    revoked[device] = int(clock())
+    descriptor = os.open(f"{path}.new", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, "w") as handle:
+        json.dump(revoked, handle)
+    os.replace(f"{path}.new", path)
+    print(f"signed {device} out", file=sys.stderr, flush=True)
 
 
 class SocketServer(ThreadingHTTPServer):
@@ -237,7 +275,11 @@ def main():
     if len(sys.argv) == 2 and sys.argv[1] == "hash":
         print(hash_password(sys.stdin.readline().rstrip("\n")))
         return
-    gate = Gate(os.path.join(os.environ["CREDENTIALS_DIRECTORY"], "password"), os.path.join(os.environ["STATE_DIRECTORY"], "session-key"))
+    if len(sys.argv) == 4 and sys.argv[1] == "revoke":
+        revoke(sys.argv[2], sys.argv[3])
+        return
+    peers = json.loads(os.environ.get("DEVICE_GATE_PEERS", "{}"))
+    gate = Gate(os.path.join(os.environ["CREDENTIALS_DIRECTORY"], "password"), os.path.join(os.environ["STATE_DIRECTORY"], "session-key"), peers)
     server = SocketServer(None, handler_for(gate), bind_and_activate=False)
     server.socket.close()
     server.socket = socket.socket(fileno=SYSTEMD_FIRST_SOCKET)
