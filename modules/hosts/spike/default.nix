@@ -24,6 +24,7 @@
         ./butler-mail.nix
         ./butler-maps.nix
         ./butler-messenger.nix
+        ./butler-notes.nix
         ./butler-notify.nix
         ./butler-outlook.nix
         ./butler-photos.nix
