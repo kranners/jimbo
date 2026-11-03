@@ -21,6 +21,8 @@ let
   runnerHome = config.users.users.backlogic-runner.home;
   launchFrom = "${aaron}/workspace/jimbo";
   personalCooldown = "${home}/.claude-accounts/cooldown/1";
+  # Butler's mood pictures, one attached to every self-fix DM by its state, `fixed` made for a fix that landed.
+  moods = ../../../assets/butler/moods;
 
   preamble = pkgs.writeText "butler-self-fix-preamble.md" ''
     You are butler's self-fix session. Butler is Aaron's personal assistant bot: the claude-discord-threads daemon, run on the NixOS host spike as the system user butler, configured by this jimbo flake (modules/hosts/spike/butler*.nix and butler-skills/), with its memory, skills and scheduled prompts in kranners/butler-memory and its personal data index and life command in kranners/butler, jimbo's flake input butler.
@@ -257,8 +259,12 @@ let
         if [ -n "$session" ]; then
           echo "Started https://claude.ai/code/$session on $(basename "$config")" > "${sessions}/$id"
           touch "${watch}/$id"
+          printf 'Self-fix started: %s\nhttps://claude.ai/code/%s\n' "$(jq -r '.request | split("\n") | map(select(test("\\S"))) | first // "" | .[:120]' "$request")" "$session" |
+            butler-notify ${moods}/diligent.webp > /dev/null || true
         else
           echo "Could not start a cloud session: $(sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' "$work/log" | tr -s '\r\n ' ' ' | tail -c 400)" > "${sessions}/$id"
+          printf 'Self-fix couldn'"'"'t start (%s): %s\n' "$id" "$(tail -c 300 "${sessions}/$id")" |
+            butler-notify ${moods}/concerned.webp > /dev/null || true
         fi
         chown butler: "${sessions}/$id"
         rm -rf "$work" "$request"
@@ -332,7 +338,7 @@ let
       }
 
       tell_aaron_when_ended_or_waiting() {
-        local id=$1 work=$2 state title link card=""
+        local id=$1 work=$2 state title link card="" mood
         # Aaron closed or marked it done himself, so nothing more is reported.
         if [ -e "${archived}/$id" ] || [ -e "${dismissed}/$id" ]; then
           rm -f "${watch}/$id"
@@ -345,10 +351,10 @@ let
           finished* | archived | "failed to start"*)
             # A few plain lines for his phone: what happened, the session's own short summary, clipped, and the link.
             case "$state" in
-              "finished with an error") headline="Self-fix hit a problem: $title" ;;
-              finished) headline="Self-fix done: $title" ;;
-              archived) headline="Self-fix closed: $title" ;;
-              *) headline="Self-fix couldn't start: $title" ;;
+              "finished with an error") headline="Self-fix hit a problem: $title" mood=apologetic ;;
+              finished) headline="Self-fix done: $title" mood=content ;;
+              archived) headline="Self-fix closed: $title" mood=content ;;
+              *) headline="Self-fix couldn't start: $title" mood=concerned ;;
             esac
             summary=$(sed -n 's/^Final summary[^:]*: //p' "${progress}/$id")
             [ -n "$summary" ] || [ "$state" = "''${state#failed to start: }" ] || summary=''${state#failed to start: }
@@ -356,18 +362,21 @@ let
             if [ "$state" = finished ] &&
               jq -n --slurpfile events "$work/events" --rawfile mood ${fixedMood} --arg title "$title" \
                 -f ${./butler-self-fix/report.jq} > "$work/report.json" && [ -s "$work/report.json" ]; then
-              card=$(jq -r .html "$work/report.json" | runuser -u butler -- env HOME=${home} ${render} html 760) || card=""
+              # It landed, so it shows `fixed`: inside the card, or on its own when the card cannot be drawn.
+              mood=fixed
+              card=$(jq -r .html "$work/report.json" | runuser -u butler -- env HOME=${home} ${render} html 760) ||
+                { echo "Could not render self-fix $id's report card; sending the fixed picture alone" >&2; card=""; }
               summary=$(jq -r .prose "$work/report.json")
               todo=$(jq -r .todo "$work/report.json")
               [ -z "$todo" ] || summary="$summary"$'\n'"You need to: $todo"
             fi
             if [ "''${#summary}" -gt 600 ]; then summary="''${summary:0:600}…"; fi
-            { echo "$headline"; [ -z "$summary" ] || echo "$summary"; echo "$link"; } | butler-notify ''${card:+"$card"} > /dev/null
+            { echo "$headline"; [ -z "$summary" ] || echo "$summary"; echo "$link"; } | butler-notify "''${card:-${moods}/$mood.webp}" > /dev/null
             rm -f "${watch}/$id"
             ;;
           "waiting on input"*)
             if [ "$(cat "${watch}/$id")" != "$state" ]; then
-              printf 'Self-fix needs you: %s\nIt is waiting on you to answer or approve something.\n%s\n' "$title" "$link" | butler-notify > /dev/null
+              printf 'Self-fix needs you: %s\nIt is waiting on you to answer or approve something.\n%s\n' "$title" "$link" | butler-notify ${moods}/curious.webp > /dev/null
               echo "$state" > "${watch}/$id"
             fi
             ;;
@@ -547,6 +556,7 @@ in
 
   systemd.services.butler-self-fix = {
     description = "Start the cloud sessions butler queued to fix itself";
+    path = [ "/run/current-system/sw" ];
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
     serviceConfig = {
