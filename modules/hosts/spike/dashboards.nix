@@ -451,6 +451,24 @@ let
         unit = "percent";
         targets = [ (target "butler_monitor_battery_percent" "{{machine}}") ];
       })
+      # butler's turn pool, from the daemon's call state file: what runs in each lane, and what waits.
+      (timeseries {
+        title = "Butler turns";
+        targets = [
+          (target "butler_turns_lane" "{{lane}} running")
+          (target "butler_turns_queued" "waiting")
+          (target "butler_turns_cap" "slots")
+          (target "butler_turns_backoff" "backing off")
+        ];
+      })
+      (timeseries {
+        title = "Butler turn waits";
+        unit = "s";
+        targets = [
+          (target "butler_turns_oldest_queued_seconds" "oldest waiting")
+          (target "butler_turns_slots_busy_seconds" "every slot busy")
+        ];
+      })
     ];
 
     claude = dashboard "spike-claude" "Spike / Claude" [

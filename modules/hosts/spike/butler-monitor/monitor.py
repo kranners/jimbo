@@ -298,6 +298,45 @@ def read_limits():
     return usage
 
 
+def read_limit_kinds():
+    """Each account's session and weekly use, in percent, from claude-limits' textfiles."""
+    usage = {}
+    try:
+        names = sorted(os.listdir(CONFIG['limits']))
+    except OSError:
+        return usage
+    for name in names:
+        match = re.fullmatch(r'claude-limits-([a-z0-9-]+)\.prom', name)
+        if not match:
+            continue
+        for line in open(os.path.join(CONFIG['limits'], name)).read().splitlines():
+            metric = re.match(r'claude_limit_percent\{[^}]*kind="(session|weekly_all)"[^}]*\}\s+([0-9.eE+-]+)$', line)
+            if metric:
+                kind = 'weekly' if metric.group(1) == 'weekly_all' else 'session'
+                usage.setdefault(match.group(1), {})[kind] = float(metric.group(2))
+    return usage
+
+
+def backoff(kinds):
+    """Why butler should run fewer turns at once, or None: any account at claudeBackoffPercent of its session or week."""
+    tight = ['%s %s at %.0f%%' % (account, kind, percent)
+             for account, used in sorted(kinds.items()) for kind, percent in sorted(used.items())
+             if percent >= th('claudeBackoffPercent')]
+    return 'the Claude ' + ', '.join(tight) if tight else None
+
+
+def read_turns(now):
+    """The daemon's turn pool from its call state file, or None when it is missing or stale."""
+    try:
+        with open(CONFIG['callState']) as f:
+            state = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if now - state.get('updatedAt', 0) / 1000 > 60 or not isinstance(state.get('turns'), dict):
+        return None
+    return state['turns']
+
+
 def read_work():
     try:
         with open(CONFIG['work']) as f:
@@ -329,7 +368,7 @@ def collect():
                 machines[name] = {'up': False, 'why': str(error)[:120]}
     if machines.get('spike', {}).get('up'):
         machines['spike'].update(collect_spike_extras())
-    return {'machines': machines, 'claude': read_limits(), 'work': read_work()}
+    return {'machines': machines, 'claude': read_limits(), 'limits': read_limit_kinds(), 'work': read_work(), 'turns': read_turns(time.time())}
 
 
 # ---------------------------------------------------------------- judging
@@ -369,6 +408,17 @@ def evaluate(snapshot, state, now):
         elif percent >= th('claudeWarnPercent'):
             out.append(finding('claude:%s' % account, 'claude', 'warn',
                                'The %s Claude account is at %.0f%% of its week.' % (account, percent), repeat=24 * 3600))
+    turns = snapshot.get('turns')
+    if turns:
+        oldest = turns.get('oldestQueuedAt')
+        if oldest and now - oldest / 1000 >= th('turnQueueWarnSeconds'):
+            out.append(finding('butler:queue', 'spike', 'warn',
+                               "A Butler turn has waited %s for a free slot (%d running, %d waiting)." % (
+                                   duration(now - oldest / 1000), turns.get('running', 0), turns.get('queued', 0))))
+        full = turns.get('fullSince')
+        if full and now - full / 1000 >= th('turnSlotsBusyMinutes') * 60:
+            out.append(finding('butler:slots', 'spike', 'warn',
+                               "All %d of Butler's turn slots have been busy for %s." % (turns.get('cap', 0), duration(now - full / 1000))))
     work = snapshot.get('work')
     if work:
         if work['running'] > th('maxRunningChanges'):
@@ -725,6 +775,11 @@ def status_text(snapshot, findings, mode, now):
     lines += [machine_line(h, m) for h, m in sorted(snapshot['machines'].items())]
     for account, percent in sorted((snapshot.get('claude') or {}).items()):
         lines.append('Claude %s: %.0f%% of the week' % (account, percent))
+    turns = snapshot.get('turns')
+    if turns:
+        lines.append('Butler turns: %d running of %d, %d waiting%s' % (
+            turns.get('running', 0), turns.get('cap', 0), turns.get('queued', 0),
+            ', backing off while %s' % turns['backoff'] if turns.get('backoff') else ''))
     lines.append('Open problems: ' + ('; '.join(f['text'] for f in findings) if findings else 'none'))
     return '\n'.join(lines) + '\n'
 
@@ -749,6 +804,19 @@ def prom_lines(snapshot, findings, mode, now):
             value = get(m)
             if value is not None:
                 out.append('butler_monitor_%s{machine="%s"} %s' % (metric, host, repr(float(value))))
+    turns = snapshot.get('turns')
+    if turns:
+        oldest, full = turns.get('oldestQueuedAt'), turns.get('fullSince')
+        out += [
+            'butler_turns_running %d' % turns.get('running', 0),
+            'butler_turns_queued %d' % turns.get('queued', 0),
+            'butler_turns_lane{lane="interactive"} %d' % turns.get('interactive', 0),
+            'butler_turns_lane{lane="background"} %d' % turns.get('background', 0),
+            'butler_turns_cap %d' % turns.get('cap', 0),
+            'butler_turns_backoff %d' % (1 if turns.get('backoff') else 0),
+            'butler_turns_oldest_queued_seconds %d' % (max(0, now - oldest / 1000) if oldest else 0),
+            'butler_turns_slots_busy_seconds %d' % (max(0, now - full / 1000) if full else 0),
+        ]
     for level in ('warn', 'act'):
         out.append('butler_monitor_findings{level="%s"} %d' % (level, sum(f['level'] == level for f in findings)))
     return '\n'.join(out) + '\n'
@@ -795,6 +863,9 @@ def run():
         'problems': [{'host': f['host'], 'level': f['level'], 'text': f['text']} for f in findings],
     }, ensure_ascii=False))
     write_file(CONFIG['textfile'], prom_lines(snapshot, findings, mode, now), 0o644)
+    # The daemon reads this every 30 seconds and runs fewer turns at once while it says so; it acts on nothing else.
+    why = backoff(snapshot.get('limits') or {})
+    write_file(CONFIG['backoffFile'], json.dumps({'backoff': why is not None, 'reason': why, 'updatedAt': int(now)}), 0o640)
     print('butler-monitor: %d machines, %d problems, %d actions (%s), %d notices' % (
         len(snapshot['machines']), len(findings), len(results), mode, len(lines)))
 

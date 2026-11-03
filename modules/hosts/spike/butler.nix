@@ -861,7 +861,9 @@ in
         CLAUDE_CODE_EXECUTABLE = lib.getExe butler-claude;
         DISABLE_AUTOUPDATER = "1";
         DISCORD_WORKER_CWD = home;
-        DISCORD_MAX_WORKERS = "2";
+        # Four turns at once, two of them kept for short conversations, DMs, call hand-offs and board messages, so long work never holds every slot.
+        DISCORD_MAX_WORKERS = "4";
+        DISCORD_INTERACTIVE_RESERVED = "2";
         DISCORD_PERMISSION_MODE = "dontAsk";
         # Every approval waiting in a thread reaches Aaron's DM, and so his phone, as one batch.
         DISCORD_APPROVAL_BATCH_MS = "15000";
@@ -896,8 +898,9 @@ in
         RestartSec = 10;
         TimeoutStopSec = 20;
         OOMPolicy = "continue";
-        MemoryHigh = "2G";
-        MemoryMax = "3G";
+        # Room for up to six turns, about 400 MB each, when long ones overflow the four slots.
+        MemoryHigh = "3G";
+        MemoryMax = "4G";
         MemorySwapMax = "1G";
         ProtectHome = true;
         ProtectSystem = "strict";

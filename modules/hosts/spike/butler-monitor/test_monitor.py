@@ -35,8 +35,8 @@ def healthy(**over):
     return m
 
 
-def snap(machines, claude=None, work=None):
-    return {'machines': machines, 'claude': claude or {}, 'work': work}
+def snap(machines, claude=None, work=None, turns=None):
+    return {'machines': machines, 'claude': claude or {}, 'work': work, 'turns': turns}
 
 
 def judge(machines, state=None, now=1000 * DAY, **kw):
@@ -169,6 +169,35 @@ w = monitor.normalise('windows', monitor.parse_pairs('cores=16\nmem_total_kb=160
 check('a Windows reading normalises', abs(w['mem_free_ratio'] - 0.24375) < 1e-9 and w['disk_free_bytes'] == 23.9e9 and 'on_battery' not in w)
 check('status and metrics render', 'pilot' in monitor.status_text(snap(baseline), [], 'dry-run', 0) and
       'butler_monitor_host_up{machine="pilot"} 1.0' in monitor.prom_lines(snap(baseline), [], 'dry-run', 0))
+
+# Butler's turn pool: a turn waiting over 2 minutes, or every slot busy for 15, warns once.
+now = 1000 * DAY
+pool = {'cap': 4, 'reserved': 2, 'backoff': None, 'running': 4, 'interactive': 2, 'background': 2, 'queued': 1,
+        'oldestQueuedAt': (now - 90) * 1000, 'runningStartedAt': [], 'fullSince': (now - 10 * 60) * 1000}
+check('a short wait and busy slots for 10 minutes raise nothing', not [f for f in judge({}, turns=pool, now=now) if f['host'] == 'spike'])
+pool.update(oldestQueuedAt=(now - 150) * 1000, fullSince=(now - 16 * 60) * 1000)
+found = levels(judge({}, turns=pool, now=now))
+check('a turn waiting over 2 minutes and slots busy over 15 warn', found == {'butler:queue': 'warn', 'butler:slots': 'warn'})
+state = {}
+f = judge({}, state, turns=pool, now=now)
+lines, _ = monitor.notices(f, [], state, now, local_day)
+again, _ = monitor.notices(judge({}, state, turns=pool, now=now + 4 * 3600), [], state, now + 4 * 3600, local_day)
+check('the turn warnings go once', len(lines) == 2 and again == [])
+metrics = monitor.prom_lines(snap({}, turns=pool), [], 'dry-run', now)
+check('the pool is charted', 'butler_turns_queued 1' in metrics and 'butler_turns_oldest_queued_seconds 150' in metrics and 'butler_turns_slots_busy_seconds 960' in metrics)
+check('back off at 90% of a session or week', monitor.backoff({'personal': {'session': 91, 'weekly': 20}, 'work': {'weekly': 50}}) == 'the Claude personal session at 91%'
+      and monitor.backoff({'personal': {'session': 89}, 'work': {'weekly': 66}}) is None)
+limits = os.path.join(tmp, 'limits')
+os.makedirs(limits)
+with open(os.path.join(limits, 'claude-limits-work.prom'), 'w') as fh:
+    fh.write('claude_limit_percent{account="work",kind="session",model=""} 12\nclaude_limit_percent{account="work",kind="weekly_all",model=""} 93\n')
+monitor.CONFIG['limits'] = limits
+check('both kinds of limit are read', monitor.read_limit_kinds() == {'work': {'session': 12.0, 'weekly': 93.0}})
+call_state = os.path.join(tmp, 'call.json')
+monitor.CONFIG['callState'] = call_state
+with open(call_state, 'w') as fh:
+    json.dump({'live': False, 'updatedAt': now * 1000, 'turns': pool}, fh)
+check('the pool is read from the call state file while fresh', monitor.read_turns(now) == pool and monitor.read_turns(now + 120) is None)
 
 if failures:
     print('%d failed' % len(failures))

@@ -10,7 +10,7 @@ A deploy that would restart you, or the speech services your calls use, waits wh
 Once a held landing goes during a call, your own restart still waits for a quiet moment and you say "Applying an update, one moment." as always; spike itself says "A change is about to land, sir, I'll be back in a moment." first only when the landing also restarts your speech services, and never while Aaron is mid-sentence. You rejoin the call by yourself and say which fix landed.
 `/land` decides when a deploy goes out; `/restart` (or "update now", "hold off") decides when you take a restart a deploy already wants.
 With no call live a released landing DMs him one line instead.
-A deploy that restarts nothing a call needs goes out at once, and with no call live everything goes out as before, unless Aaron chose `always`.
+A deploy that restarts nothing a call needs goes out at once, and with no call live everything goes out as before, unless Aaron chose `always`, except that a deploy restarting you also waits, at most 10 minutes, while one of your turns under 20 minutes old is running, and your own restart then waits up to 3 more minutes for running turns, so a landing rarely cuts a turn off; one it does cut off runs again and says so in its thread.
 A commit that follows one that failed to switch, or carries a `Land: now` line in its message, skips the queue.
 A held commit that fails to build is still reported at once, by a shout or a DM, and spike keeps running the last good version.
 
