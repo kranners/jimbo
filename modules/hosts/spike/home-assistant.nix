@@ -100,6 +100,30 @@ let
     passthru.entrypoint = "butler-card.js";
   };
 
+  movie-night-card =
+    let
+      source =
+        builtins.replaceStrings
+          [ "@BUTLER_SVG@" ]
+          [ (builtins.readFile ./butler-card/butler-greyscale.svg) ]
+          (builtins.readFile ./butler-card/movie-night-card.js);
+    in
+    pkgs.stdenvNoCC.mkDerivation {
+      pname = "framer-movie-night-card";
+      version = builtins.substring 0 12 (builtins.hashString "sha256" source);
+
+      src = pkgs.writeText "movie-night-card.js" source;
+
+      dontUnpack = true;
+
+      installPhase = ''
+        mkdir -p $out
+        cp $src $out/movie-night-card.js
+      '';
+
+      passthru.entrypoint = "movie-night-card.js";
+    };
+
   spokenConditions = {
     clear-night = "clear";
     partlycloudy = "partly cloudy";
@@ -139,6 +163,7 @@ let
   framerPanelRemote = "http://10.100.0.5:8124";
   panelScreensaver = "input_boolean.panel_screensaver";
   wallpanelProfile = "input_text.wallpanel_profile";
+  framerMovieNight = "input_boolean.framer_movie_night";
   secondsToReadReply = 30;
   conversationStates = [
     "listening"
@@ -182,6 +207,12 @@ let
     '';
   };
 
+  movieNightCard = {
+    type = "tile";
+    entity = framerMovieNight;
+    name = "Movie night (panel off)";
+  };
+
   muteCard = {
     type = "tile";
     entity = framerMute;
@@ -214,6 +245,7 @@ let
       features = [ { type = "light-brightness"; } ];
     }
     muteCard
+    movieNightCard
   ];
 
   infoCards = [
@@ -256,6 +288,7 @@ in
       mushroom
       wallpanel
       butler-card
+      movie-night-card
     ];
 
     config = {
@@ -386,7 +419,7 @@ in
             {
               name = "panel profile";
               unique_id = "panel_profile";
-              state = "{{ 'off' if is_state('${framerMute}', 'on') else 'voice' if is_state('${framerConversation}', 'on') else states('${wallpanelProfile}') }}";
+              state = "{{ 'voice' if is_state('${framerConversation}', 'on') and is_state('${framerMute}', 'off') else 'movie' if is_state('${framerMovieNight}', 'on') else 'off' if is_state('${framerMute}', 'on') else states('${wallpanelProfile}') }}";
             }
           ];
         }
@@ -412,6 +445,11 @@ in
       };
 
       input_boolean.panel_screensaver.name = "Panel screensaver";
+      # Restored across restarts, so a flip by hand holds until the next window.
+      input_boolean.framer_movie_night = {
+        name = "Framer movie night";
+        icon = "mdi:movie-open";
+      };
       conversation.intents = {
         WeatherForecastToday = [
           "(what is|what's) the forecast [for today]"
@@ -511,6 +549,88 @@ in
           ];
         }
         {
+          alias = "Start framer's movie night";
+          trigger = [
+            {
+              platform = "time";
+              at = "19:30:00";
+            }
+          ];
+          condition = [
+            {
+              condition = "time";
+              weekday = [ "wed" ];
+            }
+          ];
+          action = [
+            {
+              service = "input_boolean.turn_on";
+              target.entity_id = framerMovieNight;
+            }
+          ];
+        }
+        {
+          alias = "End framer's movie night";
+          trigger = [
+            {
+              platform = "time";
+              at = "23:00:00";
+            }
+          ];
+          condition = [
+            {
+              condition = "time";
+              weekday = [ "wed" ];
+            }
+          ];
+          action = [
+            {
+              service = "input_boolean.turn_off";
+              target.entity_id = framerMovieNight;
+            }
+          ];
+        }
+        {
+          alias = "Turn framer's screen and assistant down for movie night";
+          trigger = [
+            {
+              platform = "state";
+              entity_id = framerMovieNight;
+              from = "off";
+              to = "on";
+            }
+          ];
+          action = [
+            {
+              service = "switch.turn_on";
+              target.entity_id = framerMute;
+            }
+            {
+              service = "input_boolean.turn_on";
+              target.entity_id = panelScreensaver;
+            }
+          ]
+          ++ runFramerPanel "brightness/15";
+        }
+        {
+          alias = "Bring framer's screen and assistant back after movie night";
+          trigger = [
+            {
+              platform = "state";
+              entity_id = framerMovieNight;
+              from = "on";
+              to = "off";
+            }
+          ];
+          action = [
+            {
+              service = "switch.turn_off";
+              target.entity_id = framerMute;
+            }
+          ]
+          ++ runFramerPanel "schedule";
+        }
+        {
           alias = "Reconnect framer's satellite when it is stuck listening";
           trigger = [
             {
@@ -567,7 +687,14 @@ in
         {
           path = "panel";
           title = "Panel";
-          cards = [ voiceCard ] ++ infoCards ++ [ muteCard ];
+          cards = [
+            voiceCard
+          ]
+          ++ infoCards
+          ++ [
+            muteCard
+            movieNightCard
+          ];
         }
         {
           path = "framer";
@@ -599,6 +726,13 @@ in
 
         profiles = {
           voice.idle_time = 0;
+          movie = {
+            idle_time = 10;
+            show_images = false;
+            cards = [ { type = "custom:framer-movie-night-card"; } ];
+            style.wallpanel-screensaver-overlay.background = "#000000ff";
+            style.wallpanel-screensaver-info-box.opacity = "1";
+          };
           off = {
             idle_time = 10;
             show_images = false;
