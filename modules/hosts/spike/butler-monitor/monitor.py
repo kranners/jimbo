@@ -734,7 +734,7 @@ def prom_lines(snapshot, findings, mode, now):
         for host, m in sorted(snapshot['machines'].items()):
             value = get(m)
             if value is not None:
-                out.append('butler_monitor_%s{host="%s"} %s' % (metric, host, repr(float(value))))
+                out.append('butler_monitor_%s{machine="%s"} %s' % (metric, host, repr(float(value))))
     for level in ('warn', 'act'):
         out.append('butler_monitor_findings{level="%s"} %d' % (level, sum(f['level'] == level for f in findings)))
     return '\n'.join(out) + '\n'

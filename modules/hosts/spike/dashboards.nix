@@ -417,7 +417,7 @@ let
     machines = dashboard "spike-machines" "Spike / Machines" [
       (stat {
         title = "Up";
-        targets = [ (target "butler_monitor_host_up" "{{host}}") ];
+        targets = [ (target "butler_monitor_host_up" "{{machine}}") ];
         w = 8;
         extra.options.colorMode = "background";
       })
@@ -435,21 +435,21 @@ let
       (timeseries {
         title = "Memory free";
         unit = "percentunit";
-        targets = [ (target "butler_monitor_memory_free_ratio" "{{host}}") ];
+        targets = [ (target "butler_monitor_memory_free_ratio" "{{machine}}") ];
       })
       (timeseries {
         title = "Disk free";
         unit = "decbytes";
-        targets = [ (target "butler_monitor_disk_free_bytes" "{{host}}") ];
+        targets = [ (target "butler_monitor_disk_free_bytes" "{{machine}}") ];
       })
       (timeseries {
         title = "Load per core (15 min)";
-        targets = [ (target "butler_monitor_load_ratio" "{{host}}") ];
+        targets = [ (target "butler_monitor_load_ratio" "{{machine}}") ];
       })
       (timeseries {
         title = "Battery";
         unit = "percent";
-        targets = [ (target "butler_monitor_battery_percent" "{{host}}") ];
+        targets = [ (target "butler_monitor_battery_percent" "{{machine}}") ];
       })
     ];
 
