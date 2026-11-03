@@ -83,7 +83,8 @@ in
         DISCORD_HA_URL = "http://127.0.0.1:8123";
         DISCORD_CALL_STT = "tcp://127.0.0.1:10300";
         DISCORD_CALL_TTS = "tcp://127.0.0.1:10200";
-        DISCORD_CALL_VOICE = "bm_george";
+        # Kokoro's Lewis, the voice framer's panel speaks in too (voice.nix).
+        DISCORD_CALL_VOICE = "bm_lewis";
         DISCORD_CALL_PROMPT_FILE = "${./butler-call.md}";
         DISCORD_CALL_FAST_MODEL = "haiku";
         DISCORD_CALL_FAST_PROMPT_FILE = "${./butler-call-fast.md}";
@@ -108,7 +109,9 @@ in
         # The first file holding a key wins, so the dedicated audio key falls back to the shared one.
         DISCORD_CALL_REALTIME_KEY_FILE = "${credential "openai-audio-key"}:${credential "openai-api-key"}";
         DISCORD_CALL_REALTIME_MONTHLY_USD = toString realtime.monthlyUsd;
-        DISCORD_CALL_REALTIME_VOICE = "cedar";
+        # A Kokoro voice: the realtime model answers in text, spoken by wyoming-kokoro, so calls sound like the panel.
+        # An OpenAI voice such as cedar has it speak for itself instead.
+        DISCORD_CALL_REALTIME_VOICE = "bm_lewis";
         DISCORD_CALL_REALTIME_PROMPT_FILE = "${realtimePrompt}";
         # Butler's own notes on who he is, read at each call's start so his memory's edits reach it.
         # Then how he sounds, the same brief voice-sample reads its samples with.

@@ -33,7 +33,7 @@ let
     "--model"
     kokoroModel
     "--voice"
-    "bm_george"
+    "bm_lewis"
     "--speed"
     "1.0"
   ];
