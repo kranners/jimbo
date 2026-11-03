@@ -15,7 +15,11 @@ let
   board = "/run/kanban-tunnel/board.sock";
 
   # Devices that may reach the board, by WireGuard peer name, each still signing in through the device gate.
-  viewers = [ "ipad" ];
+  viewers = [
+    "ipad"
+    "phone"
+    "phone-2"
+  ];
   viewerAddresses = lib.concatMap (peer: peer.allowedIPs) (
     lib.filter (peer: lib.elem peer.name viewers) config.networking.wireguard.interfaces.wg0.peers
   );

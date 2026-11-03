@@ -36,6 +36,33 @@ let
       echo "set; every device must sign in again"
     '';
   };
+
+  # Signs one device out at once, say a lost phone, leaving the others signed in; it can sign in again with the
+  # password, so take its WireGuard peer out of wireguard.nix too if it is gone for good.
+  revoke = pkgs.writeShellApplication {
+    name = "device-gate-revoke";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      if [ "$(id -u)" != 0 ] || [ "$#" != 1 ]; then
+        echo "usage: sudo device-gate-revoke <WireGuard peer, such as ipad or phone-2>" >&2
+        exit 1
+      fi
+      mkdir -p /var/lib/device-gate
+      ${lib.getExe gate} revoke /var/lib/device-gate "$1"
+      chown device-gate:device-gate /var/lib/device-gate/revoked.json
+    '';
+  };
+
+  # Each WireGuard address the gate may see, by peer name, so it binds a sign-in to the device and logs which it was.
+  peers = lib.listToAttrs (
+    lib.concatMap (
+      peer:
+      map (address: {
+        name = lib.removeSuffix "/32" address;
+        value = peer.name;
+      }) peer.allowedIPs
+    ) config.networking.wireguard.interfaces.wg0.peers
+  );
 in
 {
   options.spike.deviceGate.socket = lib.mkOption {
@@ -46,11 +73,19 @@ in
   };
 
   config = {
-    environment.systemPackages = [ setPassword ];
+    environment.systemPackages = [
+      setPassword
+      revoke
+    ];
 
-    # The iPad reaches the life explorer and money dashboard too, only once it has signed in here.
+    # The iPad reaches the life explorer and money dashboard too, and the iPad and Aaron's phones each only once
+    # signed in here.
     butler.index.explorer = {
-      gatedDevices = [ "ipad" ];
+      gatedDevices = [
+        "ipad"
+        "phone"
+        "phone-2"
+      ];
       gateSocket = config.spike.deviceGate.socket;
     };
 
@@ -76,6 +111,7 @@ in
       description = "Sign devices in before Caddy lets them through to sites gated by device";
       requires = [ "device-gate.socket" ];
       unitConfig.ConditionPathExists = passwordFile;
+      environment.DEVICE_GATE_PEERS = builtins.toJSON peers;
       serviceConfig = {
         ExecStart = lib.getExe gate;
         User = "device-gate";
