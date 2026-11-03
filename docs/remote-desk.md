@@ -67,6 +67,17 @@ On the iPad:
 - ✋ switches to pan mode, where one finger moves around and two pinch to zoom, so jimbo's 5120x1440 screen can be read; Fit shows the whole screen and 1:1 shows real pixels.
 - ⋯ has Ctrl Alt Del, Delete, Home, End, Page up and down, typing a pasted text, and hiding the toolbar.
 
+## On an iPhone
+
+The same PWA fits a phone, in portrait and landscape, down to 320 points wide.
+
+- The launcher is one column, each machine a compact row with its Connect button on the right.
+- The toolbar is a strip that scrolls sideways; in landscape it is slimmer and drops the machine's name.
+- ⋯, One-hand mode moves the toolbar to the bottom, within the thumb's reach, remembered on that phone.
+- While the on-screen keyboard is up, the viewer shrinks to the visible area and the toolbar sits just above the keyboard, so ⌘, Ctrl, Alt, Esc, Tab and the arrows are a tap away while typing.
+- A screen over 2.5 times as wide as it is tall, such as jimbo's 5120x1440, opens on a phone at its middle third filling the width, in pan mode, so text is readable; drag to move along it, pinch to zoom, Fit for the whole screen and ✋ to drive it.
+- Each phone logs in as its own device, `sudo remote-desk add iphone`, from its own WireGuard peer, and `sudo remote-desk revoke iphone` ends it alone.
+
 ## Native app fallback, not built
 
 A native VNC app such as Screens or Jump Desktop can tunnel through spike with its own iPad key, but that needs a jump account on spike and a new key on every machine, which this change does not add.
