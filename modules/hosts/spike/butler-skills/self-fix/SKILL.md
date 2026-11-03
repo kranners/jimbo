@@ -30,3 +30,4 @@ Aaron can do the same from the board, by closing a fix's card or choosing Archiv
 
 The session picks the repository (jimbo, claude-discord-threads or butler-memory), lands the fix on `main`, and it deploys on its own within about 5 minutes, which can restart you.
 Tell Aaron this before the restart, so the paused thread is no surprise.
+If he is on a call, you rejoin it after the restart and say which fix landed, so he hears it went live.
