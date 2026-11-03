@@ -1,5 +1,9 @@
 { config, lib, ... }:
 let
+  # The jimbo PC's NixOS install generates its key on its first boot with modules/hosts/jimbo/wireguard.nix; its
+  # public half, from `sudo wg show wg0 public-key` there, goes here, and until then spike has no peer for it.
+  jimboPublicKey = null;
+
   forwardingPeers = [
     "piggys-MBP"
     "phone"
@@ -70,7 +74,12 @@ in
         publicKey = "ttPbzMDHC7O8nbm24AYi9pwQT74qxtb+OXP/+Inq9DE=";
         allowedIPs = [ "10.100.0.11/32" ];
       }
-    ];
+    ]
+    ++ lib.optional (jimboPublicKey != null) {
+      name = "jimbo";
+      publicKey = jimboPublicKey;
+      allowedIPs = [ "10.100.0.12/32" ];
+    };
   };
 
   networking.firewall.allowedUDPPorts = [ 51820 ];

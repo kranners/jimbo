@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Nix flake configuring five machines for a single user (`aaron`, `aaronpierce` on the second MacBook):
 
-- `jimbo`, NixOS PC, `x86_64-linux`
+- `jimbo`, NixOS PC, `x86_64-linux`, dual booting a Windows install Nix does not manage
 - `piggys-MBP`, MacBook via nix-darwin, `aarch64-darwin`
 - `pilot`, second MacBook via nix-darwin, `aarch64-darwin`, same setup as `piggys-MBP` plus the tooling its work repositories expect (`modules/hosts/pilot/work-tools.nix`), the kanban board and its `kanban-sync` updater as launchd agents (`modules/hosts/pilot/kanban.nix`), which butler on spike drives through its `kanban` command, its computer and network names set to `pilot` by nix-darwin
 - `spike`, always-on NixOS box, `x86_64-linux`
@@ -197,8 +197,9 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Spike's nix-daemon runs at idle CPU and IO priority, so those builds, and every other, yield to Bowerbird.
 - WireGuard `wg0` on UDP `51820` at `spike.cute.engineer` (kept current by cloudflare-dyndns, token in `/var/lib/secrets/cloudflare-dyndns-token`), spike is `10.100.0.1`.
   Its private key is generated on first boot at `/var/lib/wireguard/private`.
-  Its peers are `piggys-MBP` at `10.100.0.2`, `phone` at `10.100.0.4`, `phone-2` at `10.100.0.9`, `framer` at `10.100.0.5`, `rylee` at `10.100.0.6`, `rylee-2` at `10.100.0.10`, `pilot` at `10.100.0.11`, `tower` at `10.100.0.7`, `windows` at `10.100.0.8`, and `github-actions` at `10.100.0.3`, whose private key lives only in Bowerbird's GitHub secrets.
+  Its peers are `piggys-MBP` at `10.100.0.2`, `phone` at `10.100.0.4`, `phone-2` at `10.100.0.9`, `framer` at `10.100.0.5`, `rylee` at `10.100.0.6`, `rylee-2` at `10.100.0.10`, `pilot` at `10.100.0.11`, `tower` at `10.100.0.7`, `windows` at `10.100.0.8`, the jimbo PC's Windows install, and `github-actions` at `10.100.0.3`, whose private key lives only in Bowerbird's GitHub secrets.
   spike forwards from Aaron's own peers, `piggys-MBP`, `phone`, `phone-2` and `framer`, to any other peer, and its `spike-wg0-forward` chain drops every other packet forwarded in from `wg0` but replies, so Rylee's `rylee`, `rylee-2` and `tower`, `github-actions` and `pilot` reach spike alone.
+  The jimbo PC's NixOS install is `jimbo` at `10.100.0.12` (`modules/hosts/jimbo/wireguard.nix`), whose key it generates on its first boot, and spike adds that peer only once `jimboPublicKey` in `modules/hosts/spike/wireguard.nix` holds the public half, from `sudo wg show wg0 public-key` on jimbo.
   Spike resolves `ideas.noodlebra.in`, Rylee's backlogic instance, to `rylee-2` at `10.100.0.10`.
   It declares `ip_forward` itself, which it otherwise had only because Docker set it.
   There is no NAT for `10.100.0.0/24`, so a peer reaches nothing on the LAN through spike.
@@ -370,6 +371,10 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `mac <host> windows` lists the front app, the running apps, through `lsappinfo`, and every window front to back with its place and size, through a JXA script calling `CGWindowListCopyWindowInfo` alone, which sends no Apple Events and so raises no Automation prompt, and the `mac` skill's recipes open, focus, switch, resize, minimise, close and quit apps and windows with `open -a` and keystrokes alone.
   `mac <host> keepawake [status|on|off]` shows or sets the Mac's keep-awake, `mac <host> sleep` turns it off and sleeps the Mac now, and both are logged with the other actions.
   `mac <host> record start` films the screen at two frames a second, for at most 15 minutes, into an MP4 in butler's outbox when `record stop` comes.
+  `mac` also drives the jimbo PC as the host `jimbo`, which answers as whichever of its two installs is up, found by its ssh master or by probing port 22 on `10.100.0.12` and `10.100.0.8` at once, and `mac hosts` names it.
+  On Linux it reaches Hyprland through `wayvnc` on a unix socket in Aaron's runtime directory, forwarded over ssh with no VNC password, since wayvnc offers none vncdotool speaks, and runs `butler-desktop` for windows and the session's environment, `butler-keepawake` and `butler-boot`.
+  On Windows it sends every command as PowerShell on stdin to an `-EncodedCommand` bootstrap, since Windows' OpenSSH starts `cmd.exe`, reads TightVNC's password from `C:\ProgramData\butler-access\vnc-password`, lists windows through the scheduled task `butler-desktop` in Aaron's session, and keeps awake by the power plan's AC timeouts.
+  `mac jimbo boot <linux|windows>` prints how it would restart into the other install, through the firmware's one-shot `BootNext` from Linux or `bcdedit`'s `bootsequence` from Windows, and does it only with `confirm`.
 - Messenger (`modules/hosts/spike/messenger.nix`) bridges Aaron's Facebook Messenger, Marketplace chats included, into Matrix on spike, so butler can read and send it through plain HTTP on loopback.
   `tuwunel.service` is the homeserver `spike`, on `127.0.0.1:6167` alone, with federation, registration and encryption off.
   `mautrix-meta-facebook.service` is the bridge, an appservice on `127.0.0.1:29321`, built with goolm, since Matrix-side encryption is off and nixpkgs marks libolm insecure, with backfill on and only `@aaron:spike` allowed to use it, as admin.
@@ -482,6 +487,11 @@ Screen Sharing must also be switched on once by hand in System Settings, General
 Its user LaunchAgent `butler-keepawake` keeps the Mac awake and unlocked for butler, running `caffeinate -d -i -m -s -u` 30 seconds at a time, which holds off idle, display and AC system sleep and declares the user active, so the screen saver and display sleep that would lock the screen never start, with no sudo.
 Its `butler-keepawake` command, which `mac <host> keepawake [status|on|off]` and `mac <host> sleep` run over ssh, writes `on` or `off` to `~/.local/state/butler-access/keepawake` and restarts the agent, and the Mac's default applies while that file is missing: on for `piggys-MBP`, off for `pilot`, since it would sidestep its employer's lock policy.
 It cannot keep a closed lid awake, hold system sleep off on battery or pass FileVault's password screen after a restart, which need root's `pmset -a disablesleep 1` or `fdesetup authrestart`, steps Aaron takes by hand.
+On `jimbo` the same module makes sshd take keys alone, authorizes butler's key the same way, and opens port 22 to `10.100.0.1` on `wg0` alone, in place of the firewall opening it to everyone.
+It runs `wayvnc` as Aaron's user unit `butler-wayvnc` with the graphical session, on `%t/butler-wayvnc.sock` with a umask of `0077`, so only Aaron, and butler through his ssh login, reach Hyprland's screen.
+Its user unit `butler-keepawake` holds an `idle:sleep` inhibitor 30 seconds at a time while `~/.local/state/butler-access/keepawake` is not `off`, on by default, and its `butler-keepawake` command sets it, or suspends the PC with `sleep`.
+Its `butler-boot windows plan|go` sets the firmware's next boot to Windows Boot Manager once, or systemd-boot's `auto-windows` when the firmware has no such entry, then reboots, with the passwordless sudo every NixOS host gives `wheel`.
+The PC's Windows install is set up by hand with `docs/windows-remote.ps1`, run in an administrator PowerShell after OpenSSH Server and butler's key, which installs TightVNC 2.8.90, pinned by SHA-256, as a service on `127.0.0.1:5900` alone with a random password, blocks inbound VNC in Windows Firewall and registers the `butler-desktop` task.
 
 ### Claude Code
 

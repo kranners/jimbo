@@ -1,14 +1,15 @@
 ---
 name: mac
-description: See and drive Aaron's MacBooks, pilot and piggys-MBP, with `mac`, as a pair programmer at his own screen, by looking, clicking, typing, pressing keys and running shell commands, managing apps and windows, opening, focusing, switching, resizing, minimising, closing and quitting them, and record what you did. Use when Aaron asks you to do something on his Mac, to open or show him something on it, to screenshot an app or page, to pair with him, to look at his screen, or to take the wheel.
+description: See and drive Aaron's MacBooks, pilot and piggys-MBP, and his dual-boot gaming PC jimbo, Linux or Windows, with `mac`, as a pair programmer at his own screen, by looking, clicking, typing, pressing keys and running shell commands, managing apps and windows, opening, focusing, switching, resizing, minimising, closing and quitting them, and record what you did. Use when Aaron asks you to do something on his Mac or PC, to open or show him something on it, to screenshot an app or page, to pair with him, to look at his screen, or to take the wheel.
 ---
 
-# Driving Aaron's Macs
+# Driving Aaron's Macs and PC
 
 `mac` reaches Aaron's two MacBooks from spike over WireGuard: `pilot`, his work Mac, and `piggys-MBP`, his personal one.
 Its screen, mouse and keyboard are his real console through macOS Screen Sharing, so he sees every move you make, and can take the mouse back at any time.
 `mac <host> run` runs a shell command as him over ssh.
 Start with `mac hosts`, which says which Macs are up, whether each is locked and which app is in front.
+It also lists `jimbo`, his PC, which has its own section below: everything here applies to it too, except where that section says otherwise.
 
 You do have screen access to both Macs: `look` is a real screenshot of Aaron's screen, and you can always open, focus, arrange and close apps and windows on it.
 Never tell Aaron you cannot see his screen or cannot get a screenshot.
@@ -93,6 +94,30 @@ It cannot unlock a Mac that is already locked, keep one awake with its lid close
 - A Mac that is asleep, off WireGuard or has its lid closed is down. Say so and ask Aaron to wake it. After a restart it waits at FileVault's password screen, which only Aaron can pass.
 - macOS ignores your clicks on its privacy prompts, the ones asking whether something may access or control something else. Ask Aaron to answer them.
 
+## jimbo, the PC
+
+`jimbo` is Aaron's desktop PC. It dual boots NixOS with the Hyprland desktop, and Windows, so only one is up at a time, and `mac hosts` says which: `jimbo (Linux, 10.100.0.12): up, ...`, `jimbo (Windows, 10.100.0.8): up, ...`, or `jimbo is down`.
+Every `mac jimbo` command goes to whichever is up. It is Wi-Fi only, with no Wake-on-LAN, so when it is down only Aaron can turn it on.
+
+What differs from the Macs:
+- There is no `cmd` key, and `key` refuses one. Shortcuts use `ctrl`, so `ctrl-c`, `ctrl-v`, `ctrl-t`, `ctrl-l`, `ctrl-w`, and `super` is the Windows key, or Hyprland's modifier on Linux. `alt-tab` switches windows on Windows.
+- `run` takes a POSIX shell command on Linux, run by zsh as Aaron with Hyprland's environment, so `hyprctl`, `wl-copy` and GUI apps reach his screen, and a PowerShell script on Windows, run as Aaron with administrator rights.
+- On Windows, `run` runs in a background session that cannot see or open anything on his desktop. Open an app there with the keyboard instead: `key super`, `type` its name, `key enter`. A URL: `key super-r`, `type` it, `key enter`. Its clipboard is not his either, so type long text rather than pasting it.
+- On Linux, open an app with `run hyprctl dispatch exec <app>`, a URL with `run xdg-open "<url>"`, and paste text you cannot type with `wl-copy` on stdin to `run`, then `key ctrl-v`. Hyprland's own keys: `super-space` opens the launcher, `super-return` a terminal, `super-1` to `super-0` switch workspaces, `super-f` toggles full screen, and `super-shift-q` closes the front window.
+- `windows` on Linux lists the front window, each screen and every window, most recently focused first, with its class, workspace, state, place and size, from `hyprctl`; to focus one, `run hyprctl dispatch focuswindow class:<class>`. On Windows it lists the front window, each screen and every window front to back, with its process, whether it is minimised or maximised, place and size in pixels, and title, as long as Aaron is signed in.
+- Screenshots are scaled to at most 1512 pixels wide, as on the Macs; Windows shows all its screens side by side in one picture, and Linux shows one screen.
+- Keep-awake is on by default on both systems: on Linux it holds idle and sleep off with a systemd inhibitor, and on Windows it sets the power plan's sleep and display timeouts on AC to never. `keepawake off` lets it sleep again. `sleep` suspends it, and it then stays down until Aaron wakes it, so use it only when he asks.
+- Linux has no lock screen, and logs Aaron straight into Hyprland after a boot. Windows may lock or show its login screen, which `mac hosts` reports as LOCKED or AT THE LOGIN SCREEN; never type a password or PIN there, and ask Aaron to sign in.
+
+Switching systems:
+- `mac jimbo boot windows` or `mac jimbo boot linux` only prints what it would do: on Linux, set the firmware's next boot to Windows Boot Manager once, then reboot; on Windows, set the firmware's next boot to Linux Boot Manager once, then restart.
+- `mac jimbo boot <system> confirm` does it. Run it only when Aaron has asked in so many words to switch, never to fix a problem by yourself, and tell him first that anything unsaved there is lost.
+- It cannot get past a login screen, a BitLocker or LUKS disk-encryption prompt or a firmware menu. Poll `mac hosts` for a few minutes; if jimbo stays down, ask Aaron to look at the PC.
+
+Games:
+- jimbo is his gaming PC. When a game is in front, or `windows` shows a game or its launcher, such as Steam, running full screen, ask before you touch the keyboard or mouse, and leave it alone while he plays.
+- Never drive, record, inject into or run tools against a game with anti-cheat, such as Valorant, League of Legends, Fortnite, Apex Legends or Counter-Strike: remote input can get his account banned. Ask him to switch to the desktop himself.
+
 ## How it works, and why this way
 
 Researched and built on 3 November 2026, on macOS 26.6.
@@ -108,4 +133,6 @@ Researched and built on 3 November 2026, on macOS 26.6.
 - `open -a` and keystrokes over Screen Sharing need no permission either, which is why the recipes use them rather than AppleScript.
 - `mac` runs the ssh master and the tunnel in `/tmp/mac` of butler's private temp, and the tunnel is a unix socket, so no other user on spike reaches the Macs' screens.
 - Keep-awake is `caffeinate -d -i -m -s -u` run 30 s at a time by the user LaunchAgent `butler-keepawake`, from `butler-access`, so it needs no sudo and comes back after every reboot and update. `-u` declares Aaron active, so the idle timer never reaches the screen saver or display sleep, which is what triggers the lock. Its state is `~/.local/state/butler-access/keepawake` on each Mac, `on` or `off`, the Mac's default while it is missing.
+- jimbo's NixOS install, by the same `butler-access` module, runs sshd taking butler's key alone, open to spike's `10.100.0.1` alone, and `wayvnc` as Aaron's user unit `butler-wayvnc`, on the unix socket `butler-wayvnc.sock` in his runtime directory, which only he can open; `mac` forwards that socket over ssh. wayvnc offers no password scheme vncdotool speaks, so that directory's permissions are its gate in place of a password file. Its keep-awake is the user unit `butler-keepawake`, with its state in `~/.local/state/butler-access/keepawake`.
+- jimbo's Windows install is set up by hand with jimbo's `docs/windows-remote.ps1`: OpenSSH Server with butler's key in `administrators_authorized_keys`, and TightVNC Server as a service on `127.0.0.1:5900` alone, whose password is in `C:\ProgramData\butler-access\vnc-password`. TightVNC's service shows the console, the login screen included. An ssh session runs in session 0, which sees none of Aaron's windows, so `windows` runs the scheduled task `butler-desktop` in his own session.
 - caffeinate cannot stop a closed lid sleeping the Mac, and `-s` holds system sleep only on AC. Only root can change those, with `pmset`, so they are steps Aaron takes himself, never you.

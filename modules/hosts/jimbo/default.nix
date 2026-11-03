@@ -5,6 +5,8 @@
   ];
 
   nixosSystemModule = { pkgs, ... }: {
+    imports = [ ./wireguard.nix ];
+
     networking.hostName = host.hostname;
 
     environment.systemPackages = [ pkgs.efibootmgr ];
