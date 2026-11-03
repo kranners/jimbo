@@ -124,7 +124,9 @@ let
           // {
             taints = r.taints || c.private;
           }
-          // lib.optionalAttrs (r.options ++ c.options != [ ]) { options = lib.unique (r.options ++ c.options); }
+          // lib.optionalAttrs (r.options ++ c.options != [ ]) {
+            options = lib.unique (r.options ++ c.options);
+          }
         ) c.rules;
       }) commands;
     }
