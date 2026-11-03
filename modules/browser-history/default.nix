@@ -55,6 +55,29 @@ in
           exit "$status"
         '';
       };
+      # Run by macOS's own /bin/bash, the agent's program, since Full Disk Access, which reading Messages needs, is
+      # granted to that program by path and a store path would change on every update.
+      messages = pkgs.writeShellScript "messages-history-push" ''
+        set -euo pipefail
+        snapshots=$(mktemp -d)
+        trap 'rm -rf "$snapshots"' EXIT
+        name="${device}-messages.sqlite"
+        snapshot="$snapshots/$name"
+        if ! ${pkgs.sqlite}/bin/sqlite3 "file:$HOME/Library/Messages/chat.db?mode=ro" "
+          ATTACH '$snapshot' AS s;
+          CREATE TABLE s.message AS SELECT ROWID, guid, text, attributedBody, handle_id, service, date, is_from_me, cache_has_attachments, associated_message_type FROM message;
+          CREATE TABLE s.handle AS SELECT ROWID, id, service FROM handle;
+          CREATE TABLE s.chat AS SELECT ROWID, guid, chat_identifier, display_name, service_name FROM chat;
+          CREATE TABLE s.chat_message_join AS SELECT chat_id, message_id FROM chat_message_join;
+        "; then
+          echo "$(date +%FT%T%z) failed to read Messages; give /bin/bash Full Disk Access" >&2
+          exit 1
+        fi
+        [ "$(${pkgs.sqlite}/bin/sqlite3 "$snapshot" "PRAGMA quick_check")" = ok ]
+        ${pkgs.openssh}/bin/ssh -i ${key} -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 \
+          -o StrictHostKeyChecking=accept-new browser-history@10.100.0.1 "$name" < "$snapshot"
+        echo "$(date +%FT%T%z) pushed $name"
+      '';
     in
     {
       home.activation.browserHistoryKey =
@@ -79,6 +102,27 @@ in
           ];
           StandardOutPath = "${logs}/push.log";
           StandardErrorPath = "${logs}/push.log";
+        };
+      };
+
+      launchd.agents.messages-history = {
+        enable = true;
+
+        config = {
+          Label = "messages-history";
+          ProgramArguments = [
+            "/bin/bash"
+            "${messages}"
+          ];
+          RunAtLoad = true;
+          StartCalendarInterval = [
+            {
+              Hour = 13;
+              Minute = 10;
+            }
+          ];
+          StandardOutPath = "${logs}/messages.log";
+          StandardErrorPath = "${logs}/messages.log";
         };
       };
     };
