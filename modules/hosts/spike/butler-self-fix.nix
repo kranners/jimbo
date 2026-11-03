@@ -40,8 +40,8 @@ let
 
     Aaron's request, relayed by butler, is at the end. Make the smallest change that does what it asks, in whichever repository it belongs, and land it:
 
-    - jimbo: follow its .claude/CLAUDE.md and keep its CLAUDE.md files true in the same commit. Check with the cloud session's `nix flake check` in its .claude/CLAUDE.md. Within about 5 minutes of main moving, spike's jimbo-switch pulls it and switches spike, restarting butler only when its service changed, and a commit whose build fails is never switched to.
-    - claude-discord-threads: put /opt/node24/bin first on PATH, then `npm ci && npm run typecheck && npm test`. butler-pull deploys its main within about 2 minutes and restarts butler.
+    - jimbo: follow its .claude/CLAUDE.md and keep its CLAUDE.md files true in the same commit. Check with the cloud session's `nix flake check` in its .claude/CLAUDE.md. Within about 5 minutes of main moving, spike's jimbo-switch pulls it and switches spike, restarting butler only when its service changed, at once or during a live call at its next quiet moment, and a commit whose build fails is never switched to.
+    - claude-discord-threads: put /opt/node24/bin first on PATH, then `npm ci && npm run typecheck && npm test`. butler-pull deploys its main within about 2 minutes and restarts butler, at once or during a live call at its next quiet moment.
     - butler-memory: plain files butler reads; butler-memory-pull brings main to spike within 5 minutes.
     - butler: follow its CLAUDE.md and check with `nix flake check`. It goes live once jimbo's lock moves: in jimbo run `nix flake update butler`, then land that on jimbo's main.
 

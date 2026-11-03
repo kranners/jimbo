@@ -550,6 +550,71 @@ let
     '';
   };
 
+  # A deploy never restarts butler mid-call: it writes `wanted` here, root's, and the daemon restarts itself at a quiet moment of a live call, or at once with none.
+  restartWantedDir = "/run/butler-restart";
+  restartWanted = "${restartWantedDir}/wanted";
+  # Where the daemon asks for that restart, `now`, and touches `deferring` while it waits on purpose.
+  restartDir = "${home}/.restart";
+  # How long a wanted restart may wait on a daemon that is not touching `deferring`, such as one too old to know, before root restarts it anyway.
+  restartOverdueSeconds = 15 * 60;
+
+  # The unit as systemd reads it, to tell whether a switch changed what butler runs.
+  butler-unit-hash = pkgs.writeShellApplication {
+    name = "butler-unit-hash";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      shopt -s nullglob
+      files=()
+      for file in /etc/systemd/system/butler.service /etc/systemd/system/butler.service.d/*.conf; do
+        [ ! -e "$file" ] || files+=("$file")
+      done
+      cat "''${files[@]}" /dev/null | sha256sum | cut -d' ' -f1
+    '';
+  };
+
+  # Records which unit this run of butler started from, and that it needs no restart.
+  butler-record-start = pkgs.writeShellApplication {
+    name = "butler-record-start";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      install -d -m 755 ${restartWantedDir}
+      ${lib.getExe butler-unit-hash} > ${restartWantedDir}/started.tmp
+      chmod 644 ${restartWantedDir}/started.tmp
+      mv ${restartWantedDir}/started.tmp ${restartWantedDir}/started
+      rm -f ${restartWanted}
+    '';
+  };
+
+  # `butler-want-restart <trigger>`: marks a restart of butler as wanted, with the commit subjects of any switch under way, merged into one already waiting.
+  butler-want-restart = pkgs.writeShellApplication {
+    name = "butler-want-restart";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.jq
+    ];
+    text = ''
+      trigger=$1
+      install -d -m 755 ${restartWantedDir}
+      changes='[]'
+      switching=/var/lib/jimbo-switch/switching
+      if [ "$trigger" = deploy ] && [ -f "$switching" ]; then
+        changes=$(head -n 20 "$switching" | jq -Rn '[inputs | select(length > 0) | .[0:200]]')
+      fi
+      old='{}'
+      [ ! -f ${restartWanted} ] || old=$(jq -c 'if type == "object" then . else {} end' ${restartWanted} 2>/dev/null || echo '{}')
+      jq -n \
+        --argjson old "$old" \
+        --argjson at "$(date +%s%3N)" \
+        --arg trigger "$trigger" \
+        --argjson changes "$changes" \
+        '{at: ($old.at // $at), trigger: ($old.trigger // $trigger), changes: (reduce ($changes + ($old.changes // []))[] as $c ([]; if any(.[]; . == $c) then . else . + [$c] end) | .[0:20])}' \
+        > ${restartWanted}.tmp
+      chmod 644 ${restartWanted}.tmp
+      mv ${restartWanted}.tmp ${restartWanted}
+      echo "butler restart wanted ($trigger)"
+    '';
+  };
+
   # Why butler last stopped, for the daemon to say when it rejoins a call: systemd's result, and any deploy under way.
   # It lives outside butler's home, in a directory of root's, so this root script never writes through a path butler controls.
   stopRecordDir = "/run/butler-stop";
@@ -568,6 +633,15 @@ let
       fi
       trigger=null
       [ ! -e /run/butler-pull/moved ] || trigger='"daemon-update"'
+      # A deferred restart: the switch or pull that wanted it ended long ago, so what it brought in comes from its marker.
+      if [ -f ${restartWanted} ]; then
+        wanted=$(jq -c 'if type == "object" then . else {} end' ${restartWanted} 2>/dev/null || echo '{}')
+        if [ "$deploy" = null ] && [ "$(jq '.changes // [] | length' <<<"$wanted")" -gt 0 ]; then
+          deploy=$(jq -c '{changes: .changes}' <<<"$wanted")
+        fi
+        [ "$trigger" != null ] || trigger=$(jq -c '.trigger // null' <<<"$wanted")
+        rm -f ${restartWanted}
+      fi
       jq -n \
         --argjson at "$(date +%s%3N)" \
         --arg result "''${SERVICE_RESULT:-}" \
@@ -584,9 +658,67 @@ let
 
   butler-restart-if-moved = pkgs.writeShellApplication {
     name = "butler-restart-if-moved";
-    runtimeInputs = [ config.systemd.package ];
     text = ''
-      [ ! -e "$RUNTIME_DIRECTORY/moved" ] || systemctl restart butler
+      [ ! -e "$RUNTIME_DIRECTORY/moved" ] || ${lib.getExe butler-want-restart} daemon-update
+    '';
+  };
+
+  # Restarts butler when the daemon asks, by writing `now` after its last start.
+  butler-restart-on-request = pkgs.writeShellApplication {
+    name = "butler-restart-on-request";
+    runtimeInputs = [
+      pkgs.coreutils
+      config.systemd.package
+    ];
+    text = ''
+      request=${restartDir}/now
+      [ -f "$request" ] && [ ! -L "$request" ] || exit 0
+      systemctl is-active --quiet butler || exit 0
+      started=$(systemctl show --timestamp=unix -P ActiveEnterTimestamp butler)
+      started=''${started#@}
+      [ "$(stat -c %Y "$request")" -gt "''${started:-0}" ] || exit 0
+      echo "butler asked to be restarted"
+      systemctl restart butler
+    '';
+  };
+
+  # The fallback: a wanted restart the daemon has not taken for a long while, and is not deferring on purpose, is done anyway.
+  butler-restart-overdue = pkgs.writeShellApplication {
+    name = "butler-restart-overdue";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.jq
+      config.systemd.package
+    ];
+    text = ''
+      [ -f ${restartWanted} ] || exit 0
+      systemctl is-active --quiet butler || exit 0
+      now=$(date +%s)
+      at=$(jq -r '(.at // 0) / 1000 | floor' ${restartWanted} 2>/dev/null || echo 0)
+      [ $(( now - at )) -ge ${toString restartOverdueSeconds} ] || exit 0
+      deferring=${restartDir}/deferring
+      if [ -f "$deferring" ] && [ ! -L "$deferring" ] && [ $(( now - $(stat -c %Y "$deferring") )) -lt 120 ]; then
+        exit 0
+      fi
+      echo "butler has not taken a restart wanted for $(( (now - at) / 60 )) minutes; restarting it"
+      systemctl restart butler
+    '';
+  };
+
+  # Runs npm ci only when the lockfile or Node changed since the last install, so a restart rejoins a call in seconds.
+  butler-npm-ci = pkgs.writeShellApplication {
+    name = "butler-npm-ci";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.nodejs_24
+    ];
+    text = ''
+      stamp="$(sha256sum package-lock.json | cut -d' ' -f1) ${pkgs.nodejs_24}"
+      if [ -d node_modules ] && [ "$(cat node_modules/.butler-ci-stamp 2>/dev/null)" = "$stamp" ]; then
+        exit 0
+      fi
+      npm ci --omit=dev
+      echo "$stamp" > node_modules/.butler-ci-stamp
     '';
   };
 in
@@ -669,6 +801,8 @@ in
     systemd.tmpfiles.rules = [
       "d ${home}/.claude 0700 butler butler -"
       "d ${stopRecordDir} 0755 root root -"
+      "d ${restartWantedDir} 0755 root root -"
+      "d ${restartDir} 0700 butler butler -"
       "d ${accounts} 0700 butler butler -"
       "d ${home}/.claude/skills 0700 butler butler -"
       "d ${home}/.claude/rules 0700 butler butler -"
@@ -713,14 +847,23 @@ in
         DISCORD_THREAD_DIGEST_NOTE = "Your working memory is core/now.md in your memory; read it and keep it current.";
         # Why the last run stopped, which a call it rejoins says aloud.
         DISCORD_STOP_RECORD_FILE = "${stopRecordDir}/stop.json";
+        # A deploy marks a restart as wanted, which the daemon takes at a quiet moment of a live call, asking for it through `now`.
+        DISCORD_RESTART_WANTED_FILE = restartWanted;
+        DISCORD_RESTART_DIR = restartDir;
       };
+
+      # A switch never restarts it, so a live call is never cut off: the activation below marks a restart as wanted instead.
+      restartIfChanged = false;
 
       serviceConfig = {
         User = "butler";
         WorkingDirectory = checkout;
         EnvironmentFile = secrets;
         LoadCredential = credentials;
-        ExecStartPre = "${pkgs.nodejs_24}/bin/npm ci --omit=dev";
+        ExecStartPre = [
+          "+${lib.getExe butler-record-start}"
+          (lib.getExe butler-npm-ci)
+        ];
         ExecStart = "${pkgs.nodejs_24}/bin/node src/daemon.ts";
         ExecStopPost = "+${lib.getExe butler-record-stop}";
         Restart = "always";
@@ -742,7 +885,7 @@ in
     };
 
     systemd.services.butler-pull = {
-      description = "Pull butler's claude-discord-threads main and restart butler when it moved";
+      description = "Pull butler's claude-discord-threads main and want butler restarted when it moved";
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
       unitConfig.ConditionPathExists = "${checkout}/.git";
@@ -754,6 +897,48 @@ in
         RuntimeDirectory = "butler-pull";
         ExecStart = "${butler-pull}/bin/butler-pull";
         ExecStartPost = "+${butler-restart-if-moved}/bin/butler-restart-if-moved";
+      };
+    };
+
+    # A switch that changed butler's unit wants it restarted, which the daemon does on a cue.
+    system.activationScripts.butler-restart-wanted = {
+      deps = [ "etc" ];
+      text = ''
+        if ${config.systemd.package}/bin/systemctl is-active --quiet butler.service 2>/dev/null &&
+          [ "$(${lib.getExe butler-unit-hash})" != "$(cat ${restartWantedDir}/started 2>/dev/null)" ]; then
+          ${lib.getExe butler-want-restart} deploy || true
+        fi
+      '';
+    };
+
+    systemd.paths.butler-restart = {
+      wantedBy = [ "paths.target" ];
+      pathConfig.PathModified = "${restartDir}/now";
+    };
+
+    systemd.services.butler-restart = {
+      description = "Restart butler when it asks, at a quiet moment of any live call";
+      restartIfChanged = false;
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = lib.getExe butler-restart-on-request;
+      };
+    };
+
+    systemd.timers.butler-restart-overdue = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "5min";
+        OnUnitActiveSec = "1min";
+      };
+    };
+
+    systemd.services.butler-restart-overdue = {
+      description = "Restart butler when a restart it was wanted for has waited too long and it is not deferring it";
+      restartIfChanged = false;
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = lib.getExe butler-restart-overdue;
       };
     };
 
