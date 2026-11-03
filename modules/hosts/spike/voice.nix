@@ -35,7 +35,7 @@ let
     "--voice"
     "bm_george"
     "--speed"
-    "0.9"
+    "1.0"
   ];
 in
 {
