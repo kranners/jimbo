@@ -101,6 +101,8 @@ in
           "${config.users.users.butler.home}/outbox"
           "${config.users.users.butler.home}/.claude/channels/discord/inbox"
         ];
+        # /mood preview's WAV, in the outbox so it can be attached and played into a call.
+        DISCORD_MOOD_PREVIEW_DIR = "${config.users.users.butler.home}/outbox";
       }
       // lib.optionalAttrs config.butler.credentialedTools {
         DISCORD_HA_TOKEN_FILE = credential "home-assistant-token";
