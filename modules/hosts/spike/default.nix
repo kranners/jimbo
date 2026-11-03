@@ -21,6 +21,7 @@
         inputs.butler.nixosModules.index
         ./butler-mac.nix
         ./butler-mail.nix
+        ./butler-maps.nix
         ./butler-messenger.nix
         ./butler-notify.nix
         ./butler-outlook.nix
