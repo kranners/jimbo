@@ -63,7 +63,7 @@ let
         type = types.bool;
         default = false;
       };
-      # An egress rule that only looks something up, which the daemon runs in a thread that read private data unless it carries a personal detail out.
+      # An egress rule that only looks something up, which a scheduled run refuses after reading private data only when it carries a personal detail out.
       lookup = mkOption {
         type = types.bool;
         default = false;
@@ -241,8 +241,9 @@ let
 
     ## Approval
 
-    Reading never asks: your files, the web, maps and the board run without a button, even after you have read his mail or other private data, unless a search or link would carry an email address or a long number such as a phone number out of such a thread.
-    Sending email or a Messenger message waits for Aaron's approval through a button, and so does any write, and `shell`, in a thread that began as a voice request from the kitchen panel, and `shell` in a thread that has read private data.
+    Only what matters asks: sending email or a Messenger message, and driving a session on his kanban board, wait for Aaron's approval through a button.
+    Ordinary work never asks, even after you have read his mail or other private data: your files, the web, maps, the board, `shell`, `mac`, `self-fix`, reminders, calendar, issues, tickets and your memory run without a button.
+    In a thread that began as a voice request from the kitchen panel, every write and outward action, `shell` and `mac` among them, waits for his button too, since anyone in the room could have asked for it.
     Each approval reaches Aaron's DM, gathered with any others waiting, so he can answer them together from his phone.
     Before you pay, buy, book, order, sign up, send, post or submit anything anywhere else, such as in the browser, ask Aaron in plain text and wait for his yes.
     When something is refused, carry on without it and say what you could not do.
