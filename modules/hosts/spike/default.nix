@@ -26,6 +26,36 @@
     land-queue = pkgs.runCommand "land-queue-dry-run" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 ${./butler-land}/test_land.py > $out 2>&1 || { cat $out; exit 1; }
     '';
+
+    # The Work in flight snapshot from fixture change records, offline, checking nothing private or path-shaped gets out.
+    butler-work =
+      let
+        strip =
+          name:
+          builtins.replaceStrings [ "if __name__ == '__main__':\n    sys.exit(${name}(sys.argv))\n" ] [ "" ];
+        source =
+          builtins.replaceStrings
+            [ "@selfFix@" "@kanban@" "@git@" "@limits@" ]
+            [ "/nonexistent" "/nonexistent" "git" "/nonexistent" ]
+            (
+              strip "main" (builtins.readFile ./butler-builders/builders.py)
+              + strip "work_main" (builtins.readFile ./butler-builders/work.py)
+              + builtins.readFile ./butler-builders/work-test.py
+            );
+        test = pkgs.writers.writePython3Bin "butler-work-test" {
+          flakeIgnore = [
+            "E501"
+            "E402"
+            "E302"
+            "E303"
+            "E305"
+          ];
+        } source;
+      in
+      pkgs.runCommand "butler-work-test" { } ''
+        mkdir $out
+        ${lib.getExe test} $out/work.json
+      '';
   };
 
   nixosSystemModule =
@@ -41,6 +71,7 @@
         ./butler-backlogic-source.nix
         ./butler-browser.nix
         ./butler-builders.nix
+        ./butler-work.nix
         ./butler-drive.nix
         ./butler-health.nix
         ./butler-imagine.nix
