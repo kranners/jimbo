@@ -168,7 +168,10 @@ function openScreen(host) {
   rfb.background = '#000';
   Object.keys(mods).forEach((mod) => { mods[mod] = 0; });
   renderMods();
-  rfb.addEventListener('connect', () => { notice(host.butler ? 'Connected. Butler is connected to this machine too.' : 'Connected'); });
+  rfb.addEventListener('connect', () => {
+    notice(host.butler ? 'Connected. Butler is connected to this machine too.' : 'Connected');
+    whenFramebuffer(defaultZoom);
+  });
   rfb.addEventListener('disconnect', (event) => {
     const reason = closeReason || (event.detail.clean ? 'disconnected' : 'the connection dropped');
     closeScreen(reason);
@@ -382,6 +385,58 @@ $('pan').addEventListener('click', () => setPan($('panlayer').hidden));
 $('fit').addEventListener('click', () => setZoom(1));
 $('actual').addEventListener('click', () => { setZoom(1 / fitScale()); setPan(true); notice('Pan mode: drag to move, pinch to zoom, ✋ to control again'); });
 window.addEventListener('resize', () => setZoom(zoom));
+
+// A phone shows a very wide screen, such as jimbo's 5120x1440, a third at a time, so text is readable: the middle
+// third fills the width, in pan mode, and Fit still shows the whole of it.
+function whenFramebuffer(then, tries = 25) {
+  if (framebuffer()) then();
+  else if (tries > 0) setTimeout(() => whenFramebuffer(then, tries - 1), 200);
+}
+
+function defaultZoom() {
+  const fb = framebuffer();
+  const box = $('scroller');
+  if (!fb || box.clientWidth >= 1000 || fb.width / fb.height < 2.5) return;
+  setZoom((box.clientWidth * 3) / fb.width / fitScale());
+  box.scrollLeft = (box.scrollWidth - box.clientWidth) / 2;
+  box.scrollTop = 0;
+  setPan(true);
+  notice('Showing the middle third. Drag to move, pinch to zoom, ✋ to control it', 6);
+}
+
+// On a phone the toolbar follows the thumb: one-hand mode keeps it at the bottom, and while the on-screen keyboard
+// is up the viewer shrinks to the visible area with the toolbar as a strip just above the keyboard.
+const viewer = $('viewer');
+let oneHand = false;
+try { oneHand = localStorage.getItem('remote-desk-one-hand') === '1'; } catch {}
+function renderOneHand() {
+  viewer.classList.toggle('one-hand', oneHand);
+  $('one-hand').textContent = oneHand ? 'Toolbar at the top' : 'One-hand mode';
+}
+renderOneHand();
+$('one-hand').addEventListener('click', () => {
+  oneHand = !oneHand;
+  try { localStorage.setItem('remote-desk-one-hand', oneHand ? '1' : '0'); } catch {}
+  $('more-menu').hidden = true;
+  renderOneHand();
+  setZoom(zoom);
+});
+
+const visual = window.visualViewport;
+function followKeyboard() {
+  if (!visual) return;
+  const keyboard = window.innerHeight - visual.height > 120 && document.activeElement === kbd;
+  viewer.classList.toggle('kbd-open', keyboard);
+  viewer.style.height = keyboard ? `${Math.round(visual.height)}px` : '';
+  viewer.style.top = keyboard ? `${Math.round(visual.offsetTop)}px` : '';
+  setZoom(zoom);
+}
+if (visual) {
+  visual.addEventListener('resize', followKeyboard);
+  visual.addEventListener('scroll', followKeyboard);
+}
+kbd.addEventListener('focus', () => setTimeout(followKeyboard, 300));
+kbd.addEventListener('blur', () => setTimeout(followKeyboard, 100));
 
 let gesture = null;
 const layer = $('panlayer');
