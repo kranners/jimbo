@@ -212,6 +212,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Every host keeps only the newest `jimbo.keepGenerations`, 3, generations of each Nix profile, the system's, every per-user one and home-manager's, plus the current one and spike's booted one, which `prune-generations` (`modules/nixpkgs-config`) deletes by count before each garbage collection, since `nix-collect-garbage` can only age them out and a day of landings left over a hundred.
   It never prunes the system profile while `/var/lib/jimbo-switch/failed` records a failed switch.
   `jimbo-switch` also prunes the system profile after every switch that worked, starting a garbage collection when more than the keep-count went at once, and spike's boot menu keeps the same number of entries.
+  `jimbo-switch-prune.service` does the same once at boot and when a switch first brings it or a new keep-count in, then starts a garbage collection.
 - `/tmp` sits on the root filesystem and ages out entries untouched for a day, overriding systemd's own `tmp.conf` rule in `modules/hosts/spike/tmp.nix`, which judges directories by birth and modification time alone, because every directory there is read daily, which kept their access time fresh and the age from ever passing.
   The runner's checks leave thousands of entries there a day.
   The same file ages out Deno's `gen` cache, in `aaron`'s and the runner's homes, after 2 days unused, since every new lane path adds a fresh set of entries to it.
