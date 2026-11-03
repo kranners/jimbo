@@ -156,7 +156,7 @@ class GitHub:
         quoted = urllib.request.quote(branch, safe='')
         status, body = self.get('/repos/%s/compare/main...%s' % (repo, quoted), BRANCH_TTL)
         if status == 404:
-            return 'not pushed yet', None
+            return 'branch not pushed, so its files show once it lands', None
         if status != 200 or not isinstance(body, dict):
             return 'files unknown', None
         files = [f.get('filename', '') for f in body.get('files') or []]
@@ -315,8 +315,10 @@ def board_sessions(repos):
                 return base
         return None
 
+    # The snapshot is a JSON object, which the board may follow with lines of its own.
+    start = result.stdout.find('{')
     try:
-        snapshot = json.loads(result.stdout)
+        snapshot = json.JSONDecoder().raw_decode(result.stdout[start:])[0] if start >= 0 else None
     except ValueError:
         snapshot = None
     sessions = []
@@ -329,18 +331,18 @@ def board_sessions(repos):
         for session in sessions:
             if not isinstance(session, dict):
                 continue
-            state = str(session.get('state') or session.get('status') or '')
-            if state.lower() not in ('working', 'running', 'needs-you', 'waiting', 'busy'):
+            state = str(session.get('state') or session.get('activity') or session.get('status') or '')
+            if state.lower() in ('', 'idle', 'done', 'finished', 'ended', 'exited', 'stopped', 'closed', 'failed'):
                 continue
             cwd = session.get('cwd') or session.get('dir') or session.get('path')
             repo = repo_in(cwd)
             if not repo:
                 continue
-            summary = session.get('summary') or session.get('doing') or session.get('activity') or session.get('status') or ''
+            summary = next((session[key] for key in ('summary', 'latestSummary', 'doing', 'status', 'title') if isinstance(session.get(key), str) and session[key]), '')
             lines.append('- %s (%s) in %s: WIP note, not a decision: %s' % (
                 clean(session.get('name') or session.get('short') or session.get('id'), 80),
                 clean(state, 20), clean(cwd, 120), clean(summary, 300)))
-    elif result.stdout.strip():
+    elif snapshot is None and result.stdout.strip():
         # Not JSON: keep the lines that name one of the repositories.
         for line in result.stdout.splitlines():
             if any(re.search(r'\b%s\b' % re.escape(name), line) for name in names):
