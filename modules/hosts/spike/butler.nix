@@ -613,7 +613,7 @@ in
         # Every approval waiting in a thread reaches Aaron's DM, and so his phone, as one batch.
         DISCORD_APPROVAL_BATCH_MS = "15000";
         DISCORD_COMMANDS_FILE = "${manifest}";
-        DISCORD_CRON_DIR = "${memory}/cron";
+        DISCORD_CRON_DIR = "${home}/cron";
         DISCORD_CRON_CHANNEL = "1565593836883935264";
         DISCORD_ATTACH_PATHS = "${outbox}:${moods}";
       };

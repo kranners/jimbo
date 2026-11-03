@@ -35,6 +35,15 @@ let
       echo "Queued notice $id; butler sends it within 5 seconds."
     '';
   };
+
+  # butler's own way to DM Aaron, from a scheduled job's thread above all, with no files, since those could be any it can read.
+  notify = pkgs.writeShellApplication {
+    name = "notify";
+    text = ''
+      [ $# -eq 0 ] || { echo "usage: notify <<'EOF' the message EOF  (DMs Aaron; takes no args)" >&2; exit 2; }
+      exec ${butler-notify}/bin/butler-notify
+    '';
+  };
 in
 {
   users.groups.${group} = { };
@@ -44,6 +53,21 @@ in
   systemd.tmpfiles.rules = [ "d ${spool} 2770 root ${group} -" ];
 
   environment.systemPackages = [ butler-notify ];
+
+  butler.commands.notify = {
+    package = notify;
+    description = "Send Aaron a Discord DM, its text on stdin, such as a scheduled job's result. Takes no args.";
+    stdin = true;
+    rules = [
+      {
+        match = [ ];
+        lanes = [
+          "interactive"
+          "cron"
+        ];
+      }
+    ];
+  };
 
   systemd.services.butler = {
     environment.DISCORD_NOTIFY_DIR = spool;
