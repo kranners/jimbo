@@ -50,6 +50,12 @@ in
         DISCORD_CALL_PROMPT_FILE = "${./butler-call.md}";
         DISCORD_CALL_FAST_MODEL = "haiku";
         DISCORD_CALL_FAST_PROMPT_FILE = "${./butler-call-fast.md}";
+        # A call's full turns run on a quicker model at low effort, speak as they stream,
+        # and an utterance ends after 600 ms of silence rather than the daemon's 800.
+        DISCORD_CALL_MODEL = "sonnet";
+        DISCORD_CALL_EFFORT = "low";
+        DISCORD_CALL_STREAM = "1";
+        DISCORD_CALL_SILENCE_MS = "600";
         # Audio Aaron asks to hear on a call: his DM attachments and the outbox.
         DISCORD_FFMPEG = lib.getExe pkgs.ffmpeg-headless;
         DISCORD_PLAY_PATHS = lib.concatStringsSep ":" [
@@ -92,7 +98,7 @@ in
               "agenda"
               "**"
             ];
-            lanes = withVoice;
+            lanes = withVoice ++ [ "call" ];
           }
         ];
       })

@@ -39,21 +39,21 @@ in
     rules = [
       {
         match = [ "lists" ];
-        lanes = both;
+        lanes = both ++ [ "call" ];
       }
       {
         match = [
           "due"
           "**"
         ];
-        lanes = both;
+        lanes = both ++ [ "call" ];
       }
       {
         match = [
           "open"
           "**"
         ];
-        lanes = both;
+        lanes = both ++ [ "call" ];
       }
       {
         match = [
