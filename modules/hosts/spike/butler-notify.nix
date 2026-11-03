@@ -44,6 +44,68 @@ let
       exec ${butler-notify}/bin/butler-notify
     '';
   };
+
+  # Says one short status line aloud in Aaron's live Discord call, or DMs it when no call is live, and prints which.
+  butler-call-say = pkgs.writeShellApplication {
+    name = "butler-call-say";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnused
+      pkgs.jq
+    ];
+    text = ''
+      usage() {
+        echo "usage: butler-call-say [--urgent] [--call-only] <<'EOF' one short line EOF  (says it in Aaron's live call, else DMs it, or with --call-only sends nothing)" >&2
+        exit 2
+      }
+
+      urgent=false
+      dm=true
+      while [ "$#" -gt 0 ]; do
+        case "$1" in
+          --urgent) urgent=true ;;
+          --call-only) dm=false ;;
+          *) usage ;;
+        esac
+        shift
+      done
+
+      text=$(tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')
+      [ -n "$text" ] || usage
+      [ "''${#text}" -le 200 ] || { echo "butler-call-say: keep it to one short line of at most 200 characters" >&2; exit 2; }
+      case "$text" in
+        *http://* | *https://*) echo "butler-call-say: no links; say what happened in plain words" >&2; exit 2 ;;
+      esac
+
+      id="$(date +%Y%m%d-%H%M%S)-$$"
+      jq -n --arg text "$text" --argjson urgent "$urgent" --argjson dm "$dm" '{text: (if $dm then $text else "" end), files: [], speak: {text: $text, urgent: $urgent, dm: $dm}}' > "${spool}/$id.json.tmp"
+      chmod 0640 "${spool}/$id.json.tmp"
+      mv "${spool}/$id.json.tmp" "${spool}/$id.json"
+
+      receipt="${spool}/$id.result"
+      for _ in $(seq 30); do
+        if [ -s "$receipt" ]; then
+          reason=$(jq -r '.reason' "$receipt")
+          rm -f "$receipt"
+          echo "''${reason^}."
+          exit 0
+        fi
+        sleep 0.5
+      done
+      echo "Queued $id; butler had not picked it up after 15 seconds, so it will be said in his call or sent as a DM shortly."
+    '';
+  };
+
+  # butler's own command: --urgent alone, since a session always wants the DM when no call is live.
+  call-say = pkgs.writeShellApplication {
+    name = "call-say";
+    text = ''
+      case "$*" in
+        "" | --urgent) exec ${butler-call-say}/bin/butler-call-say "$@" ;;
+        *) echo "usage: call-say [--urgent] <<'EOF' one short line EOF" >&2; exit 2 ;;
+      esac
+    '';
+  };
 in
 {
   users.groups.${group} = { };
@@ -52,7 +114,10 @@ in
 
   systemd.tmpfiles.rules = [ "d ${spool} 2770 root ${group} -" ];
 
-  environment.systemPackages = [ butler-notify ];
+  environment.systemPackages = [
+    butler-notify
+    butler-call-say
+  ];
 
   butler.commands.notify = {
     package = notify;
@@ -61,6 +126,28 @@ in
     rules = [
       {
         match = [ ];
+        lanes = [
+          "interactive"
+          "cron"
+        ];
+      }
+    ];
+  };
+
+  butler.commands.call-say = {
+    package = call-say;
+    description = "Give Aaron a shout: say one short plain line, on stdin, aloud in his live Discord call at the next gap, or DM it when no call is live; --urgent when something blocks on him.";
+    stdin = true;
+    rules = [
+      {
+        match = [ ];
+        lanes = [
+          "interactive"
+          "cron"
+        ];
+      }
+      {
+        match = [ "--urgent" ];
         lanes = [
           "interactive"
           "cron"
