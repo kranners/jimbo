@@ -25,6 +25,21 @@ let
   ];
   moods = ../../../assets/butler/moods;
 
+  # The local date and time, weekday and UTC offset, for the `now` tool and
+  # the hook that puts it into every turn, since a thread can last for hours.
+  now = pkgs.writeShellApplication {
+    name = "now";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      [ $# -eq 0 ] || { echo "usage: now" >&2; exit 2; }
+      TZ=${config.time.timeZone} date '+%A %-d %B %Y, %H:%M:%S %Z (UTC%:z), ${config.time.timeZone}'
+    '';
+  };
+
+  nowHook = pkgs.writeShellScript "butler-now-hook" ''
+    echo "The current local time is $(${lib.getExe now})."
+  '';
+
   sshWithKey = key: "ssh -i ${key} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new";
 
   rule = types.submodule {
@@ -137,6 +152,16 @@ let
         ];
         disableBypassPermissionsMode = "disable";
       };
+      hooks.UserPromptSubmit = [
+        {
+          hooks = [
+            {
+              type = "command";
+              command = "${nowHook}";
+            }
+          ];
+        }
+      ];
     }
   );
 
@@ -155,6 +180,8 @@ let
     }.
     Each tool's description gives its usage, and a skill of the same subject says how to use it well.
     You have no shell, and can write and edit files only in your memory.
+    Every message from Aaron arrives with the current local time beside it; when you need the time later in a turn, call `now`.
+    Before anything that depends on the time, such as "in two hours", "tonight", "tomorrow morning" or "is it open now", check the time with `now` rather than guessing.
     You cannot ask questions with buttons or menus, so ask them in plain text and wait for Aaron's reply.
     When a request needs something you cannot do, say so plainly and suggest what Aaron could do instead.
     Cite links for facts you found on the web.
@@ -463,6 +490,21 @@ in
       assertion = builtins.match "[a-z][a-z0-9-]{0,30}" name != null;
       message = "butler.commands.${name}: a command name is lowercase letters, digits and dashes, at most 31 long";
     }) (lib.attrNames commands);
+
+    butler.commands.now = {
+      package = now;
+      description = "Print the current local date, time, weekday, time zone and UTC offset in Aaron's time zone. Takes no args.";
+      rules = [
+        {
+          match = [ ];
+          lanes = [
+            "interactive"
+            "cron"
+          ];
+        }
+      ];
+      skill = ./butler-skills/now;
+    };
 
     butler.commands.memory-note = {
       package = memory-note;
