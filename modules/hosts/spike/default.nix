@@ -6,20 +6,28 @@
   ...
 }:
 {
-  # The self-fix probe end to end, with a local repository standing in for butler-memory.
-  checks.${host.system}.self-fix-probe =
-    pkgs.runCommand "self-fix-probe-dry-run"
-      {
-        nativeBuildInputs = [
-          pkgs.bash
-          pkgs.git
-          pkgs.python3
-        ];
-      }
-      ''
-        export HOME=$TMPDIR
-        bash ${./butler-probe}/dry-run.sh > $out
-      '';
+  checks.${host.system} = {
+    # The self-fix probe end to end, with a local repository standing in for butler-memory.
+    self-fix-probe =
+      pkgs.runCommand "self-fix-probe-dry-run"
+        {
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.git
+            pkgs.python3
+          ];
+        }
+        ''
+          export HOME=$TMPDIR
+          bash ${./butler-probe}/dry-run.sh > $out
+        '';
+
+    # The device gate's login, cookies, expiry, lockout and redirects over HTTP.
+    device-gate = pkgs.runCommand "device-gate-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      cp ${./device-gate}/gate.py ${./device-gate}/test.py .
+      python3 -I test.py > $out
+    '';
+  };
 
   nixosSystemModule =
     { pkgs, ... }:
@@ -58,6 +66,8 @@
         ./butler-weather.nix
         ./caddy.nix
         ./claude.nix
+        ./device-gate.nix
+        ./kanban-remote.nix
         ./dns.nix
         ./docker.nix
         ./environments.nix
