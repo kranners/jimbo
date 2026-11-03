@@ -31,6 +31,7 @@
         ./bowerbird.nix
         ./butler.nix
         ./butler-browser.nix
+        ./butler-builders.nix
         ./butler-drive.nix
         ./butler-health.nix
         ./butler-imagine.nix

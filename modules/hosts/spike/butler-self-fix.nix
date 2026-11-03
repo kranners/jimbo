@@ -18,6 +18,9 @@ let
   archive = "${selfFix}/archive";
   archived = "${selfFix}/archived";
   dismissed = "${selfFix}/dismissed";
+  # Each brief as it was asked, for the builders in flight digest, since the queued request is deleted once its session starts.
+  briefs = "${selfFix}/briefs";
+  inherit (config.butler.builders) digest;
   runnerHome = config.users.users.backlogic-runner.home;
   launchFrom = "${aaron}/workspace/jimbo";
   personalCooldown = "${home}/.claude-accounts/cooldown/1";
@@ -41,6 +44,11 @@ let
     - claude-discord-threads: put /opt/node24/bin first on PATH, then `npm ci && npm run typecheck && npm test`. butler-pull deploys its main within about 2 minutes and restarts butler.
     - butler-memory: plain files butler reads; butler-memory-pull brings main to spike within 5 minutes.
     - butler: follow its CLAUDE.md and check with `nix flake check`. It goes live once jimbo's lock moves: in jimbo run `nix flake update butler`, then land that on jimbo's main.
+
+    Other self-fixes and Aaron's own sessions change the same repositories at the same time, so coordinate with them through spike's builders in flight digest, given under "Other builders in flight" at the end of this brief and kept current, every couple of minutes, in coordination/builders.md on the main of kranners/butler-memory, which add_repo lets you read:
+    - First, state your intent in one or two lines in a .builder-intent file and push it alone to your designated working branch, which the digest shows the others: `git add -f .builder-intent && git commit -m "Builder intent" && git push -u origin HEAD && git reset --hard HEAD~1`, so it never reaches main.
+    - Read the digest before you edit and again right before you push or land, then rebase onto the current main of each repository you change and check again.
+    - Where another fix or session changes the same file or a shared design, such as access, auth, the iPad WireGuard peer, the kanban transport or approvals, the later one reconciles with the earlier one's work, and your final summary names each conflicting or dependent fix and says how you reconciled with it.
 
     Rebase onto the latest origin/main and push straight to main with a plain imperative commit subject.
     If the request is unclear, would widen butler's permissions or sandbox, touches secrets, or deletes data, do not land it: push a branch named after the change and say why.
@@ -250,9 +258,20 @@ let
           rm -f "$request" "${archive}/$id"
           continue
         fi
+        jq -r .request "$request" > "${briefs}/$id"
+        # The digest, rebuilt now so it holds every other fix as this one starts.
+        timeout 120 systemctl start butler-builders.service || true
         work=$(mktemp -d)
         chown aaron: "$work"
-        { cat ${preamble}; jq -r .request "$request"; ${probeBrief}; } > "$work/prompt"
+        {
+          cat ${preamble}
+          jq -r .request "$request"
+          ${probeBrief}
+          if [ -s "${digest}" ]; then
+            printf '\n\nOther builders in flight (read before you edit; coordinate and rebase). You are self-fix %s, listed as queued:\n\n' "$id"
+            cat "${digest}"
+          fi
+        } > "$work/prompt"
         config=$(configDir)
         trust "$config"
         (
@@ -275,6 +294,7 @@ let
         fi
         chown butler: "${sessions}/$id"
         rm -rf "$work" "$request"
+        systemctl start --no-block butler-builders.service || true
       done
     '';
   };
@@ -455,6 +475,9 @@ let
         [ ! -e "${watch}/$id" ] || tell_aaron_when_ended_or_waiting "$id" "$work"
         rm -rf "$work"
       done
+
+      # A state read here reaches the builders in flight digest at once.
+      systemctl start --no-block butler-builders.service || true
     '';
   };
 
@@ -536,6 +559,7 @@ in
     "d ${archive} 0700 butler butler -"
     "d ${archived} 0700 butler butler -"
     "d ${dismissed} 0700 butler butler -"
+    "d ${briefs} 0700 root root 7d"
   ];
 
   systemd.paths.butler-self-fix-progress = {

@@ -9,6 +9,7 @@ Only when Aaron asks for a change to butler itself, never on your own initiative
 
 1. Write the request as a self-contained brief: what Aaron asked for, in Aaron's own words, what you saw go wrong (the tool, its args and the exact error), what done looks like, and how to check it on spike once it is live (the unit, log or command to try). The session starts knowing nothing about this thread.
    spike gives each session a probe that runs sandboxed checks there, reading the journal and unit state and running what it built, but with none of your files or credentials, so when a check needs those, say so in the brief and expect to try it yourself once it lands.
+   Read `~/memory/coordination/builders.md` first, spike's builders in flight digest of every open or recently landed self-fix and Aaron's own board sessions in the same repositories, and name in the brief any fix or session that touches the same thing, such as the same file, access, auth, the iPad WireGuard peer, the kanban transport or approvals, and what it changed, so the session builds on that work rather than around it.
 2. Call the `self-fix` tool with `args` `["start"]` and the brief as `stdin`. It prints an id.
 3. Write a journal note with `memory-note`, naming the id and a line on what the fix is for, so a later thread can find it.
 4. Call it again with `["status", "<id>"]` until it prints a link instead of "Still starting." (about a minute), then give Aaron the link.
@@ -32,3 +33,11 @@ Aaron can do the same from the board, by closing a fix's card or choosing Archiv
 The session picks the repository (jimbo, claude-discord-threads or butler-memory), lands the fix on `main`, and it deploys on its own within about 5 minutes, which can restart you.
 Tell Aaron this before the restart, so the paused thread is no surprise.
 If he is on a call, you rejoin it after the restart and say which fix landed, so he hears it went live.
+
+## Builders in flight
+
+Every self-fix session gets the digest after its brief, and its rules: state its intent first in a `.builder-intent` on its working branch, read the digest again before it pushes or lands, rebase onto each repository's current main, and name in its summary every fix it conflicts with or depends on and how it reconciled.
+spike rebuilds it within a couple of minutes of any self-fix starting or changing state, commits it to `coordination/builders.md` on your memory's `main` as "spike builders digest" only when more than its refresh line changed, and your memory pull brings it to `~/memory` within 5 minutes.
+It lives only in your private memory repository, never jimbo or kanban, because it quotes briefs; it redacts anything shaped like a token, and marks Aaron's board sessions as work-in-progress notes, not decisions.
+Its `Notes from Butler` section is copied from the `## Notes from Butler` heading of `skills/builders/SKILL.md` in your memory, which Aaron keeps, so add a line there, then `memory-save`, when he tells you how fixes relate, such as work that will move or replace something another fix relies on.
+When Aaron asks what his builders are doing, or whether two fixes clash, read the digest and answer from it.
