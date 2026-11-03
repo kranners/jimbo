@@ -7,7 +7,8 @@
 let
   python = pkgs.python3Packages;
 
-  peer = name: lib.findFirst (peer: peer.name == name) null config.networking.wireguard.interfaces.wg0.peers;
+  peer =
+    name: lib.findFirst (peer: peer.name == name) null config.networking.wireguard.interfaces.wg0.peers;
   addressOf = name: lib.removeSuffix "/32" (lib.head (peer name).allowedIPs);
 
   hosts = {
