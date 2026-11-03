@@ -28,6 +28,7 @@
         ./butler-notify.nix
         ./butler-outlook.nix
         ./butler-photos.nix
+        ./butler-remarkable.nix
         ./butler-reminders.nix
         ./butler-render.nix
         ./butler-self-fix.nix
@@ -64,6 +65,7 @@
         address = "aaronpierce@outlook.com.au";
       };
       butler.hevy.enable = true;
+      butler.remarkable.enable = true;
       butler.index.captions.photosScript = ./butler-photos/photos.py;
       # The index holds Aaron's payments, messages and more, so a thread that searched it counts as having read private data.
       butler.commands.life.private = true;
