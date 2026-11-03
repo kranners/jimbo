@@ -115,6 +115,133 @@ let
     '';
   };
 
+  # Device control through the same Home Assistant token as the calendar.
+  # Only the domains and services below may be called, and locks, alarm panels,
+  # garage doors and gates can be read but never called.
+  home = pkgs.writeShellApplication {
+    name = "home";
+
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.curl
+      pkgs.jq
+    ];
+
+    text = ''
+      usage() {
+        echo "usage: home areas" >&2
+        echo "       home area <area_id>" >&2
+        echo "       home list [text]" >&2
+        echo "       home state <entity_id>" >&2
+        echo "       home call <domain.service> <entity_id> [key=value...]" >&2
+        exit 2
+      }
+
+      refuse() {
+        echo "home: $*" >&2
+        exit 77
+      }
+
+      home_assistant() {
+        curl --silent --show-error --fail-with-body --globoff \
+          --header @<(printf 'Authorization: Bearer %s\n' "$(< ${credential "home-assistant-token"})") \
+          --header "Content-Type: application/json" \
+          "$@"
+      }
+
+      template() {
+        jq --null-input --arg template "$1" '{template: $template}' \
+          | home_assistant --data @- "${homeAssistant}/api/template" \
+          || refuse "Home Assistant refused to render a template, which needs the token's user to be an administrator"
+      }
+
+      entity() {
+        [[ $1 =~ ^[a-z_]+\.[a-z0-9_]+$ ]] || usage
+      }
+
+      summarise() {
+        jq --raw-output '.[] | [.entity_id, .state, (.attributes.friendly_name // "")] | @tsv'
+      }
+
+      declare -A services=(
+        [light]="turn_on turn_off toggle"
+        [switch]="turn_on turn_off toggle"
+        [input_boolean]="turn_on turn_off toggle"
+        [fan]="turn_on turn_off toggle set_percentage oscillate set_direction set_preset_mode"
+        [cover]="open_cover close_cover stop_cover toggle set_cover_position open_cover_tilt close_cover_tilt stop_cover_tilt set_cover_tilt_position"
+        [valve]="open_valve close_valve stop_valve toggle set_valve_position"
+        [vacuum]="start pause stop return_to_base locate clean_spot set_fan_speed"
+        [climate]="turn_on turn_off set_temperature set_hvac_mode set_fan_mode set_preset_mode set_humidity"
+        [humidifier]="turn_on turn_off toggle set_humidity set_mode"
+        [media_player]="turn_on turn_off media_play media_pause media_stop volume_set volume_mute media_next_track media_previous_track"
+      )
+
+      [ $# -ge 1 ] || usage
+
+      case "$1" in
+        areas)
+          [ $# -eq 1 ] || usage
+          template '[{% for a in areas() %}{{ {"area": a, "name": area_name(a), "entities": area_entities(a) | count} | tojson }}{{ "," if not loop.last }}{% endfor %}]' \
+            | jq --raw-output '.[] | "\(.area)\t\(.name)\t\(.entities) entities"'
+          ;;
+        area)
+          [ $# -eq 2 ] || usage
+          [[ $2 =~ ^[a-z0-9_]+$ ]] || usage
+          ids=$(template "{{ area_entities('$2') | tojson }}")
+          home_assistant "${homeAssistant}/api/states" \
+            | jq --argjson ids "$ids" '[.[] | select(.entity_id | IN($ids[]))]' \
+            | summarise
+          ;;
+        list)
+          [ $# -le 2 ] || usage
+          home_assistant "${homeAssistant}/api/states" \
+            | jq --arg text "''${2:-}" '[.[] | select(($text | ascii_downcase) as $t | (.entity_id | ascii_downcase | contains($t)) or ((.attributes.friendly_name // "") | ascii_downcase | contains($t)))] | sort_by(.entity_id)' \
+            | summarise
+          ;;
+        state)
+          [ $# -eq 2 ] || usage
+          entity "$2"
+          home_assistant "${homeAssistant}/api/states/$2" \
+            | jq '{entity_id, state, attributes: (.attributes | del(.entity_picture)), last_changed}'
+          ;;
+        call)
+          [ $# -ge 3 ] || usage
+          [[ $2 =~ ^([a-z_]+)\.([a-z_]+)$ ]] || usage
+          domain=''${BASH_REMATCH[1]}
+          service=''${BASH_REMATCH[2]}
+          entity "$3"
+          [ "''${3%%.*}" = "$domain" ] || refuse "$3 is not a $domain entity"
+          allowed=''${services[$domain]:-}
+          [ -n "$allowed" ] || refuse "$domain cannot be controlled, only read; locks, alarm panels, scripts, scenes and the rest stay with Aaron"
+          [[ " $allowed " == *" $service "* ]] || refuse "$domain.$service is not allowed; allowed: $allowed"
+          current=$(home_assistant "${homeAssistant}/api/states/$3")
+          if [ "$domain" = cover ]; then
+            class=$(jq --raw-output '.attributes.device_class // ""' <<<"$current")
+            case "$class" in
+              garage | gate | door) refuse "$3 is a $class, which can only be read" ;;
+            esac
+          fi
+          shift 3
+          for pair in "$@"; do
+            [[ $pair =~ ^[a-z_]+=.+$ ]] || usage
+            case "''${pair%%=*}" in
+              entity_id | area_id | device_id | floor_id | label_id) usage ;;
+            esac
+          done
+          target=$(jq --raw-output '.entity_id' <<<"$current")
+          jq --null-input --arg entity "$target" '$ARGS.positional
+              | map(index("=") as $i | {key: .[:$i], value: (.[$i + 1:] | . as $v | try fromjson catch $v)})
+              | from_entries + {entity_id: $entity}' --args "$@" \
+            | home_assistant --data @- "${homeAssistant}/api/services/$domain/$service" >/dev/null
+          echo "Called $domain.$service on $target"
+          sleep 1
+          home_assistant "${homeAssistant}/api/states/$target" | jq --slurp '.' | summarise
+          ;;
+        *) usage ;;
+      esac
+    '';
+  };
+
   github-issue = pkgs.writeShellApplication {
     name = "github-issue";
 
@@ -273,6 +400,52 @@ in
       ];
       credentials.home-assistant-token = secret "home-assistant-token";
       skill = ./butler-skills/google-calendar;
+    };
+
+    home = {
+      package = home;
+      description = ''
+        Read and control the devices in Aaron's home through Home Assistant: lights, blinds, irrigation valves, climate, fans, the vacuum and media players.
+        home areas | home area <area_id> | home list [text] | home state <entity_id> | home call <domain.service> <entity_id> [key=value...]
+        Locks, alarm panels, garage doors, gates, scripts and scenes can be read but never called.
+      '';
+      rules = [
+        {
+          match = [ "areas" ];
+          lanes = both ++ [ "call" ];
+        }
+        {
+          match = [
+            "area"
+            "**"
+          ];
+          lanes = both ++ [ "call" ];
+        }
+        {
+          match = [
+            "list"
+            "**"
+          ];
+          lanes = both ++ [ "call" ];
+        }
+        {
+          match = [
+            "state"
+            "**"
+          ];
+          lanes = both ++ [ "call" ];
+        }
+        {
+          match = [
+            "call"
+            "**"
+          ];
+          lanes = both;
+          acts = true;
+        }
+      ];
+      credentials.home-assistant-token = secret "home-assistant-token";
+      skill = ./butler-skills/home;
     };
 
     github-issue = {
