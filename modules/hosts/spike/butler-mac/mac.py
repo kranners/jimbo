@@ -13,6 +13,7 @@ OUTBOX = '@outbox@'
 STATE = os.path.expanduser('~/.local/state/mac')
 RUNTIME = '/tmp/mac'
 PASSWORD = '.local/state/butler-access/vnc-password'
+KEEPAWAKE = '/etc/profiles/per-user/$USER/bin/butler-keepawake'
 SHOT_WIDTH = 1512
 SHOT_DAYS = 1
 QUIET = 0.3
@@ -44,6 +45,8 @@ USAGE = '''usage: mac hosts
        mac <host> key <combo> [combo...]   (e.g. cmd-space, enter, cmd-shift-t)
        mac <host> run [shell words]    (script on stdin when no arg)
        mac <host> record start | stop
+       mac <host> keepawake [status|on|off]
+       mac <host> sleep                (keep-awake off, then sleep now)
 x and y are pixels of the last picture from look, whose top-left is 0 0.'''
 
 
@@ -354,11 +357,12 @@ def show_log(count):
 def hosts():
     for host, target in HOSTS.items():
         try:
-            state = remote(host, 'ioreg -n Root -d1 | grep -c "CGSSessionScreenIsLocked\\"=Yes"; lsappinfo info -only name `lsappinfo front`', timeout=15)
+            state = remote(host, 'ioreg -n Root -d1 | grep -c "CGSSessionScreenIsLocked\\"=Yes"; lsappinfo info -only name `lsappinfo front`; %s status 2> /dev/null | head -1' % KEEPAWAKE, timeout=15)
             lines = state.stdout.splitlines()
             locked = lines[0].strip() != '0' if lines else False
             front = lines[1].split('=', 1)[-1].strip('"') if len(lines) > 1 else 'unknown'
-            print('%s (%s): up, %s, front app %s' % (host, target['address'], 'LOCKED' if locked else 'unlocked', front))
+            awake = lines[2].strip() if len(lines) > 2 else 'keep-awake: not installed'
+            print('%s (%s): up, %s, front app %s, %s' % (host, target['address'], 'LOCKED' if locked else 'unlocked', front, awake))
         except (Refused, subprocess.TimeoutExpired) as error:
             print('%s (%s): down, %s' % (host, target['address'], error))
 
@@ -372,6 +376,19 @@ def run(host, words):
     if result.stderr:
         print('[stderr]\n' + result.stderr, end='')
     print('[exit %d]' % result.returncode)
+
+
+def keepawake(host, verb):
+    if verb not in ('status', 'on', 'off', 'sleep'):
+        raise Refused('keepawake takes status, on or off')
+    if verb != 'status':
+        journal(host, 'sleep' if verb == 'sleep' else 'keepawake ' + verb)
+    result = remote(host, '[ -x %s ] && exec %s %s' % (KEEPAWAKE, KEEPAWAKE, verb), timeout=20)
+    if result.returncode != 0 and not result.stdout:
+        raise Refused('%s has no keep-awake yet; Aaron switches it to jimbo first' % host)
+    print(result.stdout, end='')
+    if result.stderr:
+        print('[stderr]\n' + result.stderr, end='')
 
 
 def recording(host):
@@ -489,6 +506,10 @@ def main():
         return run(host, rest)
     if verb == 'record':
         return record(host, rest[0] if rest else '')
+    if verb == 'keepawake':
+        return keepawake(host, rest[0] if rest else 'status')
+    if verb == 'sleep':
+        return keepawake(host, 'sleep')
     if verb == 'serve':
         return serve(host)
     if verb not in ACTIONS:
