@@ -71,6 +71,7 @@ in
         lanes = [
           "interactive"
           "cron"
+          "call"
         ];
         egress = true;
       }) reading

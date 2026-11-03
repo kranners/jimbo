@@ -246,21 +246,21 @@ in
       rules = [
         {
           match = [ "calendars" ];
-          lanes = both;
+          lanes = both ++ [ "call" ];
         }
         {
           match = [
             "agenda"
             "**"
           ];
-          lanes = both;
+          lanes = both ++ [ "call" ];
         }
         {
           match = [
             "events"
             "**"
           ];
-          lanes = both;
+          lanes = both ++ [ "call" ];
         }
         {
           match = [

@@ -16,6 +16,7 @@ let
     lanes = [
       "interactive"
       "cron"
+      "call"
     ];
     egress = true;
   };

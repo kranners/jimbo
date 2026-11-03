@@ -51,6 +51,7 @@ let
             "interactive"
             "cron"
             "voice"
+            "call"
           ]
         );
       };
@@ -507,6 +508,7 @@ in
           lanes = [
             "interactive"
             "cron"
+            "call"
           ];
         }
       ];
