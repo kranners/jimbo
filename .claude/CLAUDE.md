@@ -8,7 +8,7 @@ Nix flake configuring five machines for a single user (`aaron`, `aaronpierce` on
 
 - `jimbo`, NixOS PC, `x86_64-linux`, dual booting a Windows install Nix does not manage
 - `piggys-MBP`, MacBook via nix-darwin, `aarch64-darwin`
-- `pilot`, second MacBook via nix-darwin, `aarch64-darwin`, same setup as `piggys-MBP` plus the tooling its work repositories expect (`modules/hosts/pilot/work-tools.nix`), the kanban board and its `kanban-sync` updater as launchd agents (`modules/hosts/pilot/kanban.nix`), which butler on spike drives through its `kanban` command, its computer and network names set to `pilot` by nix-darwin
+- `pilot`, second MacBook via nix-darwin, `aarch64-darwin`, same setup as `piggys-MBP` plus the tooling its work repositories expect (`modules/hosts/pilot/work-tools.nix`), the kanban board and its `kanban-sync` updater as launchd agents (`modules/hosts/pilot/kanban.nix`), which butler on spike drives through its `kanban` command and spike's Caddy serves to the iPad through an ssh forward of its port alone, its computer and network names set to `pilot` by nix-darwin
 - `spike`, always-on NixOS box, `x86_64-linux`
 - `framer`, NixOS Surface Book 2 laptop, `x86_64-linux`
 
@@ -167,6 +167,14 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Home Assistant caches each spoken reply on disk under a key of the text, the engine and the pipeline's voice option, none of which tells it the server's voice changed, so `home-assistant.service`'s pre-start deletes `/var/lib/hass/tts` whenever Kokoro's model, voice or speed differs from the one recorded in `/var/lib/hass/.tts-voice`, and changing those restarts Home Assistant.
   Both are niced to `10` so speech never competes with Bowerbird.
 - Caddy (`modules/hosts/spike/caddy.nix`) serves HTTPS on `443`, open only on `wg0`.
+  The device gate (`modules/hosts/spike/device-gate.nix`, `device-gate/gate.py`) signs a device in before Caddy lets it through to a site that asks it by `forward_auth` on `/run/device-gate.sock`, a socket only Caddy opens, and serves its login under each site's `/.gate/`.
+  A device signs in once with a password whose scrypt hash `sudo device-gate-password` writes to `/var/lib/secrets/device-gate-password`, signing every device out as it does, and keeps an HttpOnly, SameSite=Strict cookie bound to the site's host for 30 days, signed with a key in `/var/lib/device-gate`, and ten wrong passwords in 15 minutes lock every login for the rest of them.
+  Until that file exists neither the gate nor its socket starts, so every gated site answers 502, and the flake check `device-gate` runs `device-gate/test.py` against it.
+  It gates the iPad alone, through butler's `butler.index.explorer.gatedDevices` for the life explorer and money dashboard and through `kanban.spike.cute.engineer` for the board.
+  Caddy serves pilot's kanban board at `https://kanban.spike.cute.engineer` (`modules/hosts/spike/kanban-remote.nix`), whose DNS-only A record points at `10.100.0.1`, to the iPad alone and only once the gate has signed it in, refusing any foreign `Origin` and the paths the board trusts from local agents and machines, `/api/agent/*`, `/api/butler/tools/*`, `/api/docs/tools/*`, `/api/hooks/*`, `/api/runners` and `/runner.js`.
+  It proxies to `/run/kanban-tunnel/board.sock`, which `kanban-tunnel.service`, as the system user `kanban-tunnel` whose group alone holds Caddy, forwards over ssh to `127.0.0.1:7420` on `pilot`, the board's loopback port, with the key `kanban-tunnel-key.service` generates in `/var/lib/kanban-tunnel`.
+  The tunnel runs only once `modules/hosts/spike/kanban-remote-key.nix` holds that key's public half, which `pilot` then authorizes from `10.100.0.1` alone to forward to `127.0.0.1:7420` and nothing else, with no shell.
+  Caddy rewrites each request's `Host` and `Origin` to the board's own loopback ones after checking the `Origin` against its site, adds `Cf-Connecting-Ip`, so the board never takes a proxied request for a local agent, and drops `Authorization` and `Cookie`.
   Its certificates come from Let's Encrypt by DNS-01, through the `caddy-dns/cloudflare` plugin built in with `pkgs.caddy.withPlugins`.
   It reads the cloudflare-dyndns token as the systemd credential `cloudflare-token`, through Caddy's `{file.*}` placeholder, so the token never reaches the Nix store.
   Spike's network answers every DNS query itself, whatever server it is sent to, and hides answers with private addresses, so Caddy skips its own propagation check, `propagation_timeout -1`, and waits 30 seconds for Let's Encrypt instead.
@@ -204,6 +212,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Its peers are `piggys-MBP` at `10.100.0.2`, `phone` at `10.100.0.4`, `phone-2` at `10.100.0.9`, `framer` at `10.100.0.5`, `rylee` at `10.100.0.6`, `rylee-2` at `10.100.0.10`, `pilot` at `10.100.0.11`, `tower` at `10.100.0.7`, `windows` at `10.100.0.8`, the jimbo PC's Windows install, and `github-actions` at `10.100.0.3`, whose private key lives only in Bowerbird's GitHub secrets.
   spike forwards from Aaron's own peers, `piggys-MBP`, `phone`, `phone-2` and `framer`, to any other peer, and its `spike-wg0-forward` chain drops every other packet forwarded in from `wg0` but replies, so Rylee's `rylee`, `rylee-2` and `tower`, `github-actions` and `pilot` reach spike alone.
   The jimbo PC's NixOS install is `jimbo` at `10.100.0.12` (`modules/hosts/jimbo/wireguard.nix`), whose key it generates on its first boot, and spike adds that peer only once `jimboPublicKey` in `modules/hosts/spike/wireguard.nix` holds the public half, from `sudo wg show wg0 public-key` on jimbo.
+  Aaron's iPad is `ipad` at `10.100.0.13`, whose key the WireGuard app generates, and spike adds that peer only once `ipadPublicKey` in `modules/hosts/spike/wireguard.nix` holds the public half; like `pilot` it reaches spike alone.
   Spike resolves `ideas.noodlebra.in`, Rylee's backlogic instance, to `rylee-2` at `10.100.0.10`.
   It declares `ip_forward` itself, which it otherwise had only because Docker set it.
   There is no NAT for `10.100.0.0/24`, so a peer reaches nothing on the LAN through spike.
