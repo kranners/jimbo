@@ -33,7 +33,7 @@ let
     Rebase onto the latest origin/main and push straight to main with a plain imperative commit subject.
     If the request is unclear, would widen butler's permissions or sandbox, touches secrets, or deletes data, do not land it: push a branch named after the change and say why.
     Never print, commit or send secrets.
-    Finish with a short summary: what changed, the commit, and when it goes live.
+    Finish with a short summary, which is DMed to Aaron to read on his phone: two to four sentences of plain Australian English saying what changed or what went wrong, whether he needs to do anything, and when it goes live, with no step lists, branch names, commit hashes, file paths or tool names, unless something failed and he needs one, then in one short sentence.
 
     Aaron's request:
 
@@ -288,12 +288,22 @@ let
         link=$(grep -oE 'https://claude.ai/code/session_[A-Za-z0-9]+' "${sessions}/$id")
         case "$state" in
           finished* | archived | "failed to start"*)
-            { echo "Self-fix $state: $title"; echo "$link"; sed -n 's/^Final summary[^:]*: //p' "${progress}/$id"; } | butler-notify > /dev/null
+            # A few plain lines for his phone: what happened, the session's own short summary, clipped, and the link.
+            case "$state" in
+              "finished with an error") headline="Self-fix hit a problem: $title" ;;
+              finished) headline="Self-fix done: $title" ;;
+              archived) headline="Self-fix closed: $title" ;;
+              *) headline="Self-fix couldn't start: $title" ;;
+            esac
+            summary=$(sed -n 's/^Final summary[^:]*: //p' "${progress}/$id")
+            [ -n "$summary" ] || [ "$state" = "''${state#failed to start: }" ] || summary=''${state#failed to start: }
+            if [ "''${#summary}" -gt 600 ]; then summary="''${summary:0:600}…"; fi
+            { echo "$headline"; [ -z "$summary" ] || echo "$summary"; echo "$link"; } | butler-notify > /dev/null
             rm -f "${watch}/$id"
             ;;
           "waiting on input"*)
             if [ "$(cat "${watch}/$id")" != "$state" ]; then
-              printf 'Self-fix %s: %s\n%s\n' "$state" "$title" "$link" | butler-notify > /dev/null
+              printf 'Self-fix needs you: %s\nIt is waiting on you to answer or approve something.\n%s\n' "$title" "$link" | butler-notify > /dev/null
               echo "$state" > "${watch}/$id"
             fi
             ;;
