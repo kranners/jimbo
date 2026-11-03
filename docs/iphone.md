@@ -11,16 +11,15 @@ Each site's name, `kanban`, `life` and `desk` under `spike.cute.engineer`, is a 
    Only `10.100.0.0/24` goes through it, so leaving it on costs nothing else.
 3. Open `https://life.spike.cute.engineer`, `https://kanban.spike.cute.engineer` and `https://desk.spike.cute.engineer` in Safari, and for each choose Share, Add to Home Screen.
 4. The board and the life explorer ask once for the device gate's password and keep the phone signed in for 30 days; Passwords can save it.
-5. Remote Desk asks for its own device login, which `sudo remote-desk add iphone` prints once on spike, and then each machine's screen-sharing password.
+5. Remote Desk asks for the same device gate password, keeping the phone signed in there for 12 hours, and then each machine's screen-sharing password.
 
 The home network answers every DNS query itself and hides private answers, so at home these names may not resolve; an encrypted DNS profile on the phone, such as Cloudflare's 1.1.1.1 app in DNS-only mode, gets the real answer past it.
 
 ## Revoking it
 
-- `sudo device-gate-revoke phone-2` (or `phone`) signs that phone out of the board and the life explorer at once, leaving the iPad signed in.
-- `sudo remote-desk revoke iphone` ends its Remote Desk logins and screens within 5 seconds.
+- `sudo device-gate-revoke phone-2` (or `phone`) signs that phone out of the board, the life explorer and Remote Desk at once, closing its open screens within 5 seconds, and leaves the iPad signed in.
 - Removing its peer from `modules/hosts/spike/wireguard.nix` takes it off WireGuard for good.
-- Sign-ins, wrong passwords and lockouts are logged with the peer's name: `journalctl -u device-gate` and `journalctl -u remote-desk`.
+- Sign-ins, wrong passwords and lockouts are logged with the peer's name under `journalctl -u device-gate`, and Remote Desk's screens under `journalctl -u remote-desk`.
 
 ## Public HTTPS, not built
 

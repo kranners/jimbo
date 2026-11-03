@@ -7,16 +7,16 @@ It is `modules/hosts/spike/remote-desk.nix`, a small Python gateway (`remote-des
 
 - Caddy serves it over WireGuard alone, to the peers in `remoteDesk.viewers`: `ipad`, once `modules/hosts/spike/wireguard.nix` has a peer of that name, `piggys-MBP`, `phone` and `phone-2`.
 - Caddy also aborts any request whose `Origin` is not the site itself, and the gateway checks it again.
-- Each device logs in with its own name and a random password that `sudo remote-desk add <device>` prints once, stored on spike only as a scrypt hash in `/var/lib/remote-desk/devices.json`.
-- A login lasts until 15 minutes without a touch or key, or 12 hours, and works only from the WireGuard address it logged in from.
-- Five wrong passwords from one address lock it out for 15 minutes, and twenty from anywhere in an hour lock every login for an hour.
+- Its login is spike's device gate, the same one as the kanban board's and the life explorer's: one password, set with `sudo device-gate-password`, signs a device in, bound to the WireGuard peer it came from, and Caddy names that peer to the gateway in `X-Device-Gate-Device`, dropping any a client sends.
+- A sign-in here lasts 12 hours, `remoteDesk.sessionHours`, against the other sites' 30 days, and a session also ends, closing its screens, after 15 minutes without a touch or key.
+- Ten wrong passwords in 15 minutes lock the gate's login for everyone until the window passes.
 - The launcher shows each machine as up, locked, at its login window, refused or down, the same probes as butler's `mac hosts`: ssh's port first, then the key's status command.
   It also shows when butler holds an ssh connection to that machine and which other devices are viewing it.
 - Connecting opens a fresh ssh connection from spike with the gateway's own key, `/var/lib/remote-desk/ssh/id_ed25519`, generated on spike on the service's first start, separate from butler's key and its `mac` sessions.
   On the Macs and Windows it forwards to the machine's own VNC on `127.0.0.1:5900`; on jimbo's NixOS its forced command pipes wayvnc's socket over the session, since OpenSSH refuses unix-socket forwards to a key with `permitopen`.
 - The machine then asks for its own screen-sharing password, which the gateway never stores; the iPad's Passwords app can fill it in.
   wayvnc on jimbo's NixOS has no password, so there the gateway login and Hyprland's own lock screen are the gates.
-- Every login, failed login, lockout, screen opened and closed is logged in spike's journal, `journalctl -u remote-desk`, never a password.
+- Every session, screen opened and closed is logged in spike's journal, `journalctl -u remote-desk`, and every sign-in and wrong password under `journalctl -u device-gate`, never a password.
 
 On each machine the gateway's key is accepted only from spike's `10.100.0.1`, under `restrict`, and its forced command only prints whether the screen is locked, or on jimbo's NixOS also carries VNC, so it runs nothing else.
 On the Macs and Windows it may forward to `127.0.0.1:5900` alone.
@@ -26,10 +26,10 @@ Its public half goes in `modules/butler-access/remote-desk.nix`, and until then 
 ## Threat model
 
 - Someone on the internet cannot reach it: Caddy listens on WireGuard alone and aborts anyone but Aaron's own peers.
-- A stolen iPad, locked, gives nothing: the PWA's login cookie is useless after 15 idle minutes, and revoking the device on spike ends its sessions and screens within 5 seconds.
-- A stolen iPad, unlocked within 15 minutes of use, gives the screens it was logged in to, each still behind its own lock screen, until Aaron revokes it or removes its WireGuard peer.
+- A stolen iPad, locked, gives nothing: its screens close after 15 idle minutes, its sign-in here ends after 12 hours, and `sudo device-gate-revoke ipad` on spike signs it out everywhere and ends its sessions and screens within 5 seconds.
+- A stolen iPad, unlocked within 15 minutes of use, gives the screens it was logged in to, each still behind its own lock screen, until Aaron signs it out or removes its WireGuard peer.
 - Someone who learns the device password still needs the iPad's WireGuard key, and the other way round.
-- A copied login cookie works only from the WireGuard address that logged in.
+- A copied sign-in cookie works only from the WireGuard peer that signed in.
 - A compromise of the gateway itself reaches each Mac's and the PC's screen-sharing port, behind its VNC password, and their lock state, but no shell, since the key runs only its forced command.
 - Butler and the iPad can drive the same screen at once; the launcher and the viewer's title say when butler is connected, but nothing stops either.
 - pilot is the employer's managed Mac: the gateway changes nothing there but adding its restricted key, keep-awake stays off by default, and its screen locks as its policy says.
@@ -38,7 +38,7 @@ What it cannot do: unlock a locked screen except by typing its password on its l
 
 ## Turning it off
 
-- At once: `sudo remote-desk revoke --all` ends every login, and `sudo systemctl stop remote-desk` stops the gateway until the next switch.
+- At once: `sudo remote-desk revoke --all` ends every session and screen, `sudo device-gate-password` signs every device out of every gated site, and `sudo systemctl stop remote-desk` stops the gateway until the next switch.
 - For good: `remoteDesk.enable = false` in `modules/hosts/spike/default.nix`, and `publicKey = null` in `modules/butler-access/remote-desk.nix` to withdraw the key from the Macs and jimbo's NixOS.
 - On Windows: `windows-remote-desk.ps1 -Remove` in an administrator PowerShell.
 - A single machine: drop it from `remoteDesk.hosts`.
@@ -49,14 +49,14 @@ On spike, once this lands:
 
 1. `sudo remote-desk key` prints the gateway's public key; put it in `modules/butler-access/remote-desk.nix` and land that, then switch both Macs (`just`).
 2. On the PC's Windows, in an administrator PowerShell: `powershell -ExecutionPolicy Bypass -File docs\windows-remote-desk.ps1 -PublicKey '<that key>'`.
-3. `sudo remote-desk add ipad` and keep the password it prints.
+3. `sudo device-gate-password` sets the device gate's password, if the board or the life explorer has not already.
 4. Make a DNS-only A record `desk.spike.cute.engineer` pointing at `10.100.0.1` in Cloudflare, like the other `*.spike.cute.engineer` names.
 
 On the iPad:
 
-1. Join WireGuard as the peer `ipad`, which the sibling iPad self-fix adds to spike.
+1. Join WireGuard as the peer `ipad`, once its public key is in spike's `wireguard.nix`.
 2. Open `https://desk.spike.cute.engineer` in Safari, Share, Add to Home Screen, and open Remote Desk from the Home Screen.
-3. Log in as `ipad` with the password, and let Passwords save it.
+3. Sign in with the device gate's password, and let Passwords save it.
 4. Tap a machine, then give its screen-sharing password: a Mac's is in `~/.local/state/butler-access/vnc-password` on it, the PC's in `C:\ProgramData\butler-access\vnc-password`.
 
 ## Using it
@@ -76,7 +76,7 @@ The same PWA fits a phone, in portrait and landscape, down to 320 points wide.
 - ⋯, One-hand mode moves the toolbar to the bottom, within the thumb's reach, remembered on that phone.
 - While the on-screen keyboard is up, the viewer shrinks to the visible area and the toolbar sits just above the keyboard, so ⌘, Ctrl, Alt, Esc, Tab and the arrows are a tap away while typing.
 - A screen over 2.5 times as wide as it is tall, such as jimbo's 5120x1440, opens on a phone at its middle third filling the width, in pan mode, so text is readable; drag to move along it, pinch to zoom, Fit for the whole screen and ✋ to drive it.
-- Each phone logs in as its own device, `sudo remote-desk add iphone`, from its own WireGuard peer, and `sudo remote-desk revoke iphone` ends it alone.
+- Each phone signs in as its own WireGuard peer, `phone` or `phone-2`, and `sudo device-gate-revoke phone-2` ends that one alone.
 
 ## Native app fallback, not built
 

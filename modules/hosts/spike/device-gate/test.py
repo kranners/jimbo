@@ -15,7 +15,7 @@ password_file = os.path.join(directory, "password")
 with open(password_file, "w") as handle:
     handle.write(gate.hash_password("correct horse", n=2**10) + "\n")
 now = [1_800_000_000.0]
-state = gate.Gate(password_file, os.path.join(directory, "session-key"), {"10.100.0.13": "ipad", "10.100.0.9": "phone-2"})
+state = gate.Gate(password_file, os.path.join(directory, "session-key"), {"10.100.0.13": "ipad", "10.100.0.9": "phone-2"}, {"desk.spike.cute.engineer": 12 * 3600})
 server = ThreadingHTTPServer(("127.0.0.1", 0), gate.handler_for(state, clock=lambda: now[0], sleep=lambda seconds: None))
 threading.Thread(target=server.serve_forever, daemon=True).start()
 port = server.server_address[1]
@@ -25,7 +25,7 @@ def request(method, path, headers=None, body=None, host="kanban.spike.cute.engin
     connection = http.client.HTTPConnection("127.0.0.1", port)
     connection.request(method, path, body=body, headers={"Host": host, "X-Forwarded-For": peer, **(headers or {})})
     response = connection.getresponse()
-    response.read()
+    response.body = response.read()
     return response
 
 
@@ -46,7 +46,9 @@ right = login("correct+horse")
 assert right.status == 303 and right.getheader("Location") == "/board", right.status
 cookie = right.getheader("Set-Cookie").split(";")[0]
 assert "HttpOnly" in right.getheader("Set-Cookie") and "SameSite=Strict" in right.getheader("Set-Cookie")
-assert request("GET", "/.gate/verify", {"Cookie": cookie}).status == 200
+verified = request("GET", "/.gate/verify", {"Cookie": cookie})
+assert verified.status == 200 and verified.getheader("X-Device-Gate-Device") == "ipad"
+assert request("GET", "/.gate/verify", {"Sec-Fetch-Mode": "cors"}).getheader("X-Device-Gate-Device") is None
 assert request("GET", "/.gate/verify", {"Cookie": cookie, "Sec-Fetch-Mode": "cors", "X-Forwarded-Method": "GET"}, host="life.spike.cute.engineer").status == 401
 assert request("GET", "/.gate/verify", {"Cookie": cookie[:-2] + "xx", "Sec-Fetch-Mode": "cors"}).status == 401
 
@@ -61,6 +63,17 @@ assert request("GET", "/.gate/verify", {"Cookie": cookie, "Sec-Fetch-Mode": "cor
 now[0] += 1
 phone = login("correct+horse", peer="10.100.0.9").getheader("Set-Cookie").split(";")[0]
 assert request("GET", "/.gate/verify", {"Cookie": phone, "Sec-Fetch-Mode": "cors"}, peer="10.100.0.9").status == 200
+
+# A site with a shorter lifetime, like Remote Desk's, signs a device in for that long alone.
+desk = login("correct+horse", host="desk.spike.cute.engineer")
+assert "Max-Age=43200" in desk.getheader("Set-Cookie")
+desk = desk.getheader("Set-Cookie").split(";")[0]
+assert b"12 hours" in request("GET", "/.gate/login", host="desk.spike.cute.engineer").body
+assert request("GET", "/.gate/verify", {"Cookie": desk, "Sec-Fetch-Mode": "cors"}, host="desk.spike.cute.engineer").status == 200
+now[0] += 12 * 3600 + 1
+assert request("GET", "/.gate/verify", {"Cookie": desk, "Sec-Fetch-Mode": "cors"}, host="desk.spike.cute.engineer").status == 401
+assert request("GET", "/.gate/verify", {"Cookie": cookie, "Sec-Fetch-Mode": "cors"}).status == 200
+now[0] -= 12 * 3600 + 1
 
 now[0] += gate.LIFETIME + 1
 assert request("GET", "/.gate/verify", {"Cookie": cookie, "Sec-Fetch-Mode": "cors"}).status == 401

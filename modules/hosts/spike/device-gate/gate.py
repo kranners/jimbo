@@ -6,6 +6,8 @@ the WireGuard peer it signed in from, named by the address Caddy forwards and th
 The password is a scrypt hash in the credential `password`, and the signing key lives in the state directory,
 so deleting the key logs every device out, while `revoke <peer>` signs one device out, recording the time in
 `revoked.json` beside the key, so every cookie that peer was given before then stops working.
+A site may sign devices in for less than 30 days, by its host in DEVICE_GATE_LIFETIMES, and a verified request
+answers with X-Device-Gate-Device naming the peer, which Caddy copies to the site so it knows which device it is.
 """
 
 import base64
@@ -54,9 +56,9 @@ def sign(key, host, expires, issued, device):
     return base64.urlsafe_b64encode(hmac.new(key, message, hashlib.sha256).digest()).decode().rstrip("=")
 
 
-def make_cookie(key, host, now, device):
+def make_cookie(key, host, now, device, lifetime=LIFETIME):
     issued = int(now)
-    expires = issued + LIFETIME
+    expires = issued + lifetime
     return f"{expires}.{issued}.{sign(key, host, expires, issued, device)}"
 
 
@@ -100,8 +102,9 @@ class Failures:
 
 
 class Gate:
-    def __init__(self, password_file, key_file, peers=None):
+    def __init__(self, password_file, key_file, peers=None, lifetimes=None):
         self.password_file = password_file
+        self.lifetimes = lifetimes or {}
         self.key_file = key_file
         self.revoked_file = os.path.join(os.path.dirname(key_file), "revoked.json")
         self.peers = peers or {}
@@ -111,6 +114,9 @@ class Gate:
         # Caddy sets X-Forwarded-For to the WireGuard address the request came from; the last entry is its own.
         address = (forwarded_for or "").split(",")[-1].strip()
         return self.peers.get(address, f"unknown {address}" if address else "unknown")
+
+    def lifetime(self, host):
+        return min(int(self.lifetimes.get(host, LIFETIME)), LIFETIME)
 
     def revoked_at(self, device):
         try:
@@ -138,7 +144,15 @@ class Gate:
             return handle.read().strip()
 
 
-def login_page(host, target, message=""):
+def lasts(seconds):
+    if seconds % 86400 == 0:
+        days = seconds // 86400
+        return f"{days} day" + ("" if days == 1 else "s")
+    hours = max(1, seconds // 3600)
+    return f"{hours} hour" + ("" if hours == 1 else "s")
+
+
+def login_page(host, target, message="", lifetime=LIFETIME):
     note = f'<p class="note">{html.escape(message)}</p>' if message else ""
     return f"""<!doctype html>
 <html lang="en">
@@ -165,7 +179,7 @@ button {{ border: 0; background: var(--accent); color: #fff; font-weight: 600; }
 <body>
 <form method="post" action="/.gate/login">
 <h1>{html.escape(host)}</h1>
-<p>Sign in once on this device; it stays signed in for 30 days.</p>
+<p>Sign in once on this device; it stays signed in for {lasts(lifetime)}.</p>
 {note}
 <input type="hidden" name="next" value="{html.escape(target)}">
 <input type="password" name="password" autocomplete="current-password" placeholder="Password" required autofocus>
@@ -213,7 +227,7 @@ def handler_for(gate, clock=time.time, sleep=time.sleep):
             url = urlparse(self.path)
             if url.path == "/.gate/verify":
                 if self.signed_in():
-                    return self.finish_with(200)
+                    return self.finish_with(200, headers=[("X-Device-Gate-Device", self.device())])
                 original = self.headers.get("X-Forwarded-Uri", "/")
                 if self.headers.get("X-Forwarded-Method", "GET") == "GET" and self.headers.get("Sec-Fetch-Mode", "navigate") == "navigate":
                     return self.finish_with(302, headers=[("Location", f"/.gate/login?next={quote(safe_next(original), safe='')}")])
@@ -222,7 +236,7 @@ def handler_for(gate, clock=time.time, sleep=time.sleep):
                 target = safe_next(parse_qs(url.query).get("next", ["/"])[0])
                 if self.signed_in():
                     return self.finish_with(303, headers=[("Location", target)])
-                return self.finish_with(200, login_page(self.host(), target), "text/html; charset=utf-8")
+                return self.finish_with(200, login_page(self.host(), target, lifetime=gate.lifetime(self.host())), "text/html; charset=utf-8")
             if url.path == "/.gate/logout":
                 return self.finish_with(303, headers=[("Location", "/.gate/login"), ("Set-Cookie", f"{COOKIE}=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Strict")])
             return self.finish_with(404, b"not found")
@@ -238,14 +252,15 @@ def handler_for(gate, clock=time.time, sleep=time.sleep):
             now = clock()
             if gate.failures.locked(now):
                 print(f"refused a login from {self.device()} to {self.host()}: too many failures", file=sys.stderr, flush=True)
-                return self.finish_with(429, login_page(self.host(), target, "Too many wrong passwords. Try again in 15 minutes."), "text/html; charset=utf-8")
+                return self.finish_with(429, login_page(self.host(), target, "Too many wrong passwords. Try again in 15 minutes.", gate.lifetime(self.host())), "text/html; charset=utf-8")
             if not check_password(form.get("password", [""])[0], gate.stored_password()):
                 gate.failures.add(now)
                 print(f"a wrong password from {self.device()} for {self.host()}", file=sys.stderr, flush=True)
                 sleep(FAILURE_DELAY)
-                return self.finish_with(403, login_page(self.host(), target, "That password is wrong."), "text/html; charset=utf-8")
+                return self.finish_with(403, login_page(self.host(), target, "That password is wrong.", gate.lifetime(self.host())), "text/html; charset=utf-8")
             print(f"signed {self.device()} in to {self.host()}", file=sys.stderr, flush=True)
-            cookie = f"{COOKIE}={make_cookie(gate.key(), self.host(), now, self.device())}; Max-Age={LIFETIME}; Path=/; Secure; HttpOnly; SameSite=Strict"
+            lifetime = gate.lifetime(self.host())
+            cookie = f"{COOKIE}={make_cookie(gate.key(), self.host(), now, self.device(), lifetime)}; Max-Age={lifetime}; Path=/; Secure; HttpOnly; SameSite=Strict"
             return self.finish_with(303, headers=[("Location", target), ("Set-Cookie", cookie)])
 
     return Handler
@@ -279,7 +294,8 @@ def main():
         revoke(sys.argv[2], sys.argv[3])
         return
     peers = json.loads(os.environ.get("DEVICE_GATE_PEERS", "{}"))
-    gate = Gate(os.path.join(os.environ["CREDENTIALS_DIRECTORY"], "password"), os.path.join(os.environ["STATE_DIRECTORY"], "session-key"), peers)
+    lifetimes = json.loads(os.environ.get("DEVICE_GATE_LIFETIMES", "{}"))
+    gate = Gate(os.path.join(os.environ["CREDENTIALS_DIRECTORY"], "password"), os.path.join(os.environ["STATE_DIRECTORY"], "session-key"), peers, lifetimes)
     server = SocketServer(None, handler_for(gate), bind_and_activate=False)
     server.socket.close()
     server.socket = socket.socket(fileno=SYSTEMD_FIRST_SOCKET)

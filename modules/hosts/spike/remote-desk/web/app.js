@@ -18,33 +18,19 @@ async function api(path, options = {}) {
   return body;
 }
 
-// ---- login -----------------------------------------------------------------------------------------------------
+// ---- sign-in -------------------------------------------------------------------------------------------------
 
+// spike's device gate signs the device in, the same login as the board's and the life explorer's; here it only
+// says so, with a link back to it, when a request finds the sign-in gone.
 function showLogin(message = '') {
   stopRefresh();
   $('login-error').textContent = message;
   show('login');
 }
 
-$('login-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  $('login-error').textContent = '';
-  const response = await fetch('/api/login', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ device: $('device').value.trim(), password: $('password').value }),
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) { $('login-error').textContent = body.error || 'could not log in'; return; }
-  $('password').value = '';
-  idleMinutes = body.idleMinutes;
-  showLauncher(body.device);
-});
-
 $('logout').addEventListener('click', async () => {
   await api('/api/logout', { method: 'POST' }).catch(() => {});
-  showLogin();
+  window.location.href = '/.gate/logout';
 });
 
 // ---- launcher --------------------------------------------------------------------------------------------------
