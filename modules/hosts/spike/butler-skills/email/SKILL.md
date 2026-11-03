@@ -12,7 +12,7 @@ It can read and archive: it cannot delete, flag or move a message anywhere but i
 - `mail accounts` lists the account names, such as `fastmail`, `gmail` and `outlook`.
 - `mail <account> unread [count]` lists the newest unread messages, 10 unless a count is given.
 - `mail <account> list [count]` lists the newest messages, read or not.
-- `mail <account> search <query>` searches the inbox. The query combines `from <text>`, `to <text>`, `subject <text>`, `body <text>`, `after <yyyy-mm-dd>`, `date <yyyy-mm-dd>` and `flag <seen|answered|flagged>` with `and`, `or`, `not` and parentheses, and may end in `order by date desc`, each word its own arg.
+- `mail <account> search <query>` searches the inbox. The query combines `from <text>`, `to <text>`, `subject <text>`, `body <text>`, `after <yyyy-mm-dd>`, `date <yyyy-mm-dd>` and `flag <seen|answered|flagged>` with `and`, `or`, `not` and parentheses, and may end in `order by date desc`, each word its own arg. Plain words that do not start with one of those keywords search the subject, sender and body for them as one phrase, newest first, such as `mail fastmail search gavin`.
 - `mail <account> mailboxes` lists the folders.
 - `mail <account> read <id>` prints one message's headers and full text, the id being the first column of a listing.
 - `mail <account> archive <id>...` moves messages out of the inbox into the account's archive, the same as archiving them in its own app.

@@ -75,8 +75,28 @@ let
         exit 2
       }
 
+      # himalaya prints its errors to stdout, which the daemon drops when a command fails, so a failure's output goes to stderr instead.
       himalaya() {
-        ${himalaya} "$@"
+        local output status=0
+        output=$(${himalaya} "$@") || status=$?
+        if [ "$status" -ne 0 ]; then
+          printf '%s\n' "$output" >&2
+          return "$status"
+        fi
+        printf '%s\n' "$output"
+      }
+
+      # Plain words, not himalaya's query language, search the subject, sender and body for them as one phrase.
+      search_query() {
+        case "$1" in
+          date | after | from | to | subject | body | flag | not | order | "(" | "("*) printf '%s\0' "$@" ;;
+          *)
+            local phrase="$*"
+            phrase=''${phrase//\\/\\\\}
+            phrase=''${phrase//\"/\\\"}
+            printf '%s\0' subject "\"$phrase\"" or from "\"$phrase\"" or body "\"$phrase\"" order by date desc
+            ;;
+        esac
       }
 
       [ $# -ge 1 ] || usage
@@ -112,7 +132,11 @@ let
         mailboxes) himalaya --account "$account" mailbox list ;;
         unread) himalaya --account "$account" envelope search --page-size "''${1:-10}" not flag seen order by date desc ;;
         list) himalaya --account "$account" envelope list --page-size "''${1:-10}" ;;
-        search) himalaya --account "$account" envelope search "$@" ;;
+        search)
+          [ $# -ge 1 ] || usage
+          mapfile -d "" -t query < <(search_query "$@")
+          himalaya --account "$account" envelope search "''${query[@]}"
+          ;;
         read) [ $# -eq 1 ] || usage; himalaya --account "$account" message read "$1" ;;
         archive) [ $# -ge 1 ] || usage; himalaya --account "$account" message move --to archive "$@" ;;
         *) usage ;;
