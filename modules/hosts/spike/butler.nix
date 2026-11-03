@@ -539,14 +539,30 @@ let
   butler-pull = pkgs.writeShellApplication {
     name = "butler-pull";
     runtimeInputs = [
+      pkgs.coreutils
       pkgs.git
+      pkgs.gnugrep
       pkgs.openssh
+      config.butler.land.package
     ];
     text = ''
       [ "$(git symbolic-ref --short HEAD)" = main ] || exit 0
       before=$(git rev-parse HEAD)
-      git pull --ff-only --quiet
-      [ "$(git rev-parse HEAD)" = "$before" ] || touch "$RUNTIME_DIRECTORY/moved"
+      git fetch --quiet origin main
+      latest=$(git rev-parse FETCH_HEAD)
+      [ "$latest" != "$before" ] || exit 0
+      # A new daemon restarts butler, so it waits in the landing queue while Aaron is on a call.
+      commits=$(mktemp)
+      trap 'rm -f "$commits"' EXIT
+      git log --no-merges --format=$'%H\t%ct\t%s' "$before..$latest" > "$commits"
+      urgent=""
+      ! git log --format=%B "$before..$latest" | grep -qiE '^Land: *now' || urgent="a commit asks to land now"
+      held=0
+      butler-land gate claude-discord-threads "$before" "$latest" "$commits" butler.service "$urgent" || held=$?
+      [ "$held" -ne 3 ] || exit 0
+      git merge --ff-only --quiet "$latest"
+      touch "$RUNTIME_DIRECTORY/moved"
+      butler-land landed claude-discord-threads "$latest"
     '';
   };
 

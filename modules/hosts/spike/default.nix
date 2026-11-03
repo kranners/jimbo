@@ -6,20 +6,27 @@
   ...
 }:
 {
-  # The self-fix probe end to end, with a local repository standing in for butler-memory.
-  checks.${host.system}.self-fix-probe =
-    pkgs.runCommand "self-fix-probe-dry-run"
-      {
-        nativeBuildInputs = [
-          pkgs.bash
-          pkgs.git
-          pkgs.python3
-        ];
-      }
-      ''
-        export HOME=$TMPDIR
-        bash ${./butler-probe}/dry-run.sh > $out
-      '';
+  checks.${host.system} = {
+    # The self-fix probe end to end, with a local repository standing in for butler-memory.
+    self-fix-probe =
+      pkgs.runCommand "self-fix-probe-dry-run"
+        {
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.git
+            pkgs.python3
+          ];
+        }
+        ''
+          export HOME=$TMPDIR
+          bash ${./butler-probe}/dry-run.sh > $out
+        '';
+
+    # The landing queue's holds, cues and releases, with a fake clock and call.
+    land-queue = pkgs.runCommand "land-queue-dry-run" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      python3 ${./butler-land}/test_land.py > $out 2>&1 || { cat $out; exit 1; }
+    '';
+  };
 
   nixosSystemModule =
     { pkgs, ... }:
@@ -40,6 +47,7 @@
         ./butler-voice-sample.nix
         ./butler-jobs.nix
         ./butler-kanban.nix
+        ./butler-land.nix
         inputs.butler.nixosModules.index
         ./butler-mac.nix
         ./butler-mail.nix
