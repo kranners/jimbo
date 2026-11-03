@@ -52,7 +52,7 @@ UNITS = {
 }
 # Units whose restart a switch defers to the daemon's own quiet moment, which says its own line.
 DEFERRED = set(os.environ.get("LAND_DEFERRED", "butler.service").split())
-CUE_LINE = "A fix is about to land, sir, I'll be back in a moment."
+CUE_LINE = "A change is about to land, sir, I'll be back in a moment."
 MODES = {
     "call": "on: deploys that would restart butler wait while a call is live",
     "off": "off: every deploy goes out at once",

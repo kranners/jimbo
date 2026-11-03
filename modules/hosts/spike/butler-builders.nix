@@ -23,16 +23,16 @@ let
 in
 {
   options.butler.builders.digest = lib.mkOption {
-    description = "The local copy of the builders in flight digest, which the self-fix launcher appends to each new brief.";
+    description = "The local copy of the builders in flight digest, which the change launcher appends to each new brief.";
     type = lib.types.str;
     default = "${state}/builders.md";
     readOnly = true;
   };
 
   config = {
-    # The digest every self-fix session reads: what the other fixes and Aaron's board sessions are changing.
+    # The digest every change session reads: what the other changes and Aaron's board sessions are changing.
     systemd.services.butler-builders = {
-      description = "Rebuild the builders in flight digest of butler's self-fixes and Aaron's board sessions";
+      description = "Rebuild the builders in flight digest of butler's changes and Aaron's board sessions";
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
       unitConfig.ConditionPathExists = memoryDeployKey;

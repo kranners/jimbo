@@ -7,7 +7,7 @@
 }:
 {
   checks.${host.system} = {
-    # The self-fix probe end to end, with a local repository standing in for butler-memory.
+    # The change probe end to end, with a local repository standing in for butler-memory.
     self-fix-probe =
       pkgs.runCommand "self-fix-probe-dry-run"
         {

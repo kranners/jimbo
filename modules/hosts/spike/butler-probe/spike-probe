@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""A self-fix session's way to run a check on spike.
+"""A change session's way to run a check on spike.
 
-  spike-probe init <self-fix id> <key>   remember the id and key from the session's brief
+  spike-probe init <change id> <key>   remember the id and key from the session's brief
   spike-probe < script.sh                run a bash script on spike and print its output
 
 The script goes, signed with this fix's key, onto the branch spike-probe/<id> of
@@ -80,7 +80,7 @@ def main():
         CONFIG.parent.mkdir(parents=True, exist_ok=True)
         CONFIG.write_text(f"{args[1]} {args[2]}\n")
         CONFIG.chmod(0o600)
-        print(f"spike-probe: ready for self-fix {args[1]}")
+        print(f"spike-probe: ready for change {args[1]}")
         return
     if args:
         sys.exit(__doc__)

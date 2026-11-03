@@ -2,11 +2,11 @@
 
 The board listens on pilot's loopback alone, so every call goes over ssh
 as Aaron, with butler's Mac key, and curl posts it to the board's
-Butler endpoint there. `kanban self-fixes` also builds the list of
-butler's self-fixes from spike's own records and sends it, which is how
-`butler-kanban-sync` keeps a card per self-fix on the board, and reads
+Butler endpoint there. `kanban changes` also builds the list of
+butler's changes from spike's own records and sends it, which is how
+`butler-kanban-sync` keeps a card per change on the board, and reads
 back what Aaron did to those cards there: a card he closed asks spike to
-archive the fix, one he marked done stops it being reported as needing
+archive the change, one he marked done stops it being reported as needing
 him. Only those recorded board actions act; nothing in a card's text does.
 """
 import json
@@ -29,7 +29,7 @@ MAX_FIXES = 50
 STALE = 30 * 60
 ENDED = ('finished', 'archived', 'failed to start')
 
-USAGE = '''usage: kanban <tool> (its arguments as a JSON object on stdin, or nothing for none) | kanban self-fixes
+USAGE = '''usage: kanban <tool> (its arguments as a JSON object on stdin, or nothing for none) | kanban changes
 tools: board_snapshot, read_transcript, board_history, put_card, close_card, note, watch, look, arrange,
 put_sticker, delete_annotations, find_stickers, create_region, update_region, delete_region,
 ask_session, send_prompt, announce, answer_prompt, start_session, finish_session'''
@@ -108,7 +108,7 @@ def summary_of(progress):
 
 
 def record(fix):
-    """What was done to a fix from the board or by `self-fix archive`, as a state."""
+    """What was done to a change from the board or by `change archive`, as a state."""
     if os.path.exists(os.path.join(SELF_FIX, 'archived', fix)):
         return 'archived'
     if os.path.exists(os.path.join(SELF_FIX, 'archive', fix)):
@@ -168,7 +168,7 @@ def apply_board_actions(text, known):
 
 
 def self_fixes():
-    """Every self-fix of the last 7 days, as `self-fix list` reads them."""
+    """Every change of the last 7 days, as `change list` reads them."""
     sessions = os.path.join(SELF_FIX, 'sessions')
     queue = os.path.join(SELF_FIX, 'queue')
     now = time.time()
@@ -224,6 +224,9 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     tool = argv[1].replace('-', '_')
+    # `changes`, once `self-fixes`, still reaches the board as its tool `self_fixes`, which every board knows.
+    if tool == 'changes':
+        tool = 'self_fixes'
     if tool == 'self_fixes':
         args = {'fixes': self_fixes()}
         known = {fix['id'] for fix in args['fixes']}
