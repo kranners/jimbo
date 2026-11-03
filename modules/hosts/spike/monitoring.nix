@@ -328,6 +328,14 @@ in
             evaluator = above 0;
             for = "5m";
           })
+          # butler-monitor's dead-man switch: its every run rewrites this timestamp.
+          (alertRule {
+            uid = "machines-monitor-stale";
+            title = "Machines monitor stopped";
+            summary = "butler-monitor on spike has not finished a run for 10 minutes, so nothing is watching the machines.";
+            expr = "time() - butler_monitor_last_run_timestamp_seconds";
+            evaluator = above 600;
+          })
           (alertRule {
             uid = "service-restarting";
             title = "Service restarting";

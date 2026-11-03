@@ -27,6 +27,37 @@
       python3 ${./butler-land}/test_land.py > $out 2>&1 || { cat $out; exit 1; }
     '';
 
+    # The machines monitor's thresholds, holds, repeats, quiet hours and action choice, on fake machines.
+    butler-monitor =
+      let
+        config = pkgs.writeText "butler-monitor-test.json" (
+          builtins.toJSON {
+            inherit (import ./butler-monitor/defaults.nix) thresholds quiet;
+            alwaysOn = [
+              "spike"
+              "framer"
+            ];
+            keepAwakeHosts = [
+              "piggys-MBP"
+              "jimbo"
+            ];
+            readOnlyHosts = [ "pilot" ];
+            restartable = "butler-[a-z0-9-]+\\.service";
+            neverRestart = [ "butler.service" ];
+            keepGenerations = 5;
+            journalVacuum = "500M";
+            hosts = { };
+            prometheusHosts = [
+              "spike"
+              "framer"
+            ];
+          }
+        );
+      in
+      pkgs.runCommand "butler-monitor-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+        python3 ${./butler-monitor/test_monitor.py} ${./butler-monitor/monitor.py} ${config} > $out 2>&1 || { cat $out; exit 1; }
+      '';
+
     # The Work in flight snapshot from fixture change records, offline, checking nothing private or path-shaped gets out.
     butler-work =
       let
@@ -84,6 +115,7 @@
         ./butler-mail.nix
         ./butler-maps.nix
         ./butler-messenger.nix
+        ./butler-monitor.nix
         ./butler-notify.nix
         ./butler-outlook.nix
         ./butler-photos.nix
