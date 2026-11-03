@@ -379,11 +379,14 @@ let
             fi
             if [ "''${#summary}" -gt 600 ]; then summary="''${summary:0:600}…"; fi
             { echo "$headline"; [ -z "$summary" ] || echo "$summary"; echo "$link"; } | butler-notify "''${card:-${moods}/$mood.webp}" > /dev/null
+            # A heads-up in his live call too, if he is on one; the DM above stays the record.
+            printf '%s\n' "''${headline:0:180}" | butler-call-say --call-only > /dev/null || true
             rm -f "${watch}/$id"
             ;;
           "waiting on input"*)
             if [ "$(cat "${watch}/$id")" != "$state" ]; then
               printf 'Self-fix needs you: %s\nIt is waiting on you to answer or approve something.\n%s\n' "$title" "$link" | butler-notify ${moods}/curious.webp > /dev/null
+              printf 'A self-fix is waiting on you: %s\n' "''${title:0:150}" | butler-call-say --urgent --call-only > /dev/null || true
               echo "$state" > "${watch}/$id"
             fi
             ;;
