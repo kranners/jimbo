@@ -28,6 +28,7 @@ let
     "piggys-MBP"
     "phone"
     "phone-2"
+    "pilot"
   ];
   panelAddresses = addressesOf [ "framer" ];
 
