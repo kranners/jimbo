@@ -716,11 +716,15 @@ in
             style.wallpanel-screensaver-overlay.background = "#000000ff";
             style.wallpanel-screensaver-info-box.opacity = "1";
           };
-          day.style.wallpanel-screensaver-info-box.opacity = "1";
+          day = {
+            cards = infoCards;
+            style.wallpanel-screensaver-info-box.opacity = "1";
+          };
           night = {
             show_images = false;
+            cards = [ darkCard ];
             style.wallpanel-screensaver-overlay.background = "#000000ff";
-            style.wallpanel-screensaver-info-box.opacity = "0.3";
+            style.wallpanel-screensaver-info-box.opacity = "1";
           };
         };
       };
