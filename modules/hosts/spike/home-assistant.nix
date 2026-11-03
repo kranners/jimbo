@@ -180,10 +180,9 @@ let
     voice = framerVoice;
   };
 
-  # The movie night card without Butler: the time and the weather's icon and temperature.
-  assistantOffCard = {
+  # The dark card: a dim greyscale Butler, the time and the weather's icon, temperature and condition.
+  darkCard = {
     type = "custom:framer-movie-night-card";
-    butler = false;
   };
 
   movieNightCard = {
@@ -706,14 +705,14 @@ in
           movie = {
             idle_time = 10;
             show_images = false;
-            cards = [ { type = "custom:framer-movie-night-card"; } ];
+            cards = [ darkCard ];
             style.wallpanel-screensaver-overlay.background = "#000000ff";
             style.wallpanel-screensaver-info-box.opacity = "1";
           };
           off = {
             idle_time = 10;
             show_images = false;
-            cards = [ assistantOffCard ];
+            cards = [ darkCard ];
             style.wallpanel-screensaver-overlay.background = "#000000ff";
             style.wallpanel-screensaver-info-box.opacity = "1";
           };
