@@ -112,6 +112,7 @@
         ./butler-drive.nix
         ./butler-health.nix
         ./butler-imagine.nix
+        ./butler-inbox.nix
         ./butler-voice-sample.nix
         ./butler-jobs.nix
         ./butler-kanban.nix
@@ -160,6 +161,7 @@
       butler.credentialedTools = true;
       butler.voice.enable = true;
       butler.drive.enable = true;
+      butler.inbox.enable = true;
       butler.garmin.enable = true;
       butler.outlook = {
         enable = true;

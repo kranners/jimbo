@@ -164,6 +164,8 @@ let
           "Read(~/.local/share/ortie/**)"
           "Read(~/.config/rclone/**)"
           "Read(//var/lib/butler-index/**)"
+          # The inbox monitor's audit log quotes mail, so it is read through `inbox`, which taints the thread.
+          "Read(//var/lib/butler-inbox/**)"
           "Read(//proc/**)"
           "Read(//run/**)"
         ];
@@ -750,6 +752,14 @@ in
     internal = true;
     default = memory-audit;
     description = "`memory-audit <name> <spool>`, for a wrapper to keep an audit trail in butler's memory, under `audit/<name>`.";
+  };
+
+  # butler-claude, for other units that spend butler's Claude accounts, such as the inbox monitor's triage.
+  options.butler.claude = mkOption {
+    type = types.package;
+    readOnly = true;
+    internal = true;
+    default = butler-claude;
   };
 
   config = {
