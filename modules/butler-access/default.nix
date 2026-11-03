@@ -12,6 +12,7 @@ let
   # pilot is the employer's Jamf-managed Mac, whose lock policy keep-awake would sidestep, so it stays off there until
   # Aaron turns it on himself.
   keepAwakeByDefault = host.hostname != "pilot";
+  authorizedKey = ''from="${spike}",restrict,port-forwarding,permitopen="127.0.0.1:5900" ${butlerKey}'';
 in
 {
   darwinHomeModule =
@@ -115,9 +116,7 @@ in
       '';
     };
 
-    users.users.${host.username}.openssh.authorizedKeys.keys = [
-      ''from="${spike}",restrict,port-forwarding,permitopen="127.0.0.1:5900" ${butlerKey}''
-    ];
+    users.users.${host.username}.openssh.authorizedKeys.keys = [ authorizedKey ];
 
     environment.etc."pf.anchors/butler-access".text = ''
       pass in quick on lo0 proto tcp to port 5900
@@ -157,4 +156,181 @@ in
         || launchctl bootstrap system /System/Library/LaunchDaemons/com.apple.screensharing.plist
     '';
   };
+}
+// lib.optionalAttrs (host.hostname == "jimbo") {
+  # The jimbo PC's NixOS install, the Linux half of a dual boot whose Windows half Aaron sets up by hand with
+  # docs/windows-remote.ps1. butler reaches it over spike's WireGuard alone: ssh with its key, and Hyprland's screen
+  # through wayvnc on a unix socket in Aaron's runtime directory, which ssh forwards.
+  nixosSystemModule = {
+    services.openssh = {
+      openFirewall = false;
+      settings = {
+        PasswordAuthentication = false;
+        KbdInteractiveAuthentication = false;
+      };
+    };
+
+    users.users.${host.username}.openssh.authorizedKeys.keys = [ authorizedKey ];
+
+    networking.firewall.extraCommands = ''
+      iptables -A nixos-fw -i wg0 -s ${spike} -p tcp --dport 22 -j nixos-fw-accept
+    '';
+  };
+
+  nixosHomeModule =
+    { pkgs, ... }:
+    let
+      jq = "${pkgs.jq}/bin/jq";
+
+      # The Hyprland session's environment, for commands that arrive over ssh.
+      sessionEnv = ''
+        export XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+        eval "$(systemctl --user show-environment 2> /dev/null | grep -E '^(WAYLAND_DISPLAY|HYPRLAND_INSTANCE_SIGNATURE|DISPLAY|XDG_CURRENT_DESKTOP)=' | sed 's/^/export /')"
+      '';
+
+      desktop = pkgs.writeShellScriptBin "butler-desktop" ''
+        set -u
+        ${sessionEnv}
+        case "''${1:-}" in
+          env)
+            env | grep -E '^(XDG_RUNTIME_DIR|WAYLAND_DISPLAY|HYPRLAND_INSTANCE_SIGNATURE|DISPLAY|XDG_CURRENT_DESKTOP)=' | sed "s/=\(.*\)/='\1'/; s/^/export /"
+            ;;
+          windows)
+            if [ -z "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || ! hyprctl version > /dev/null 2>&1; then
+              echo "Hyprland is not running" >&2
+              exit 1
+            fi
+            echo "front: $(hyprctl activewindow -j | ${jq} -r 'if .class then "\(.class), \(.title)" else "none" end')"
+            hyprctl monitors -j | ${jq} -r '.[] | "screen: \(.name) \(.width)x\(.height) pixels at \(.x),\(.y), scale \(.scale), workspace \(.activeWorkspace.name)\(if .focused then ", focused" else "" end)"'
+            echo "windows, most recently focused first, as class, workspace, state, x,y widthxheight in layout pixels, title:"
+            hyprctl clients -j | ${jq} -r 'sort_by(.focusHistoryID) | .[] | select(.mapped) | "  \(.class), workspace \(.workspace.name), \(if .hidden then "hidden" elif (.fullscreen | tostring) != "0" and (.fullscreen | tostring) != "false" then "fullscreen" elif .floating then "floating" else "tiled" end), \(.at[0]),\(.at[1]) \(.size[0])x\(.size[1]), \(.title)"'
+            ;;
+          *)
+            echo "usage: butler-desktop env|windows" >&2
+            exit 2
+            ;;
+        esac
+      '';
+
+      keepawake = pkgs.writeShellScriptBin "butler-keepawake" ''
+        set -u
+        ${sessionEnv}
+        file="$HOME/.local/state/butler-access/keepawake"
+
+        wanted() {
+          case "$(cat "$file" 2> /dev/null)" in
+            off) echo off ;;
+            *) echo on ;;
+          esac
+        }
+
+        set_to() {
+          mkdir -p "$(dirname "$file")"
+          printf '%s\n' "$1" > "$file"
+          systemctl --user restart butler-keepawake 2> /dev/null \
+            || echo "could not restart butler-keepawake; it takes the change within 30 s"
+        }
+
+        status() {
+          if [ -f "$file" ]; then
+            echo "keep-awake: $(wanted), set $(date -r "$file" +%FT%T%z)"
+          else
+            echo "keep-awake: $(wanted), this PC's default"
+          fi
+          echo "agent: $(systemctl --user is-active butler-keepawake)"
+          echo "screen sharing: $(systemctl --user is-active butler-wayvnc)"
+          echo "screen: $(pgrep -x hyprlock > /dev/null && echo LOCKED || echo unlocked)"
+          echo "inhibitors:"
+          systemd-inhibit --list --no-pager --no-legend 2> /dev/null | sed 's/^/  /' | grep . || echo "  none"
+        }
+
+        case "''${1:-status}" in
+          agent)
+            while :; do
+              if [ "$(wanted)" = on ]; then
+                systemd-inhibit --what=idle:sleep --who=butler-keepawake --why="butler may be driving this PC" --mode=block sleep 30
+              else
+                sleep 30
+              fi
+            done
+            ;;
+          on | off)
+            set_to "$1"
+            status
+            ;;
+          sleep)
+            set_to off
+            sudo -n systemd-run --quiet --on-active=3 systemctl suspend
+            echo "keep-awake off, sleeping in 3 s; it stays off until keepawake on, and only Aaron can wake it, since it has no Wake-on-LAN over Wi-Fi"
+            ;;
+          status) status ;;
+          *)
+            echo "usage: butler-keepawake [status|on|off|sleep]" >&2
+            exit 2
+            ;;
+        esac
+      '';
+
+      # Restarts into the other install once, through the firmware's BootNext, or systemd-boot's one-shot entry when
+      # the firmware has no Windows Boot Manager of its own.
+      boot = pkgs.writeShellScriptBin "butler-boot" ''
+        set -u
+        if [ "''${1:-}" != windows ] || { [ "''${2:-}" != plan ] && [ "''${2:-}" != go ]; }; then
+          echo "usage: butler-boot windows plan|go" >&2
+          exit 2
+        fi
+        entry=$(sudo -n ${pkgs.efibootmgr}/bin/efibootmgr | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\*\{0,1\} \(Windows Boot Manager\).*/\1/p' | head -1)
+        if [ -n "$entry" ]; then
+          echo "from Linux: next boot only, start the firmware entry Boot$entry Windows Boot Manager (efibootmgr --bootnext $entry), then reboot in 5 s"
+          set_next() { sudo -n ${pkgs.efibootmgr}/bin/efibootmgr --bootnext "$entry" > /dev/null; }
+        elif bootctl list --no-pager 2> /dev/null | grep -q 'id: auto-windows'; then
+          echo "from Linux: next boot only, systemd-boot's auto-windows entry (bootctl set-oneshot auto-windows), then reboot in 5 s"
+          set_next() { sudo -n bootctl set-oneshot auto-windows; }
+        else
+          echo "found no Windows entry in the firmware boot menu or in systemd-boot"
+          exit 3
+        fi
+        if [ "$2" = go ]; then
+          set_next || { echo "could not set the next boot" >&2; exit 1; }
+          sudo -n systemd-run --quiet --on-active=5 systemctl reboot
+          echo "rebooting into Windows in 5 s"
+        fi
+      '';
+    in
+    {
+      home.packages = [
+        desktop
+        keepawake
+        boot
+      ];
+
+      systemd.user.services = {
+        # Holds idle and sleep off for 30 s at a time while keep-awake is on, so it follows the file within 30 s.
+        butler-keepawake = {
+          Unit.Description = "Keep the PC awake for butler";
+          Service = {
+            ExecStart = "${keepawake}/bin/butler-keepawake agent";
+            Restart = "always";
+          };
+          Install.WantedBy = [ "default.target" ];
+        };
+
+        # The socket sits in the 0700 runtime directory, so only Aaron, and butler through his ssh login, reach it.
+        butler-wayvnc = {
+          Unit = {
+            Description = "Hyprland's screen for butler, over VNC on a unix socket";
+            PartOf = [ "graphical-session.target" ];
+            After = [ "graphical-session.target" ];
+          };
+          Service = {
+            UMask = "0077";
+            ExecStartPre = "${pkgs.coreutils}/bin/rm -f %t/butler-wayvnc.sock";
+            ExecStart = "${pkgs.wayvnc}/bin/wayvnc --render-cursor --keyboard=us unix:%t/butler-wayvnc.sock";
+            Restart = "on-failure";
+            RestartSec = 5;
+          };
+          Install.WantedBy = [ "graphical-session.target" ];
+        };
+      };
+    };
 }
