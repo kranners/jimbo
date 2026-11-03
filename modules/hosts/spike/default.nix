@@ -33,6 +33,7 @@
         ./butler-shell.nix
         ./butler-slack.nix
         ./butler-tools.nix
+        ./butler-up.nix
         ./butler-voice.nix
         ./butler-weather.nix
         ./caddy.nix
