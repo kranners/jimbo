@@ -34,6 +34,11 @@ RECORD_INTERVAL = 0.5
 RECORD_LIMIT = 15 * 60
 RECORD_TAIL = 1.5
 STREAM_INTERVAL = 0.02
+HANDSHAKE_TIMEOUT = 20
+# The first frame is the whole screen in raw pixels, 29 MB on jimbo's 5120x1440 monitor, so it gets a second per
+# megabyte on top of the handshake's 20 s, and start_session waits for both.
+FRAME_TIMEOUT = 20
+START_TIMEOUT = 90
 IDLE = 600
 DRAG_STEPS = 12
 BUTTONS = {'left': 1, 'middle': 2, 'right': 3}
@@ -175,16 +180,65 @@ def tunnel(host, far='127.0.0.1:5900'):
     return path
 
 
+def hello(host, far):
+    """Reads the VNC server's greeting over a fresh ssh channel, to say why a handshake through the tunnel failed."""
+    import select
+    probe = subprocess.Popen(ssh_args(host, '-W', far), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        ready, _, _ = select.select([probe.stdout], [], [], 8)
+        greeting = os.read(probe.stdout.fileno(), 12) if ready else None
+    finally:
+        probe.kill()
+        _, err = probe.communicate(timeout=5)
+    err = ' '.join(err.decode(errors='replace').split())
+    if greeting is None:
+        return 'nothing answered on %s within 8 s' % far
+    if not greeting:
+        return 'ssh could not open a channel to %s%s' % (far, ': ' + err if err else ', so sshd refuses port forwarding for butler\'s key or nothing listens there')
+    return 'the server there greets with %r' % greeting.decode(errors='replace').strip()
+
+
+class Handshake:
+    """Collects vncdotool's protocol log, which it otherwise drops, and turns a connection the server closes before
+    the handshake ends into an error, where vncdotool would wait for its timeout without saying why."""
+
+    def __init__(self):
+        import collections
+        import logging
+        self.lines = collections.deque(maxlen=6)
+        handler = logging.Handler(logging.INFO)
+        handler.emit = lambda record: self.lines.append(record.getMessage())
+        logger = logging.getLogger('twisted')
+        logger.setLevel(logging.INFO)
+        logger.addHandler(handler)
+
+    def said(self):
+        return '; '.join(line for line in self.lines if not line.startswith(('x=', 'Native ', 'Starting factory', 'Stopping factory'))) or 'nothing'
+
+    def factory(self):
+        from vncdotool import client as vnc
+        handshake = self
+
+        class Factory(vnc.VNCDoToolFactory):
+            def clientConnectionLost(self, connector, reason):
+                if not self.deferred.called:
+                    self.deferred.errback(ConnectionError('the VNC server closed the connection during the handshake (it said: %s)' % handshake.said()))
+
+        return Factory
+
+
 def screen(host):
     from vncdotool import api, client as vnc, rfb
     system = system_of(host)
+    far = '127.0.0.1:5900'
     if system == 'linux':
         # wayvnc listens on a unix socket in Aaron's 0700 runtime directory, which is its only gate, since wayvnc
         # offers vncdotool no password scheme it speaks.
         runtime = remote(host, 'printf %s "$XDG_RUNTIME_DIR"; [ -S "$XDG_RUNTIME_DIR/' + WAYVNC + '" ]')
         if runtime.returncode != 0:
             raise Refused('wayvnc is not running on %s: Hyprland is not up yet, or butler-wayvnc failed (mac %s run systemctl --user status butler-wayvnc)' % (host, host))
-        path = tunnel(host, '%s/%s' % (runtime.stdout.strip(), WAYVNC))
+        far = '%s/%s' % (runtime.stdout.strip(), WAYVNC)
+        path = tunnel(host, far)
         password = None
         rfb.RFBClient.SUPPORTED_AUTHS = {rfb.AuthTypes.NONE}
     else:
@@ -196,8 +250,9 @@ def screen(host):
             missing = '%s has no VNC password yet; switch it to jimbo with butler-access' % host
         if password.returncode != 0 or not password.stdout.strip():
             raise Refused(missing)
-        password = password.stdout.strip()
-        path = tunnel(host)
+        # Windows PowerShell can start its output with a byte-order mark, which strip() keeps.
+        password = password.stdout.replace('\ufeff', '').strip()
+        path = tunnel(host, far)
         rfb.RFBClient.SUPPORTED_AUTHS = {rfb.AuthTypes.VNC_AUTHENTICATION}
     vnc.VNCDoToolClient.encoding = rfb.Encoding.RAW
     from twisted.internet import reactor
@@ -216,8 +271,24 @@ def screen(host):
             reactor.callLater(STREAM_INTERVAL, request, protocol)
 
     vnc.VNCDoToolClient.commitUpdate = streamed
-    client = api.connect(path, password=password, timeout=20)
-    client.refreshScreen()
+    handshake = Handshake()
+    client = api.connect(path, password=password, timeout=HANDSHAKE_TIMEOUT, factory_class=handshake.factory())
+    try:
+        client.pause(0)
+    except Exception as error:
+        why = '%s: %s' % (type(error).__name__, error)
+        if isinstance(error, TimeoutError):
+            why = 'the VNC handshake did not finish in %d s (the server said: %s)' % (HANDSHAKE_TIMEOUT, handshake.said())
+        if system != 'linux':
+            why += '; %s' % hello(host, far)
+        raise Refused(why)
+    width, height = client.protocol.width, client.protocol.height
+    client.timeout = FRAME_TIMEOUT + width * height * 4 / 1e6
+    try:
+        client.refreshScreen()
+    except TimeoutError:
+        raise Refused('the VNC server at %dx%d sent no whole frame within %d s' % (width, height, client.timeout))
+    client.timeout = HANDSHAKE_TIMEOUT
     return client
 
 
@@ -393,7 +464,7 @@ def start_session(host, path):
         logged = os.path.join(RUNTIME, host + '.log')
         with open(logged, 'w') as log:
             server = subprocess.Popen([sys.argv[0], host, 'serve'], stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
-        deadline = time.time() + 40
+        deadline = time.time() + START_TIMEOUT
         while not os.path.exists(path):
             if server.poll() is not None or time.time() > deadline:
                 with open(logged) as failed:
