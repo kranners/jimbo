@@ -34,6 +34,14 @@ let
     If the request is unclear, would widen butler's permissions or sandbox, touches secrets, or deletes data, do not land it: push a branch named after the change and say why.
     Never print, commit or send secrets.
     Finish with a short summary, which is DMed to Aaron to read on his phone: two to four sentences of plain Australian English saying what changed or what went wrong, whether he needs to do anything, and when it goes live, with no step lists, branch names, commit hashes, file paths or tool names, unless something failed and he needs one, then in one short sentence.
+    When you landed a change, end that message with these seven lines, which butler draws into the picture card it sends Aaron with the summary, each in a few plain words, after the summary and with nothing after them:
+    Changed: what changed, in one sentence
+    Before: how butler behaved before, in one short sentence
+    After: how it behaves now, in one short sentence
+    Ready: what Aaron can use now, separated by semicolons
+    Go live: when it goes live, such as within 5 minutes, once spike switches
+    Aaron must: each login, approval or hand step he must take before it works, separated by semicolons, or nothing
+    Commit: the repository and short commit
 
     Aaron's request:
 
@@ -223,6 +231,12 @@ let
     '';
   };
 
+  # The fixed mood picture, inlined into each report card, since render's page reaches no files or network.
+  fixedMood = pkgs.runCommand "butler-self-fix-mood" { } ''
+    printf 'data:image/webp;base64,%s' "$(base64 -w0 ${../../../assets/butler/moods/fixed.webp})" > $out
+  '';
+  render = lib.getExe config.butler.commands.render.package;
+
   # Turns a cloud session and its newest events, from /v1/code/sessions, into the summary butler reads.
   summarise = pkgs.writeText "butler-self-fix-progress.jq" ''
     def clip($n): tostring | gsub("\\s+"; " ") | if length > $n then .[:$n] + "…" else . end;
@@ -264,6 +278,7 @@ let
       pkgs.gnugrep
       pkgs.gnused
       pkgs.jq
+      pkgs.util-linux
     ];
     text = ''
       # The freshest login for the account the session started on: aaron's, or the runner's, which its own sessions keep fresh.
@@ -282,7 +297,7 @@ let
       }
 
       tell_aaron_when_ended_or_waiting() {
-        local id=$1 state title link
+        local id=$1 work=$2 state title link card=""
         state=$(sed -n 's/^State: //p' "${progress}/$id")
         title=$(sed -n 's/^Title: //p' "${progress}/$id")
         link=$(grep -oE 'https://claude.ai/code/session_[A-Za-z0-9]+' "${sessions}/$id")
@@ -297,8 +312,17 @@ let
             esac
             summary=$(sed -n 's/^Final summary[^:]*: //p' "${progress}/$id")
             [ -n "$summary" ] || [ "$state" = "''${state#failed to start: }" ] || summary=''${state#failed to start: }
+            # A landed fix's report becomes the standard card, rendered as butler, and the text keeps to its summary and what Aaron must do.
+            if [ "$state" = finished ] &&
+              jq -n --slurpfile events "$work/events" --rawfile mood ${fixedMood} --arg title "$title" \
+                -f ${./butler-self-fix/report.jq} > "$work/report.json" && [ -s "$work/report.json" ]; then
+              card=$(jq -r .html "$work/report.json" | runuser -u butler -- env HOME=${home} ${render} html 760) || card=""
+              summary=$(jq -r .prose "$work/report.json")
+              todo=$(jq -r .todo "$work/report.json")
+              [ -z "$todo" ] || summary="$summary"$'\n'"You need to: $todo"
+            fi
             if [ "''${#summary}" -gt 600 ]; then summary="''${summary:0:600}…"; fi
-            { echo "$headline"; [ -z "$summary" ] || echo "$summary"; echo "$link"; } | butler-notify > /dev/null
+            { echo "$headline"; [ -z "$summary" ] || echo "$summary"; echo "$link"; } | butler-notify ''${card:+"$card"} > /dev/null
             rm -f "${watch}/$id"
             ;;
           "waiting on input"*)
@@ -336,8 +360,8 @@ let
         fi
         chown butler: "$work/out"
         mv "$work/out" "${progress}/$id"
+        [ ! -e "${watch}/$id" ] || tell_aaron_when_ended_or_waiting "$id" "$work"
         rm -rf "$work"
-        [ ! -e "${watch}/$id" ] || tell_aaron_when_ended_or_waiting "$id"
       done
     '';
   };
