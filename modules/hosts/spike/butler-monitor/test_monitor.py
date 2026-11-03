@@ -83,6 +83,10 @@ check('battery 35% warns', levels(judge({'a': healthy(on_battery=True, battery=3
 check('battery 15% acts', levels(judge({'a': healthy(on_battery=True, battery=15)})) == {'a:battery': 'act'})
 check('battery 15% with keep-awake off is fine', levels(judge({'a': healthy(on_battery=True, battery=15, keepawake='off')})) == {})
 check('locked with keep-awake on warns', levels(judge({'a': healthy(locked='yes')})) == {'a:locked': 'warn'})
+why = judge({'a': healthy(locked='yes', lock_at='01:56', lock_cause='the display went to sleep after 30 minutes idle and the lock followed it')})
+check('a lock warning says why', 'at 01:56, and the display went to sleep' in why[0]['text'])
+locks = monitor.choose_actions(judge({'piggys-MBP': healthy(locked='yes'), 'pilot': healthy(locked='yes')}), snap({}))
+check('a locked piggys-MBP alone gets keep-awake reasserted', [h for a, h in locks if a == 'keepawake-reassert'] == ['piggys-MBP'])
 check('keep-awake off on piggys-MBP acts', levels(judge({'piggys-MBP': healthy(keepawake='off')})) == {'piggys-MBP:keepawake': 'act'})
 check('keep-awake off on pilot is its default', levels(judge({'pilot': healthy(keepawake='off')})) == {})
 
@@ -158,6 +162,8 @@ check('and only once that morning', monitor.morning(state, local_morning, f) is 
 raw = monitor.parse_pairs('cores=8\nload=4.10 5.20 6.90\nmemfree=46\npressure=1\ndisk_total=494384795648\n'
                           'disk_free=70000000000\npower=Battery Power\nbattery=78\nlocked=no\nkeepawake=on\n')
 m = monitor.normalise('macos', raw)
+lm = monitor.normalise('macos', monitor.parse_pairs('locked=yes\nlockwhy=1793000000\t01:56\tthe screen saver started after 20 minutes idle and locked the screen\n'))
+check('a Mac lock cause normalises', lm['lock_at'] == '01:56' and lm['lock_cause'].startswith('the screen saver'))
 check('a Mac reading normalises', m['load15'] == 6.9 and m['mem_free_ratio'] == 0.46 and m['on_battery'] and m['battery'] == 78 and m['keepawake'] == 'on')
 w = monitor.normalise('windows', monitor.parse_pairs('cores=16\nmem_total_kb=16000000\nmem_free_kb=3900000\ndisk_total=500000000000\ndisk_free=23900000000\nlocked=no\nkeepawake=on\n'))
 check('a Windows reading normalises', abs(w['mem_free_ratio'] - 0.24375) < 1e-9 and w['disk_free_bytes'] == 23.9e9 and 'on_battery' not in w)

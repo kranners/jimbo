@@ -655,7 +655,9 @@ def show_log(count):
     print(''.join(lines) or 'nothing yet', end='')
 
 
-MAC_STATUS = 'ioreg -n Root -d1 | grep -c "CGSSessionScreenIsLocked\\"=Yes"; lsappinfo info -only name `lsappinfo front`; %s status 2> /dev/null | head -1' % KEEPAWAKE
+# butler-access's Hammerspoon watcher keeps the current lock's time and cause in last-lock, which an unlock removes.
+MAC_STATUS = ('ioreg -n Root -d1 | grep -c "CGSSessionScreenIsLocked\\"=Yes"; lsappinfo info -only name `lsappinfo front`; '
+              '%s status 2> /dev/null | head -1; echo "lock: $(head -1 ~/.local/state/butler-access/last-lock 2> /dev/null)"' % KEEPAWAKE)
 
 LINUX_STATUS = '''
 eval "$(%s env 2> /dev/null)"
@@ -685,8 +687,12 @@ def hosts():
         try:
             command = {'macos': MAC_STATUS, 'linux': LINUX_STATUS, 'windows': WINDOWS_STATUS}[system]
             lines = remote(host, command, timeout=15).stdout.splitlines()
+            why = [line[len('lock: '):].split('\t') for line in lines if line.startswith('lock: ')]
+            lines = [line for line in lines if not line.startswith('lock: ')]
             if system == 'macos':
                 locked = 'LOCKED' if lines and lines[0].strip() != '0' else 'unlocked'
+                if locked == 'LOCKED':
+                    locked += (' at %s: %s' % (why[0][1], why[0][2])) if why and len(why[0]) == 3 else ' (no lock recorded)'
                 front = 'front app ' + (lines[1].split('=', 1)[-1].strip('"') if len(lines) > 1 else 'unknown')
             elif system == 'linux':
                 locked = lines[0].strip() if lines else 'unknown'

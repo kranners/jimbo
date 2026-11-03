@@ -572,3 +572,93 @@ end
 butlerReload = hs.pathwatcher.new(hs.configdir, function()
   hs.reload()
 end):start()
+
+-- Records why the screen locked, so butler's `mac hosts` and the machines monitor can say so instead of guessing:
+-- every lock, sleep, screen saver and session event goes to lockEvents, and each lock writes lastLock, one line of
+-- its time and the cause read from what came just before it, which an unlock removes. It only listens; it changes
+-- no setting, so it runs on pilot too.
+local lockState = os.getenv("HOME") .. "/.local/state/butler-access"
+local lockEvents = lockState .. "/lock-events"
+local lastLock = lockState .. "/last-lock"
+local recent = {}
+
+local function minutes(seconds)
+  local m = math.floor((seconds or 0) / 60)
+  return m == 1 and "1 minute" or (m .. " minutes")
+end
+
+local function lockCause(now, idle)
+  local function within(name, window)
+    for i = #recent, 1, -1 do
+      local event = recent[i]
+      if now - event.at > window then
+        return nil
+      end
+      if event.name == name then
+        return event
+      end
+    end
+    return nil
+  end
+  local wake = within("systemDidWake", 120)
+  if wake then
+    local slept = within("systemWillSleep", 7 * 24 * 3600)
+    return "it locked as the Mac woke from sleep"
+      .. (slept and (", having slept since " .. os.date("%H:%M", slept.at)) or "")
+  end
+  local saver = within("screensaverDidStart", 120)
+  if saver then
+    return "the screen saver started after " .. minutes(saver.idle) .. " idle and locked the screen"
+  end
+  local dark = within("screensDidSleep", 120)
+  if dark then
+    return "the display went to sleep after " .. minutes(dark.idle) .. " idle and the lock followed it"
+  end
+  if within("sessionDidResignActive", 120) then
+    return "the session switched to the login window, as fast user switching does"
+  end
+  if idle < 30 then
+    return "it was locked directly while in use, by the lock keys, the Touch ID button, a hot corner or the menu"
+  end
+  return "it was locked directly after " .. minutes(idle)
+    .. " idle, with no screen saver, display sleep or system sleep before it, so something told macOS to lock,"
+    .. " such as a management policy, a lock shortcut or another app"
+end
+
+local lockNames = {}
+for name, value in pairs(hs.caffeinate.watcher) do
+  if type(value) == "number" then
+    lockNames[value] = name
+  end
+end
+
+butlerLockWatcher = hs.caffeinate.watcher.new(function(kind)
+  local name = lockNames[kind] or tostring(kind)
+  local now, idle = os.time(), hs.host.idleTime() or 0
+  table.insert(recent, { name = name, at = now, idle = idle })
+  if #recent > 50 then
+    table.remove(recent, 1)
+  end
+  os.execute("/bin/mkdir -p '" .. lockState .. "'")
+  local line = os.date("%Y-%m-%dT%H:%M:%S%z", now) .. " " .. name .. " idle=" .. math.floor(idle)
+    .. " power=" .. tostring(hs.battery.powerSource())
+  if name == "screensDidLock" then
+    local cause = lockCause(now, idle)
+    line = line .. " cause: " .. cause
+    local file = io.open(lastLock, "w")
+    if file then
+      file:write(now .. "\t" .. os.date("%H:%M", now) .. "\t" .. cause .. "\n")
+      file:close()
+    end
+  elseif name == "screensDidUnlock" then
+    os.remove(lastLock)
+  end
+  local log = io.open(lockEvents, "a")
+  if log then
+    log:write(line .. "\n")
+    log:close()
+  end
+end):start()
+
+-- Keeps the event log to its newest 500 lines, once per load.
+os.execute("f='" .. lockEvents .. "'; [ -f \"$f\" ] && /usr/bin/tail -n 500 \"$f\" > \"$f.new\" && /bin/mv \"$f.new\" \"$f\"")

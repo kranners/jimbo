@@ -55,6 +55,7 @@ df -k /System/Volumes/Data | awk 'NR == 2 { printf "disk_total=%.0f\ndisk_free=%
 echo "power=$(pmset -g batt | sed -n "s/.*'\(.*\)'.*/\1/p" | head -1)"
 echo "battery=$(pmset -g batt | grep -o '[0-9]*%' | head -1 | tr -d %)"
 echo "locked=$(ioreg -n Root -d1 | grep -q 'CGSSessionScreenIsLocked"=Yes' && echo yes || echo no)"
+echo "lockwhy=$(head -1 "$HOME/.local/state/butler-access/last-lock" 2> /dev/null)"
 k=@keepawake@
 [ -x "$k" ] && echo "keepawake=$("$k" status 2> /dev/null | sed -n 's/^keep-awake: \([a-z]*\).*/\1/p' | head -1)"
 '''.replace('@keepawake@', KEEPAWAKE)
@@ -179,6 +180,10 @@ def normalise(os_name, raw):
         m['battery'] = num(raw.get('battery'))
     m['locked'] = raw.get('locked') if raw.get('locked') in ('yes', 'no', 'login') else None
     m['keepawake'] = raw.get('keepawake') if raw.get('keepawake') in ('on', 'off') else None
+    # butler-access's Hammerspoon watcher writes the lock's time and cause, tab-separated, and removes it on unlock.
+    why = (raw.get('lockwhy') or '').split('\t')
+    if m['locked'] == 'yes' and len(why) == 3:
+        m['lock_at'], m['lock_cause'] = why[1], why[2]
     return m
 
 
@@ -405,7 +410,7 @@ def judge_machine(host, m):
         elif m['battery'] < th('batteryWarnPercent'):
             out.append(finding('%s:battery' % host, host, 'warn', text, repeat=6 * 3600))
     if awake == 'on' and m.get('locked') == 'yes' and m.get('os') == 'macos':
-        out.append(finding('%s:locked' % host, host, 'warn', "%s's screen is locked though keep-awake is on." % host, repeat=12 * 3600))
+        out.append(finding('%s:locked' % host, host, 'warn', "%s's screen is locked though keep-awake is on: %s." % (host, lock_reason(m)), repeat=12 * 3600))
     if awake == 'off' and host in CONFIG['keepAwakeHosts']:
         out.append(finding('%s:keepawake' % host, host, 'act', "%s's keep-awake is off." % host, repeat=12 * 3600))
     for unit in m.get('failed_units') or []:
@@ -415,6 +420,12 @@ def judge_machine(host, m):
     if m.get('system_generations', 0) > th('maxGenerations'):
         out.append(finding('spike:generations', host, 'warn', 'spike keeps %d system generations.' % m['system_generations'], repeat=24 * 3600))
     return out
+
+
+def lock_reason(m):
+    if m.get('lock_cause'):
+        return 'it locked at %s, and %s' % (m['lock_at'], m['lock_cause'])
+    return 'no lock was recorded, so it locked while the lock watcher was not running, and only Aaron can unlock it'
 
 
 def settle(findings, state, now):
@@ -465,6 +476,8 @@ def choose_actions(findings, snapshot):
     for f in findings:
         if f['key'].endswith(':keepawake') and f['host'] in CONFIG['keepAwakeHosts'] and f['host'] not in CONFIG['readOnlyHosts']:
             actions.append(('keepawake-on', f['host']))
+        if f['key'].endswith(':locked') and f['host'] in CONFIG['keepAwakeHosts'] and f['host'] not in CONFIG['readOnlyHosts']:
+            actions.append(('keepawake-reassert', f['host']))
     for unit in spike.get('failed_units') or []:
         if re.fullmatch(CONFIG['restartable'], unit) and unit not in CONFIG['neverRestart']:
             actions.append(('restart:' + unit, 'spike'))
@@ -482,6 +495,7 @@ def describe(name, host):
         'docker-prune': "clear Docker's build cache and dangling images on spike",
         'gc-generations': 'collect Nix garbage on spike, keeping the newest %d system generations' % CONFIG['keepGenerations'],
         'keepawake-on': "turn %s's keep-awake back on" % host,
+        'keepawake-reassert': "restart %s's keep-awake agent, so its caffeinate holds again; it cannot unlock the screen" % host,
         'hold-work': 'hold new change sessions and runner launches while resources are tight',
         'release-work': 'release the hold on new change sessions and runner launches',
     }[name]
@@ -500,14 +514,14 @@ def run_local(args, timeout=900):
 
 def do_action(name, host):
     """Does one action and returns its (before, after) reading."""
-    if name == 'keepawake-on':
+    if name in ('keepawake-on', 'keepawake-reassert'):
         target = resolve(host)
         if target is None:
             raise RuntimeError('%s did not answer' % host)
         result = remote(target, KEEPAWAKE_ON[target['os']], timeout=40)
         if 'ok' not in result.stdout:
             raise RuntimeError((result.stderr.strip() or 'no ok')[:160])
-        return 'off', 'on'
+        return ('off', 'on') if name == 'keepawake-on' else ('locked', 'reasserted, still locked')
     if name in ('hold-work', 'release-work'):
         hold = CONFIG['holdFile']
         before = 'held' if os.path.exists(hold) else 'free'
