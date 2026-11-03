@@ -1,5 +1,6 @@
 // Framer's movie night screensaver: a greyscale Butler, the time and the weather,
 // dim grey on black. Nix puts the SVG in place of BUTLER_SVG when it builds this.
+// With `butler: false` it leaves Butler out, for the screen shown while the assistant is off.
 const tag = "framer-movie-night-card";
 
 const butler = `@BUTLER_SVG@`;
@@ -46,11 +47,11 @@ const style = `
 
 class FramerMovieNightCard extends HTMLElement {
   setConfig(config) {
-    this.config = { weather: "weather.home", ...config };
+    this.config = { weather: "weather.home", butler: true, ...config };
     if (this.shadowRoot) return;
     this.attachShadow({ mode: "open" }).innerHTML = `
       <style>${style}</style>
-      <div class="butler">${butler}</div>
+      ${this.config.butler ? `<div class="butler">${butler}</div>` : ""}
       <div class="time"></div>
       <div class="weather" hidden><ha-icon></ha-icon><span class="temperature"></span></div>`;
     this.time = this.shadowRoot.querySelector(".time");
