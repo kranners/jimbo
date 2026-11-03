@@ -87,6 +87,12 @@
         mkdir $out
         ${lib.getExe test} $out/work.json
       '';
+
+    # The device gate's login, cookies, expiry, lockout and redirects over HTTP.
+    device-gate = pkgs.runCommand "device-gate-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      cp ${./device-gate}/gate.py ${./device-gate}/test.py .
+      python3 -I test.py > $out
+    '';
   };
 
   nixosSystemModule =
@@ -132,6 +138,8 @@
         ./butler-weather.nix
         ./caddy.nix
         ./claude.nix
+        ./device-gate.nix
+        ./kanban-remote.nix
         ./dns.nix
         ./docker.nix
         ./environments.nix
