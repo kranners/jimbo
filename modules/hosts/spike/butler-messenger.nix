@@ -169,6 +169,7 @@ in
   config.butler.commands = lib.mkIf config.butler.messenger.enable {
     messenger-chats = {
       package = messenger-chats;
+      private = true;
       description = ''
         List Aaron's 50 most recent Messenger chats, Marketplace ones included, newest first: room id, time of its last activity, unread count, name.
         messenger-chats | messenger-chats --marketplace (Marketplace chats only)
@@ -189,6 +190,7 @@ in
 
     messenger-read = {
       package = messenger-read;
+      private = true;
       description = ''
         Print the latest messages of one Messenger chat, oldest first, 20 unless a count up to 100 is given.
         messenger-read <room id> [count]

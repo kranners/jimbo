@@ -175,6 +175,7 @@ in
   };
 
   butler.commands.slack = {
+    private = true;
     package = slack;
     description = ''
       Read Aaron's work Slack workspace, read-only: it cannot post, react or edit.

@@ -36,6 +36,7 @@ in
   ];
 
   butler.commands.photos = {
+    private = true;
     package = photos;
     description = ''
       Read Aaron's iCloud Photos. Prints JSON, except get, which saves a JPEG to attach and prints its path.

@@ -155,6 +155,7 @@ in
     ];
 
     butler.commands.drive = {
+      private = true;
       package = drive;
       description = ''
         Read Aaron's Google Drive, read-only: list a folder, search every file he can see, and read text, Google Docs, Sheets (as CSV), Slides and PDFs as plain text.

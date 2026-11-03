@@ -178,6 +178,7 @@ in
     (lib.mkIf config.butler.garmin.enable {
       butler.commands.garmin = {
         package = garmin;
+        private = true;
         description = ''
           Read Aaron's Garmin health data: sleep, HRV, Body Battery, stress, steps, resting heart rate and activities. Prints JSON of numbers, dates and enum codes only.
           garmin summary [day] | garmin sleep [day] | garmin sleep-range [from [to]] | garmin hrv [day] | garmin hrv-range [from [to]] | garmin body-battery [from [to]] | garmin stress [from [to]] | garmin steps [from [to]] | garmin activities [count] | garmin activity <id> | garmin profile
@@ -208,6 +209,7 @@ in
 
       butler.commands.hevy = {
         package = hevy;
+        private = true;
         description = ''
           Read Aaron's Hevy workouts, exercise history, templates and routines, and change only the routines in its own "Butler plan" folder, through drafts Aaron approves.
           hevy workouts [since YYYY-MM-DD] | hevy workout <id> | hevy history <template id> [since YYYY-MM-DD] | hevy templates [search words] | hevy routines | hevy routine <id> | hevy folders | hevy routine draft <A|B> (draft JSON on stdin) | hevy routine diff <A|B> <sha256> | hevy routine apply <A|B> <sha256> (the printed diff on stdin) | hevy bootstrap
@@ -250,6 +252,7 @@ in
               (match: {
                 inherit match;
                 lanes = interactive;
+                acts = true;
               })
               [
                 [
