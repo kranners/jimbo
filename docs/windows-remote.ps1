@@ -4,7 +4,8 @@
 #
 #   powershell -ExecutionPolicy Bypass -File windows-remote.ps1
 #
-# It is safe to run again: it keeps TightVNC and its password unless the password file is gone or -NewPassword is given.
+# It is safe to run again: it keeps TightVNC and its password unless the password file is gone or -NewPassword is given,
+# and writes that password into TightVNC's registry each time, so a run repairs a server that lost it.
 #
 # What it does:
 #   1. installs TightVNC Server 2.8.90 (the GPL edition) from tightvnc.com, pinned by SHA-256, as a service that
@@ -21,10 +22,17 @@
 #   - the installer URL and its SHA-256, 9693cb4c...170ce, from the file tightvnc.com serves;
 #   - the MSI's property names (SET_*/VALUE_OF_*, SERVER_REGISTER_AS_SERVICE, ADDLOCAL=Server), read from the MSI itself;
 #   - that this file parses in PowerShell 7.
-# Not verified, because they need Windows, so check them in the output:
-#   - that the MSI applies every VALUE_OF_* property silently (the script also writes the registry values afterwards);
-#   - that the service is named tvnserver and listens on loopback alone (the last step prints the listener);
+# Verified on jimbo's Windows install on 3 Nov 2026:
+#   - the service is named tvnserver and listens on 127.0.0.1:5900 alone;
+#   - the MSI's silent install wrote no Password value at all, so TightVNC refused every login with "Server is not
+#     configured properly"; the script therefore writes Password and ControlPassword itself, DES-encrypted as
+#     TightVNC stores them, and the hand-written value made screenshots and typing work.
+# Not verified, so check it in the output:
 #   - that the scheduled task runs on Aaron's desktop without flashing a window (it runs hidden through wscript).
+#
+# Driving it, as found on jimbo:
+#   - after the screen has been blank or asleep, the first capture can be black until a key or mouse move wakes it;
+#   - Start menu search did not open apps by `key super` and typing, while Win+R did: `key super-r`, type, `key enter`.
 
 param(
   [string] $User = $env:USERNAME,
@@ -65,12 +73,33 @@ function New-Password {
   -join ($bytes | ForEach-Object { $alphabet[$_ % $alphabet.Length] })
 }
 
+# TightVNC stores a password as the first 8 bytes of it, zero-padded, DES-encrypted in ECB mode with VNC's fixed key
+# (23,82,107,6,35,78,88,7 with each byte's bits reversed), as a REG_BINARY value.
+function ConvertTo-VncPassword([string] $text) {
+  $plain = New-Object byte[] 8
+  $ascii = [Text.Encoding]::ASCII.GetBytes($text)
+  [Array]::Copy($ascii, $plain, [Math]::Min(8, $ascii.Length))
+  $key = [byte[]] (23, 82, 107, 6, 35, 78, 88, 7 | ForEach-Object {
+      $b = $_; $r = 0
+      for ($i = 0; $i -lt 8; $i++) { $r = ($r -shl 1) -bor (($b -shr $i) -band 1) }
+      [byte] $r
+    })
+  $des = [Security.Cryptography.DES]::Create()
+  $des.Mode = [Security.Cryptography.CipherMode]::ECB
+  $des.Padding = [Security.Cryptography.PaddingMode]::None
+  $des.Key = $key
+  $encrypted = $des.CreateEncryptor().TransformFinalBlock($plain, 0, 8)
+  $des.Dispose()
+  , $encrypted
+}
+
 $installed = Get-Service tvnserver -ErrorAction SilentlyContinue
-# TightVNC keeps its password encrypted in the registry, so a new one, or one whose copy for butler is lost, means
-# installing it afresh.
+# The password file is butler's copy and the source of truth: a run without -NewPassword writes it back into TightVNC's
+# registry, so only a new password, or a lost copy, means installing TightVNC afresh.
 $fresh = -not $installed -or $NewPassword -or -not (Test-Path $passwordFile)
 $password = if ($fresh) { New-Password } else { (Get-Content -Raw $passwordFile).Trim() }
 # The control password guards TightVNC's own settings window, so a program on the desktop cannot reopen it to the network.
+# Nobody needs to know it, so it is not kept, and an existing one is replaced only on a fresh install or when missing.
 $controlPassword = New-Password
 
 if ($installed -and $fresh) {
@@ -110,13 +139,19 @@ if ($fresh) {
   Remove-Item $msi
   if ($install.ExitCode -notin 0, 3010) { throw "msiexec failed with exit code $($install.ExitCode)" }
 } else {
-  Step 'TightVNC is already installed; enforcing its loopback settings'
+  Step 'TightVNC is already installed; enforcing its loopback settings and its password from the password file'
 }
 
 # Written again whatever the MSI did, since these are what keep VNC off the network.
-New-Item -Force $serverKey -ErrorAction SilentlyContinue | Out-Null
-foreach ($setting in @{ LoopbackOnly = 1; AllowLoopback = 1; AcceptHttpConnections = 0; UseVncAuthentication = 1; EnableFileTransfers = 0 }.GetEnumerator()) {
+if (-not (Test-Path $serverKey)) { New-Item -Force $serverKey | Out-Null }
+foreach ($setting in @{ LoopbackOnly = 1; AllowLoopback = 1; AcceptHttpConnections = 0; UseVncAuthentication = 1
+    UseControlAuthentication = 1; EnableFileTransfers = 0 }.GetEnumerator()) {
   Set-ItemProperty $serverKey -Name $setting.Key -Value $setting.Value -Type DWord
+}
+# The MSI's silent install left no Password value on jimbo, so the passwords are written here rather than trusted to it.
+Set-ItemProperty $serverKey -Name Password -Value (ConvertTo-VncPassword $password) -Type Binary
+if ($fresh -or $null -eq (Get-ItemProperty $serverKey -Name ControlPassword -ErrorAction SilentlyContinue)) {
+  Set-ItemProperty $serverKey -Name ControlPassword -Value (ConvertTo-VncPassword $controlPassword) -Type Binary
 }
 Set-Service tvnserver -StartupType Automatic
 Restart-Service tvnserver

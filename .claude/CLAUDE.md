@@ -556,7 +556,7 @@ On `jimbo` the same module makes sshd take keys alone, authorizes butler's key t
 It runs `wayvnc` as Aaron's user unit `butler-wayvnc` with the graphical session, on `%t/butler-wayvnc.sock` with a umask of `0077`, so only Aaron, and butler through his ssh login, reach Hyprland's screen.
 Its user unit `butler-keepawake` holds an `idle:sleep` inhibitor 30 seconds at a time while `~/.local/state/butler-access/keepawake` is not `off`, on by default, and its `butler-keepawake` command sets it, or suspends the PC with `sleep`.
 Its `butler-boot windows plan|go` sets the firmware's next boot to Windows Boot Manager once, or systemd-boot's `auto-windows` when the firmware has no such entry, then reboots, with the passwordless sudo every NixOS host gives `wheel`.
-The PC's Windows install is set up by hand with `docs/windows-remote.ps1`, run in an administrator PowerShell after OpenSSH Server and butler's key, which installs TightVNC 2.8.90, pinned by SHA-256, as a service on `127.0.0.1:5900` alone with a random password, blocks inbound VNC in Windows Firewall and registers the `butler-desktop` task.
+The PC's Windows install is set up by hand with `docs/windows-remote.ps1`, run in an administrator PowerShell after OpenSSH Server and butler's key, which installs TightVNC 2.8.90, pinned by SHA-256, as a service on `127.0.0.1:5900` alone with a random password, which it writes into TightVNC's registry itself on every run, since the MSI's silent install left none, blocks inbound VNC in Windows Firewall and registers the `butler-desktop` task.
 
 ### Claude Code
 
