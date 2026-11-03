@@ -30,6 +30,7 @@ in
     ./gnupg
     ./formatting
     ./butler-access
+    ./browser-history
   ]
   ++ lib.optionals host.desktop [
     ./hyprland

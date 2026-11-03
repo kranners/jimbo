@@ -66,6 +66,12 @@
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGtqizfD3BqSqW9So42zNpzbxV5/F8W9CvQsOELTPdfe browser-history@pilot"
         ];
       };
+      butler.index.browserHistory.devices.piggysmbp = {
+        address = "10.100.0.2";
+        keys = [
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL4wbVpgW/cFXIcx+z0PLq5CBPMYVbW5Z+yVSBYo621F browser-history@piggysmbp"
+        ];
+      };
 
       boot.loader.systemd-boot.enable = true;
       boot.loader.efi.canTouchEfiVariables = true;
