@@ -16,6 +16,19 @@ Never tell Aaron you cannot see his screen or cannot get a screenshot.
 When the screenshot shows the wrong thing, such as Discord in front when he asked for the board, that is not a failure: bring the right app or window to the front, then look again.
 Say something is impossible only after a step has really failed, and then say which step and what it printed.
 
+## On screen, and handing back
+
+While you drive a Mac, Aaron sees you: from your first `mac` command to it, you sit in a brass porthole at the top right of its screen, with up to three speech bubbles beneath you, newest first, the oldest falling off when a fourth arrives and each fading after about 9 seconds.
+It is click-through and never takes focus, so it never gets in the way of his mouse or yours.
+- Narrate with `mac <host> say <text>` at natural points: before each meaningful step and when you find something, in a short first-person line such as `Opening Chrome to find the invoice` or `Found it, the total is on page 2`. Not before every click.
+- When you have said nothing for a few seconds, each action shows its own terse bubble, such as `Clicking at 420, 310`, `Typing…` or `Running open`, so the screen always says honestly what you are doing.
+- Never put a password, code, private detail or anything you are typing into a `say`. Typing shows only `Typing…`, and anything that looks like a secret is cut from bubbles and the log.
+- Always finish with `mac <host> done` once you have finished on that Mac, even after a failure: it fades you out at once and hands control back.
+- If you stop without `done`, you fade out by yourself after 90 seconds with no `mac` command, and the same happens if the connection drops or butler restarts, so expect to fade back in when you pause longer than that mid-task.
+- jimbo has no overlay yet: `say` and `done` there only go into the log.
+
+Every action you take with `mac` against a machine, every bubble shown, and each control session's start and end with its reason, `done`, `idle timeout` or `connection closed`, is appended to `~/memory/audit/mac/YYYY-MM-DD.md` and committed, an audit trail for Aaron that you can read but never edit. It never holds typed text, and shell commands only with secrets cut out.
+
 ## The loop
 
 1. `mac <host> look` saves a screenshot and prints its path; read that file to see the screen.
@@ -103,7 +116,7 @@ When Aaron asks you to pair, or calls you, you drive and he navigates:
 
 `mac <host> record start` films the screen at two frames a second until `mac <host> record stop`, or for at most 15 minutes. `stop` saves an MP4 in your outbox and prints its path, which you attach with `attach_file`.
 Record when Aaron asks for proof or a replay of something you did. Call `record stop` on its own, only after the screenshot of your last action shows it done, never in the same batch of tool calls as an action, or the video ends before it.
-`mac log` lists the last actions you took on either Mac, with times.
+`mac log` lists the last actions you took on either Mac, with times, and `~/memory/audit/mac/` keeps them for good.
 
 ## Keep-awake
 
@@ -167,6 +180,7 @@ Researched and built on 3 November 2026, on macOS 26.6.
 - With an external display as the main one, Screen Sharing's picture is only that display, which is why `display <n>` exists.
 - `mac <host> windows` runs `lsappinfo` and a JXA script that calls only `CGWindowListCopyWindowInfo` and `NSScreen` through the ObjC bridge, sending no Apple Events, so macOS asks for no Automation permission. Without Screen Recording, which ssh has not got, macOS leaves out most window titles but still gives each window's app, place, size and whether it is on screen.
 - `open -a` and keystrokes over Screen Sharing need no permission either, which is why the recipes use them rather than AppleScript.
+- The overlay is the `butler-overlay` LaunchAgent from `butler-access`: a JXA AppKit window drawn with Core Animation, run by macOS's own `osascript`, borderless, transparent, click-through and never key, on every Space and over full-screen apps. It draws only its own window, so it needs no Accessibility or Screen Recording grant. `mac` sends it events over the same ssh, with the `butler-overlay show|say|act|hide` command, which writes `~/.local/state/butler-overlay/events` and `active` on the Mac; launchd runs it only while `active` exists, and it exits once it fades out, so nothing runs while it is hidden. Its log is `~/Library/Logs/butler-overlay.log` on the Mac, and `mac <host> run butler-overlay status` says whether it is showing.
 - `mac` runs the ssh master and the tunnel in `/tmp/mac` of butler's private temp, and the tunnel is a unix socket, so no other user on spike reaches the Macs' screens.
 - Keep-awake is `caffeinate -d -i -m -s -u` run 30 s at a time by the user LaunchAgent `butler-keepawake`, from `butler-access`, so it needs no sudo and comes back after every reboot and update. `-u` declares Aaron active, so the idle timer never reaches the screen saver or display sleep, which is what triggers the lock. Its state is `~/.local/state/butler-access/keepawake` on each Mac, `on` or `off`, the Mac's default while it is missing.
 - jimbo's NixOS install, by the same `butler-access` module, runs sshd taking butler's key alone, open to spike's `10.100.0.1` alone, and `wayvnc` as Aaron's user unit `butler-wayvnc`, on the unix socket `butler-wayvnc.sock` in his runtime directory, which only he can open; `mac` forwards that socket over ssh. wayvnc offers no password scheme vncdotool speaks, so that directory's permissions are its gate in place of a password file. Its keep-awake is the user unit `butler-keepawake`, with its state in `~/.local/state/butler-access/keepawake`.

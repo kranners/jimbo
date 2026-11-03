@@ -442,6 +442,58 @@ let
     '';
   };
 
+  # Moves the lines a wrapper spooled for `audit/<name>` into the memory's
+  # `audit/<name>/YYYY-MM-DD.md`, one file a day, and commits them, so an
+  # audit trail is in git without the wrapper waiting on the memory's lock.
+  # Each spool line is `YYYY-MM-DD<tab><line>`. It is no command of butler's,
+  # and `audit` is outside the memory he may edit, so he cannot rewrite it.
+  memory-audit = pkgs.writeShellApplication {
+    name = "memory-audit";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gawk
+      pkgs.git
+      pkgs.openssh
+      pkgs.util-linux
+    ];
+    text = ''
+      if [ $# -ne 2 ] || [[ ! "$1" =~ ^[a-z0-9-]+$ ]]; then
+        echo "usage: memory-audit <name> <spool>" >&2
+        exit 2
+      fi
+      name=$1
+      spool=$(realpath "$2")
+
+      ${lockedMemory}
+
+      exec 8>>"$spool"
+      flock 8
+      lines=$(cat "$spool")
+      : >"$spool"
+      flock -u 8
+      [ -n "$lines" ] || exit 0
+
+      mkdir -p "audit/$name"
+      printf '%s\n' "$lines" | awk -F '\t' -v dir="audit/$name" -v name="$name" '
+        NF >= 2 && $1 ~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ {
+          file = dir "/" $1 ".md"
+          if (!(file in seen)) {
+            seen[file] = 1
+            if ((getline probe < file) < 0) printf "# %s audit, %s\n\n", name, $1 > file
+            close(file)
+          }
+          line = $0
+          sub(/^[^\t]*\t/, "", line)
+          print "- " line >> file
+          close(file)
+        }'
+      git add "audit/$name"
+      git diff --cached --quiet && exit 0
+      git -c user.name=Butler -c user.email=butler@spike commit --quiet --message "Audit $name $(date '+%F %H:%M')"
+      ${pushInBackground}
+    '';
+  };
+
   butler-memory-pull = pkgs.writeShellApplication {
     name = "butler-memory-pull";
     runtimeInputs = [
@@ -510,6 +562,14 @@ in
   options.butler.commands = mkOption {
     type = types.attrsOf command;
     default = { };
+  };
+
+  options.butler.memoryAudit = mkOption {
+    type = types.package;
+    readOnly = true;
+    internal = true;
+    default = memory-audit;
+    description = "`memory-audit <name> <spool>`, for a wrapper to keep an audit trail in butler's memory, under `audit/<name>`.";
   };
 
   config = {
