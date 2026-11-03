@@ -1142,8 +1142,8 @@ def redact(text):
     words = []
     for word in text.split(' '):
         bare = word.strip('"\',;()[]{}')
-        if (len(bare) >= 24 and not bare.startswith(('/', '~', '.', 'http'))
-                and re.fullmatch(r'[A-Za-z0-9+/_=.-]+', bare) and re.search(r'\d', bare) and re.search(r'[A-Za-z]', bare)):
+        looks_like_key = re.fullmatch(r'[A-Za-z0-9+/_=.-]+', bare) and re.search(r'\d', bare) and re.search(r'[A-Za-z]', bare)
+        if len(bare) >= 24 and not bare.startswith(('/', '~', '.', 'http')) and looks_like_key:
             word = word.replace(bare, '[redacted]')
         words.append(word)
     return ' '.join(words)
