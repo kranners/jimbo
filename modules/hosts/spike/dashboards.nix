@@ -546,6 +546,18 @@ let
           title = "Claimed tickets";
           target = claimedTickets;
         })
+        (timeseries {
+          title = "Sweep: tickets needing Aaron";
+          targets = [
+            (target ''backlogic_sweep_tickets{project="all",kind=~"dead_claim|run_again|review_stuck|branch_unlanded_closed"}'' "{{kind}}")
+          ];
+        })
+        (timeseries {
+          title = "Sweep: broken, parked and stale tickets";
+          targets = [
+            (target ''backlogic_sweep_tickets{project="all",kind=~"claimed|needs_host|waiting_on_aaron|stale|branch_waiting"}'' "{{kind}}")
+          ];
+        })
         (panel "timeseries" {
           title = "Tickets done per day";
           w = 24;

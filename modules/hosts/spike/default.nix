@@ -28,6 +28,7 @@
         ./hardware.nix
         ./backlogic.nix
         ./backlogic-tunnel.nix
+        ./backlogic-sweep.nix
         ./bowerbird.nix
         ./butler.nix
         ./butler-browser.nix
