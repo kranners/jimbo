@@ -15,6 +15,15 @@ let
   authorizedKey = ''from="${spike}",restrict,port-forwarding,permitopen="127.0.0.1:5900" ${butlerKey}'';
   helperPort = (import ./helper.nix).port;
   tokenFile = "${home}/.local/state/butler-access/hammerspoon-token";
+
+  # spike's remote-desk gateway, for Aaron's iPad: its key reaches VNC alone, like butler's, but its forced command
+  # only prints whether the screen is locked, so it runs nothing else.
+  remoteDesk = import ./remote-desk.nix;
+  remoteDeskKeys =
+    options: status:
+    lib.optional (
+      remoteDesk.publicKey != null
+    ) ''from="${spike}",restrict,${options}command="${status}" ${remoteDesk.publicKey}'';
 in
 {
   darwinHomeModule =
@@ -165,77 +174,106 @@ in
       };
     };
 
-  darwinSystemModule = {
-    homebrew.casks = [ "hammerspoon" ];
+  darwinSystemModule =
+    { pkgs, ... }:
+    {
+      homebrew.casks = [ "hammerspoon" ];
 
-    services.openssh = {
-      enable = true;
-      extraConfig = ''
-        PasswordAuthentication no
-        KbdInteractiveAuthentication no
+      services.openssh = {
+        enable = true;
+        extraConfig = ''
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+        '';
+      };
+
+      users.users.${host.username}.openssh.authorizedKeys.keys = [
+        authorizedKey
+      ]
+      ++ remoteDeskKeys ''port-forwarding,permitopen="127.0.0.1:5900",'' (
+        pkgs.writeShellScript "remote-desk-status" ''
+          if /usr/sbin/ioreg -n Root -d1 | /usr/bin/grep -q 'CGSSessionScreenIsLocked"=Yes'; then
+            echo locked
+          elif [ "$(/usr/bin/stat -f %Su /dev/console)" = root ]; then
+            echo "at the login window"
+          else
+            echo unlocked
+          fi
+        ''
+      );
+
+      environment.etc."pf.anchors/butler-access".text = ''
+        pass in quick on lo0 proto tcp to port 5900
+        block drop in quick proto tcp to port 5900
+      '';
+
+      launchd.daemons.butler-access-pf.serviceConfig = {
+        ProgramArguments = [
+          "/bin/sh"
+          "-c"
+          loadRules
+        ];
+        RunAtLoad = true;
+        StartInterval = 60;
+        WatchPaths = [ rules ];
+      };
+
+      system.activationScripts.postActivation.text = lib.mkAfter ''
+        echo "letting butler on spike drive this Mac" >&2
+        /sbin/pfctl -q -a ${anchor} -f ${rules} 2> /dev/null
+        /sbin/pfctl -q -E 2> /dev/null
+        /sbin/pfctl -a ${anchor} -s rules 2> /dev/null | grep -q "block drop in quick proto tcp from any to any port = 5900"
+
+        defaults write ${remoteManagement} VNCLegacyConnectionsEnabled -bool true
+        defaults write ${remoteManagement} VNCAlwaysStartOnConsole -bool true
+
+        if [ ! -s ${passwordFile} ] || [ ! -s /Library/Preferences/com.apple.VNCSettings.txt ]; then
+          /usr/bin/sudo -u ${host.username} /bin/mkdir -p -m 700 ${dirOf passwordFile}
+          password=$(/usr/bin/openssl rand -base64 24 | LC_ALL=C tr -dc 'A-Za-z0-9' | cut -c 1-8)
+          ${kickstart} -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$password" > /dev/null
+          printf '%s\n' "$password" | /usr/bin/sudo -u ${host.username} /bin/sh -c 'umask 077; cat > ${passwordFile}'
+          pkill -x screensharingd || true
+        fi
+
+        launchctl enable system/com.apple.screensharing
+        launchctl print system/com.apple.screensharing > /dev/null 2>&1 \
+          || launchctl bootstrap system /System/Library/LaunchDaemons/com.apple.screensharing.plist
       '';
     };
-
-    users.users.${host.username}.openssh.authorizedKeys.keys = [ authorizedKey ];
-
-    environment.etc."pf.anchors/butler-access".text = ''
-      pass in quick on lo0 proto tcp to port 5900
-      block drop in quick proto tcp to port 5900
-    '';
-
-    launchd.daemons.butler-access-pf.serviceConfig = {
-      ProgramArguments = [
-        "/bin/sh"
-        "-c"
-        loadRules
-      ];
-      RunAtLoad = true;
-      StartInterval = 60;
-      WatchPaths = [ rules ];
-    };
-
-    system.activationScripts.postActivation.text = lib.mkAfter ''
-      echo "letting butler on spike drive this Mac" >&2
-      /sbin/pfctl -q -a ${anchor} -f ${rules} 2> /dev/null
-      /sbin/pfctl -q -E 2> /dev/null
-      /sbin/pfctl -a ${anchor} -s rules 2> /dev/null | grep -q "block drop in quick proto tcp from any to any port = 5900"
-
-      defaults write ${remoteManagement} VNCLegacyConnectionsEnabled -bool true
-      defaults write ${remoteManagement} VNCAlwaysStartOnConsole -bool true
-
-      if [ ! -s ${passwordFile} ] || [ ! -s /Library/Preferences/com.apple.VNCSettings.txt ]; then
-        /usr/bin/sudo -u ${host.username} /bin/mkdir -p -m 700 ${dirOf passwordFile}
-        password=$(/usr/bin/openssl rand -base64 24 | LC_ALL=C tr -dc 'A-Za-z0-9' | cut -c 1-8)
-        ${kickstart} -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$password" > /dev/null
-        printf '%s\n' "$password" | /usr/bin/sudo -u ${host.username} /bin/sh -c 'umask 077; cat > ${passwordFile}'
-        pkill -x screensharingd || true
-      fi
-
-      launchctl enable system/com.apple.screensharing
-      launchctl print system/com.apple.screensharing > /dev/null 2>&1 \
-        || launchctl bootstrap system /System/Library/LaunchDaemons/com.apple.screensharing.plist
-    '';
-  };
 }
 // lib.optionalAttrs (host.hostname == "jimbo") {
   # The jimbo PC's NixOS install, the Linux half of a dual boot whose Windows half Aaron sets up by hand with
   # docs/windows-remote.ps1. butler reaches it over spike's WireGuard alone: ssh with its key, and Hyprland's screen
   # through wayvnc on a unix socket in Aaron's runtime directory, which ssh forwards.
-  nixosSystemModule = {
-    services.openssh = {
-      openFirewall = false;
-      settings = {
-        PasswordAuthentication = false;
-        KbdInteractiveAuthentication = false;
+  nixosSystemModule =
+    { pkgs, ... }:
+    {
+      services.openssh = {
+        openFirewall = false;
+        settings = {
+          PasswordAuthentication = false;
+          KbdInteractiveAuthentication = false;
+        };
       };
+
+      users.users.${host.username}.openssh.authorizedKeys.keys = [
+        authorizedKey
+      ]
+      # OpenSSH refuses every unix-socket forward to a key with permitopen, so this key forwards nothing, and its
+      # forced command itself carries VNC from wayvnc's socket over the session when asked for `vnc`.
+      ++ remoteDeskKeys "" (
+        pkgs.writeShellScript "remote-desk-status" ''
+          if [ "''${SSH_ORIGINAL_COMMAND:-}" = vnc ]; then
+            exec ${pkgs.socat}/bin/socat STDIO UNIX-CONNECT:/run/user/$(id -u)/butler-wayvnc.sock
+          fi
+          if ${pkgs.procps}/bin/pgrep -x hyprlock > /dev/null; then echo locked; else echo unlocked; fi
+        ''
+      );
+
+      networking.firewall.extraCommands = ''
+        iptables -A nixos-fw -i wg0 -s ${spike} -p tcp --dport 22 -j nixos-fw-accept
+      '';
     };
-
-    users.users.${host.username}.openssh.authorizedKeys.keys = [ authorizedKey ];
-
-    networking.firewall.extraCommands = ''
-      iptables -A nixos-fw -i wg0 -s ${spike} -p tcp --dport 22 -j nixos-fw-accept
-    '';
-  };
 
   nixosHomeModule =
     { pkgs, ... }:

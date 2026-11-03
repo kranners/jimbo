@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Desk">
+  <meta name="theme-color" content="#16181d">
+  <title>Remote Desk</title>
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/icon-180.png">
+  <link rel="stylesheet" href="/static/style.css">
+  <script type="module" src="/static/app.js"></script>
+</head>
+<body>
+  <main id="login" class="view" hidden>
+    <form id="login-form" class="card narrow">
+      <h1>Remote Desk</h1>
+      <p class="muted">Aaron's machines, through spike.</p>
+      <label>Device <input id="device" name="username" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
+      <label>Password <input id="password" name="password" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Log in</button>
+      <p id="login-error" class="error" role="alert"></p>
+    </form>
+  </main>
+
+  <main id="launcher" class="view" hidden>
+    <header class="bar">
+      <h1>Remote Desk</h1>
+      <span id="whoami" class="muted"></span>
+      <button id="logout" class="quiet">Log out</button>
+    </header>
+    <p id="launcher-message" class="error" role="alert"></p>
+    <ul id="hosts" class="hosts"></ul>
+    <p class="muted small">A locked Mac or PC cannot be unlocked from here beyond its own lock screen, and an asleep or switched-off machine cannot be woken. Every connection is logged on spike.</p>
+  </main>
+
+  <main id="viewer" class="view" hidden>
+    <nav id="toolbar" class="toolbar">
+      <button id="back" title="Disconnect">‹</button>
+      <span id="title" class="title"></span>
+      <button data-mod="super" id="mod-super">⌘</button>
+      <button data-mod="ctrl">Ctrl</button>
+      <button data-mod="alt" id="mod-alt">⌥</button>
+      <button data-mod="shift">⇧</button>
+      <button data-key="Escape">Esc</button>
+      <button data-key="Tab">Tab</button>
+      <button data-key="ArrowLeft">←</button>
+      <button data-key="ArrowUp">↑</button>
+      <button data-key="ArrowDown">↓</button>
+      <button data-key="ArrowRight">→</button>
+      <button id="keyboard" title="Keyboard">⌨</button>
+      <button id="pan" title="Pan and zoom">✋</button>
+      <button id="fit" title="Fit the screen">Fit</button>
+      <button id="actual" title="Actual size">1:1</button>
+      <button id="more" title="More">⋯</button>
+    </nav>
+    <div id="more-menu" class="menu" hidden>
+      <button data-combo="ctrl+alt+Delete">Ctrl Alt Del</button>
+      <button data-key="Delete">Delete</button>
+      <button data-key="Home">Home</button>
+      <button data-key="End">End</button>
+      <button data-key="PageUp">Page up</button>
+      <button data-key="PageDown">Page down</button>
+      <button id="paste">Type text…</button>
+      <button id="toggle-bar">Hide toolbar</button>
+    </div>
+    <div id="notice" class="notice" hidden></div>
+    <div id="scroller" class="scroller"><div id="screen" class="screen"></div></div>
+    <div id="panlayer" class="panlayer" hidden></div>
+    <button id="show-bar" class="show-bar" hidden>☰</button>
+    <textarea id="kbd" class="kbd" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Keyboard"></textarea>
+    <form id="credentials" class="card narrow overlay" hidden>
+      <h2 id="cred-title">VNC password</h2>
+      <p class="muted small">The machine's own screen-sharing password, which spike never stores.</p>
+      <label id="cred-user-row">User <input id="cred-user" name="username" autocomplete="username" autocapitalize="off" autocorrect="off"></label>
+      <label>Password <input id="cred-password" name="password" type="password" autocomplete="current-password"></label>
+      <button type="submit">Connect</button>
+    </form>
+  </main>
+</body>
+</html>
