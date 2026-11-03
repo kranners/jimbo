@@ -1,3 +1,4 @@
 .DS_Store
 result
 .claude/worktrees/
+.builder-intent
