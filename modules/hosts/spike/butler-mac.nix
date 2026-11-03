@@ -44,6 +44,7 @@ let
     "@ssh@" = lib.getExe pkgs.openssh;
     "@ffmpeg@" = lib.getExe pkgs.ffmpeg-headless;
     "@outbox@" = "${config.users.users.butler.home}/outbox";
+    "@windowsScreenshot@" = "${../../../docs/windows-screenshot.ps1}";
   };
 
   mac =
