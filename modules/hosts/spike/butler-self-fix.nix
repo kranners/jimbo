@@ -474,12 +474,15 @@ let
       [ "$latest" != "$running" ] || exit 0
       [ "$latest" != "$(cat "$failed_record" 2>/dev/null)" ] || exit 0
       git merge-base --is-ancestor "$running" "$latest" || { echo "Not switching: $latest does not descend from $running" >&2; exit 0; }
+      # What this switch brings in, for butler to say why it restarted if the switch restarts it.
+      git log --no-merges --format=%s "$running..$latest" > "$STATE_DIRECTORY/switching"
       git merge --quiet --ff-only "$latest"
       if ! nh os switch .; then
+        rm -f "$STATE_DIRECTORY/switching"
         echo "$latest" > "$failed_record"
         exit 1
       fi
-      rm -f "$failed_record"
+      rm -f "$failed_record" "$STATE_DIRECTORY/switching"
     '';
   };
 in

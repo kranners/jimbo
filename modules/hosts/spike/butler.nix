@@ -550,6 +550,38 @@ let
     '';
   };
 
+  # Why butler last stopped, for the daemon to say when it rejoins a call: systemd's result, and any deploy under way.
+  # It lives outside butler's home, in a directory of root's, so this root script never writes through a path butler controls.
+  stopRecordDir = "/run/butler-stop";
+  butler-record-stop = pkgs.writeShellApplication {
+    name = "butler-record-stop";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.jq
+    ];
+    text = ''
+      install -d -m 755 ${stopRecordDir}
+      switching=/var/lib/jimbo-switch/switching
+      deploy=null
+      if [ -f "$switching" ] && [ $(( $(date +%s) - $(stat -c %Y "$switching") )) -lt 1800 ]; then
+        deploy=$(head -n 20 "$switching" | jq -Rn '{changes: [inputs | select(length > 0) | .[0:200]]}')
+      fi
+      trigger=null
+      [ ! -e /run/butler-pull/moved ] || trigger='"daemon-update"'
+      jq -n \
+        --argjson at "$(date +%s%3N)" \
+        --arg result "''${SERVICE_RESULT:-}" \
+        --arg exitCode "''${EXIT_CODE:-}" \
+        --arg exitStatus "''${EXIT_STATUS:-}" \
+        --argjson deploy "$deploy" \
+        --argjson trigger "$trigger" \
+        '{$at, $result, $exitCode, $exitStatus} + (if $deploy then {$deploy} else {} end) + (if $trigger then {$trigger} else {} end)' \
+        > ${stopRecordDir}/stop.json.tmp
+      chmod 644 ${stopRecordDir}/stop.json.tmp
+      mv ${stopRecordDir}/stop.json.tmp ${stopRecordDir}/stop.json
+    '';
+  };
+
   butler-restart-if-moved = pkgs.writeShellApplication {
     name = "butler-restart-if-moved";
     runtimeInputs = [ config.systemd.package ];
@@ -636,6 +668,7 @@ in
 
     systemd.tmpfiles.rules = [
       "d ${home}/.claude 0700 butler butler -"
+      "d ${stopRecordDir} 0755 root root -"
       "d ${accounts} 0700 butler butler -"
       "d ${home}/.claude/skills 0700 butler butler -"
       "d ${home}/.claude/rules 0700 butler butler -"
@@ -678,6 +711,8 @@ in
         DISCORD_ATTACH_PATHS = "${outbox}:${moods}";
         # Ends the other-threads digest a new interactive session starts with.
         DISCORD_THREAD_DIGEST_NOTE = "Your working memory is core/now.md in your memory; read it and keep it current.";
+        # Why the last run stopped, which a call it rejoins says aloud.
+        DISCORD_STOP_RECORD_FILE = "${stopRecordDir}/stop.json";
       };
 
       serviceConfig = {
@@ -687,6 +722,7 @@ in
         LoadCredential = credentials;
         ExecStartPre = "${pkgs.nodejs_24}/bin/npm ci --omit=dev";
         ExecStart = "${pkgs.nodejs_24}/bin/node src/daemon.ts";
+        ExecStopPost = "+${lib.getExe butler-record-stop}";
         Restart = "always";
         RestartSec = 10;
         TimeoutStopSec = 20;
