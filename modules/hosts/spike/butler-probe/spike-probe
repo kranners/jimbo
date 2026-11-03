@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+"""A self-fix session's way to run a check on spike.
+
+  spike-probe init <self-fix id> <key>   remember the id and key from the session's brief
+  spike-probe < script.sh                run a bash script on spike and print its output
+
+The script goes, signed with this fix's key, onto the branch spike-probe/<id> of
+the private butler-memory repository; spike polls it every 20 seconds, runs the
+script as the sandboxed user butler-probe for at most 55 seconds and pushes the
+output back, which this prints. Nothing here connects to spike itself.
+Exits 75 when no answer came in time, for example once the fix has ended.
+"""
+
+import hashlib
+import hmac
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+CONFIG = Path(os.environ.get("SPIKE_PROBE_CONFIG", Path.home() / ".config" / "spike-probe"))
+REMOTE = os.environ.get("SPIKE_PROBE_REMOTE", "https://github.com/kranners/butler-memory")
+REPO = Path(os.environ.get("SPIKE_PROBE_CACHE", Path.home() / ".cache" / "spike-probe")) / "repo.git"
+WAIT = int(os.environ.get("SPIKE_PROBE_WAIT", "240"))
+ID = re.compile(r"^[0-9]{8}-[0-9]{6}-[0-9]+$")
+
+
+def git(*args, data=None, env=None, check=True):
+    return subprocess.run(
+        ["git", "--git-dir", str(REPO), *args],
+        input=data,
+        capture_output=True,
+        check=check,
+        env={**os.environ, **(env or {})},
+    )
+
+
+def fetch(fix):
+    return git("fetch", "--quiet", "--no-tags", REMOTE, f"+refs/heads/spike-probe/{fix}:refs/probe/{fix}", check=False).returncode == 0
+
+
+def exists(spec):
+    return git("cat-file", "-e", spec, check=False).returncode == 0
+
+
+def send(fix, key, script):
+    """Pushes the next request on the branch and returns its number."""
+    for _ in range(5):
+        ref = f"refs/probe/{fix}"
+        have = fetch(fix)
+        names = git("ls-tree", "--name-only", f"{ref}:requests", check=False).stdout.decode().split() if have else []
+        numbers = [int(n[:-3]) for n in names if re.fullmatch(r"[0-9]{1,4}\.sh", n)]
+        number = str(max(numbers, default=0) + 1)
+        sig = hmac.new(key, f"{fix}\n{number}\n".encode() + script, hashlib.sha256).hexdigest()
+        with tempfile.TemporaryDirectory() as tmp:
+            env = {"GIT_INDEX_FILE": f"{tmp}/index"}
+            if have:
+                git("read-tree", ref, env=env)
+            for name, data in ((f"{number}.sh", script), (f"{number}.sig", sig.encode() + b"\n")):
+                blob = git("hash-object", "-w", "--stdin", data=data).stdout.decode().strip()
+                git("update-index", "--add", "--cacheinfo", f"100644,{blob},requests/{name}", env=env)
+            tree = git("write-tree", env=env).stdout.decode().strip()
+            parents = ["-p", git("rev-parse", ref).stdout.decode().strip()] if have else []
+            commit = git(
+                "-c", "user.name=self-fix", "-c", "user.email=self-fix@claude.ai",
+                "commit-tree", tree, *parents, "-m", f"spike-probe request {number}",
+            ).stdout.decode().strip()
+        if git("push", "--quiet", REMOTE, f"{commit}:refs/heads/spike-probe/{fix}", check=False).returncode == 0:
+            return number
+        time.sleep(2)
+    sys.exit("spike-probe: could not push the request; is butler-memory added with push access?")
+
+
+def main():
+    args = sys.argv[1:]
+    if len(args) == 3 and args[0] == "init" and ID.match(args[1]) and re.fullmatch(r"[0-9a-f]{64}", args[2]):
+        CONFIG.parent.mkdir(parents=True, exist_ok=True)
+        CONFIG.write_text(f"{args[1]} {args[2]}\n")
+        CONFIG.chmod(0o600)
+        print(f"spike-probe: ready for self-fix {args[1]}")
+        return
+    if args:
+        sys.exit(__doc__)
+    try:
+        fix, key = CONFIG.read_text().split()
+    except (OSError, ValueError):
+        sys.exit("spike-probe: run `spike-probe init <id> <key>` first, with the id and key from your brief")
+    script = sys.stdin.buffer.read()
+    if not script.strip():
+        sys.exit("spike-probe: give the script on stdin")
+    if not REPO.exists():
+        REPO.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["git", "init", "--quiet", "--bare", str(REPO)], check=True)
+    number = send(fix, bytes.fromhex(key), script)
+    print(f"spike-probe: sent request {number}; spike picks it up within about 20 seconds", file=sys.stderr)
+    deadline = time.time() + WAIT
+    while time.time() < deadline:
+        time.sleep(5)
+        if fetch(fix) and exists(f"refs/probe/{fix}:results/{number}.txt"):
+            sys.stdout.write(git("cat-file", "blob", f"refs/probe/{fix}:results/{number}.txt").stdout.decode("utf-8", "replace"))
+            return
+    print(
+        f"spike-probe: no answer to request {number} within {WAIT} seconds; spike may be down, or this fix is no longer live there",
+        file=sys.stderr,
+    )
+    sys.exit(75)
+
+
+if __name__ == "__main__":
+    main()
