@@ -4,6 +4,9 @@ let
   # public half, from `sudo wg show wg0 public-key` there, goes here, and until then spike has no peer for it.
   jimboPublicKey = null;
 
+  # Aaron's iPad generates its key in the WireGuard app; its public half goes here, and until then spike has no peer for it.
+  ipadPublicKey = null;
+
   forwardingPeers = [
     "piggys-MBP"
     "phone"
@@ -79,6 +82,11 @@ in
       name = "jimbo";
       publicKey = jimboPublicKey;
       allowedIPs = [ "10.100.0.12/32" ];
+    }
+    ++ lib.optional (ipadPublicKey != null) {
+      name = "ipad";
+      publicKey = ipadPublicKey;
+      allowedIPs = [ "10.100.0.13/32" ];
     };
   };
 
