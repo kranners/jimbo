@@ -340,7 +340,7 @@ let
     cd ${memory}
 
     pull() {
-      git pull --rebase --autostash --quiet || { git rebase --abort 2>/dev/null; exit 1; }
+      git -c user.name=Butler -c user.email=butler@spike pull --rebase --autostash --quiet || { git rebase --abort 2>/dev/null; exit 1; }
     }
   '';
 
@@ -508,7 +508,7 @@ let
       flock 9
 
       if [ -d ${memory}/.git ]; then
-        git -C ${memory} pull --rebase --autostash --quiet || { git -C ${memory} rebase --abort 2>/dev/null; exit 1; }
+        git -C ${memory} -c user.name=Butler -c user.email=butler@spike pull --rebase --autostash --quiet || { git -C ${memory} rebase --abort 2>/dev/null; exit 1; }
         if [ -n "$(git -C ${memory} rev-list '@{upstream}..HEAD')" ]; then
           git -C ${memory} push --quiet
         fi
@@ -676,6 +676,8 @@ in
         DISCORD_CRON_DIR = "${home}/cron";
         DISCORD_CRON_CHANNEL = "1565593836883935264";
         DISCORD_ATTACH_PATHS = "${outbox}:${moods}";
+        # Ends the other-threads digest a new interactive session starts with.
+        DISCORD_THREAD_DIGEST_NOTE = "Your working memory is core/now.md in your memory; read it and keep it current.";
       };
 
       serviceConfig = {
