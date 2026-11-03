@@ -15,6 +15,10 @@ let
   authorizedKey = ''from="${spike}",restrict,port-forwarding,permitopen="127.0.0.1:5900" ${butlerKey}'';
   helperPort = (import ./helper.nix).port;
   tokenFile = "${home}/.local/state/butler-access/hammerspoon-token";
+  # Only piggys-MBP pushes exports into butler's drop folder on spike; pilot, the employer's Mac, stays off until
+  # Aaron turns it on here and in spike's butler-drop.nix.
+  dropHost = host.hostname == "piggys-MBP";
+  dropKey = "${home}/.ssh/butler-drop";
 in
 {
   darwinHomeModule =
@@ -99,12 +103,59 @@ in
             ;;
         esac
       '';
+
+      # Pushes files into butler's drop folder on spike, the key's only use there.
+      drop = pkgs.writeShellApplication {
+        name = "butler-drop";
+        runtimeInputs = [
+          pkgs.openssh
+          pkgs.coreutils
+        ];
+        text = ''
+          usage() {
+            echo "usage: butler-drop <file>...  (pushes each file to butler's drop folder on spike, at most 2 GiB each)" >&2
+            echo "       butler-drop --key      (prints this Mac's public drop key, for spike's butler-drop.nix)" >&2
+            exit 2
+          }
+          [ $# -ge 1 ] || usage
+          if [ "$1" = --key ]; then
+            cat ${dropKey}.pub
+            exit
+          fi
+          [ -f ${dropKey} ] || { echo "butler-drop: no key at ${dropKey}; run a switch to make it" >&2; exit 1; }
+          status=0
+          for file in "$@"; do
+            [ -f "$file" ] || { echo "butler-drop: $file is not a file" >&2; status=1; continue; }
+            name=$(basename "$file")
+            name=''${name//[^A-Za-z0-9._-]/_}
+            name=''${name#[._-]}
+            name=''${name:0:128}
+            if ssh -T -i ${dropKey} -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=accept-new butler-drop@${spike} "$name" < "$file"; then
+              :
+            else
+              echo "butler-drop: failed to push $file" >&2
+              status=1
+            fi
+          done
+          exit "$status"
+        '';
+      };
     in
     {
       home.packages = [
         keepawake
         overlay.command
-      ];
+      ]
+      ++ lib.optional dropHost drop;
+
+      # The drop key is made here and never leaves this Mac; spike lets it only write files into the drop folder.
+      home.activation.butlerDropKey = lib.mkIf dropHost (
+        lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          run /bin/mkdir -p -m 700 ${dirOf dropKey}
+          [ -f ${dropKey} ] || run ${pkgs.openssh}/bin/ssh-keygen -q -t ed25519 -N "" -C butler-drop@${host.hostname} -f ${dropKey}
+        ''
+      );
 
       # Butler in a porthole at the top right, narrating in speech bubbles while butler drives this Mac.
       launchd.agents.butler-overlay = overlay.agent;

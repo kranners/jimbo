@@ -164,6 +164,8 @@ let
           "Read(~/.local/share/ortie/**)"
           "Read(~/.config/rclone/**)"
           "Read(//var/lib/butler-index/**)"
+          # Dropped exports reach a thread only through `drop`, which taints it.
+          "Read(//var/lib/butler-drop/**)"
           "Read(//proc/**)"
           "Read(//run/**)"
         ];

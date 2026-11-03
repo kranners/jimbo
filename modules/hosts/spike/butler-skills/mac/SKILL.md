@@ -129,6 +129,10 @@ It is on by default on piggys-MBP and off by default on pilot, his employer's Ma
 Every change is in `mac log`. Tell Aaron in a sentence whenever you change it, and never turn it on for pilot unless he asked for pilot by name.
 It cannot unlock a Mac that is already locked, keep one awake with its lid closed, or get past the FileVault password after a restart: those still need Aaron.
 
+## Exports for the index
+
+To bring a file Aaron downloaded on piggys-MBP to spike, run `butler-drop <file>` there with `run`; the `drop` skill says what happens next.
+
 ## Limits
 
 - Never type a password, a one-time code or a card number, and never unlock a locked screen. When `mac hosts` says LOCKED, or a dialog asks for a password or Touch ID, ask Aaron to deal with it and wait. That is the only thing on a Mac you stop at: every other menu, dialog, confirmation, save panel or display you work yourself.

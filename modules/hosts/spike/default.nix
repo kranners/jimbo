@@ -32,6 +32,7 @@
         ./butler.nix
         ./butler-browser.nix
         ./butler-drive.nix
+        ./butler-drop.nix
         ./butler-health.nix
         ./butler-imagine.nix
         ./butler-voice-sample.nix
