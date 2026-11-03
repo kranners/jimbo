@@ -14,6 +14,7 @@ STATE = os.path.expanduser('~/.local/state/mac')
 RUNTIME = '/tmp/mac'
 PASSWORD = '.local/state/butler-access/vnc-password'
 SHOT_WIDTH = 1512
+SHOT_DAYS = 1
 QUIET = 0.3
 FIRST_CHANGE = 1.0
 SETTLE_LIMIT = 1.5
@@ -168,14 +169,19 @@ def look(host, client, acted=None):
     else:
         time.sleep(0.2)
     image = picture(client)
-    shots = os.path.join(RUNTIME, 'shots')
-    os.makedirs(shots, exist_ok=True)
-    for old in os.listdir(shots):
-        if os.path.getmtime(os.path.join(shots, old)) < time.time() - 3600:
-            os.remove(os.path.join(shots, old))
-    path = os.path.join(shots, '%s-%s-%03d.png' % (host, time.strftime('%H%M%S'), time.time() * 1000 % 1000))
+    os.makedirs(OUTBOX, exist_ok=True)
+    cutoff = time.time() - SHOT_DAYS * 86400
+    with os.scandir(OUTBOX) as entries:
+        for entry in entries:
+            if entry.name.startswith('mac-') and entry.name.endswith('.png') and entry.is_file(follow_symlinks=False):
+                try:
+                    if entry.stat().st_mtime < cutoff:
+                        os.remove(entry.path)
+                except FileNotFoundError:
+                    pass
+    path = os.path.join(OUTBOX, 'mac-%s-%s-%03d.png' % (host, time.strftime('%Y%m%d-%H%M%S'), time.time() * 1000 % 1000))
     image.save(path, compress_level=1)
-    return '%s (%dx%d, read it to see the screen)' % (path, image.width, image.height)
+    return '%s (%dx%d, read it to see the screen, or attach it with attach_file)' % (path, image.width, image.height)
 
 
 def keymap():

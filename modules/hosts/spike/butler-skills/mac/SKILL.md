@@ -17,6 +17,9 @@ Start with `mac hosts`, which says which Macs are up, whether each is locked and
 3. Coordinates are pixels of the screenshot, whose top-left is `0 0`. Screenshots are scaled to at most 1512 pixels wide, so a 3024 by 1964 Retina display is a 1512 by 982 picture.
 4. Check the new screenshot before the next step, and never chain blind clicks.
 
+Every screenshot is saved in your outbox, so when Aaron asks to see his screen, attach the printed path with `attach_file`.
+A screen can show private things, mail, messages, notifications, passwords or work code, so before you attach one check that it shows nothing he did not ask to see, and describe what is on screen only as far as he needs.
+
 Prefer the keyboard to the mouse, since it does not depend on reading pixels:
 - `key cmd-space`, then `type` an app's name, then `key enter` opens any app. On pilot, Cmd-Space opens Raycast.
 - `key cmd-tab`, `cmd-w`, `cmd-t`, `cmd-l`, `cmd-shift-t`, `cmd-c`, `cmd-v` work as they do for him. `cmd`, `option`, `ctrl` and `shift` combine with dashes.
