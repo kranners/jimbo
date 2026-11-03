@@ -709,6 +709,20 @@ in
     };
   };
 
+  # Prunes once when a switch first brings it in and at boot, since the switch that deploys a new keep-count still runs the old jimbo-switch.
+  systemd.services.jimbo-switch-prune = {
+    description = "Keep only the newest system generations, then collect the store";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      /run/current-system/sw/bin/prune-generations ${toString config.jimbo.keepGenerations} /nix/var/nix/profiles/system
+      ${config.systemd.package}/bin/systemctl start --no-block nix-gc.service
+    '';
+  };
+
   systemd.timers.jimbo-switch = {
     wantedBy = [ "timers.target" ];
     timerConfig = {
