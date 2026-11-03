@@ -50,6 +50,12 @@ in
         DISCORD_CALL_PROMPT_FILE = "${./butler-call.md}";
         DISCORD_CALL_FAST_MODEL = "haiku";
         DISCORD_CALL_FAST_PROMPT_FILE = "${./butler-call-fast.md}";
+        # Audio Aaron asks to hear on a call: his DM attachments and the outbox.
+        DISCORD_FFMPEG = lib.getExe pkgs.ffmpeg-headless;
+        DISCORD_PLAY_PATHS = lib.concatStringsSep ":" [
+          "${config.users.users.butler.home}/outbox"
+          "${config.users.users.butler.home}/.claude/channels/discord/inbox"
+        ];
       }
       // lib.optionalAttrs config.butler.credentialedTools {
         DISCORD_HA_TOKEN_FILE = credential "home-assistant-token";
