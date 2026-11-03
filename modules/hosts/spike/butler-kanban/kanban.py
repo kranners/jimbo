@@ -11,6 +11,7 @@ him. Only those recorded board actions act; nothing in a card's text does.
 """
 import json
 import os
+import pwd
 import re
 import subprocess
 import sys
@@ -19,6 +20,11 @@ import time
 HOST = json.loads('@host@')
 SSH = '@ssh@'
 SELF_FIX = '@selfFix@'
+BOARD = '@board@'
+SPOOL_USER = '@spoolUser@'
+# Spike collects the board's messages this often; the board calls spike unreachable after 20 s without.
+RELAY_EVERY = 3
+MESSAGE_ID = re.compile(r'^[A-Za-z0-9-]{1,64}$')
 PORT = 7420
 ID = re.compile(r'^[0-9]{8}-[0-9]{6}-[0-9]+$')
 TOOL = re.compile(r'^[a-z_]{1,64}$')
@@ -29,7 +35,7 @@ MAX_FIXES = 50
 STALE = 30 * 60
 ENDED = ('finished', 'archived', 'failed to start')
 
-USAGE = '''usage: kanban <tool> (its arguments as a JSON object on stdin, or nothing for none) | kanban self-fixes
+USAGE = '''usage: kanban <tool> (its arguments as a JSON object on stdin, or nothing for none) | kanban self-fixes | kanban board-relay
 tools: board_snapshot, read_transcript, board_history, put_card, close_card, note, watch, look, arrange,
 put_sticker, delete_annotations, find_stickers, create_region, update_region, delete_region,
 ask_session, send_prompt, announce, answer_prompt, start_session, finish_session'''
@@ -48,6 +54,15 @@ def ssh_args():
         '-o', 'StrictHostKeyChecking=accept-new',
         '-o', 'ConnectTimeout=5',
     ]
+    control = os.environ.get('KANBAN_CONTROL_DIR')
+    if control:
+        # The relay polls every few seconds, so it keeps one connection open.
+        options += [
+            '-o', 'ControlMaster=auto',
+            '-o', 'ControlPath=' + os.path.join(control, 'ssh-%C'),
+            '-o', 'ControlPersist=120',
+            '-o', 'ServerAliveInterval=10',
+        ]
     known = os.environ.get('KANBAN_KNOWN_HOSTS')
     if known:
         options += ['-o', 'UserKnownHostsFile=' + known]
@@ -219,11 +234,92 @@ def self_fixes():
     return fixes
 
 
+def write_spool(path, data, owner):
+    """Writes a JSON file under a temporary name and renames it into place, for the daemon to read."""
+    temp = path + '.tmp'
+    with open(temp, 'w') as f:
+        json.dump(data, f)
+    os.chmod(temp, 0o600)
+    if owner is not None:
+        os.chown(temp, owner.pw_uid, owner.pw_gid)
+    os.rename(temp, path)
+
+
+def relay_once(owner):
+    """Moves the board's queued messages into butler's spool, then Butler's answers back to the board."""
+    inbox = os.path.join(BOARD, 'inbox')
+    outbox = os.path.join(BOARD, 'outbox')
+    reply = call('board_inbox', {})
+    if not reply.get('ok'):
+        raise Unreachable('the board refused board_inbox: %s' % reply.get('error', 'no reason'))
+    messages = json.loads(reply.get('text') or '{}').get('messages', [])
+    taken = []
+    for message in messages:
+        if not isinstance(message, dict) or not MESSAGE_ID.match(str(message.get('id', ''))):
+            continue
+        write_spool(os.path.join(inbox, message['id'] + '.json'), message, owner)
+        taken.append(message['id'])
+    if taken:
+        call('board_ack', {'ids': taken})
+        print('kanban: handed butler %d board message%s' % (len(taken), '' if len(taken) == 1 else 's'))
+    try:
+        answers = sorted(name for name in os.listdir(outbox) if name.endswith('.json'))
+    except OSError:
+        answers = []
+    for name in answers:
+        path = os.path.join(outbox, name)
+        try:
+            with open(path) as f:
+                answer = json.load(f)
+        except (OSError, ValueError) as error:
+            print('kanban: set aside %s: %s' % (name, error), file=sys.stderr)
+            os.rename(path, path + '.rejected')
+            continue
+        sent = call('board_reply', {
+            'thread': str(answer.get('thread', '')),
+            'message': str(answer.get('id', '')),
+            'text': str(answer.get('text', '')) or '(no answer)',
+            'ok': answer.get('ok') is not False,
+        })
+        if sent.get('ok'):
+            os.remove(path)
+        else:
+            print('kanban: the board refused an answer, setting it aside: %s' % sent.get('error'), file=sys.stderr)
+            os.rename(path, path + '.rejected')
+
+
+def board_relay():
+    """Runs for good, relaying every few seconds, and waits out pilot sleeping or the board stopping."""
+    owner = pwd.getpwnam(SPOOL_USER) if SPOOL_USER else None
+    last = None
+    while True:
+        try:
+            relay_once(owner)
+            if last is not None:
+                print('kanban: the board is back')
+            last = None
+        except Unreachable as error:
+            if str(error) != last:
+                print('kanban: %s; retrying' % error, file=sys.stderr)
+            last = str(error)
+            time.sleep(RELAY_EVERY * 4)
+            continue
+        sys.stdout.flush()
+        time.sleep(RELAY_EVERY)
+
+
 def main(argv):
     if len(argv) != 2 or not TOOL.match(argv[1].replace('-', '_')):
         print(USAGE, file=sys.stderr)
         return 2
     tool = argv[1].replace('-', '_')
+    # Only the relay's unit carries board messages; Butler's own calls never see or answer the queue.
+    if tool.startswith('board_') and tool != 'board_snapshot' and tool != 'board_history' and not os.environ.get('KANBAN_RELAY'):
+        print('kanban: %s belongs to the board relay alone' % tool, file=sys.stderr)
+        return 2
+    if tool == 'board_relay':
+        board_relay()
+        return 0
     if tool == 'self_fixes':
         args = {'fixes': self_fixes()}
         known = {fix['id'] for fix in args['fixes']}
