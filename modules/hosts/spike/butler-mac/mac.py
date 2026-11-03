@@ -65,6 +65,7 @@ USAGE = '''usage: mac hosts
        mac <host> key <combo> [combo...]   (e.g. cmd-space, enter, cmd-shift-t)
        mac <host> windows              (front app, running apps, windows front to back)
        mac <host> run [shell words]    (script on stdin when no arg)
+       mac <host> elevated             (script on stdin, run as root or administrator once Aaron approves it)
        mac <host> record start | stop
        mac <host> keepawake [status|on|off]
        mac <host> sleep                (keep-awake off, then sleep now)
@@ -675,6 +676,56 @@ def run(host, words):
     print('[exit %d]' % result.returncode)
 
 
+# The daemon shows Aaron a call's args and stdin as JSON and cuts it off at 1500 characters, so an elevated script
+# must fit in 1400, as mail-send's body does, for him to approve all of what runs.
+ELEVATED_LIMIT = 1400
+# On a Mac the key logs in as root, whose authorized key forces butler-access's butler-elevated, which runs stdin.
+# On jimbo, Aaron's own login already holds root, through the passwordless sudo NixOS gives wheel, and administrator,
+# since Windows' OpenSSH gives an administrator's key login his full token, so it only checks it still does.
+LINUX_ELEVATED = 'exec sudo -n /run/current-system/sw/bin/bash -s'
+WINDOWS_ELEVATED = r'''
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+  [Console]::Error.WriteLine('this ssh login has no administrator token, so nothing ran; Aaron puts his account in Administrators'); exit 77
+}
+'''
+
+
+def elevated(host, words):
+    if words:
+        raise Refused('elevated takes its script on stdin alone, no args')
+    script = sys.stdin.read()
+    if not script.strip():
+        raise Refused('elevated needs a script on stdin')
+    if any(ord(c) < 32 and c not in '\n\t' or ord(c) == 127 for c in script):
+        raise Refused('the script has control characters other than newlines and tabs; remove them')
+    shown = json.dumps({'args': [host, 'elevated'], 'stdin': script}, indent=1, ensure_ascii=False)
+    if len(shown.encode()) > ELEVATED_LIMIT:
+        raise Refused('the script is too long for Aaron\'s approval to show all of it; shorten it, or run a script already on the machine')
+    system = system_of(host)
+    journal(host, 'elevated ' + ' '.join(script.split())[:200])
+    try:
+        if system == 'macos':
+            os.makedirs(RUNTIME, mode=0o700, exist_ok=True)
+            result = subprocess.run(base_args(dict(resolve(host), user='root')) + ['elevated'], input=script,
+                                    capture_output=True, text=True, timeout=50)
+            if result.returncode == 255 and not result.stdout:
+                raise Refused('%s refused root over ssh: %s; it needs a switch with butler-access, and Remote Login open to root' % (
+                    host, result.stderr.strip() or 'no answer'))
+        elif system == 'linux':
+            connect_ssh(host)
+            result = subprocess.run(ssh_args(host) + [LINUX_ELEVATED], input=script, capture_output=True, text=True, timeout=50)
+        else:
+            connect_ssh(host)
+            result = subprocess.run(ssh_args(host) + [POWERSHELL], input=WINDOWS_ELEVATED + script,
+                                    capture_output=True, text=True, timeout=50)
+    except subprocess.TimeoutExpired:
+        raise Refused('gave up after 50 s; the script may still be running as root on %s' % host)
+    print(result.stdout, end='')
+    if result.stderr:
+        print('[stderr]\n' + result.stderr, end='')
+    print('[exit %d, as %s]' % (result.returncode, 'administrator' if system == 'windows' else 'root'))
+
+
 WINDOWS = r'''
 echo "front: $(lsappinfo info -only name `lsappinfo front` | cut -d= -f2 | tr -d '"')"
 echo "apps: $(lsappinfo visibleProcessList | grep -o '"[^"]*"' | tr -d '"' | paste -sd, - | sed 's/,/, /g')"
@@ -942,6 +993,8 @@ def main():
     if verb == 'run':
         journal(host, 'run ' + (' '.join(rest) or '(script on stdin)'))
         return run(host, rest)
+    if verb == 'elevated':
+        return elevated(host, rest)
     if verb == 'windows':
         return windows(host)
     if verb == 'record':

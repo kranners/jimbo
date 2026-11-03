@@ -67,14 +67,26 @@ in
     package = mac;
     description = ''
       See and drive Aaron's MacBooks, pilot and piggys-MBP, and his dual-boot PC jimbo, as he watches: his real screen, mouse and keyboard over VNC, and a shell over ssh.
-      mac hosts | mac log [count] | mac <host> look | mac <host> click <x> <y> [left|right|middle|double] | mac <host> move <x> <y> | mac <host> drag <x1> <y1> <x2> <y2> | mac <host> scroll <x> <y> <up|down> [clicks] | mac <host> type [text] (or text on stdin) | mac <host> key <combo> [combo...] | mac <host> windows | mac <host> run [shell words] (or a script on stdin, for anything with a dash) | mac <host> record start | mac <host> record stop | mac <host> keepawake [status|on|off] | mac <host> sleep | mac jimbo boot <linux|windows> [confirm]
+      mac hosts | mac log [count] | mac <host> look | mac <host> click <x> <y> [left|right|middle|double] | mac <host> move <x> <y> | mac <host> drag <x1> <y1> <x2> <y2> | mac <host> scroll <x> <y> <up|down> [clicks] | mac <host> type [text] (or text on stdin) | mac <host> key <combo> [combo...] | mac <host> windows | mac <host> run [shell words] (or a script on stdin, for anything with a dash) | mac <host> elevated (a script on stdin, no args) | mac <host> record start | mac <host> record stop | mac <host> keepawake [status|on|off] | mac <host> sleep | mac jimbo boot <linux|windows> [confirm]
       jimbo runs NixOS with Hyprland or Windows, one at a time: mac hosts says which is up, run takes sh on Linux and PowerShell on Windows, it has no cmd key (use ctrl and super), and boot restarts it into the other only when Aaron asks, never past a login or disk-encryption screen.
       windows lists the front app, the running apps and every window front to back with its place and size, so you can open, focus, switch, resize, minimise, close and quit apps and windows; the mac skill has the recipes.
       keepawake on holds the machine awake and unlocked, keepawake off lets it idle-sleep and lock as usual, and sleep turns it off and sleeps it now.
-      Every action but windows, run, record, keepawake, sleep and boot prints the outbox path of a fresh screenshot to read or attach with attach_file; x and y are pixels of that picture.
+      elevated runs its script as root on a Mac or jimbo's Linux, sh on a Mac and bash on Linux, and as administrator in PowerShell on Windows, only once Aaron approves that exact script with his button; never put sudo in run, and use elevated only when he asked for something that needs root.
+      Every action but windows, run, elevated, record, keepawake, sleep and boot prints the outbox path of a fresh screenshot to read or attach with attach_file; x and y are pixels of that picture.
     '';
     stdin = true;
     rules = [
+      # Root or administrator: tainting as well as egress, so the daemon always asks Aaron, showing host and script,
+      # and the conversation lane alone, so no scheduled run or voice request ever gets it.
+      {
+        match = [
+          "*"
+          "elevated"
+        ];
+        lanes = [ "interactive" ];
+        taints = true;
+        egress = true;
+      }
       {
         match = [ "**" ];
         lanes = [ "interactive" ];

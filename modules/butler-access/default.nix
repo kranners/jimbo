@@ -13,6 +13,9 @@ let
   # Aaron turns it on himself.
   keepAwakeByDefault = host.hostname != "pilot";
   authorizedKey = ''from="${spike}",restrict,port-forwarding,permitopen="127.0.0.1:5900" ${butlerKey}'';
+  # Root on a Mac takes the same key, but forces butler-elevated whatever command it asks for, and butler's mac
+  # wrapper logs in as root only for `mac <host> elevated`, a rule the daemon always asks Aaron about.
+  rootKey = elevate: ''from="${spike}",restrict,command="${elevate}" ${butlerKey}'';
 in
 {
   darwinHomeModule =
@@ -107,55 +110,75 @@ in
       };
     };
 
-  darwinSystemModule = {
-    services.openssh = {
-      enable = true;
-      extraConfig = ''
-        PasswordAuthentication no
-        KbdInteractiveAuthentication no
+  darwinSystemModule =
+    { pkgs, ... }:
+    let
+      # Runs the script on stdin as root, the one thing root's key can do, logging each run to the system log.
+      elevate = pkgs.writeShellScript "butler-elevated" ''
+        /usr/bin/logger -t butler-elevated "running a script from butler on spike, approved by Aaron in Discord"
+        export PATH=/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+        cd /var/root || exit 1
+        exec /bin/sh -s
+      '';
+    in
+    {
+      services.openssh = {
+        enable = true;
+        extraConfig = ''
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          PermitRootLogin forced-commands-only
+        '';
+      };
+
+      users.users.${host.username}.openssh.authorizedKeys.keys = [ authorizedKey ];
+      users.users.root.openssh.authorizedKeys.keys = [ (rootKey elevate) ];
+
+      environment.etc."pf.anchors/butler-access".text = ''
+        pass in quick on lo0 proto tcp to port 5900
+        block drop in quick proto tcp to port 5900
+      '';
+
+      launchd.daemons.butler-access-pf.serviceConfig = {
+        ProgramArguments = [
+          "/bin/sh"
+          "-c"
+          loadRules
+        ];
+        RunAtLoad = true;
+        StartInterval = 60;
+        WatchPaths = [ rules ];
+      };
+
+      system.activationScripts.postActivation.text = lib.mkAfter ''
+        echo "letting butler on spike drive this Mac" >&2
+        /sbin/pfctl -q -a ${anchor} -f ${rules} 2> /dev/null
+        /sbin/pfctl -q -E 2> /dev/null
+        /sbin/pfctl -a ${anchor} -s rules 2> /dev/null | grep -q "block drop in quick proto tcp from any to any port = 5900"
+
+        defaults write ${remoteManagement} VNCLegacyConnectionsEnabled -bool true
+        defaults write ${remoteManagement} VNCAlwaysStartOnConsole -bool true
+
+        if [ ! -s ${passwordFile} ] || [ ! -s /Library/Preferences/com.apple.VNCSettings.txt ]; then
+          /usr/bin/sudo -u ${host.username} /bin/mkdir -p -m 700 ${dirOf passwordFile}
+          password=$(/usr/bin/openssl rand -base64 24 | LC_ALL=C tr -dc 'A-Za-z0-9' | cut -c 1-8)
+          ${kickstart} -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$password" > /dev/null
+          printf '%s\n' "$password" | /usr/bin/sudo -u ${host.username} /bin/sh -c 'umask 077; cat > ${passwordFile}'
+          pkill -x screensharingd || true
+        fi
+
+        launchctl enable system/com.apple.screensharing
+        launchctl print system/com.apple.screensharing > /dev/null 2>&1 \
+          || launchctl bootstrap system /System/Library/LaunchDaemons/com.apple.screensharing.plist
+
+        # Remote Login limited to some users keeps them in com.apple.access_ssh, which root then joins.
+        if dscl . -read /Groups/com.apple.access_ssh > /dev/null 2>&1 \
+          && ! dseditgroup -o checkmember -m root com.apple.access_ssh > /dev/null 2>&1; then
+          dseditgroup -o edit -a root -t user com.apple.access_ssh \
+            || echo "could not let root use Remote Login, so mac elevated is refused here" >&2
+        fi
       '';
     };
-
-    users.users.${host.username}.openssh.authorizedKeys.keys = [ authorizedKey ];
-
-    environment.etc."pf.anchors/butler-access".text = ''
-      pass in quick on lo0 proto tcp to port 5900
-      block drop in quick proto tcp to port 5900
-    '';
-
-    launchd.daemons.butler-access-pf.serviceConfig = {
-      ProgramArguments = [
-        "/bin/sh"
-        "-c"
-        loadRules
-      ];
-      RunAtLoad = true;
-      StartInterval = 60;
-      WatchPaths = [ rules ];
-    };
-
-    system.activationScripts.postActivation.text = lib.mkAfter ''
-      echo "letting butler on spike drive this Mac" >&2
-      /sbin/pfctl -q -a ${anchor} -f ${rules} 2> /dev/null
-      /sbin/pfctl -q -E 2> /dev/null
-      /sbin/pfctl -a ${anchor} -s rules 2> /dev/null | grep -q "block drop in quick proto tcp from any to any port = 5900"
-
-      defaults write ${remoteManagement} VNCLegacyConnectionsEnabled -bool true
-      defaults write ${remoteManagement} VNCAlwaysStartOnConsole -bool true
-
-      if [ ! -s ${passwordFile} ] || [ ! -s /Library/Preferences/com.apple.VNCSettings.txt ]; then
-        /usr/bin/sudo -u ${host.username} /bin/mkdir -p -m 700 ${dirOf passwordFile}
-        password=$(/usr/bin/openssl rand -base64 24 | LC_ALL=C tr -dc 'A-Za-z0-9' | cut -c 1-8)
-        ${kickstart} -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$password" > /dev/null
-        printf '%s\n' "$password" | /usr/bin/sudo -u ${host.username} /bin/sh -c 'umask 077; cat > ${passwordFile}'
-        pkill -x screensharingd || true
-      fi
-
-      launchctl enable system/com.apple.screensharing
-      launchctl print system/com.apple.screensharing > /dev/null 2>&1 \
-        || launchctl bootstrap system /System/Library/LaunchDaemons/com.apple.screensharing.plist
-    '';
-  };
 }
 // lib.optionalAttrs (host.hostname == "jimbo") {
   # The jimbo PC's NixOS install, the Linux half of a dual boot whose Windows half Aaron sets up by hand with
