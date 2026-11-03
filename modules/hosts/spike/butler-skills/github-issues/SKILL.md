@@ -1,14 +1,16 @@
 ---
 name: github-issues
-description: Raise a new GitHub issue on one of Aaron's repositories, such as "raise an issue on jimbo", or check what issues are open on one.
+description: Raise a new GitHub issue on one of Aaron's repositories, such as "raise an issue on jimbo", check what issues are open on one, or read the code of his repositories and of the backlogic organisation's, such as backlogic/backlogic.
 ---
 
 # GitHub issues
 
 Use the `github-issue` tool, passing the words after `github-issue` as `args`, such as `["issues", "kranners/jimbo"]`.
 It can list Aaron's repositories, read their code and open issues, and open new issues: it cannot comment on, edit or close an issue, or change any code, so never offer to.
+It also reads the `backlogic` organisation's repositories, such as `backlogic/backlogic`, backlogic's own code, through a separate read-only token, so `repos`, `files`, `read` and `issues` work there while `create` refuses; a backlogic change is a backlogic ticket, through the `backlogic` skill.
+Until Aaron has written that token on spike, a `backlogic/*` call exits saying so.
 
-- `github-issue repos` lists every repository Aaron owns that takes issues, one `owner/name` and description per line.
+- `github-issue repos` lists every repository Aaron owns that takes issues, then the backlogic organisation's, marked read-only, one `owner/name` and description per line.
 - `github-issue files <owner/name> [path regex]` lists the repository's files on its default branch, only those whose path matches the case-insensitive regex when one is given, such as `spike` or `\.nix$`.
 - `github-issue read <owner/name> <path>` prints one file.
 - `github-issue issues <owner/name>` lists its open issues, number and title.
