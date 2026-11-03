@@ -57,6 +57,7 @@ h2 { font-size: 1.1rem; margin: 0 0 .25rem; }
 label { display: grid; gap: 4px; font-size: .9rem; color: var(--muted); }
 input { font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
 button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--fg); padding: 10px 14px; touch-action: manipulation; }
+a.button { display: inline-block; text-align: center; text-decoration: none; font: inherit; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--fg); padding: 10px 14px; }
 button[type="submit"], .connect { background: var(--accent); color: #fff; border-color: var(--accent); }
 button:disabled { opacity: .45; cursor: default; }
 button.quiet { background: transparent; }

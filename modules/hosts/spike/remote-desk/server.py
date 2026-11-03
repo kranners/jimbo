@@ -1,21 +1,17 @@
 """remote-desk: Aaron's own web remote desktop on spike, for his iPad.
 
-It serves a launcher and a noVNC viewer behind Caddy, logs a device in with its own revocable password, and opens each
-screen through a fresh ssh tunnel with the gateway's own key, which every machine limits to reaching its VNC server
-and printing whether its screen is locked. The VNC password is still asked by the machine itself.
+It serves a launcher and a noVNC viewer behind Caddy, which lets a request through only once spike's device gate has
+signed the device in, naming its WireGuard peer in X-Device-Gate-Device, and opens each screen through a fresh ssh
+tunnel with the gateway's own key, which every machine limits to reaching its VNC server and printing whether its
+screen is locked. The VNC password is still asked by the machine itself.
 
     remote-desk serve                    the service
-    remote-desk add <device>             make a device and print its password once
-    remote-desk revoke <device>|--all    remove a device; its sessions and screens close within 5 seconds
-    remote-desk list                     the devices
-    remote-desk sessions                 who is logged in and which screens are open
+    remote-desk revoke <device>|--all    end a device's sessions and screens within 5 seconds (device-gate-revoke runs it)
+    remote-desk sessions                 who is on and which screens are open
     remote-desk key                      the gateway's public ssh key, for modules/butler-access
 """
 
 import asyncio
-import base64
-import hashlib
-import hmac
 import json
 import os
 import pwd
@@ -28,7 +24,7 @@ import time
 CONFIG = json.loads(r'''@config@''')
 STATE = CONFIG['state']
 RUNTIME = CONFIG['runtime']
-DEVICES = os.path.join(STATE, 'devices.json')
+REVOKED = os.path.join(STATE, 'revoked.json')
 KEY = os.path.join(STATE, 'ssh', 'id_ed25519')
 KNOWN_HOSTS = os.path.join(STATE, 'known_hosts')
 TUNNELS = os.path.join(RUNTIME, 'tunnels')
@@ -36,12 +32,10 @@ STATUS = os.path.join(RUNTIME, 'status.json')
 SSH = CONFIG['ssh']
 SS = CONFIG['ss']
 ORIGIN = 'https://' + CONFIG['domain']
-COOKIE = 'remote_desk'
+DEVICE_HEADER = 'X-Device-Gate-Device'
 
 IDLE = CONFIG['idleMinutes'] * 60
 LIFETIME = CONFIG['sessionHours'] * 3600
-IP_FAILURES, IP_WINDOW, IP_LOCK = 5, 15 * 60, 15 * 60
-ALL_FAILURES, ALL_WINDOW, ALL_LOCK = 20, 3600, 3600
 
 
 def log(*words):
@@ -50,73 +44,30 @@ def log(*words):
 
 # ---- devices ---------------------------------------------------------------------------------------------------
 
-def scrypt(password, salt):
-    return hashlib.scrypt(password.encode(), salt=salt, n=2 ** 15, r=8, p=1, maxmem=64 * 1024 * 1024, dklen=32)
-
-
-def load_devices():
+def load_revoked():
     try:
-        with open(DEVICES) as file:
+        with open(REVOKED) as file:
             return json.load(file)
-    except FileNotFoundError:
+    except (FileNotFoundError, ValueError):
         return {}
-
-
-def save_devices(devices):
-    owner = pwd.getpwnam(CONFIG['user'])
-    temporary = DEVICES + '.new'
-    with open(os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as file:
-        json.dump(devices, file, indent=2)
-    os.chown(temporary, owner.pw_uid, owner.pw_gid)
-    os.replace(temporary, DEVICES)
 
 
 def valid_name(name):
     return 0 < len(name) <= 32 and all(c.isascii() and (c.isalnum() or c in '-_') for c in name)
 
 
-def cli_add(name):
-    if not valid_name(name):
-        sys.exit('a device name is up to 32 letters, digits, - and _')
-    devices = load_devices()
-    if name in devices:
-        sys.exit('%s already exists; revoke it first to give it a new password' % name)
-    alphabet = 'abcdefghjkmnpqrstuvwxyz23456789'
-    password = '-'.join(''.join(secrets.choice(alphabet) for _ in range(5)) for _ in range(5))
-    salt = secrets.token_bytes(16)
-    devices[name] = {
-        'salt': base64.b64encode(salt).decode(),
-        'hash': base64.b64encode(scrypt(password, salt)).decode(),
-        'created': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
-    }
-    save_devices(devices)
-    print('device %s added; its password, shown this once:' % name)
-    print()
-    print('    ' + password)
-    print()
-    print('Log in at %s with the device name and this password, and save both in the iPad\'s Passwords app.' % ORIGIN)
-
-
 def cli_revoke(name):
-    devices = load_devices()
-    if name == '--all':
-        removed = list(devices)
-        devices = {}
-    elif name in devices:
-        removed = [name]
-        del devices[name]
-    else:
-        sys.exit('no device %s; remote-desk list names them' % name)
-    save_devices(devices)
-    print('revoked %s; their sessions and open screens close within 5 seconds' % (', '.join(removed) or 'nothing'))
-
-
-def cli_list():
-    devices = load_devices()
-    if not devices:
-        print('no devices; sudo remote-desk add ipad makes one')
-    for name, device in sorted(devices.items()):
-        print('%s, added %s' % (name, device['created']))
+    if name != '--all' and not valid_name(name):
+        sys.exit('a device is a WireGuard peer name, such as ipad, or --all')
+    revoked = load_revoked()
+    revoked['*' if name == '--all' else name] = time.time()
+    owner = pwd.getpwnam(CONFIG['user'])
+    temporary = REVOKED + '.new'
+    with open(os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as file:
+        json.dump(revoked, file)
+    os.chown(temporary, owner.pw_uid, owner.pw_gid)
+    os.replace(temporary, REVOKED)
+    print('remote-desk: ended %s; open screens close within 5 seconds' % ('every session' if name == '--all' else name + "'s sessions"))
 
 
 def cli_sessions():
@@ -126,9 +77,9 @@ def cli_sessions():
     except FileNotFoundError:
         sys.exit('remote-desk is not running')
     if not status['sessions']:
-        print('nobody is logged in')
+        print('nobody is on')
     for session in status['sessions']:
-        print('%s from %s, logged in %s, last active %s' % (session['device'], session['ip'], session['since'], session['active']))
+        print('%s from %s, since %s, last active %s' % (session['device'], session['ip'], session['since'], session['active']))
         for screen in session['screens']:
             print('  %s (%s) since %s' % (screen['host'], screen['os'], screen['since']))
 
@@ -146,7 +97,7 @@ def stamp(when):
 
 class Session:
     def __init__(self, device, ip):
-        self.token = secrets.token_urlsafe(32)
+        self.token = '%s|%s' % (device, ip)
         self.device = device
         self.ip = ip
         self.since = time.time()
@@ -171,13 +122,9 @@ class Screen:
 
 class Gateway:
     def __init__(self):
-        self.devices = {}
-        self.devices_mtime = None
+        self.revoked = {}
+        self.revoked_mtime = None
         self.sessions = {}
-        self.failures = {}
-        self.all_failures = []
-        self.locked_until = {}
-        self.all_locked_until = 0
         self.status = {}
         self.status_at = 0
         self.status_lock = asyncio.Lock()
@@ -189,24 +136,34 @@ class Gateway:
 
     # devices and sessions
 
-    def reload_devices(self):
+    def reload_revoked(self):
         try:
-            mtime = os.stat(DEVICES).st_mtime_ns
+            mtime = os.stat(REVOKED).st_mtime_ns
         except FileNotFoundError:
             mtime = None
-        if mtime != self.devices_mtime:
-            self.devices = load_devices()
-            self.devices_mtime = mtime
+        if mtime != self.revoked_mtime:
+            self.revoked = load_revoked()
+            self.revoked_mtime = mtime
+
+    def is_revoked(self, session):
+        return session.since <= max(self.revoked.get(session.device, 0), self.revoked.get('*', 0))
 
     def session_of(self, request):
-        token = request.cookies.get(COOKIE)
-        session = self.sessions.get(token) if token else None
-        if session is None:
+        # Caddy sets the header from the device gate's answer alone, after dropping any the client sent, so only a
+        # device the gate signed in reaches here; its sign-in is already bound to the WireGuard peer it came from.
+        device = request.headers.get(DEVICE_HEADER, '')
+        ip = client_ip(request)
+        if not valid_name(device) or not ip:
             return None
         now = time.time()
-        # A session works only from the WireGuard address it logged in from, so a copied cookie is no use elsewhere.
-        if session.ip != client_ip(request) or session.device not in self.devices or session.expired(now):
-            return None
+        session = self.sessions.get('%s|%s' % (device, ip))
+        if session is not None and (session.expired(now) or self.is_revoked(session)):
+            self.end_session(session, 'idle' if now - session.active > IDLE else 'ended')
+            session = None
+        if session is None:
+            session = Session(device, ip)
+            self.sessions[session.token] = session
+            log('session started', 'device=%s' % device, 'ip=%s' % ip)
         return session
 
     def end_session(self, session, reason):
@@ -225,11 +182,11 @@ class Gateway:
     async def sweep(self):
         while True:
             await asyncio.sleep(5)
-            self.reload_devices()
+            self.reload_revoked()
             now = time.time()
             for session in list(self.sessions.values()):
-                if session.device not in self.devices:
-                    self.end_session(session, 'device revoked')
+                if self.is_revoked(session):
+                    self.end_session(session, 'device signed out')
                 elif session.expired(now):
                     self.end_session(session, 'idle' if now - session.active > IDLE else 'session too old')
             self.write_status()
@@ -246,27 +203,6 @@ class Gateway:
         with open(os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as file:
             json.dump(status, file)
         os.replace(temporary, STATUS)
-
-    # brute force
-
-    def refused_for(self, ip, now):
-        if now < self.all_locked_until:
-            return 'too many failed logins from anywhere; every login is locked until %s' % time.strftime('%H:%M', time.localtime(self.all_locked_until))
-        if now < self.locked_until.get(ip, 0):
-            return 'too many failed logins from here; try again after %s' % time.strftime('%H:%M', time.localtime(self.locked_until[ip]))
-        return None
-
-    def failed(self, ip, device, now):
-        recent = [when for when in self.failures.get(ip, []) if now - when < IP_WINDOW] + [now]
-        self.failures[ip] = recent
-        self.all_failures = [when for when in self.all_failures if now - when < ALL_WINDOW] + [now]
-        log('login failed', 'device=%s' % device[:32], 'ip=%s' % ip, 'recent=%d' % len(recent))
-        if len(recent) >= IP_FAILURES:
-            self.locked_until[ip] = now + IP_LOCK
-            log('login locked', 'ip=%s' % ip, 'minutes=%d' % (IP_LOCK // 60))
-        if len(self.all_failures) >= ALL_FAILURES:
-            self.all_locked_until = now + ALL_LOCK
-            log('login locked for everyone', 'minutes=%d' % (ALL_LOCK // 60))
 
     # machine status, the same probes as butler's `mac hosts`: port 22, then the key's forced status command
 
@@ -400,7 +336,7 @@ def main_serve():
     from aiohttp import web, WSMsgType
 
     gateway = Gateway()
-    gateway.reload_devices()
+    gateway.reload_revoked()
     shutil.rmtree(TUNNELS, ignore_errors=True)
     os.makedirs(TUNNELS, mode=0o700)
 
@@ -422,51 +358,20 @@ def main_serve():
     def need_session(request):
         if not same_origin(request):
             raise web.HTTPForbidden(text='cross-origin request')
-        gateway.reload_devices()
+        gateway.reload_revoked()
         session = gateway.session_of(request)
         if session is None:
-            raise web.HTTPUnauthorized(text='log in first')
+            raise web.HTTPUnauthorized(text='sign in first')
         return session
 
     async def index(request):
         return web.FileResponse(os.path.join(CONFIG['web'], 'index.html'))
 
-    async def login(request):
-        if not same_origin(request) or request.headers.get('Origin') != ORIGIN:
-            raise web.HTTPForbidden(text='cross-origin request')
-        ip = client_ip(request)
-        now = time.time()
-        refused = gateway.refused_for(ip, now)
-        if refused:
-            return web.json_response({'error': refused}, status=429)
-        try:
-            body = await request.json()
-            device, password = str(body['device']), str(body['password'])
-        except (ValueError, KeyError, TypeError):
-            raise web.HTTPBadRequest(text='device and password')
-        gateway.reload_devices()
-        entry = gateway.devices.get(device)
-        salt = base64.b64decode(entry['salt']) if entry else b'remote-desk-none'
-        # Hash even for an unknown device, so a wrong name takes as long as a wrong password.
-        digest = await asyncio.get_running_loop().run_in_executor(None, scrypt, password[:200], salt)
-        if entry is None or not hmac.compare_digest(digest, base64.b64decode(entry['hash'])):
-            await asyncio.sleep(1)
-            gateway.failed(ip, device, now)
-            return web.json_response({'error': 'wrong device name or password'}, status=401)
-        gateway.failures.pop(ip, None)
-        session = Session(device, ip)
-        gateway.sessions[session.token] = session
-        log('login', 'device=%s' % device, 'ip=%s' % ip)
-        response = web.json_response({'device': device, 'idleMinutes': CONFIG['idleMinutes']})
-        response.set_cookie(COOKIE, session.token, max_age=LIFETIME, secure=True, httponly=True, samesite='Strict', path='/')
-        return response
-
     async def logout(request):
         session = need_session(request)
-        gateway.end_session(session, 'logged out')
-        response = web.json_response({})
-        response.del_cookie(COOKIE, path='/')
-        return response
+        gateway.end_session(session, 'signed out')
+        # The page then goes to /.gate/logout, which clears the gate's cookie.
+        return web.json_response({})
 
     async def me(request):
         session = need_session(request)
@@ -561,7 +466,6 @@ def main_serve():
 
     app = web.Application(middlewares=[headers], client_max_size=4096)
     app.router.add_get('/', index)
-    app.router.add_post('/api/login', login)
     app.router.add_post('/api/logout', logout)
     app.router.add_get('/api/me', me)
     app.router.add_post('/api/alive', alive)
@@ -580,7 +484,7 @@ def main_serve():
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(listen)
     os.chmod(listen, 0o660)
-    log('remote-desk listening on', listen, 'for', ORIGIN, 'with', len(gateway.devices), 'devices')
+    log('remote-desk listening on', listen, 'for', ORIGIN)
     web.run_app(app, sock=server, print=None, access_log=None)
 
 
@@ -590,14 +494,10 @@ def main():
     if verb == 'serve':
         main_serve()
         return
-    if verb in ('add', 'revoke', 'list', 'sessions', 'key') and os.geteuid() != 0:
+    if verb in ('revoke', 'sessions', 'key') and os.geteuid() != 0:
         sys.exit('run it with sudo: remote-desk %s' % ' '.join(sys.argv[1:]))
-    if verb == 'add' and len(args) == 1:
-        cli_add(args[0])
-    elif verb == 'revoke' and len(args) == 1:
+    if verb == 'revoke' and len(args) == 1:
         cli_revoke(args[0])
-    elif verb == 'list':
-        cli_list()
     elif verb == 'sessions':
         cli_sessions()
     elif verb == 'key':

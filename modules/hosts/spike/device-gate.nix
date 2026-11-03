@@ -5,6 +5,7 @@
   ...
 }:
 let
+  cfg = config.spike.deviceGate;
   passwordFile = "/var/lib/secrets/device-gate-password";
   gate = pkgs.writers.writePython3Bin "device-gate" {
     flakeIgnore = [ "E501" ];
@@ -33,6 +34,7 @@ let
       mv ${passwordFile}.new ${passwordFile}
       rm -f /var/lib/device-gate/session-key
       systemctl restart device-gate.service
+      ${lib.concatMapStrings (hook: "${hook} --all\n") cfg.revokeHooks}
       echo "set; every device must sign in again"
     '';
   };
@@ -50,6 +52,7 @@ let
       mkdir -p /var/lib/device-gate
       ${lib.getExe gate} revoke /var/lib/device-gate "$1"
       chown device-gate:device-gate /var/lib/device-gate/revoked.json
+      ${lib.concatMapStrings (hook: "${hook} \"$1\"\n") cfg.revokeHooks}
     '';
   };
 
@@ -65,11 +68,23 @@ let
   );
 in
 {
-  options.spike.deviceGate.socket = lib.mkOption {
-    type = lib.types.str;
-    default = "/run/device-gate.sock";
-    readOnly = true;
-    description = "The socket Caddy's forward_auth and /.gate/* reach the device gate on.";
+  options.spike.deviceGate = {
+    socket = lib.mkOption {
+      type = lib.types.str;
+      default = "/run/device-gate.sock";
+      readOnly = true;
+      description = "The socket Caddy's forward_auth and /.gate/* reach the device gate on.";
+    };
+    lifetimes = lib.mkOption {
+      type = lib.types.attrsOf lib.types.ints.positive;
+      default = { };
+      description = "Seconds a sign-in lasts on a site, by its host, for a site that wants less than the 30 days every other gets.";
+    };
+    revokeHooks = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Commands run as root with a peer's name, or --all, when the gate signs it, or every device, out, so a gated site can end what that device has open.";
+    };
   };
 
   config = {
@@ -111,7 +126,10 @@ in
       description = "Sign devices in before Caddy lets them through to sites gated by device";
       requires = [ "device-gate.socket" ];
       unitConfig.ConditionPathExists = passwordFile;
-      environment.DEVICE_GATE_PEERS = builtins.toJSON peers;
+      environment = {
+        DEVICE_GATE_PEERS = builtins.toJSON peers;
+        DEVICE_GATE_LIFETIMES = builtins.toJSON cfg.lifetimes;
+      };
       serviceConfig = {
         ExecStart = lib.getExe gate;
         User = "device-gate";

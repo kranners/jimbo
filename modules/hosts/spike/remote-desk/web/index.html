@@ -17,14 +17,13 @@
 </head>
 <body>
   <main id="login" class="view" hidden>
-    <form id="login-form" class="card narrow">
+    <div class="card narrow">
       <h1>Remote Desk</h1>
       <p class="muted">Aaron's machines, through spike.</p>
-      <label>Device <input id="device" name="username" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
-      <label>Password <input id="password" name="password" type="password" autocomplete="current-password" required></label>
-      <button type="submit">Log in</button>
+      <p>This device is signed out of spike's device gate.</p>
+      <a class="button" href="/.gate/login?next=/">Sign in</a>
       <p id="login-error" class="error" role="alert"></p>
-    </form>
+    </div>
   </main>
 
   <main id="launcher" class="view" hidden>

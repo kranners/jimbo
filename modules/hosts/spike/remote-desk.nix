@@ -101,7 +101,7 @@ in
       default = true;
     };
     viewers = mkOption {
-      description = "The WireGuard peers that may reach the gateway at all; each still logs in as a device.";
+      description = "The WireGuard peers that may reach the gateway at all; each still signs in through spike's device gate.";
       type = types.listOf types.str;
       default = [
         "ipad"
@@ -131,7 +131,7 @@ in
       default = 15;
     };
     sessionHours = mkOption {
-      description = "Hours after which a login ends however active it is.";
+      description = "Hours a device gate sign-in lasts here, and after which a session ends however active it is.";
       type = types.ints.positive;
       default = 12;
     };
@@ -148,6 +148,13 @@ in
     users.users.${config.services.caddy.user}.extraGroups = [ "remote-desk" ];
 
     environment.systemPackages = [ remote-desk ];
+
+    # The device gate is the one login, as for the board and the life explorer: it signs a device in here for
+    # sessionHours, and signing a device out there ends its sessions and screens here too.
+    spike.deviceGate = {
+      lifetimes.${domain} = cfg.sessionHours * 3600;
+      revokeHooks = [ "${lib.getExe remote-desk} revoke" ];
+    };
 
     systemd.services.remote-desk = {
       description = "Aaron's web remote desktop: a launcher and noVNC viewer behind Caddy, opening each screen through its own ssh tunnel";
@@ -203,6 +210,13 @@ in
       route {
         abort @outsider
         abort @foreignOrigin
+        # Only the device gate names the device: a client's own header is dropped before the gate is asked.
+        request_header -X-Device-Gate-Device
+        reverse_proxy /.gate/* unix/${config.spike.deviceGate.socket}
+        forward_auth unix/${config.spike.deviceGate.socket} {
+          uri /.gate/verify
+          copy_headers X-Device-Gate-Device
+        }
         reverse_proxy unix/${runtime}/http.sock {
           header_up X-Remote-Desk-Client {remote_host}
         }
