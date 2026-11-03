@@ -33,7 +33,9 @@ let
   '';
 
   script = pkgs.writeText "butler-overlay.js" (
-    builtins.replaceStrings [ "@art@" "@idle@" ] [ "${art}" (toString idle) ] (builtins.readFile ./overlay.js)
+    builtins.replaceStrings [ "@art@" "@idle@" ] [ "${art}" (toString idle) ] (
+      builtins.readFile ./overlay.js
+    )
   );
 
   state = ''"$HOME/.local/state/butler-overlay"'';
