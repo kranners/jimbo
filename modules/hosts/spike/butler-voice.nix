@@ -11,6 +11,20 @@ let
   realtime = config.butler.voice.realtime;
   credential = name: "/run/credentials/butler.service/${name}";
 
+  # The realtime voice's prompt, followed by the first line of every command the full
+  # Butler has, so it knows what to hand off without a list kept by hand.
+  realtimePrompt = pkgs.writeText "butler-call-realtime.md" (
+    builtins.readFile ./butler-call-realtime.md
+    + "\n# The full Butler's commands, which only it runs, through hand_off\n"
+    + lib.concatMapStrings (
+      name:
+      let
+        first = lib.head (lib.splitString "\n" (lib.trim config.butler.commands.${name}.description));
+      in
+      "- ${name}: ${lib.substring 0 240 first}\n"
+    ) (lib.attrNames config.butler.commands)
+  );
+
   voiceList = "Inbox";
 
   withVoice = [
@@ -30,7 +44,7 @@ in
     };
     model = lib.mkOption {
       type = lib.types.str;
-      default = "gpt-realtime-2.1-mini";
+      default = "gpt-realtime-2.1";
       description = "The OpenAI realtime model that answers calls.";
     };
     monthlyUsd = lib.mkOption {
@@ -92,7 +106,9 @@ in
         DISCORD_CALL_REALTIME_KEY_FILE = credential "openai-api-key";
         DISCORD_CALL_REALTIME_MONTHLY_USD = toString realtime.monthlyUsd;
         DISCORD_CALL_REALTIME_VOICE = "cedar";
-        DISCORD_CALL_REALTIME_PROMPT_FILE = "${./butler-call-realtime.md}";
+        DISCORD_CALL_REALTIME_PROMPT_FILE = "${realtimePrompt}";
+        # Butler's own notes on who he is, read at each call's start so his memory's edits reach it.
+        DISCORD_CALL_REALTIME_BRIEF_FILES = "${config.users.users.butler.home}/memory/core/character.md";
       };
       serviceConfig.LoadCredential = [
         "voice-token:${token}"
