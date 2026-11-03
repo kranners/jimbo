@@ -195,10 +195,7 @@ let
     lib.mapAttrsToList (
       _: device:
       lib.optionals device.enable (
-        map (
-          key:
-          ''restrict,from="${device.address}",command="${lib.getExe receive}" ${key}''
-        ) device.keys
+        map (key: ''restrict,from="${device.address}",command="${lib.getExe receive}" ${key}'') device.keys
       )
     ) cfg.devices
   );
