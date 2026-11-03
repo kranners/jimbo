@@ -62,6 +62,8 @@
       };
       butler.hevy.enable = true;
       butler.index.captions.photosScript = ./butler-photos/photos.py;
+      # The index holds Aaron's payments, messages and more, so a thread that searched it counts as having read private data.
+      butler.commands.life.private = true;
       butler.index.browserHistory.devices.pilot = {
         address = "10.100.0.11";
         keys = [

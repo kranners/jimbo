@@ -74,6 +74,7 @@ in
           "call"
         ];
         egress = true;
+        lookup = true;
       }) reading
       ++ map (tool: {
         match = [ tool ];
