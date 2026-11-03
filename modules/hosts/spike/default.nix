@@ -34,6 +34,7 @@
         ./butler-slack.nix
         ./butler-tools.nix
         ./butler-voice.nix
+        ./butler-weather.nix
         ./caddy.nix
         ./claude.nix
         ./dns.nix
