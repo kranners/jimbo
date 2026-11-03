@@ -524,7 +524,7 @@ let
         # Built first, so a held commit that fails to build is reported now rather than when it is released.
         if [ "$(cat "$built_record" 2>/dev/null)" = "$latest" ] && [ -e "$system_link" ]; then
           system=$(readlink -f "$system_link")
-        elif system=$(nix build --out-link "$system_link" --print-out-paths "git+file://$PWD?rev=$latest#nixosConfigurations.spike.config.system.build.toplevel"); then
+        elif system=$(nix build --out-link "$system_link" --print-out-paths "git+file://$PWD?rev=$latest&shallow=1#nixosConfigurations.spike.config.system.build.toplevel"); then
           echo "$latest" > "$built_record"
         else
           echo "$latest" > "$failed_record"
