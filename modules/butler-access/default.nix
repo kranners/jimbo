@@ -13,10 +13,12 @@ let
   # Aaron turns it on himself.
   keepAwakeByDefault = host.hostname != "pilot";
   authorizedKey = ''from="${spike}",restrict,port-forwarding,permitopen="127.0.0.1:5900" ${butlerKey}'';
+  helperPort = (import ./helper.nix).port;
+  tokenFile = "${home}/.local/state/butler-access/hammerspoon-token";
 in
 {
   darwinHomeModule =
-    { pkgs, ... }:
+    { pkgs, lib, ... }:
     let
       keepawake = pkgs.writeShellScriptBin "butler-keepawake" ''
         set -u
@@ -90,6 +92,45 @@ in
     {
       home.packages = [ keepawake ];
 
+      # butler's helper runs inside Hammerspoon, a Developer ID signed app whose Accessibility and Screen Recording
+      # grants follow its signature through every update, where a helper built in the Nix store would lose them on
+      # each rebuild. Its config lives under ~/.config, so it never touches a ~/.hammerspoon of Aaron's own.
+      xdg.configFile = {
+        "hammerspoon/init.lua".text = ''
+          -- Written by jimbo's butler-access module.
+          dofile(hs.configdir .. "/butler.lua")
+        '';
+        "hammerspoon/butler.lua".text = builtins.replaceStrings [ "@port@" ] [ (toString helperPort) ] (
+          builtins.readFile ./butler.lua
+        );
+      };
+
+      targets.darwin.defaults."org.hammerspoon.Hammerspoon" = {
+        MJConfigFile = "~/.config/hammerspoon/init.lua";
+        MJShowDockIconKey = false;
+        HSUploadCrashData = false;
+        SUEnableAutomaticChecks = false;
+      };
+
+      # The helper answers only requests carrying this token, which only Aaron's account, and butler through his ssh
+      # login, can read. It is a curl header line, so it never shows in a process list.
+      home.activation.butlerHelperToken = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        if [ ! -s ${tokenFile} ]; then
+          run /bin/mkdir -p -m 700 ${dirOf tokenFile}
+          (umask 077; printf 'X-Butler-Token: %s\n' "$(/usr/bin/openssl rand -hex 24)" > ${tokenFile})
+        fi
+      '';
+
+      launchd.agents.hammerspoon = {
+        enable = true;
+
+        config = {
+          ProgramArguments = [ "/Applications/Hammerspoon.app/Contents/MacOS/Hammerspoon" ];
+          RunAtLoad = true;
+          KeepAlive = true;
+        };
+      };
+
       # caffeinate holds display, idle, disk and AC system sleep off, and declares the user active, for 30 s at a
       # time, so neither the screen saver nor display sleep ever starts, and the lock that follows them never comes.
       launchd.agents.butler-keepawake = {
@@ -108,6 +149,8 @@ in
     };
 
   darwinSystemModule = {
+    homebrew.casks = [ "hammerspoon" ];
+
     services.openssh = {
       enable = true;
       extraConfig = ''

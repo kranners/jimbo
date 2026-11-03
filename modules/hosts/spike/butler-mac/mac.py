@@ -14,6 +14,9 @@ SSH = '@ssh@'
 FFMPEG = '@ffmpeg@'
 OUTBOX = '@outbox@'
 WINDOWS_SHOT_INSTALLER = '@windowsScreenshot@'
+HELPER_PORT = '@helperPort@'
+# Rectangle's URL scheme actions, from its README; each acts on the front window, as his keyboard shortcuts do.
+RECTANGLE_ACTIONS = '''left-half right-half center-half top-half bottom-half top-left top-right bottom-left bottom-right first-third center-third last-third first-two-thirds last-two-thirds maximize almost-maximize maximize-height smaller larger center center-prominently restore next-display previous-display move-left move-right move-up move-down first-fourth second-fourth third-fourth last-fourth first-three-fourths last-three-fourths top-left-sixth top-center-sixth top-right-sixth bottom-left-sixth bottom-center-sixth bottom-right-sixth top-left-ninth top-center-ninth top-right-ninth middle-left-ninth middle-center-ninth middle-right-ninth bottom-left-ninth bottom-center-ninth bottom-right-ninth top-left-third top-right-third bottom-left-third bottom-right-third top-left-eighth top-center-left-eighth top-center-right-eighth top-right-eighth bottom-left-eighth bottom-center-left-eighth bottom-center-right-eighth bottom-right-eighth tile-all tile-rows tile-columns cascade-all cascade-active-app'''.split()
 STATE = os.path.expanduser('~/.local/state/mac')
 RUNTIME = '/tmp/mac'
 PASSWORD = '.local/state/butler-access/vnc-password'
@@ -69,6 +72,16 @@ USAGE = '''usage: mac hosts
        mac <host> keepawake [status|on|off]
        mac <host> sleep                (keep-awake off, then sleep now)
        mac jimbo boot <linux|windows> [confirm]   (restart into the other system)
+Macs only, through the Hammerspoon helper butler-access installs:
+       mac <host> menu <app|front> [menu] [item...]   (list an app's menus, or choose an item by name)
+       mac <host> dialog [app]         (the front window's controls, numbered)
+       mac <host> press <number|name> [app]   (press a button, checkbox, pop-up or link of dialog)
+       mac <host> focus <number|name> [app]   (put the keyboard in a field of dialog, for type)
+       mac <host> displays             (every display, numbered, 1 being the one with the menu bar)
+       mac <host> display <n> [look]   (a picture of one display)
+       mac <host> display <n> click <x> <y> [left|right|double]   (x and y are pixels of that picture)
+       mac <host> window <rectangle action>   (e.g. left-half, maximize, next-display, first-third)
+       mac <host> window display <n>   (move the front window onto display n)
 x and y are pixels of the last picture from look, whose top-left is 0 0.'''
 
 
@@ -419,6 +432,13 @@ def look(host, client, acted=None):
     else:
         time.sleep(0.2)
     image = picture(client)
+    path = outbox_picture(host)
+    image.save(path, compress_level=1)
+    return '%s (%dx%d, read it to see the screen, or attach it with attach_file)' % (path, image.width, image.height)
+
+
+def outbox_picture(host, kind=''):
+    """A fresh outbox path for a screenshot, pruning screenshots over SHOT_DAYS old."""
     os.makedirs(OUTBOX, exist_ok=True)
     cutoff = time.time() - SHOT_DAYS * 86400
     with os.scandir(OUTBOX) as entries:
@@ -429,9 +449,7 @@ def look(host, client, acted=None):
                         os.remove(entry.path)
                 except FileNotFoundError:
                     pass
-    path = os.path.join(OUTBOX, 'mac-%s-%s-%03d.png' % (host, time.strftime('%Y%m%d-%H%M%S'), time.time() * 1000 % 1000))
-    image.save(path, compress_level=1)
-    return '%s (%dx%d, read it to see the screen, or attach it with attach_file)' % (path, image.width, image.height)
+    return os.path.join(OUTBOX, 'mac-%s%s-%s-%03d.png' % (host, kind, time.strftime('%Y%m%d-%H%M%S'), time.time() * 1000 % 1000))
 
 
 def keymap():
@@ -683,8 +701,17 @@ ObjC.import('CoreGraphics');
 ObjC.import('AppKit');
 var lines = [];
 try {
-  var size = $.NSScreen.mainScreen.frame.size;
-  lines.push('screen: ' + size.width + 'x' + size.height + ' points');
+  // Numbered as mac displays numbers them: the one with the menu bar first, then left to right, in points from the
+  // menu bar display's top-left, where NSScreen counts from its bottom-left.
+  var all = [], screens = $.NSScreen.screens, primary = screens.objectAtIndex(0).frame;
+  for (var i = 0; i < screens.count; i++) {
+    var s = screens.objectAtIndex(i), f = s.frame;
+    all.push({ name: s.localizedName ? s.localizedName.js : '', x: f.origin.x, y: primary.size.height - f.origin.y - f.size.height, w: f.size.width, h: f.size.height, primary: i === 0 });
+  }
+  all.sort(function (a, b) { return a.primary ? -1 : b.primary ? 1 : (a.x - b.x) || (a.y - b.y); });
+  all.forEach(function (s, i) {
+    lines.push('screen ' + (i + 1) + ': ' + s.name + ', ' + s.w + 'x' + s.h + ' points at ' + s.x + ',' + s.y + (s.primary ? ', the main display, with the menu bar, which look shows' : ''));
+  });
 } catch (error) {}
 lines.push('windows, front to back, as app, state, x,y widthxheight in points:');
 ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo(16, 0))).forEach(function (w) {
@@ -928,6 +955,150 @@ def record_loop(host, folder):
         api.shutdown()
 
 
+# The Hammerspoon helper that jimbo's butler-access runs on each Mac, reached with curl over ssh on its loopback port,
+# with the token only Aaron's account can read. It does what VNC cannot: menus and dialogs by name through the
+# accessibility tree, every display, and moving windows between them, under Hammerspoon's own permissions.
+HELPER = ('/usr/bin/curl -sS --max-time %d -H @"$HOME/.local/state/butler-access/hammerspoon-token" '
+          '-H "Content-Type: application/json" --data-binary @- http://127.0.0.1:' + HELPER_PORT + '/')
+HELPER_DOWN = ('Hammerspoon, butler\'s helper on %s, is not answering: it is not installed yet (Aaron runs just in jimbo on '
+               'that Mac), not running (open -a Hammerspoon), or has not loaded butler\'s config (Aaron quits and reopens it)')
+
+
+def helper(host, verb, args=None, timeout=45):
+    if system_of(host) != 'macos':
+        raise Refused('%s works only on the Macs' % verb)
+    connect_ssh(host)
+    try:
+        result = subprocess.run(ssh_args(host) + [HELPER % (timeout - 5)], input=json.dumps({'verb': verb, 'args': args or {}}),
+                                capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        raise Refused('the helper on %s did not answer within %d s' % (host, timeout))
+    if result.returncode == 7:
+        raise Refused(HELPER_DOWN % host)
+    if result.returncode == 26:
+        raise Refused('%s has no helper token yet: Aaron runs just in jimbo on that Mac' % host)
+    if result.returncode != 0:
+        raise Refused('the helper on %s failed: %s' % (host, ' '.join(result.stderr.split()) or 'curl exit %d' % result.returncode))
+    try:
+        reply = json.loads(result.stdout)
+    except ValueError:
+        raise Refused('the helper on %s answered something other than JSON: %s' % (host, result.stdout[:200]))
+    if not reply.get('ok'):
+        why = reply.get('error') or 'no reason given'
+        if why == 'forbidden':
+            why = 'the helper refused the token; Aaron quits and reopens Hammerspoon on %s' % host
+        raise Refused(why)
+    return reply['result']
+
+
+def after(host, wait=0.6):
+    """A screenshot of the main display once an action through the helper has had a moment to show."""
+    time.sleep(wait)
+    return ask(host, {'verb': 'look', 'args': [], 'stdin': ''})
+
+
+def menu(host, args):
+    if not args:
+        raise Refused('menu takes an app, or front, then optionally a menu and an item, such as menu Bitwarden File "Export vault"')
+    if args[1:]:
+        journal(host, 'menu ' + ' > '.join(args))
+    result = helper(host, 'menu', {'app': args[0], 'path': args[1:]})
+    print(result)
+    return result.startswith('chose ')
+
+
+def press_or_focus(host, verb, args):
+    if not args or len(args) > 2:
+        raise Refused('%s takes a control\'s number or name from dialog, then optionally the app' % verb)
+    journal(host, '%s %s' % (verb, ' '.join(args)))
+    print(helper(host, verb, {'control': args[0], 'app': args[1] if len(args) > 1 else 'front'}))
+
+
+def picture_size(display):
+    width = min(SHOT_WIDTH, int(display['w'] * display.get('scale', 1)))
+    return width, round(display['h'] * width / display['w'])
+
+
+def displays(host):
+    found = helper(host, 'displays')
+    print('displays, numbered as display takes them, in points from the main display\'s top-left:')
+    for display in found:
+        width, height = picture_size(display)
+        notes = []
+        if display.get('primary'):
+            notes.append('main, with the menu bar, which look and every other action show')
+        if display.get('builtin'):
+            notes.append('the built-in screen')
+        print('  %d: %s, %dx%d points at %d,%d, scale %s, pictured %dx%d%s' % (
+            display['index'], display['name'], display['w'], display['h'], display['x'], display['y'],
+            display.get('scale', 1), width, height, ', ' + ', '.join(notes) if notes else ''))
+    return found
+
+
+def display_look(host, number):
+    shot = helper(host, 'snapshot', {'display': number})
+    path = outbox_picture(host, '-display%d' % shot['index'])
+    with open(path, 'wb') as out:
+        out.write(base64.b64decode(shot['png']))
+    from PIL import Image
+    with Image.open(path) as image:
+        width, height = image.size
+    return '%s (%dx%d, display %d, %s; x and y for display %d click are pixels of this picture)' % (
+        path, width, height, shot['index'], shot['name'], shot['index'])
+
+
+def display(host, args):
+    if not args or not args[0].isdigit():
+        raise Refused('display takes a number from displays, then look, or click <x> <y> [left|right|double]')
+    number, verb, rest = int(args[0]), args[1] if len(args) > 1 else 'look', args[2:]
+    if verb == 'look':
+        print(display_look(host, number))
+        return
+    if verb != 'click' or len(rest) < 2 or not all(arg.isdigit() for arg in rest[:2]) or rest[2:] not in ([], ['left'], ['right'], ['double']):
+        raise Refused('display <n> click takes <x> <y> [left|right|double], pixels of that display\'s picture')
+    found = {entry['index']: entry for entry in helper(host, 'displays')}
+    if number not in found:
+        raise Refused('there is no display %d; this Mac has %d' % (number, len(found)))
+    screen = found[number]
+    width, height = picture_size(screen)
+    x, y = int(rest[0]), int(rest[1])
+    if x >= width or y >= height:
+        raise Refused('%d,%d is outside display %d\'s %dx%d picture' % (x, y, number, width, height))
+    point = {'x': screen['x'] + x * screen['w'] / width, 'y': screen['y'] + y * screen['h'] / height,
+             'button': rest[2] if len(rest) > 2 else 'left'}
+    journal(host, 'display %d click %s' % (number, ' '.join(rest)))
+    helper(host, 'click', point)
+    time.sleep(0.6)
+    print(display_look(host, number))
+
+
+def window(host, args):
+    if args[:1] == ['display'] and len(args) == 2 and args[1].isdigit():
+        journal(host, 'window display ' + args[1])
+        print(helper(host, 'move_window', {'display': int(args[1])}))
+    elif len(args) == 1 and args[0] in RECTANGLE_ACTIONS:
+        if system_of(host) != 'macos':
+            raise Refused('window works only on the Macs')
+        journal(host, 'window ' + args[0])
+        result = remote(host, "open -g 'rectangle://execute-action?name=%s'" % args[0], timeout=15)
+        if result.returncode != 0:
+            raise Refused('Rectangle did not take %s on %s: %s' % (args[0], host, result.stderr.strip() or 'exit %d' % result.returncode))
+        print('Rectangle: %s on the front window' % args[0])
+    else:
+        raise Refused('window takes display <n>, or one of Rectangle\'s actions: ' + ', '.join(RECTANGLE_ACTIONS))
+    print(after(host, 0.5))
+
+
+def guard_password(host):
+    """Refuses to type while the keyboard focus is in a password field or macOS's own password prompt."""
+    try:
+        state = helper(host, 'secure', timeout=15)
+    except Refused:
+        return
+    if state.get('secure'):
+        raise Refused('the keyboard focus on %s is in a password field or macOS\'s password prompt: Aaron types it himself, never you' % host)
+
+
 def main():
     args = sys.argv[1:]
     if args[:1] == ['hosts']:
@@ -954,6 +1125,25 @@ def main():
         return boot(host, rest)
     if verb == 'serve':
         return serve(host)
+    if verb == 'menu':
+        if menu(host, rest):
+            print(after(host))
+        return
+    if verb == 'dialog':
+        print(helper(host, 'dialog', {'app': rest[0] if rest else 'front'}))
+        return
+    if verb in ('press', 'focus'):
+        press_or_focus(host, verb, rest)
+        if verb == 'press':
+            print(after(host))
+        return
+    if verb == 'displays':
+        displays(host)
+        return
+    if verb == 'display':
+        return display(host, rest)
+    if verb == 'window':
+        return window(host, rest)
     if verb not in ACTIONS:
         print(USAGE, file=sys.stderr)
         return 2
@@ -962,6 +1152,8 @@ def main():
     wide = sorted({character for character in ' '.join(rest) + stdin if ord(character) > 0xFF})
     if wide:
         raise Refused('type sends Latin-1 only, not %s; on a Mac run pbcopy with the text on stdin, then key cmd-v; on Linux run wl-copy with it, then key ctrl-v' % ' '.join(wide))
+    if verb == 'type' and system_of(host) == 'macos':
+        guard_password(host)
     print(ask(host, {'verb': verb, 'args': rest, 'stdin': stdin}))
 
 

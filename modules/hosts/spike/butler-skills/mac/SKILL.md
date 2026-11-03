@@ -1,6 +1,6 @@
 ---
 name: mac
-description: See and drive Aaron's MacBooks, pilot and piggys-MBP, and his dual-boot gaming PC jimbo, Linux or Windows, with `mac`, as a pair programmer at his own screen, by looking, clicking, typing, pressing keys and running shell commands, managing apps and windows, opening, focusing, switching, resizing, minimising, closing and quitting them, and record what you did. Use when Aaron asks you to do something on his Mac or PC, to open or show him something on it, to screenshot an app or page, to pair with him, to look at his screen, or to take the wheel.
+description: See and drive Aaron's MacBooks, pilot and piggys-MBP, and his dual-boot gaming PC jimbo, Linux or Windows, with `mac`, as a pair programmer at his own screen, by looking, clicking, typing, pressing keys and running shell commands, choosing menu items, pressing buttons in dialogs, seeing and using every display, snapping windows with Rectangle, managing apps and windows, opening, focusing, switching, resizing, minimising, closing and quitting them, and record what you did. Use when Aaron asks you to do something on his Mac or PC, to open or show him something on it, to screenshot an app or page, to pair with him, to look at his screen, or to take the wheel.
 ---
 
 # Driving Aaron's Macs and PC
@@ -34,7 +34,7 @@ Prefer the keyboard to the mouse, since it does not depend on reading pixels:
 - An arg that starts with `-` is refused, so pass any shell command with flags on stdin to `mac <host> run`.
 
 Prefer `run` to the screen for anything a shell can do: reading files, git, builds, tests, `open -a <App>`, `open <url>`.
-Never use `osascript` through `run` to control an app, that is any AppleScript `tell application`, System Events, or JXA `Application(...)`: macOS asks Aaron whether `sshd-keygen-wrapper` may control it, and the command hangs until he answers. Drive apps with `open` and the keyboard instead, as below.
+Never use `osascript` through `run` to control an app, that is any AppleScript `tell application`, System Events, or JXA `Application(...)`: macOS asks Aaron whether `sshd-keygen-wrapper` may control it, and the command hangs until he answers. You never need it: `menu`, `dialog`, `press`, `focus`, `displays`, `display` and `window`, below, do what it would, through the helper on each Mac.
 It runs in a non-interactive zsh as Aaron with his PATH, from his home directory. It has no terminal and gives up after 50 seconds, so start anything longer in the background with its output redirected, like `nohup make test > /tmp/test.log 2>&1 &`, and poll the log.
 
 ## Apps and windows
@@ -50,7 +50,7 @@ Recipes, each followed by a `look` to check it worked. A command with a flag goe
 - Bring a particular window of the front app forward: ``key cmd-` ``, repeated, checking each look, or click its title bar. Another app's window: `open -a` that app first.
 - Switch apps: `key cmd-tab`, or `open -a`. Mission Control: `key ctrl-up`. The front app's windows: `key ctrl-down`. Switch spaces: `key ctrl-left` or `ctrl-right`, or `open -a` an app on that space.
 - Tabs: `key cmd-t` for a new one, `cmd-1` to `cmd-9` to pick one, `cmd-shift-]` and `cmd-shift-[` or `ctrl-tab` to step, `cmd-l` to type a URL into the current one.
-- Resize or move: drag the window's bottom-right corner, or its title bar, using the place and size from `windows`; a double-click on the title bar fills or zooms it. `key cmd-ctrl-f` toggles full screen in most apps.
+- Resize or move: `window <action>` with a Rectangle action such as `left-half` or `maximize`, `window display <n>` to move it to another display, or drag the window's bottom-right corner or title bar using the place and size from `windows`. `key cmd-ctrl-f` toggles full screen in most apps.
 - Minimise the front window: `key cmd-m`. Hide the front app: `key cmd-h`. Bring either back with `open -a`.
 - Close the front window or tab: `key cmd-w`. Quit the front app: `key cmd-q`. So to close or quit something, `open -a` it first, check with `look` that it is in front, then press the key.
 - Close only windows and tabs you opened, and quit only apps you launched, unless Aaron asks for one by name. If a dialog asks to save, cancel with `key esc` and ask him.
@@ -58,6 +58,38 @@ Recipes, each followed by a `look` to check it worked. A command with a flag goe
 - Never send function keys, f1 to f12: they reach the front app, not the Mac.
 
 To show Aaron something, such as a screenshot of the board: open or focus it, `look`, check it shows what he asked for and nothing private, and attach that screenshot.
+
+## Menus, dialogs and every display
+
+On both Macs a helper, Hammerspoon, reads macOS's accessibility tree, so you can work menus and dialogs by name instead of by pixels, and see and click every display.
+Prefer these to clicking: on piggys-MBP docked to its ultrawide, `look` is 1512 by 425, so the menu bar is only about 7 pixels tall and a click a few pixels too low misses it.
+
+Menus:
+- `mac <host> menu <App>` lists the app's menu bar with each menu's items and their shortcuts; `>` marks a submenu, `[disabled]` an item that cannot be chosen now.
+- `mac <host> menu <App> <Menu>` lists one menu, two levels deep, and `mac <host> menu <App> <Menu> <Item> [Subitem...]` brings the app to the front and chooses that item, then prints a screenshot. For example `mac piggys-MBP menu Bitwarden File "Export vault"`.
+- Names match without case or a trailing `…`, and a unique start of a name is enough. `front` stands for whichever app is in front. Help's search is just its menu: `menu <App> Help` lists it.
+- An app's menu is there even while the app is behind another, but `open -a` it first when you want to see what the item opens.
+
+Dialogs, sheets, alerts and save or open panels:
+- `mac <host> dialog [App]` lists the front window of the app, or of whatever is in front, with every button, field, checkbox, pop-up, link and line of text, numbered, marking the focused one and the default button, which `key enter` presses.
+- `mac <host> press <number|name> [App]` presses a button, checkbox, radio, pop-up or link by its number from `dialog` or its exact name, then prints a screenshot. List again after anything changes, since numbers follow the window as it is.
+- `mac <host> focus <number|name> [App]` puts the keyboard in a field, such as a save panel's file name, so `type` fills it; `key cmd-a` first replaces what is there.
+- It reads web apps built on Electron and Chromium too, such as Bitwarden, Slack and VS Code, though their dialogs can list many lines of text; look at the screenshot to tell which part is the dialog.
+- If `dialog` lists nothing useful, fall back to `look` and clicking.
+
+Displays:
+- `mac <host> displays` lists every display, numbered: 1 is always the main one, with the menu bar, which `look` and every ordinary action show; the rest go left to right. It gives each one's place, size and whether it is the built-in screen. `mac <host> windows` numbers its screens the same way.
+- `mac <host> display <n>` saves a picture of display n, scaled to at most 1512 pixels wide, and `mac <host> display <n> click <x> <y> [left|right|double]` clicks there, x and y being pixels of that picture, then prints a fresh one. Use these for any display but 1; `type` and `key` go to whatever has focus, wherever it is.
+
+Moving and sizing windows, with Rectangle, which both Macs run:
+- `mac <host> window <action>` does a Rectangle action to the front window: `left-half`, `right-half`, `top-half`, `bottom-half`, `first-third`, `center-third`, `last-third`, `first-two-thirds`, `last-two-thirds`, `top-left`, `top-right`, `bottom-left`, `bottom-right`, `maximize`, `almost-maximize`, `center`, `restore`, `smaller`, `larger`, `next-display`, `previous-display`, fourths, sixths, ninths and the rest of Rectangle's list, which `mac <host> window` prints. It works whatever Aaron's own shortcuts are.
+- `mac <host> window display <n>` moves the front window onto display n, such as the built-in screen, keeping its size where it fits; follow it with `window maximize` or a half to fill it.
+- Aaron's own Rectangle shortcuts, if he mentions one, are in `mac <host> run defaults read com.knollsoft.Rectangle`; you never need them, since `window` does every action.
+
+What the helper still cannot do:
+- It never types into a password field: `type` refuses while the keyboard focus is in one or in macOS's own password prompt, `focus` refuses one, and `press` refuses macOS's password and Touch ID prompts. Hand those to Aaron, saying what is asking, and wait.
+- macOS ignores the helper's presses on its privacy prompts too, the ones asking whether an app may access or control something, so Aaron answers them.
+- When it says Hammerspoon lacks Accessibility or Screen Recording, or is not answering, tell Aaron that exact step; `look`, `click` and the rest still work meanwhile.
 
 ## Pair programming
 
@@ -86,7 +118,7 @@ It cannot unlock a Mac that is already locked, keep one awake with its lid close
 
 ## Limits
 
-- Never type a password, a one-time code or a card number, and never unlock a locked screen. When `mac hosts` says LOCKED, or a dialog asks for a password or Touch ID, ask Aaron to deal with it and wait.
+- Never type a password, a one-time code or a card number, and never unlock a locked screen. When `mac hosts` says LOCKED, or a dialog asks for a password or Touch ID, ask Aaron to deal with it and wait. That is the only thing on a Mac you stop at: every other menu, dialog, confirmation, save panel or display you work yourself.
 - pilot is his work Mac. Use it for the task he gave you, and never read, copy or send its work files, mail, chats or code anywhere outside that Mac.
 - Before you send, post, submit, merge, push, pay, buy or delete anything on either Mac, ask Aaron in plain text and wait for his yes.
 - In a thread that began as a voice request, or has read private data such as his mail, messages, Slack, health or personal index, each `mac` call waits for Aaron's approval button.
@@ -123,13 +155,16 @@ Games:
 
 Researched and built on 3 November 2026, on macOS 26.6.
 
-- Both Macs run Apple's own Remote Login (ssh) and Screen Sharing, turned on by jimbo's `butler-access` module. Nothing third-party is installed on them, and no permission had to be granted in Privacy & Security.
+- Both Macs run Apple's own Remote Login (ssh) and Screen Sharing, turned on by jimbo's `butler-access` module, for `look`, `click`, `type`, `key` and `run`, which need no permission in Privacy & Security.
+- Menus, dialogs, displays and `window display` go through Hammerspoon, which `butler-access` installs from Homebrew and starts at login with butler's config in `~/.config/hammerspoon`. Its `butler.lua` answers on `127.0.0.1:7425` only, and only requests carrying the token in `~/.local/state/butler-access/hammerspoon-token`, which `mac` sends with curl over ssh. Hammerspoon needs Accessibility, for menus, dialogs, clicks on other displays and moving windows, and Screen & System Audio Recording, for `display <n>` pictures, each switched on once by Aaron in System Settings, Privacy & Security. It is signed by its developer, so those grants survive its updates. Added 3 November 2026.
 - Screen Sharing must be switched on once by hand in System Settings, General, Sharing, on each Mac. Since macOS 12.1, only that switch or an MDM gives Apple's screen sharing agent the right to capture the screen and post input: started by `launchctl` alone it checks in with `postEventFlag 0 screenCaptureFlag 0` and serves a black screen.
 - A legacy VNC password logs in, and `VNCAlwaysStartOnConsole` sends that session to Aaron's own console rather than a new login window on a virtual display, which is where macOS 26 sends it otherwise. That way spike never holds his macOS password.
 - Screen Sharing answers only on the Mac's loopback, by a pf anchor `com.apple/butler-access`, and spike reaches it through ssh, by a key that only works from `10.100.0.1`. Each Mac keeps its VNC password in `~/.local/state/butler-access/vnc-password`, and `mac` reads it over that ssh connection.
 - macOS shows "Your screen is being controlled" and a Screen Sharing icon in the menu bar while you are connected, so Aaron always knows.
 - An MDM profile could not do it: a Mac takes one MDM, pilot already has its employer's, and no profile can grant screen recording anyway.
-- An agent installed on the Mac, such as Peekaboo or Cua, would read the accessibility tree too, but it needs Accessibility and Screen Recording granted by hand. Rebuilding it in the Nix store loses those grants, and macOS keeps asking to re-approve screen recording. It is the next step only if screenshots prove too coarse.
+- A helper built in the Nix store, or Peekaboo or Cua, would lose its grants on every rebuild, and granting Accessibility to `sshd-keygen-wrapper` would hand it to every ssh login, so the helper is Hammerspoon, granted by its own signature. macOS may ask Aaron now and then to re-approve its screen recording.
+- Rectangle's `window` actions go through its URL scheme, `open -g "rectangle://execute-action?name=<action>"`, which needs no permission of ours, since Rectangle has its own Accessibility.
+- With an external display as the main one, Screen Sharing's picture is only that display, which is why `display <n>` exists.
 - `mac <host> windows` runs `lsappinfo` and a JXA script that calls only `CGWindowListCopyWindowInfo` and `NSScreen` through the ObjC bridge, sending no Apple Events, so macOS asks for no Automation permission. Without Screen Recording, which ssh has not got, macOS leaves out most window titles but still gives each window's app, place, size and whether it is on screen.
 - `open -a` and keystrokes over Screen Sharing need no permission either, which is why the recipes use them rather than AppleScript.
 - `mac` runs the ssh master and the tunnel in `/tmp/mac` of butler's private temp, and the tunnel is a unix socket, so no other user on spike reaches the Macs' screens.
