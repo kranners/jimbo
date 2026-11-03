@@ -4,7 +4,10 @@ The board listens on pilot's loopback alone, so every call goes over ssh
 as Aaron, with butler's Mac key, and curl posts it to the board's
 Butler endpoint there. `kanban self-fixes` also builds the list of
 butler's self-fixes from spike's own records and sends it, which is how
-`butler-kanban-sync` keeps a card per self-fix on the board.
+`butler-kanban-sync` keeps a card per self-fix on the board, and reads
+back what Aaron did to those cards there: a card he closed asks spike to
+archive the fix, one he marked done stops it being reported as needing
+him. Only those recorded board actions act; nothing in a card's text does.
 """
 import json
 import os
@@ -22,6 +25,9 @@ TOOL = re.compile(r'^[a-z_]{1,64}$')
 LINK = re.compile(r'https://claude\.ai/code/session_[A-Za-z0-9]+')
 WEEK = 7 * 24 * 3600
 MAX_FIXES = 50
+# A fix still open whose progress is older than this is read again, so a card never sticks on a state its session has left.
+STALE = 30 * 60
+ENDED = ('finished', 'archived', 'failed to start')
 
 USAGE = '''usage: kanban <tool> (its arguments as a JSON object on stdin, or nothing for none) | kanban self-fixes
 tools: board_snapshot, read_transcript, board_history, put_card, close_card, note, watch, look, arrange,
@@ -101,6 +107,66 @@ def summary_of(progress):
     return '\n'.join(branch + steps)[:4000] or None
 
 
+def record(fix):
+    """What was done to a fix from the board or by `self-fix archive`, as a state."""
+    if os.path.exists(os.path.join(SELF_FIX, 'archived', fix)):
+        return 'archived'
+    if os.path.exists(os.path.join(SELF_FIX, 'archive', fix)):
+        return 'archive requested'
+    if os.path.exists(os.path.join(SELF_FIX, 'dismissed', fix)):
+        return 'dismissed on the board'
+    return None
+
+
+def refresh_if_stale(fix, now):
+    progress = os.path.join(SELF_FIX, 'progress', fix)
+    try:
+        stale = now - os.stat(progress).st_mtime > STALE
+    except OSError:
+        stale = True
+    if stale:
+        touch(os.path.join(SELF_FIX, 'refresh', fix), '')
+
+
+def touch(path, text):
+    try:
+        with open(path, 'w') as f:
+            f.write(text)
+    except OSError as error:
+        print('kanban: could not write %s: %s' % (path, error), file=sys.stderr)
+
+
+def apply_board_actions(text, known):
+    """Acts on the cards Aaron closed or marked done, from the reply's Board actions line."""
+    line = next((line for line in text.splitlines() if line.startswith('Board actions: ')), None)
+    if line is None:
+        return text
+    try:
+        asked = json.loads(line[len('Board actions: '):])
+    except ValueError:
+        asked = {}
+    stamp = time.strftime('%a %-d %b %H:%M')
+    applied = []
+    for fix in asked.get('archive', []) if isinstance(asked, dict) else []:
+        if isinstance(fix, str) and fix in known and record(fix) not in ('archived', 'archive requested'):
+            touch(os.path.join(SELF_FIX, 'archive', fix), 'board')
+            if os.path.exists(os.path.join(SELF_FIX, 'sessions', fix)):
+                touch(os.path.join(SELF_FIX, 'refresh', fix), '')
+            applied.append('archiving ' + fix)
+    for fix in asked.get('dismiss', []) if isinstance(asked, dict) else []:
+        if isinstance(fix, str) and fix in known and record(fix) is None:
+            touch(os.path.join(SELF_FIX, 'dismissed', fix), 'Dismissed on the board %s.\n' % stamp)
+            try:
+                os.remove(os.path.join(SELF_FIX, 'watch', fix))
+            except OSError:
+                pass
+            applied.append('dismissed ' + fix)
+    kept = [other for other in text.splitlines() if other != line]
+    if applied:
+        kept.append('From the board: ' + ', '.join(applied))
+    return '\n'.join(kept)
+
+
 def self_fixes():
     """Every self-fix of the last 7 days, as `self-fix list` reads them."""
     sessions = os.path.join(SELF_FIX, 'sessions')
@@ -142,7 +208,12 @@ def self_fixes():
         if title and title != 'untitled':
             entry['title'] = title[:200]
         entry['state'] = entry['state'][:200]
-        if os.path.exists(os.path.join(SELF_FIX, 'watch', fix)):
+        closed = record(fix)
+        if closed:
+            entry['state'] = closed
+        elif started and started.startswith('Started ') and not entry['state'].startswith(ENDED):
+            refresh_if_stale(fix, now)
+        if not closed and os.path.exists(os.path.join(SELF_FIX, 'watch', fix)):
             entry['watching'] = True
         fixes.append(entry)
     return fixes
@@ -155,6 +226,7 @@ def main(argv):
     tool = argv[1].replace('-', '_')
     if tool == 'self_fixes':
         args = {'fixes': self_fixes()}
+        known = {fix['id'] for fix in args['fixes']}
     else:
         raw = '' if sys.stdin is None or sys.stdin.isatty() else sys.stdin.read()
         try:
@@ -171,7 +243,10 @@ def main(argv):
         print('kanban: %s' % error, file=sys.stderr)
         return 75
     if reply.get('ok'):
-        print(reply.get('text', ''))
+        text = reply.get('text', '')
+        if tool == 'self_fixes':
+            text = apply_board_actions(text, known)
+        print(text)
         return 0
     print('kanban: %s' % reply.get('error', 'the board refused'), file=sys.stderr)
     return 1

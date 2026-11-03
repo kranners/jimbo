@@ -14,6 +14,10 @@ let
   refresh = "${selfFix}/refresh";
   progress = "${selfFix}/progress";
   watch = "${selfFix}/watch";
+  # Archive requests, from `self-fix archive` or a card closed on the board, and what became of them.
+  archive = "${selfFix}/archive";
+  archived = "${selfFix}/archived";
+  dismissed = "${selfFix}/dismissed";
   runnerHome = config.users.users.backlogic-runner.home;
   launchFrom = "${aaron}/workspace/jimbo";
   personalCooldown = "${home}/.claude-accounts/cooldown/1";
@@ -58,11 +62,32 @@ let
     ];
     text = ''
       usage() {
-        echo "usage: self-fix start (the request on stdin) | self-fix status <id> | self-fix list" >&2
+        echo "usage: self-fix start (the request on stdin) | self-fix status <id> | self-fix list | self-fix archive <id>" >&2
         exit 2
       }
 
+      # What was done to a fix from the board or by archive, for status and list.
+      closed() {
+        cat "${archived}/$1" "${dismissed}/$1" 2>/dev/null || true
+        if [ -e "${archive}/$1" ] && [ ! -e "${archived}/$1" ]; then
+          echo "Archive requested; spike archives its cloud session within a few minutes."
+        fi
+      }
+
       case "''${1:-}" in
+        archive)
+          [ "$#" -eq 2 ] || usage
+          id=$2
+          [[ "$id" =~ ^[0-9]{8}-[0-9]{6}-[0-9]+$ ]] || usage
+          if [ -e "${archived}/$id" ]; then
+            cat "${archived}/$id"
+            exit 0
+          fi
+          [ -e "${sessions}/$id" ] || [ -e "${queue}/$id.json" ] || { echo "No self-fix $id." >&2; exit 1; }
+          echo butler > "${archive}/$id"
+          [ ! -e "${sessions}/$id" ] || touch "${refresh}/$id"
+          echo "Asked spike to archive self-fix $id; its cloud session is archived, and its card on the board marked archived, within a few minutes."
+          ;;
         start)
           [ "$#" -eq 1 ] || usage
           request=$(cat)
@@ -78,6 +103,7 @@ let
           [[ "$id" =~ ^[0-9]{8}-[0-9]{6}-[0-9]+$ ]] || usage
           if [ -e "${sessions}/$id" ]; then
             cat "${sessions}/$id"
+            closed "$id"
             grep -q '^Started ' "${sessions}/$id" || exit 0
             # butler-self-fix-progress reads the session as root, so the token never reaches butler.
             asked=$(date +%s)
@@ -147,6 +173,7 @@ let
               fi
               grep -oE 'https://claude.ai/code/session_[A-Za-z0-9]+' "${sessions}/$id" | sed 's/^/Link: /'
             fi
+            closed "$id"
             echo
           done
           ;;
@@ -206,6 +233,14 @@ let
       for request in "${queue}"/*.json; do
         [ -e "$request" ] || continue
         id=$(basename "$request" .json)
+        # Archived before it started, from the board or by butler, so it never starts.
+        if [ -e "${archive}/$id" ]; then
+          echo "Archived before its cloud session started." > "${sessions}/$id"
+          echo "Archived $(date '+%a %-d %b %H:%M') before it started." > "${archived}/$id"
+          chown butler: "${sessions}/$id" "${archived}/$id"
+          rm -f "$request" "${archive}/$id"
+          continue
+        fi
         work=$(mktemp -d)
         chown aaron: "$work"
         { cat ${preamble}; jq -r .request "$request"; } > "$work/prompt"
@@ -298,6 +333,11 @@ let
 
       tell_aaron_when_ended_or_waiting() {
         local id=$1 work=$2 state title link card=""
+        # Aaron closed or marked it done himself, so nothing more is reported.
+        if [ -e "${archived}/$id" ] || [ -e "${dismissed}/$id" ]; then
+          rm -f "${watch}/$id"
+          return
+        fi
         state=$(sed -n 's/^State: //p' "${progress}/$id")
         title=$(sed -n 's/^Title: //p' "${progress}/$id")
         link=$(grep -oE 'https://claude.ai/code/session_[A-Za-z0-9]+' "${sessions}/$id")
@@ -337,6 +377,39 @@ let
           rm -f "${watch}/$id"
         fi
       }
+
+      # Archive each fix asked for, by `self-fix archive` or a card closed on the board, retrying on the next run when claude.ai refuses.
+      for request in "${archive}"/*; do
+        [ -e "$request" ] || continue
+        id=$(basename "$request")
+        [[ "$id" =~ ^[0-9]{8}-[0-9]{6}-[0-9]+$ ]] || { rm -f "$request"; continue; }
+        # Still queued: the launcher archives it instead of starting it.
+        [ -e "${sessions}/$id" ] || continue
+        if [ "$(cat "$request")" = board ]; then from="from the board"; else from="by butler"; fi
+        started=$(cat "${sessions}/$id")
+        session=$(grep -oE 'session_[A-Za-z0-9]+' <<< "$started" | head -1 || true)
+        if [ -n "$session" ]; then
+          dir=$(grep -oE 'on \.claude(-work)?$' <<< "$started" | cut -c4- || true)
+          bearer=$(token "''${dir:-.claude}")
+          code=$(curl --silent --max-time 15 --output /dev/null --write-out '%{http_code}' --request POST \
+            --header @<(printf 'Authorization: Bearer %s\n' "$bearer") \
+            --header 'anthropic-version: 2023-06-01' \
+            --header 'content-type: application/json' \
+            --header 'User-Agent: claude-cli/${pkgs.claude-code.version} (external, cli)' \
+            --data '{}' "https://api.anthropic.com/v1/code/sessions/cse_''${session#session_}/archive" || true)
+          case "$code" in
+            200 | 409) ;;
+            *)
+              echo "Could not archive self-fix $id: HTTP $code" >&2
+              continue
+              ;;
+          esac
+        fi
+        echo "Archived $(date '+%a %-d %b %H:%M') $from." > "${archived}/$id"
+        chown butler: "${archived}/$id"
+        rm -f "$request" "${watch}/$id"
+        touch "${refresh}/$id"
+      done
 
       find "${refresh}" "${watch}" -mindepth 1 -printf '%f\n' | sort -u | while read -r id; do
         rm -f "${refresh}/$id"
@@ -399,7 +472,7 @@ in
     package = self-fix;
     description = ''
       Ask a cloud Claude Code session to fix or change butler itself (its jimbo config, the claude-discord-threads daemon or its memory) and land the fix, which then deploys on its own.
-      self-fix start (Aaron's request on stdin) | self-fix status <id> (the session's link once it starts, then its live state, recent activity, branch and final summary) | self-fix list (every self-fix of the last 7 days, newest first, with its id, title, state, last activity and link; use it when Aaron asks how his fixes are going without an id)
+      self-fix start (Aaron's request on stdin) | self-fix status <id> (the session's link once it starts, then its live state, recent activity, branch and final summary) | self-fix list (every self-fix of the last 7 days, newest first, with its id, title, state, last activity and link; use it when Aaron asks how his fixes are going without an id) | self-fix archive <id> (archive a fix's cloud session when Aaron asks to close or stop it; its board card follows)
     '';
     stdin = true;
     rules = [
@@ -419,6 +492,14 @@ in
         match = [ "list" ];
         lanes = [ "interactive" ];
       }
+      {
+        match = [
+          "archive"
+          "*"
+        ];
+        lanes = [ "interactive" ];
+        egress = true;
+      }
     ];
     skill = ./butler-skills/self-fix;
   };
@@ -430,6 +511,9 @@ in
     "d ${refresh} 0700 butler butler -"
     "d ${progress} 0700 butler butler -"
     "d ${watch} 0700 root root -"
+    "d ${archive} 0700 butler butler -"
+    "d ${archived} 0700 butler butler -"
+    "d ${dismissed} 0700 butler butler -"
   ];
 
   systemd.paths.butler-self-fix-progress = {
