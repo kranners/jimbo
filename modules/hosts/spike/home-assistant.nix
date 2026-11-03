@@ -301,6 +301,7 @@ in
         latitude = "!secret latitude";
         longitude = "!secret longitude";
         elevation = "!secret elevation";
+        radius = 75;
         media_dirs.wallpapers = wallpaperDirectory;
 
         auth_providers = [

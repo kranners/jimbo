@@ -1,6 +1,6 @@
 ---
 name: home
-description: Read and control the devices in Aaron's Collingwood apartment through Home Assistant, lights, blinds, plant irrigation, climate, fans, the robot vacuum and media players. Use for "turn the lounge lights off", "dim the bedroom to 30%", "close the blinds", "is the balcony watering on", "start the vacuum", "what's the temperature inside".
+description: Read and control the devices in Aaron's Collingwood apartment through Home Assistant, lights, blinds, plant irrigation, climate, fans, the robot vacuum and media players, and set up the zones that track where his phone is. Use for "turn the lounge lights off", "dim the bedroom to 30%", "close the blinds", "is the balcony watering on", "start the vacuum", "what's the temperature inside", "set a zone for Rylee's place", "where am I".
 ---
 
 # Home
@@ -14,6 +14,10 @@ Home Assistant on spike holds the devices and the tool carries its token itself.
 - `home state <entity_id>` prints one entity's state and attributes, such as brightness, cover position, temperature or a vacuum's battery.
 - `home call <domain.service> <entity_id> [key=value...]` calls a service on one entity and prints its state after; a value is read as JSON when it parses, so `rgb_color=[255,180,90]` and `brightness_pct=40` work.
 
+- `home zone list` lists Home Assistant's zones, the places it tracks Aaron's phone at, each with its name, latitude, longitude, radius and icon; `person.aaron`'s state is the name of the zone he is in, or `not_home`.
+- `home zone create <name> <lat> <lng> <radius_m> [icon]` adds a zone, such as `["zone", "create", "Rylee's place", "-37.80414", "144.97721", "75", "mdi:heart"]`; the radius is 10 to 5000 metres and the icon an `mdi:` name, `mdi:map-marker` when none is given.
+- `home zone update <name> <lat> <lng> <radius_m> [icon]` moves or resizes a zone, `home zone rename <name> <new name>` renames it and `home zone delete <name>` removes it.
+
 Find entity ids with `areas`, `area` or `list` rather than guessing, and control one entity per call.
 Services it allows, by domain:
 - `light`: `turn_on` (`brightness_pct`, `color_temp_kelvin`, `rgb_color`, `transition`), `turn_off`, `toggle`.
@@ -23,6 +27,8 @@ Services it allows, by domain:
 - `climate`: `set_temperature` (`temperature`), `set_hvac_mode`, `set_fan_mode`, `set_preset_mode`, `turn_on`, `turn_off`.
 - `switch`, `input_boolean`, `fan`, `humidifier` and `media_player`: their usual on, off and setting services.
 
+Before creating a zone, find the place with `maps place` and use its coordinates, and pick a radius of about 75 m for a home and 100 m for a shop, gym or office; set up zones Aaron asks for without confirming, and say each one's name and radius in a line.
+The Home zone is Home Assistant's own location, which Aaron sets in its secrets file by hand, so the tool refuses to change it; tell him if it looks wrong.
 Locks, alarm panels, garage doors, gates, scripts, scenes, automations and buttons are read-only: the tool refuses to call them, so say so and leave them to Aaron.
 Changing lights, blinds, watering and the vacuum needs no confirmation; just do it and say what changed in one short line.
 Before watering or vacuuming for more than a few minutes on your own initiative, ask first.

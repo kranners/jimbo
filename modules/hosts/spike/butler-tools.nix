@@ -115,6 +115,12 @@ let
     '';
   };
 
+  # Zones are edited only through Home Assistant's websocket API.
+  home-zone = pkgs.writers.writePython3Bin "home-zone" {
+    libraries = [ pkgs.python3Packages.websockets ];
+    flakeIgnore = [ "E501" ];
+  } (builtins.readFile ./butler-home/zone.py);
+
   # Device control through the same Home Assistant token as the calendar.
   # Only the domains and services below may be called, and locks, alarm panels,
   # garage doors and gates can be read but never called.
@@ -125,6 +131,7 @@ let
       pkgs.coreutils
       pkgs.curl
       pkgs.jq
+      home-zone
     ];
 
     text = ''
@@ -134,6 +141,7 @@ let
         echo "       home list [text]" >&2
         echo "       home state <entity_id>" >&2
         echo "       home call <domain.service> <entity_id> [key=value...]" >&2
+        echo "       home zone list | create <name> <lat> <lng> <radius_m> [icon] | update <name> <lat> <lng> <radius_m> [icon] | rename <name> <new name> | delete <name>" >&2
         exit 2
       }
 
@@ -236,6 +244,10 @@ let
           echo "Called $domain.$service on $target"
           sleep 1
           home_assistant "${homeAssistant}/api/states/$target" | jq --slurp '.' | summarise
+          ;;
+        zone)
+          shift
+          HOME_ASSISTANT_TOKEN_FILE=${credential "home-assistant-token"} exec home-zone "$@"
           ;;
         *) usage ;;
       esac
@@ -407,6 +419,8 @@ in
       description = ''
         Read and control the devices in Aaron's home through Home Assistant: lights, blinds, irrigation valves, climate, fans, the vacuum and media players.
         home areas | home area <area_id> | home list [text] | home state <entity_id> | home call <domain.service> <entity_id> [key=value...]
+        home zone list | home zone create <name> <lat> <lng> <radius_m> [icon] | home zone update <name> <lat> <lng> <radius_m> [icon] | home zone rename <name> <new name> | home zone delete <name>
+        Zones are the places Home Assistant tracks people at; the Home zone itself is read-only.
         Locks, alarm panels, garage doors, gates, scripts and scenes can be read but never called.
       '';
       rules = [
@@ -438,6 +452,21 @@ in
         {
           match = [
             "call"
+            "**"
+          ];
+          lanes = both;
+          acts = true;
+        }
+        {
+          match = [
+            "zone"
+            "list"
+          ];
+          lanes = both ++ [ "call" ];
+        }
+        {
+          match = [
+            "zone"
             "**"
           ];
           lanes = both;
