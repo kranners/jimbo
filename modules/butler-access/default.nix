@@ -18,8 +18,19 @@ let
 in
 {
   darwinHomeModule =
-    { pkgs, lib, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     let
+      overlay = import ./overlay {
+        inherit pkgs lib;
+        inherit (import ./overlay/settings.nix) idle;
+        home = config.home.homeDirectory;
+      };
+
       keepawake = pkgs.writeShellScriptBin "butler-keepawake" ''
         set -u
         file="$HOME/.local/state/butler-access/keepawake"
@@ -90,7 +101,13 @@ in
       '';
     in
     {
-      home.packages = [ keepawake ];
+      home.packages = [
+        keepawake
+        overlay.command
+      ];
+
+      # Butler in a porthole at the top right, narrating in speech bubbles while butler drives this Mac.
+      launchd.agents.butler-overlay = overlay.agent;
 
       # butler's helper runs inside Hammerspoon, a Developer ID signed app whose Accessibility and Screen Recording
       # grants follow its signature through every update, where a helper built in the Nix store would lose them on

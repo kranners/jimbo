@@ -1,7 +1,10 @@
 import base64
+import fcntl
 import json
 import os
 import queue
+import re
+import shlex
 import threading
 import socket
 import socketserver
@@ -25,6 +28,15 @@ DESKTOP = '/etc/profiles/per-user/$USER/bin/butler-desktop'
 BOOT = '/etc/profiles/per-user/$USER/bin/butler-boot'
 WAYVNC = 'butler-wayvnc.sock'
 WINDOWS_STATE = r'C:\ProgramData\butler-access'
+OVERLAY = '/etc/profiles/per-user/$USER/bin/butler-overlay'
+MEMORY_AUDIT = '@memoryAudit@'
+# A control session ends after this many seconds without a mac command, as the overlay on the Mac does by itself.
+CONTROL_IDLE = @idle@
+CONTROL = os.path.join(STATE, 'control')
+AUDIT_SPOOL = os.path.join(STATE, 'audit-spool')
+SAY_LIMIT = 160
+# An automatic bubble waits this long after butler's own words, so it never buries them.
+QUIET_AFTER_SAY = 8
 OS_NAMES = {'macos': 'macOS', 'linux': 'Linux', 'windows': 'Windows'}
 LIMITS = ('It cannot get past a login screen, a BitLocker or LUKS disk-encryption prompt or a firmware menu, '
           'so if the other system stops at one, Aaron must deal with it at the PC.')
@@ -60,6 +72,8 @@ TYPED = {'\n': 'enter', '\t': 'tab', ' ': 'space'}
 USAGE = '''usage: mac hosts
        mac log [count]
        mac <host> look
+       mac <host> say [text]           (a speech bubble on the Mac's overlay; text on stdin when no arg)
+       mac <host> done                 (hand control back: the overlay fades out)
        mac <host> click <x> <y> [left|right|middle|double]
        mac <host> move <x> <y>
        mac <host> drag <x1> <y1> <x2> <y2>
@@ -87,6 +101,10 @@ x and y are pixels of the last picture from look, whose top-left is 0 0.'''
 
 class Refused(Exception):
     pass
+
+
+class Lost(Refused):
+    """The machine stopped answering, which ends a control session as its connection closed."""
 
 
 _resolved = {}
@@ -118,7 +136,7 @@ def resolve(host):
         system = found.get(timeout=4)
     except queue.Empty:
         names = ['its %s install (%s)' % (OS_NAMES[s['os']], s['address']) for s in entry['systems']]
-        raise Refused('%s is down: %s on ssh; it is off, asleep, at a boot menu or off WireGuard' % (
+        raise Lost('%s is down: %s on ssh; it is off, asleep, at a boot menu or off WireGuard' % (
             host, ('neither ' + ' nor '.join(names) + ' answers') if len(names) > 1 else names[0] + ' does not answer'))
     _resolved[host] = system
     return system
@@ -163,7 +181,7 @@ def connect_ssh(host):
         text=True, timeout=20, start_new_session=True,
     )
     if started.returncode != 0:
-        raise Refused('%s is unreachable over ssh: %s' % (host, started.stderr.strip() or 'no answer'))
+        raise Lost('%s is unreachable over ssh: %s' % (host, started.stderr.strip() or 'no answer'))
 
 
 # Windows' OpenSSH runs cmd.exe by default, so every Windows command is PowerShell sent on stdin to this bootstrap,
@@ -488,8 +506,11 @@ def act(client, verb, args, stdin=''):
         for _ in range(int(args[3]) if len(args) > 3 else 3):
             client.mousePress(button)
     elif verb == 'type':
-        for character in ' '.join(args) if args else stdin:
+        typed = ' '.join(args) if args else stdin
+        for character in typed:
             client.keyPress(TYPED.get(character, character))
+        # What was typed may be private, so the log says only how much.
+        return 'type (%d characters)' % len(typed)
     elif verb == 'key':
         keymap()
         for combo in args:
@@ -546,6 +567,7 @@ def serve(host):
                     self.server.done = client.screen.size != (client.protocol.width, client.protocol.height)
             except Exception as error:
                 self.server.done = True
+                self.server.failed = True
                 why = str(error) if isinstance(error, Refused) else '%s: %s' % (type(error).__name__, error)
                 reply = {'ok': False, 'did': done, 'text': '%s failed: %s' % (stage, why)}
             self.wfile.write(json.dumps(reply).encode() + b'\n')
@@ -553,6 +575,7 @@ def serve(host):
     class Server(socketserver.UnixStreamServer):
         timeout = IDLE
         done = False
+        failed = False
 
         def handle_timeout(self):
             self.done = True
@@ -570,6 +593,8 @@ def serve(host):
         client.disconnect()
         from vncdotool import api
         api.shutdown()
+        if server.failed:
+            end(host, 'connection closed')
 
 
 def start_session(host, path):
@@ -587,7 +612,7 @@ def start_session(host, path):
                 with open(logged) as failed:
                     lines = failed.read().strip().splitlines()
                 last = lines[-1] if lines else 'timed out after %d s' % START_TIMEOUT
-                raise Refused('could not reach %s screen: %s' % (host, last[len('mac: '):] if last.startswith('mac: ') else last))
+                raise Lost('could not reach %s screen: %s' % (host, last[len('mac: '):] if last.startswith('mac: ') else last))
             time.sleep(0.2)
 
 
@@ -607,7 +632,7 @@ def ask(host, request, retried=False):
             if os.path.exists(path):
                 os.remove(path)
     else:
-        raise Refused('could not reach %s screen' % host)
+        raise Lost('could not reach %s screen' % host)
     if reply['ok']:
         return reply['text']
     if reply['did'] == 'nothing' and not retried:
@@ -679,8 +704,8 @@ def hosts():
 LINUX_ENV = 'eval "$(%s env 2> /dev/null)"\n' % DESKTOP
 
 
-def run(host, words):
-    command = ' '.join(words) if words else sys.stdin.read()
+def run(host, words, stdin=''):
+    command = ' '.join(words) if words else stdin
     if system_of(host) == 'linux':
         command = LINUX_ENV + command
     try:
@@ -1099,6 +1124,229 @@ def guard_password(host):
         raise Refused('the keyboard focus on %s is in a password field or macOS\'s password prompt: Aaron types it himself, never you' % host)
 
 
+# Control sessions: from the first command that uses a machine's screen or shell until `mac <host> done`, its
+# connection closing, or CONTROL_IDLE seconds without a command, the last of which also covers a turn that ended,
+# crashed or was cut short by a restart of butler, since nothing tells mac a turn is over. On a Mac, Butler sits at
+# the top right of the screen all that time, through the butler-overlay command jimbo's butler-access module installs,
+# with up to three speech bubbles: butler's own words from `say`, or a terse note of what an action does when he has
+# said nothing lately. Every action and bubble goes to the audit trail in butler's memory, `audit/mac/YYYY-MM-DD.md`,
+# through memory-audit, which butler cannot edit. The overlay protocol, show, say, act and hide, names no platform, so
+# jimbo can gain one later; for now only the Macs have it.
+
+SECRET_WORD = re.compile(r'(?i)\b(pass(?:word|wd|phrase|code)?|pin|otp|secret|token|api[_-]?key|auth(?:orization)?|bearer|cookie|credentials?)\b(\s*[:=]\s*|\s+)(\S+)')
+
+
+def redact(text):
+    """Text as one line, with anything that looks like a secret cut out, for a bubble or the audit trail."""
+    text = SECRET_WORD.sub(lambda match: match.group(1) + match.group(2) + '[redacted]', ' '.join(text.split()))
+    words = []
+    for word in text.split(' '):
+        bare = word.strip('"\',;()[]{}')
+        if (len(bare) >= 24 and not bare.startswith(('/', '~', '.', 'http'))
+                and re.fullmatch(r'[A-Za-z0-9+/_=.-]+', bare) and re.search(r'\d', bare) and re.search(r'[A-Za-z]', bare)):
+            word = word.replace(bare, '[redacted]')
+        words.append(word)
+    return ' '.join(words)
+
+
+def clip(text, limit):
+    return text if len(text) <= limit else text[:limit - 1].rstrip() + '…'
+
+
+def command_name(words, stdin):
+    command = ' '.join(words) if words else stdin
+    first = command.split()[0] if command.split() else 'a script'
+    return clip(redact(os.path.basename(first)), 40)
+
+
+def describe(verb, args, stdin):
+    """What an action did, for the audit trail; never what was typed, and a shell command only with secrets cut."""
+    if verb == 'type':
+        return 'type (%d characters, not logged)' % len(' '.join(args) if args else stdin)
+    if verb == 'run':
+        command = ' '.join(args) if args else stdin
+        return 'run: ' + clip(redact(command), 300)
+    return ' '.join([verb] + list(args))
+
+
+def narrate(verb, args, stdin):
+    """A terse, honest bubble for an action, or None; never the text typed or a whole script."""
+    if verb == 'look':
+        return None
+    if verb == 'click':
+        how = args[2] if len(args) > 2 else 'left'
+        return '%s at %s, %s' % ({'left': 'Clicking', 'double': 'Double-clicking', 'right': 'Right-clicking', 'middle': 'Middle-clicking'}[how], args[0], args[1])
+    if verb == 'move':
+        return 'Moving the pointer'
+    if verb == 'drag':
+        return 'Dragging from %s, %s to %s, %s' % tuple(args[:4])
+    if verb == 'scroll':
+        return 'Scrolling %s' % args[2]
+    if verb == 'type':
+        return 'Typing…'
+    if verb == 'key':
+        return 'Pressing ' + ', '.join(args)
+    if verb == 'windows':
+        return 'Checking the open windows'
+    if verb == 'run':
+        return 'Running %s' % command_name(args, stdin)
+    if verb == 'record':
+        return 'Recording the screen' if args[:1] == ['start'] else 'Stopping the recording'
+    return None
+
+
+def control_file(host):
+    return os.path.join(CONTROL, host + '.json')
+
+
+class Locked:
+    def __enter__(self):
+        os.makedirs(CONTROL, exist_ok=True)
+        self.file = open(os.path.join(CONTROL, 'lock'), 'w')
+        fcntl.flock(self.file, fcntl.LOCK_EX)
+
+    def __exit__(self, *_):
+        self.file.close()
+
+
+def load(host):
+    try:
+        with open(control_file(host)) as state:
+            return json.load(state)
+    except (FileNotFoundError, ValueError):
+        return None
+
+
+def save(host, state):
+    with open(control_file(host) + '.new', 'w') as out:
+        json.dump(state, out)
+    os.replace(control_file(host) + '.new', control_file(host))
+
+
+def audit(lines):
+    """Spools lines for audit/mac in butler's memory, then has memory-audit commit them in the background."""
+    if not lines:
+        return
+    os.makedirs(STATE, exist_ok=True)
+    day, clock = time.strftime('%Y-%m-%d'), time.strftime('%H:%M:%S %z')
+    with open(AUDIT_SPOOL, 'a') as spool:
+        fcntl.flock(spool, fcntl.LOCK_EX)
+        for host, text in lines:
+            spool.write('%s\t%s %s %s\n' % (day, clock, host, ' '.join(text.split())))
+    try:
+        subprocess.Popen([MEMORY_AUDIT, 'mac', AUDIT_SPOOL], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        pass
+
+
+def overlay(host, verb, text=''):
+    """Tells the Mac's overlay to show Butler, show a bubble or hide; quietly nothing on a Mac not switched to it yet."""
+    if HOSTS[host].get('os') != 'macos':
+        return False
+    try:
+        result = remote(host, '%s %s %s' % (OVERLAY, verb, shlex.quote(text)), timeout=10)
+    except subprocess.TimeoutExpired:
+        return False
+    return result.returncode == 0
+
+
+def sweep(lines, now):
+    """Ends every control session that went quiet, such as one a restart of butler cut off before its watcher ran."""
+    try:
+        names = os.listdir(CONTROL)
+    except FileNotFoundError:
+        return
+    for name in names:
+        if name.endswith('.json') and name[:-5] in HOSTS:
+            state = load(name[:-5])
+            if state and now - state['last'] > CONTROL_IDLE:
+                os.remove(control_file(name[:-5]))
+                lines.append((name[:-5], 'end of control (idle timeout), %d s' % (state['last'] - state['started'])))
+
+
+def take(host, what, bubble=None, spoken=False, opening=None):
+    """Records one command in host's control session, starting one when none is live, and shows it on the overlay."""
+    lines = []
+    now = time.time()
+    with Locked():
+        sweep(lines, now)
+        state = load(host)
+        starting = state is None
+        if starting:
+            state = {'id': '%d-%d' % (now * 1000, os.getpid()), 'started': now, 'said': 0, 'auto': '', 'autoAt': 0}
+            lines.append((host, 'start of control'))
+            bubble = bubble or opening
+        state['last'] = now
+        shown = None
+        if spoken:
+            shown = bubble
+            state['said'] = now
+        elif bubble and now - state['said'] > QUIET_AFTER_SAY and not (bubble == state['auto'] and now - state['autoAt'] < QUIET_AFTER_SAY):
+            shown = bubble
+            state['auto'], state['autoAt'] = bubble, now
+        lines.append((host, what + (' | bubble: "%s"' % shown if shown else '')))
+        save(host, state)
+    audit(lines)
+    if starting:
+        subprocess.Popen([sys.argv[0], host, 'watch', state['id']], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+    return overlay(host, 'say' if spoken else 'act' if shown else 'show', shown or '')
+
+
+def end(host, reason, session=None, idle_only=False, hide=True):
+    """Ends host's control session, if one is live, and fades the overlay out."""
+    with Locked():
+        state = load(host)
+        if state is None or (session and state['id'] != session):
+            return False
+        if idle_only and time.time() - state['last'] <= CONTROL_IDLE:
+            return False
+        os.remove(control_file(host))
+    audit([(host, 'end of control (%s), %d s' % (reason, time.time() - state['started']))])
+    if hide:
+        try:
+            overlay(host, 'hide')
+        except Refused:
+            pass
+    return True
+
+
+def watch(host, session):
+    """Waits beside a control session, and ends it once it has been idle for CONTROL_IDLE seconds."""
+    while True:
+        state = load(host)
+        if state is None or state['id'] != session:
+            return
+        wait = state['last'] + CONTROL_IDLE - time.time()
+        if wait < 0 and end(host, 'idle timeout', session=session, idle_only=True):
+            return
+        time.sleep(max(wait, 0) + 1)
+
+
+def say(host, words):
+    text = clip(redact(' '.join(words) if words else sys.stdin.read()), SAY_LIMIT)
+    if not text:
+        raise Refused('say takes what to say, as args or on stdin')
+    if take(host, 'say', text, spoken=True):
+        print('said on %s: "%s"' % (host, text))
+    elif HOSTS[host].get('os') == 'macos':
+        print('logged, but %s showed no bubble: it has no butler-overlay until Aaron switches it to jimbo' % host)
+    else:
+        print('logged; %s has no overlay yet, so nothing was shown' % host)
+
+
+def done(host):
+    if end(host, 'done'):
+        print('handed %s back to Aaron; Butler has left its screen' % host)
+        return
+    try:
+        overlay(host, 'hide')
+    except Refused:
+        pass
+    print('was not in control of %s; hid its overlay anyway' % host)
+
+
 def main():
     args = sys.argv[1:]
     if args[:1] == ['hosts']:
@@ -1110,39 +1358,72 @@ def main():
         print('hosts: ' + ', '.join(HOSTS), file=sys.stderr)
         return 2
     host, verb, rest = args[0], args[1], args[2:]
-    if verb == 'run':
-        journal(host, 'run ' + (' '.join(rest) or '(script on stdin)'))
-        return run(host, rest)
-    if verb == 'windows':
-        return windows(host)
-    if verb == 'record':
-        return record(host, rest[0] if rest else '')
-    if verb == 'keepawake':
-        return keepawake(host, rest[0] if rest else 'status')
-    if verb == 'sleep':
-        return keepawake(host, 'sleep')
-    if verb == 'boot':
-        return boot(host, rest)
     if verb == 'serve':
         return serve(host)
+    if verb == 'watch':
+        return watch(host, rest[0])
+    if verb == 'record' and rest[:1] == ['loop']:
+        return record(host, 'loop')
+    try:
+        return act_on(host, verb, rest)
+    except Lost as error:
+        end(host, 'connection closed: %s' % clip(str(error), 120), hide=False)
+        raise
+
+
+def act_on(host, verb, rest):
+    if verb == 'say':
+        return say(host, rest)
+    if verb == 'done':
+        return done(host)
+    if verb == 'run':
+        stdin = '' if rest else sys.stdin.read()
+        journal(host, describe('run', rest, stdin))
+        take(host, describe('run', rest, stdin), narrate('run', rest, stdin))
+        return run(host, rest, stdin)
+    if verb == 'windows':
+        take(host, 'windows', narrate('windows', rest, ''))
+        return windows(host)
+    if verb == 'record':
+        if rest[:1] in (['start'], ['stop']):
+            take(host, 'record ' + rest[0], narrate('record', rest, ''))
+        return record(host, rest[0] if rest else '')
+    if verb == 'keepawake':
+        if rest[:1] in (['on'], ['off']):
+            audit([(host, 'keepawake ' + rest[0])])
+        return keepawake(host, rest[0] if rest else 'status')
+    if verb == 'sleep':
+        audit([(host, 'sleep')])
+        return keepawake(host, 'sleep')
+    if verb == 'boot':
+        if rest[1:] == ['confirm']:
+            audit([(host, 'boot ' + ' '.join(rest))])
+        return boot(host, rest)
     if verb == 'menu':
+        take(host, 'menu ' + ' > '.join(rest), clip(redact('Choosing ' + ' > '.join(rest[1:]) if rest[1:] else 'Reading the menus of ' + ' '.join(rest[:1])), 80))
         if menu(host, rest):
             print(after(host))
         return
     if verb == 'dialog':
+        take(host, 'dialog ' + ' '.join(rest), 'Reading the dialog')
         print(helper(host, 'dialog', {'app': rest[0] if rest else 'front'}))
         return
     if verb in ('press', 'focus'):
+        take(host, '%s %s' % (verb, redact(' '.join(rest))), '%s %s' % ('Pressing' if verb == 'press' else 'Moving to', clip(redact(' '.join(rest[:1])), 60)))
         press_or_focus(host, verb, rest)
         if verb == 'press':
             print(after(host))
         return
     if verb == 'displays':
+        take(host, 'displays', 'Checking the displays')
         displays(host)
         return
     if verb == 'display':
+        clicking = rest[1:2] == ['click']
+        take(host, 'display ' + ' '.join(rest), 'Clicking on display %s' % rest[0] if clicking and rest else None)
         return display(host, rest)
     if verb == 'window':
+        take(host, 'window ' + ' '.join(rest), 'Arranging the window')
         return window(host, rest)
     if verb not in ACTIONS:
         print(USAGE, file=sys.stderr)
@@ -1154,6 +1435,7 @@ def main():
         raise Refused('type sends Latin-1 only, not %s; on a Mac run pbcopy with the text on stdin, then key cmd-v; on Linux run wl-copy with it, then key ctrl-v' % ' '.join(wide))
     if verb == 'type' and system_of(host) == 'macos':
         guard_password(host)
+    take(host, describe(verb, rest, stdin), narrate(verb, rest, stdin), opening='Taking a look at the screen')
     print(ask(host, {'verb': verb, 'args': rest, 'stdin': stdin}))
 
 
