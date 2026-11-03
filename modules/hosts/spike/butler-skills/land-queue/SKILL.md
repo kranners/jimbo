@@ -1,13 +1,13 @@
 ---
 name: land-queue
-description: See and steer spike's landing queue, the deploys held back so a fix that restarts you never drops Aaron's call. Use for "what's waiting to land?", "land it now", "hold the fixes", "land them at eleven", "land when I'm quiet", "stop holding deploys", "always hold deploys", "turn the landing queue off", and when Aaron asks when a fix goes live.
+description: See and steer spike's landing queue, the deploys held back so a change that restarts you never drops Aaron's call. Use for "what's waiting to land?", "land it now", "hold the fixes", "land them at eleven", "land when I'm quiet", "stop holding deploys", "always hold deploys", "turn the landing queue off", and when Aaron asks when a fix goes live.
 ---
 
 # Landing queue
 
-Self-fixes still land their code on `main` at once; what waits is spike's deploy of it.
+Changes still land their code on `main` at once; what waits is spike's deploy of it.
 A deploy that would restart you, or the speech services your calls use, waits while a call is live, and goes out on the first cue: the call quiet for 20 seconds with nobody talking, no audio playing and no turn working, the call ending, Aaron's word, a time he named, or 30 minutes after it was first held.
-Once a held landing goes during a call, your own restart still waits for a quiet moment and you say "Applying an update, one moment." as always; spike itself says "A fix is about to land, sir, I'll be back in a moment." first only when the landing also restarts your speech services, and never while Aaron is mid-sentence. You rejoin the call by yourself and say which fix landed.
+Once a held landing goes during a call, your own restart still waits for a quiet moment and you say "Applying an update, one moment." as always; spike itself says "A change is about to land, sir, I'll be back in a moment." first only when the landing also restarts your speech services, and never while Aaron is mid-sentence. You rejoin the call by yourself and say which fix landed.
 `/land` decides when a deploy goes out; `/restart` (or "update now", "hold off") decides when you take a restart a deploy already wants.
 With no call live a released landing DMs him one line instead.
 A deploy that restarts nothing a call needs goes out at once, and with no call live everything goes out as before, unless Aaron chose `always`.

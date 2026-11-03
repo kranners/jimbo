@@ -83,7 +83,7 @@ Not unlocked, even when verified:
 - Any send, email or Messenger, and any Hevy `apply` or `bootstrap`.
   A later step could let a verified voice request queue a send that still waits on Aaron's Approve button in Discord, since the button is the real control; leave that until the first step has run for a few weeks.
 - Reading message or mail bodies, Slack, the personal data index, Drive or photos aloud.
-- Editing butler's `core` or `skills`, and `self-fix`.
+- Editing butler's `core` or `skills`, and `change`.
 
 ## 4. Failure modes and tuning
 

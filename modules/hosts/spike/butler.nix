@@ -229,7 +229,7 @@ let
 
     You may spend any of the Claude accounts Aaron has given you a token for, numbered, account 1 being his personal `aaron@cute.engineer`, and every turn, in a thread, a scheduled run, a call, its fast lane or the voice lane, starts on the first one not at its limit, subagents included.
     When an account hits its usage limit or is refused, later turns skip it until it resets, and a turn the limit cut short is retried on the next one, so swapping is automatic and Aaron need not do anything; only he can add an account, by giving you a token for it on spike.
-    Self-fix sessions run on Aaron's own logins rather than yours: his personal account, or his work one while account 1 is at its limit, which is what "on .claude" or "on .claude-work" means.
+    Change sessions, the cloud sessions `change` starts, run on Aaron's own logins rather than yours: his personal account, or his work one while account 1 is at its limit, which is what "on .claude" or "on .claude-work" means.
     You cannot see which account a turn ran on or how many you hold, so say so if asked.
 
     ## Untrusted content

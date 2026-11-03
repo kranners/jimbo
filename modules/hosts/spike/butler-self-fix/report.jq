@@ -1,4 +1,4 @@
-# Turns a finished self-fix's final message into the standard report: the summary before it and what Aaron must do as text, and the card as HTML for `render html`, or nothing when the message has no report.
+# Turns a finished change's final message into the standard report: the summary before it and what Aaron must do as text, and the card as HTML for `render html`, or nothing when the message has no report.
 # The session ends its message with lines `Changed:`, `Before:`, `After:`, `Ready:`, `Go live:`, `Aaron must:` and `Commit:`, as butler-self-fix's preamble asks.
 def labels: ["Changed", "Before", "After", "Ready", "Go live", "Aaron must", "Commit"];
 def items: split(";") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0));
@@ -48,7 +48,7 @@ li::before { position: absolute; left: 4px; top: 7px; width: 24px; height: 24px;
 .when b { color: #8a6418; }
 .foot { margin-top: 22px; padding-top: 12px; border-top: 1px solid #d8c9a8; font: 14px/1.3 ui-monospace, \"DejaVu Sans Mono\", monospace; color: #7a6a4e; }
 </style></head><body><div class=\"card\">
-<div class=\"hero\" style=\"background-image: url('\($mood)')\"><div class=\"band\"><div class=\"kicker\">Self-fix landed</div><h1>\($title | @html)</h1></div></div>
+<div class=\"hero\" style=\"background-image: url('\($mood)')\"><div class=\"band\"><div class=\"kicker\">Change landed</div><h1>\($title | @html)</h1></div></div>
 <div class=\"body\">
 <h2>What changed</h2><p class=\"changed\">\(.Changed | @html)</p>
 \(if .Before and .After then "<div class=\"ba\"><div class=\"side before\"><span class=\"tag\">Before</span>\(.Before | @html)</div><div class=\"arrow\">➜</div><div class=\"side after\"><span class=\"tag\">Now</span>\(.After | @html)</div></div>" else "" end)

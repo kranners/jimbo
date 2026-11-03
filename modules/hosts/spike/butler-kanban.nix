@@ -91,9 +91,9 @@ in
     skill = ./butler-skills/kanban;
   };
 
-  # One card per self-fix on the board, refreshed as butler-self-fix-progress reads each session.
+  # One card per change on the board, refreshed as butler-self-fix-progress reads each session.
   systemd.services.butler-kanban-sync = {
-    description = "Mirror butler's self-fixes onto Aaron's kanban board on pilot";
+    description = "Mirror butler's changes onto Aaron's kanban board on pilot";
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
     serviceConfig = {
@@ -102,7 +102,7 @@ in
       Environment = "KANBAN_KNOWN_HOSTS=/var/lib/butler-kanban/known_hosts";
       LoadCredential = "butler-mac-key:/var/lib/secrets/butler-mac-key";
       # A Mac asleep or a board stopped is no failure, so it waits for the next run.
-      ExecStart = "${lib.getExe kanban} self-fixes";
+      ExecStart = "${lib.getExe kanban} changes";
       SuccessExitStatus = [ 75 ];
     };
   };

@@ -1,7 +1,7 @@
-"""Spike's side of the self-fix probe.
+"""Spike's side of the change probe.
 
-A self-fix cloud session cannot reach spike, so it leaves signed bash scripts on
-the branch spike-probe/<self-fix id> of the private butler-memory repository,
+A change's cloud session cannot reach spike, so it leaves signed bash scripts on
+the branch spike-probe/<change id> of the private butler-memory repository,
 and this runner, polling from spike, runs each in the probe sandbox and pushes
 its output back to the same branch. Nothing connects in to spike.
 
@@ -124,12 +124,12 @@ def handle(fix: str, ref: str, budget: int) -> int:
         if len(script) > MAX_SCRIPT:
             status, text = "refused", f"spike-probe refused #{number}: the script is over {MAX_SCRIPT} bytes.\n"
         elif not hmac.compare_digest(sig, signature(key, fix, number, script)):
-            status, text = "refused", f"spike-probe refused #{number}: its signature does not match this self-fix's key.\n"
+            status, text = "refused", f"spike-probe refused #{number}: its signature does not match this change's key.\n"
         elif recent(fix) >= PER_HOUR:
-            status, text = "refused", f"spike-probe refused #{number}: this self-fix already ran {PER_HOUR} requests in the last hour; wait and send it again as a new request.\n"
+            status, text = "refused", f"spike-probe refused #{number}: this change already ran {PER_HOUR} requests in the last hour; wait and send it again as a new request.\n"
         else:
             status = "ran"
-            text = f"spike-probe #{number} for self-fix {fix}, run {stamp} on spike as butler-probe:\n" + run(fix, number, script)
+            text = f"spike-probe #{number} for change {fix}, run {stamp} on spike as butler-probe:\n" + run(fix, number, script)
             ran += 1
         (out / f"{number}.sh").write_bytes(script)
         (out / f"{number}.txt").write_text(text)
@@ -214,7 +214,7 @@ def main() -> None:
         case ["poll"]:
             poll()
         case _:
-            print("usage: runner.py key <self-fix id> | runner.py poll", file=sys.stderr)
+            print("usage: runner.py key <change id> | runner.py poll", file=sys.stderr)
             sys.exit(2)
 
 

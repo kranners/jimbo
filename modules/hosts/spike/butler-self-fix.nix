@@ -14,7 +14,7 @@ let
   refresh = "${selfFix}/refresh";
   progress = "${selfFix}/progress";
   watch = "${selfFix}/watch";
-  # Archive requests, from `self-fix archive` or a card closed on the board, and what became of them.
+  # Archive requests, from `change archive` or a card closed on the board, and what became of them.
   archive = "${selfFix}/archive";
   archived = "${selfFix}/archived";
   dismissed = "${selfFix}/dismissed";
@@ -24,9 +24,9 @@ let
   runnerHome = config.users.users.backlogic-runner.home;
   launchFrom = "${aaron}/workspace/jimbo";
   personalCooldown = "${home}/.claude-accounts/cooldown/1";
-  # Butler's mood pictures, one attached to every self-fix DM by its state, `fixed` made for a fix that landed.
+  # Butler's mood pictures, one attached to every change's DM by its state, `fixed` made for a change that landed.
   moods = ../../../assets/butler/moods;
-  # The spike probe's paragraph, with this fix's own key, while butler-probe.nix has it on.
+  # The spike probe's paragraph, with this change's own key, while butler-probe.nix has it on.
   probeBrief =
     if config.butler.selfFixProbe.brief == null then
       "true"
@@ -34,7 +34,7 @@ let
       ''${lib.getExe config.butler.selfFixProbe.brief} "$id"'';
 
   preamble = pkgs.writeText "butler-self-fix-preamble.md" ''
-    You are butler's self-fix session. Butler is Aaron's personal assistant bot: the claude-discord-threads daemon, run on the NixOS host spike as the system user butler, configured by this jimbo flake (modules/hosts/spike/butler*.nix and butler-skills/), with its memory, skills and scheduled prompts in kranners/butler-memory and its personal data index and life command in kranners/butler, jimbo's flake input butler.
+    You are a change session butler started, a cloud session that does one piece of Aaron's work and lands it. Butler is Aaron's personal assistant bot: the claude-discord-threads daemon, run on the NixOS host spike as the system user butler, configured by this jimbo flake (modules/hosts/spike/butler*.nix and butler-skills/), with its memory, skills and scheduled prompts in kranners/butler-memory and its personal data index and life command in kranners/butler, jimbo's flake input butler.
     You start in kranners/jimbo. For kranners/claude-discord-threads, kranners/butler-memory or kranners/butler, call add_repo, with access "push" for a repository you change; jimbo's flake check needs read access to kranners/butler.
     Nobody watches this session and Aaron is told when it ends, so never stop to ask.
 
@@ -45,7 +45,7 @@ let
     - butler-memory: plain files butler reads; butler-memory-pull brings main to spike within 5 minutes.
     - butler: follow its CLAUDE.md and check with `nix flake check`. It goes live once jimbo's lock moves: in jimbo run `nix flake update butler`, then land that on jimbo's main.
 
-    Other self-fixes and Aaron's own sessions change the same repositories at the same time, so coordinate with them through spike's builders in flight digest, given under "Other builders in flight" at the end of this brief and kept current, every couple of minutes, in coordination/builders.md on the main of kranners/butler-memory, which add_repo lets you read:
+    Other changes and Aaron's own sessions change the same repositories at the same time, so coordinate with them through spike's builders in flight digest, given under "Other builders in flight" at the end of this brief and kept current, every couple of minutes, in coordination/builders.md on the main of kranners/butler-memory, which add_repo lets you read:
     - First, state your intent in one or two lines in a .builder-intent file and push it alone to your designated working branch, which the digest shows the others: `git add -f .builder-intent && git commit -m "Builder intent" && git push -u origin HEAD && git reset --hard HEAD~1`, so it never reaches main.
     - Read the digest before you edit and again right before you push or land, then rebase onto the current main of each repository you change and check again.
     - Where another fix or session changes the same file or a shared design, such as access, auth, the iPad WireGuard peer, the kanban transport or approvals, the later one reconciles with the earlier one's work, and your final summary names each conflicting or dependent fix and says how you reconciled with it.
@@ -68,8 +68,8 @@ let
 
   '';
 
-  self-fix = pkgs.writeShellApplication {
-    name = "self-fix";
+  change = pkgs.writeShellApplication {
+    name = "change";
     runtimeInputs = [
       pkgs.coreutils
       pkgs.findutils
@@ -79,11 +79,11 @@ let
     ];
     text = ''
       usage() {
-        echo "usage: self-fix start (the request on stdin) | self-fix status <id> | self-fix list | self-fix archive <id>" >&2
+        echo "usage: change start (the request on stdin) | change status <id> | change list | change archive <id>" >&2
         exit 2
       }
 
-      # What was done to a fix from the board or by archive, for status and list.
+      # What was done to a change from the board or by archive, for status and list.
       closed() {
         cat "${archived}/$1" "${dismissed}/$1" 2>/dev/null || true
         if [ -e "${archive}/$1" ] && [ ! -e "${archived}/$1" ]; then
@@ -100,19 +100,19 @@ let
             cat "${archived}/$id"
             exit 0
           fi
-          [ -e "${sessions}/$id" ] || [ -e "${queue}/$id.json" ] || { echo "No self-fix $id." >&2; exit 1; }
+          [ -e "${sessions}/$id" ] || [ -e "${queue}/$id.json" ] || { echo "No change $id." >&2; exit 1; }
           echo butler > "${archive}/$id"
           [ ! -e "${sessions}/$id" ] || touch "${refresh}/$id"
-          echo "Asked spike to archive self-fix $id; its cloud session is archived, and its card on the board marked archived, within a few minutes."
+          echo "Asked spike to archive change $id; its cloud session is archived, and its card on the board marked archived, within a few minutes."
           ;;
         start)
           [ "$#" -eq 1 ] || usage
           request=$(cat)
-          [ -n "''${request//[[:space:]]/}" ] || { echo "self-fix start needs the request on stdin" >&2; exit 2; }
+          [ -n "''${request//[[:space:]]/}" ] || { echo "change start needs the request on stdin" >&2; exit 2; }
           id="$(date +%Y%m%d-%H%M%S)-$$"
           jq -n --arg request "$request" '{request: $request}' > "${queue}/$id.json.tmp"
           mv "${queue}/$id.json.tmp" "${queue}/$id.json"
-          echo "Queued self-fix $id. Its cloud session starts within a minute; read its link with: self-fix status $id"
+          echo "Queued change $id. Its cloud session starts within a minute; read its link with: change status $id"
           ;;
         status)
           [ "$#" -eq 2 ] || usage
@@ -141,17 +141,17 @@ let
           elif [ -e "${queue}/$id.json" ]; then
             echo "Still starting."
           else
-            echo "No self-fix $id." >&2
+            echo "No change $id." >&2
             exit 1
           fi
           ;;
         list)
           [ "$#" -eq 1 ] || usage
-          # Every self-fix asked for in the last 7 days, newest first, from the records start and the launcher leave behind.
+          # Every change asked for in the last 7 days, newest first, from the records start and the launcher leave behind.
           mapfile -t ids < <(find "${sessions}" "${queue}" -mindepth 1 -maxdepth 1 -mtime -7 -printf '%f\n' |
             sed 's/\.json$//' | grep -E '^[0-9]{8}-[0-9]{6}-[0-9]+$' | sort -ru || true)
           if [ "''${#ids[@]}" -eq 0 ]; then
-            echo "No self-fixes in the last 7 days."
+            echo "No changes in the last 7 days."
             exit 0
           fi
           asked=$(date +%s)
@@ -174,7 +174,7 @@ let
             sleep 1
           done
           for id in "''${ids[@]}"; do
-            echo "Self-fix $id"
+            echo "Change $id"
             if [ ! -e "${sessions}/$id" ]; then
               echo "State: still starting"
             elif ! grep -q '^Started ' "${sessions}/$id"; then
@@ -198,6 +198,43 @@ let
       esac
     '';
   };
+
+  # `self-fix` is the old name of `change`: it says so in a line of its own, then runs `change` with the same arguments and stdin.
+  selfFixAlias = pkgs.writeShellApplication {
+    name = "self-fix";
+    text = ''
+      echo "(self-fix is now called change; use change next time.)"
+      exec ${lib.getExe change} "$@"
+    '';
+  };
+
+  # Who may run `change`, and how it is gated, which the `self-fix` alias shares exactly.
+  rules = [
+    {
+      match = [ "start" ];
+      lanes = [ "interactive" ];
+      egress = true;
+    }
+    {
+      match = [
+        "status"
+        "*"
+      ];
+      lanes = [ "interactive" ];
+    }
+    {
+      match = [ "list" ];
+      lanes = [ "interactive" ];
+    }
+    {
+      match = [
+        "archive"
+        "*"
+      ];
+      lanes = [ "interactive" ];
+      egress = true;
+    }
+  ];
 
   cloudFromFile = pkgs.writeShellScript "claude-cloud-from-file" ''
     exec ${lib.getExe pkgs.claude-code} --cloud="$(cat "$1")" --permission-mode auto
@@ -268,7 +305,7 @@ let
           jq -r .request "$request"
           ${probeBrief}
           if [ -s "${digest}" ]; then
-            printf '\n\nOther builders in flight (read before you edit; coordinate and rebase). You are self-fix %s, listed as queued:\n\n' "$id"
+            printf '\n\nOther builders in flight (read before you edit; coordinate and rebase). You are change %s, listed as queued:\n\n' "$id"
             cat "${digest}"
           fi
         } > "$work/prompt"
@@ -285,11 +322,11 @@ let
         if [ -n "$session" ]; then
           echo "Started https://claude.ai/code/$session on $(basename "$config")" > "${sessions}/$id"
           touch "${watch}/$id"
-          printf 'Self-fix started: %s\nhttps://claude.ai/code/%s\n' "$(jq -r '.request | split("\n") | map(select(test("\\S"))) | first // "" | .[:120]' "$request")" "$session" |
+          printf 'Change started: %s\nhttps://claude.ai/code/%s\n' "$(jq -r '.request | split("\n") | map(select(test("\\S"))) | first // "" | .[:120]' "$request")" "$session" |
             butler-notify ${moods}/diligent.webp > /dev/null || true
         else
           echo "Could not start a cloud session: $(sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' "$work/log" | tr -s '\r\n ' ' ' | tail -c 400)" > "${sessions}/$id"
-          printf 'Self-fix couldn'"'"'t start (%s): %s\n' "$id" "$(tail -c 300 "${sessions}/$id")" |
+          printf 'Change couldn'"'"'t start (%s): %s\n' "$id" "$(tail -c 300 "${sessions}/$id")" |
             butler-notify ${moods}/concerned.webp > /dev/null || true
         fi
         chown butler: "${sessions}/$id"
@@ -378,21 +415,21 @@ let
           finished* | archived | "failed to start"*)
             # A few plain lines for his phone: what happened, the session's own short summary, clipped, and the link.
             case "$state" in
-              "finished with an error") headline="Self-fix hit a problem: $title" mood=apologetic ;;
-              finished) headline="Self-fix done: $title" mood=content ;;
-              archived) headline="Self-fix closed: $title" mood=content ;;
-              *) headline="Self-fix couldn't start: $title" mood=concerned ;;
+              "finished with an error") headline="Change hit a problem: $title" mood=apologetic ;;
+              finished) headline="Change done: $title" mood=content ;;
+              archived) headline="Change closed: $title" mood=content ;;
+              *) headline="Change couldn't start: $title" mood=concerned ;;
             esac
             summary=$(sed -n 's/^Final summary[^:]*: //p' "${progress}/$id")
             [ -n "$summary" ] || [ "$state" = "''${state#failed to start: }" ] || summary=''${state#failed to start: }
-            # A landed fix's report becomes the standard card, rendered as butler, and the text keeps to its summary and what Aaron must do.
+            # A landed change's report becomes the standard card, rendered as butler, and the text keeps to its summary and what Aaron must do.
             if [ "$state" = finished ] &&
               jq -n --slurpfile events "$work/events" --rawfile mood ${fixedMood} --arg title "$title" \
                 -f ${./butler-self-fix/report.jq} > "$work/report.json" && [ -s "$work/report.json" ]; then
               # It landed, so it shows `fixed`: inside the card, or on its own when the card cannot be drawn.
               mood=fixed
               card=$(jq -r .html "$work/report.json" | runuser -u butler -- env HOME=${home} ${render} html 760) ||
-                { echo "Could not render self-fix $id's report card; sending the fixed picture alone" >&2; card=""; }
+                { echo "Could not render change $id's report card; sending the fixed picture alone" >&2; card=""; }
               summary=$(jq -r .prose "$work/report.json")
               todo=$(jq -r .todo "$work/report.json")
               [ -z "$todo" ] || summary="$summary"$'\n'"You need to: $todo"
@@ -405,8 +442,8 @@ let
             ;;
           "waiting on input"*)
             if [ "$(cat "${watch}/$id")" != "$state" ]; then
-              printf 'Self-fix needs you: %s\nIt is waiting on you to answer or approve something.\n%s\n' "$title" "$link" | butler-notify ${moods}/curious.webp > /dev/null
-              printf 'A self-fix is waiting on you: %s\n' "''${title:0:150}" | butler-call-say --urgent --call-only > /dev/null || true
+              printf 'Change needs you: %s\nIt is waiting on you to answer or approve something.\n%s\n' "$title" "$link" | butler-notify ${moods}/curious.webp > /dev/null
+              printf 'A change is waiting on you: %s\n' "''${title:0:150}" | butler-call-say --urgent --call-only > /dev/null || true
               echo "$state" > "${watch}/$id"
             fi
             ;;
@@ -417,7 +454,7 @@ let
         fi
       }
 
-      # Archive each fix asked for, by `self-fix archive` or a card closed on the board, retrying on the next run when claude.ai refuses.
+      # Archive each change asked for, by `change archive` or a card closed on the board, retrying on the next run when claude.ai refuses.
       for request in "${archive}"/*; do
         [ -e "$request" ] || continue
         id=$(basename "$request")
@@ -439,7 +476,7 @@ let
           case "$code" in
             200 | 409) ;;
             *)
-              echo "Could not archive self-fix $id: HTTP $code" >&2
+              echo "Could not archive change $id: HTTP $code" >&2
               continue
               ;;
           esac
@@ -570,40 +607,25 @@ let
   };
 in
 {
-  butler.commands.self-fix = {
-    package = self-fix;
+  butler.commands.change = {
+    package = change;
     description = ''
-      Ask a cloud Claude Code session to fix or change butler itself (its jimbo config, the claude-discord-threads daemon or its memory) and land the fix, which then deploys on its own.
-      self-fix start (Aaron's request on stdin) | self-fix status <id> (the session's link once it starts, then its live state, recent activity, branch and final summary) | self-fix list (every self-fix of the last 7 days, newest first, with its id, title, state, last activity and link; use it when Aaron asks how his fixes are going without an id) | self-fix archive <id> (archive a fix's cloud session when Aaron asks to close or stop it; its board card follows)
+      Start a cloud Claude Code session that makes a change Aaron asks for, to butler itself (its jimbo config, the claude-discord-threads daemon or its memory) or to his other projects, and lands it, which then deploys on its own.
+      change start (Aaron's request on stdin) | change status <id> (the session's link once it starts, then its live state, recent activity, branch and final summary) | change list (every change of the last 7 days, newest first, with its id, title, state, last activity and link; use it when Aaron asks how his work is going without an id) | change archive <id> (archive a change's cloud session when Aaron asks to close or stop it; its board card follows)
     '';
     stdin = true;
-    rules = [
-      {
-        match = [ "start" ];
-        lanes = [ "interactive" ];
-        egress = true;
-      }
-      {
-        match = [
-          "status"
-          "*"
-        ];
-        lanes = [ "interactive" ];
-      }
-      {
-        match = [ "list" ];
-        lanes = [ "interactive" ];
-      }
-      {
-        match = [
-          "archive"
-          "*"
-        ];
-        lanes = [ "interactive" ];
-        egress = true;
-      }
-    ];
-    skill = ./butler-skills/self-fix;
+    inherit rules;
+    skill = ./butler-skills/change;
+  };
+
+  # The old name, kept working for briefs and sessions from before the rename, with the same rules; remove it in a later change.
+  butler.commands.self-fix = {
+    package = selfFixAlias;
+    description = ''
+      Old name of change, kept working for now; use change instead.
+    '';
+    stdin = true;
+    inherit rules;
   };
 
   systemd.tmpfiles.rules = [
@@ -617,6 +639,8 @@ in
     "d ${archived} 0700 butler butler -"
     "d ${dismissed} 0700 butler butler -"
     "d ${briefs} 0700 root root 7d"
+    # The skill's link from before it was renamed `change`, which nothing replaces.
+    "r ${home}/.claude/skills/self-fix"
   ];
 
   systemd.paths.butler-self-fix-progress = {
@@ -649,7 +673,7 @@ in
   };
 
   systemd.services.butler-self-fix = {
-    description = "Start the cloud sessions butler queued to fix itself";
+    description = "Start the cloud sessions butler queued for Aaron's changes";
     path = [ "/run/current-system/sw" ];
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];

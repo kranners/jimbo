@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Runs the self-fix probe end to end without spike: a local bare repository stands in for
-# butler-memory, a scratch self-fix folder for butler's, and plain bash for the sandbox.
+# Runs the change probe end to end without spike: a local bare repository stands in for
+# butler-memory, a scratch change folder for butler's, and plain bash for the sandbox.
 # Usage: dry-run.sh   (needs git and python3; run from anywhere)
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
@@ -28,7 +28,7 @@ echo "== a signed request runs and its output comes back"
 out=$(echo 'echo hello from $(whoami); exit 3' | python3 "$here/spike-probe")
 echo "$out"
 grep -q "hello from" <<< "$out"
-grep -q "spike-probe #1 for self-fix $fix" <<< "$out"
+grep -q "spike-probe #1 for change $fix" <<< "$out"
 
 echo "== a second request gets the next number"
 out=$(echo 'echo second' | python3 "$here/spike-probe")

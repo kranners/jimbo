@@ -82,7 +82,7 @@ let
     '';
   };
 
-  # Printed after Aaron's request in each self-fix brief, with that fix's own key.
+  # Printed after Aaron's request in each change's brief, with that change's own key.
   brief = pkgs.writeShellApplication {
     name = "butler-probe-brief";
     runtimeInputs = [ pkgs.python3 ];
@@ -92,9 +92,9 @@ let
       cat <<EOF
 
 
-      Spike probe for this self-fix: you can run checks on spike itself.
+      Spike probe for this change: you can run checks on spike itself.
       Call add_repo for kranners/butler-memory with access "push", then run once, from the jimbo checkout: modules/hosts/spike/butler-probe/spike-probe init $id $key
-      That key is this fix's alone and stops working when this session ends; never print, commit or repeat it.
+      That key is this change's alone and stops working when this session ends; never print, commit or repeat it.
       Then \`modules/hosts/spike/butler-probe/spike-probe <<'SCRIPT' ... SCRIPT\` runs a bash script on spike as the unprivileged user butler-probe and prints its output within about a minute, each run stopping after 55 seconds, at most 30 an hour.
       It reads the system journal and systemctl status, has curl, git, jq and python3 and the internet, reaches on loopback only Prometheus :9090, Grafana :3001, Home Assistant :8123, backlogic :4200 and the Wyoming speech servers :10300 and :10200, and nothing on the LAN or WireGuard.
       It has no root, no sudo and none of butler's files, memory or credentials, so a butler command needing a credential cannot run there; any other can, from its store path in the manifest that DISCORD_COMMANDS_FILE in \`systemctl show butler -p Environment\` names.
@@ -107,12 +107,12 @@ in
 {
   options.butler.selfFixProbe = {
     enable = mkOption {
-      description = "Whether butler's self-fix cloud sessions may run sandboxed checks on spike, through signed requests spike pulls from butler-memory.";
+      description = "Whether butler's change cloud sessions may run sandboxed checks on spike, through signed requests spike pulls from butler-memory.";
       type = types.bool;
       default = true;
     };
     brief = mkOption {
-      description = "The command printing a self-fix brief's probe paragraph for an id, or null while the probe is off.";
+      description = "The command printing a change brief's probe paragraph for an id, or null while the probe is off.";
       type = types.nullOr types.package;
       default = null;
       internal = true;
@@ -131,7 +131,7 @@ in
     users.groups.${user} = { };
 
     systemd.sockets.butler-probe = {
-      description = "Socket the self-fix probe runs its sandboxed scripts through";
+      description = "Socket the change probe runs its sandboxed scripts through";
       wantedBy = [ "sockets.target" ];
       socketConfig = {
         ListenStream = socket;
@@ -144,7 +144,7 @@ in
     };
 
     systemd.services."butler-probe@" = {
-      description = "A self-fix session's check, run as ${user}";
+      description = "A change session's check, run as ${user}";
       path =
         (with pkgs; [
           bash
@@ -208,7 +208,7 @@ in
 
     # The master key never leaves spike; each fix gets a key derived from it and its id.
     systemd.services.butler-probe-key = {
-      description = "Generate the self-fix probe's master key once";
+      description = "Generate the change probe's master key once";
       unitConfig.ConditionPathExists = "!${masterKey}";
       serviceConfig.Type = "oneshot";
       script = ''
@@ -224,7 +224,7 @@ in
     };
 
     systemd.services.butler-probe-runner = {
-      description = "Run the checks live self-fix sessions left on their spike-probe branches, and push the output back";
+      description = "Run the checks live change sessions left on their spike-probe branches, and push the output back";
       wants = [
         "network-online.target"
         "butler-probe-key.service"
