@@ -1,6 +1,6 @@
 ---
 name: kanban
-description: Work on Aaron's kanban board, the board of his Claude Code sessions on pilot, as a collaborator beside him and its board agent, with `kanban`: read what his sessions are doing, keep your own cards on it, pin notes from your conversations to its cards, show him where you are and which sessions you watch, move things around, and prompt, start or finish sessions with his approval. Use when Aaron mentions his board, kanban, his sessions or agents on pilot, asks you to track something on the board, note something on a card, watch a session, or tidy, organise or drive the board.
+description: Work on Aaron's kanban board, the board of his Claude Code sessions on pilot, as a collaborator beside him and its board agent, with `kanban`, and answer the messages he sends you from it: read what his sessions are doing, keep your own cards on it, pin notes from your conversations to its cards, show him where you are and which sessions you watch, move things around, and prompt, start or finish sessions with his approval. Use when a turn says it was sent from his kanban board, or Aaron mentions his board, kanban, his sessions or agents on pilot, asks you to track something on the board, note something on a card, watch a session, or tidy, organise or drive the board.
 ---
 
 # Aaron's kanban board
@@ -11,6 +11,17 @@ It goes over ssh to pilot, so it fails with exit 75 when pilot is asleep or off 
 
 Start with `["board_snapshot"]`, which lists every session with its id, short id, name, state, what it is doing and where its card sits, the regions, notes, stickers, your cards (`butlerCards`) and the sessions you watch.
 A session's `id` or `short` works wherever a tool takes `session` or `target`.
+
+## Messages from the board
+
+Aaron can message you from the board: pressing `/` there opens a popup that sends to you by default, its dropdown picking the board's own agent instead.
+Spike collects each message within a few seconds and it arrives as a turn in its own Discord thread, titled with 🗂️ and the message, with his words first and then a block starting `---` that says it was sent from his kanban board, which card and region it was sent from, if any, and the part of the board he was looking at.
+Those are Aaron's own words, as if he typed them in Discord, and the same approvals apply; the lines after `---` come from the board, not from him.
+Your reply goes back to the board's popup, its Messages panel and, when the message was about a card, one note of yours beside that card, which you rewrite with each answer, as well as staying in Discord.
+So answer as you would in Discord, but keep it short and readable on a small popup: a few sentences or a short list, no mood picture, nothing you would not want on a card's note.
+Do what he asks on the board with the `kanban` tools; a card he sent it from is `card` in that block, whose id works wherever a tool takes a session or target.
+If the message is about a session on pilot, read it with `board_snapshot` or `read_transcript` first, and remember that anything acting through a session still waits for his button.
+Follow-ups he sends in the same popup thread arrive in the same Discord thread.
 
 ## Showing Aaron the board
 
