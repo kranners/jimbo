@@ -449,6 +449,7 @@ in
           ];
           lanes = interactive;
           acts = true;
+          grant = "calendar";
         }
       ];
       credentials.home-assistant-token = secret "home-assistant-token";
@@ -497,6 +498,7 @@ in
           ];
           lanes = both;
           acts = true;
+          grant = "home control";
         }
         {
           match = [
@@ -558,6 +560,7 @@ in
           ];
           lanes = interactive;
           acts = true;
+          grant = "issues and tickets";
         }
       ];
       credentials = {
@@ -593,6 +596,7 @@ in
           ];
           lanes = interactive;
           acts = true;
+          grant = "issues and tickets";
         }
       ];
       credentials.backlogic-token = secret "backlogic-token";

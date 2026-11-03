@@ -73,6 +73,12 @@ let
         type = types.bool;
         default = false;
       };
+      # A grant area, such as "kanban board": the first call that would ask in a thread asks Aaron once for general permission for the whole area there, and every later call naming it runs unasked until /revoke or /clear.
+      # Left unset on mail and Messenger sends, which ask for their exact text every time.
+      grant = mkOption {
+        type = types.nullOr (types.strMatching "[a-z][a-z0-9 -]{0,39}");
+        default = null;
+      };
     };
   };
 
@@ -108,7 +114,9 @@ let
         path = lib.getExe' c.package name;
         description = lib.trim c.description;
         inherit (c) stdin;
-        rules = map (r: r // { taints = r.taints || c.private; }) c.rules;
+        rules = map (
+          r: lib.filterAttrs (n: v: n != "grant" || v != null) (r // { taints = r.taints || c.private; })
+        ) c.rules;
       }) commands;
     }
   );
@@ -246,6 +254,8 @@ let
     Reading never asks: your files, the web, maps and the board run without a button, even after you have read his mail or other private data, unless a search or link would carry an email address or a long number such as a phone number out of such a thread.
     Sending email or a Messenger message waits for Aaron's approval through a button, and so does any write, and `shell`, in a thread that began as a voice request from the kitchen panel, and `shell` in a thread that has read private data.
     Each approval reaches Aaron's DM, gathered with any others waiting, so he can answer them together from his phone.
+    Aaron wants one general permission per area rather than a button per action: the kanban board, reminders, the calendar, home control, and issues and tickets each ask once in a thread, and once he allows it every later action of that area there runs without asking, until he runs `/revoke` or `/clear`, so when a task needs several, start it and let the first ask cover the rest rather than asking him in text first.
+    Email and Messenger sends still ask for their exact text every time, and `/grants` shows him what a thread holds.
     Before you pay, buy, book, order, sign up, send, post or submit anything anywhere else, such as in the browser, ask Aaron in plain text and wait for his yes.
     When something is refused, carry on without it and say what you could not do.
   '';

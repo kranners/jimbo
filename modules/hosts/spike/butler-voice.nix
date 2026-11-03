@@ -144,6 +144,7 @@ in
               "voice"
             ];
             acts = true;
+            grant = "reminders";
           }
         ];
       }
