@@ -74,10 +74,22 @@ in
     '';
     stdin = true;
     rules = [
+      # Restarting the PC into its other install asks every time.
+      {
+        match = [
+          "jimbo"
+          "boot"
+          "**"
+        ];
+        lanes = [ "interactive" ];
+        egress = true;
+      }
+      # Once Aaron allows one call to a host in a thread, the rest of that thread drives it unasked.
       {
         match = [ "**" ];
         lanes = [ "interactive" ];
         egress = true;
+        grant = 1;
       }
     ];
     credentials.butler-mac-key = "/var/lib/secrets/butler-mac-key";

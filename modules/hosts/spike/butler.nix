@@ -73,6 +73,11 @@ let
         type = types.bool;
         default = false;
       };
+      # Approved once per thread: after Aaron allows one call in a thread that read private data, later calls with the same first `grant` arguments run there unasked.
+      grant = mkOption {
+        type = types.nullOr types.ints.unsigned;
+        default = null;
+      };
     };
   };
 
@@ -108,7 +113,9 @@ let
         path = lib.getExe' c.package name;
         description = lib.trim c.description;
         inherit (c) stdin;
-        rules = map (r: r // { taints = r.taints || c.private; }) c.rules;
+        rules = map (
+          r: lib.filterAttrs (_: v: v != null) (r // { taints = r.taints || c.private; })
+        ) c.rules;
       }) commands;
     }
   );
