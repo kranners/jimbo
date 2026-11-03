@@ -1,0 +1,305 @@
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  inherit (lib) mkOption types;
+  cfg = config.butler.monitor;
+  defaults = import ./butler-monitor/defaults.nix;
+  state = "/var/lib/butler-monitor";
+  control = "/var/lib/butler-monitor-control";
+
+  peer =
+    name: lib.findFirst (peer: peer.name == name) null config.networking.wireguard.interfaces.wg0.peers;
+  addressOf = name: lib.removeSuffix "/32" (lib.head (peer name).allowedIPs);
+
+  # The machines reached over ssh with butler's Mac key, as `mac` reaches them; spike and framer come from Prometheus.
+  hosts = {
+    pilot = {
+      os = "macos";
+      address = addressOf "pilot";
+      user = "aaronpierce";
+    };
+    piggys-MBP = {
+      os = "macos";
+      address = addressOf "piggys-MBP";
+      user = "aaron";
+    };
+    jimbo.systems =
+      lib.optional (peer "jimbo" != null) {
+        os = "linux";
+        address = addressOf "jimbo";
+        user = "aaron";
+      }
+      ++ [
+        {
+          os = "windows";
+          address = addressOf "windows";
+          user = "aaron";
+        }
+      ];
+  };
+
+  monitorConfig = {
+    inherit state hosts;
+    inherit (cfg)
+      thresholds
+      alwaysOn
+      keepAwakeHosts
+      readOnlyHosts
+      defaultMode
+      keepGenerations
+      journalVacuum
+      snapshot
+      holdFile
+      ;
+    control = "${control}/mode";
+    textfile = "/var/lib/claude-limits/butler-monitor.prom";
+    prometheus = "http://127.0.0.1:${toString config.services.prometheus.port}";
+    prometheusHosts = [
+      "spike"
+      "framer"
+    ];
+    work = config.butler.work.snapshot;
+    limits = "/var/lib/claude-limits";
+    outbox = "${config.users.users.butler.home}/outbox";
+    group = "butler";
+    quiet = cfg.quietHours;
+    # Failed units of butler's own a run may restart once; never the daemon, its restarters, the landing queue or a change launch.
+    restartable = "butler-[a-z0-9-]+\\.service";
+    neverRestart = [
+      "butler.service"
+      "butler-self-fix.service"
+      "butler-restart.service"
+      "butler-restart-overdue.service"
+      "butler-land.service"
+      "butler-monitor.service"
+    ];
+    ssh = lib.getExe pkgs.openssh;
+    docker = "${config.virtualisation.docker.package}/bin/docker";
+    nixEnv = "${config.nix.package}/bin/nix-env";
+    nixStore = "${config.nix.package}/bin/nix-store";
+    journalctl = "${config.systemd.package}/bin/journalctl";
+    systemctl = "${config.systemd.package}/bin/systemctl";
+    tmpfiles = "${config.systemd.package}/bin/systemd-tmpfiles";
+    notify = "/run/current-system/sw/bin/butler-notify";
+    callSay = "/run/current-system/sw/bin/butler-call-say";
+  };
+
+  configFile = pkgs.writeText "butler-monitor.json" (builtins.toJSON monitorConfig);
+
+  monitor = pkgs.writers.writePython3Bin "butler-monitor" {
+    flakeIgnore = [
+      "E501"
+      "W503"
+      "W504"
+    ];
+  } (builtins.readFile ./butler-monitor/monitor.py);
+
+  # butler's view: the status and log to read, and the act switch to set, which only Aaron's words reach.
+  command = pkgs.writeShellApplication {
+    name = "monitor";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.jq
+    ];
+    text = ''
+      mode() { cat ${control}/mode 2> /dev/null || echo "${cfg.defaultMode} (the default)"; }
+      case "''${1:-status} ''${2:-}" in
+        "status ")
+          cat ${state}/status.txt 2> /dev/null || echo "The monitor has not run yet."
+          [ ! -e ${cfg.holdFile} ] || echo "New change sessions and runner launches are held: $(cat ${cfg.holdFile})"
+          ;;
+        "log ")
+          [ -f ${state}/actions.jsonl ] || { echo "Nothing done or planned yet."; exit 0; }
+          tail -n 20 ${state}/actions.jsonl | jq -r '"\(.at | strflocaltime("%a %d %b %H:%M")) [\(.result)] \(.line)"'
+          ;;
+        "act ") echo "Acting is $(mode). on takes the safe steps, dry-run only says what it would do, off neither." ;;
+        "act on" | "act off" | "act dry-run")
+          printf '%s\n' "$2" > ${control}/mode.tmp
+          mv ${control}/mode.tmp ${control}/mode
+          echo "Acting is now $2, from the monitor's next run within 2 minutes; warnings carry on either way."
+          ;;
+        *)
+          echo "usage: monitor [status] | monitor log | monitor act [on|off|dry-run]" >&2
+          exit 2
+          ;;
+      esac
+    '';
+  };
+
+  reads = [
+    "interactive"
+    "cron"
+    "call"
+  ];
+in
+{
+  options.butler.monitor = {
+    enable = mkOption {
+      description = "Whether butler-monitor watches the machines and resources every 2 minutes.";
+      type = types.bool;
+      default = true;
+    };
+    defaultMode = mkOption {
+      description = "Acting before Aaron chooses with `monitor act`: dry-run logs and reports what it would do.";
+      type = types.enum [
+        "on"
+        "off"
+        "dry-run"
+      ];
+      default = "dry-run";
+    };
+    thresholds = mkOption {
+      description = "Every limit the monitor judges by, in one place.";
+      type = types.attrsOf types.number;
+      default = defaults.thresholds;
+    };
+    alwaysOn = mkOption {
+      description = "Machines whose being down is urgent and repeats hourly; any other is told once per spell.";
+      type = types.listOf types.str;
+      default = [
+        "spike"
+        "framer"
+      ];
+    };
+    keepAwakeHosts = mkOption {
+      description = "Machines whose keep-awake the monitor turns back on when acting.";
+      type = types.listOf types.str;
+      default = [
+        "piggys-MBP"
+        "jimbo"
+      ];
+    };
+    readOnlyHosts = mkOption {
+      description = "Machines the monitor only reads, never acts on: pilot is Aaron's employer's.";
+      type = types.listOf types.str;
+      default = [ "pilot" ];
+    };
+    quietHours = mkOption {
+      description = "Between start and end only urgent notices go out; the rest wait for a summary at summary.";
+      type = types.attrsOf types.str;
+      default = defaults.quiet;
+    };
+    keepGenerations = mkOption {
+      type = types.int;
+      default = 5;
+    };
+    journalVacuum = mkOption {
+      type = types.str;
+      default = "500M";
+    };
+    snapshot = mkOption {
+      description = "The Machines snapshot, plain lines per machine and the open problems, readable by the group butler.";
+      type = types.str;
+      default = "${state}/machines.json";
+      readOnly = true;
+    };
+    holdFile = mkOption {
+      description = "Present while the monitor, acting, holds new change sessions and runner launches.";
+      type = types.str;
+      default = "${state}/hold";
+      readOnly = true;
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    butler.commands.monitor = {
+      package = command;
+      description = ''
+        The machines monitor: what spike, framer, piggys-MBP, pilot and jimbo look like now and the problems open, from its last run within 2 minutes.
+        monitor [status] | monitor log (the last 20 things it did or would have done) | monitor act [on|off|dry-run] (on only when Aaron himself says so)
+      '';
+      rules = [
+        {
+          match = [ ];
+          lanes = reads;
+        }
+        {
+          match = [ "status" ];
+          lanes = reads;
+        }
+        {
+          match = [ "log" ];
+          lanes = reads;
+        }
+        {
+          match = [ "act" ];
+          lanes = reads;
+        }
+        # Turning acting on always waits for Aaron's button, as a sending command does.
+        {
+          match = [
+            "act"
+            "on"
+          ];
+          lanes = [ "interactive" ];
+          taints = true;
+          egress = true;
+        }
+        {
+          match = [
+            "act"
+            "off"
+          ];
+          lanes = [ "interactive" ];
+          acts = true;
+        }
+        {
+          match = [
+            "act"
+            "dry-run"
+          ];
+          lanes = [ "interactive" ];
+          acts = true;
+        }
+      ];
+      skill = ./butler-skills/monitor;
+    };
+
+    systemd.tmpfiles.rules = [
+      "d ${state} 0750 root butler -"
+      "d ${control} 2770 root butler -"
+    ];
+
+    systemd.services.butler = {
+      serviceConfig = {
+        BindReadOnlyPaths = [ "-${state}" ];
+        BindPaths = [ "-${control}" ];
+      };
+    };
+
+    # One run collects every machine with short ssh connections, judges, acts or logs what it would, and notifies.
+    systemd.services.butler-monitor = {
+      description = "Watch Aaron's machines and resources, notify through butler and take only safe steps";
+      wants = [ "network-online.target" ];
+      after = [
+        "network-online.target"
+        "prometheus.service"
+      ];
+      path = [
+        pkgs.coreutils
+        pkgs.findutils
+      ];
+      environment.MONITOR_CONFIG = configFile;
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${lib.getExe monitor} run";
+        LoadCredential = [ "butler-mac-key:/var/lib/secrets/butler-mac-key" ];
+        Nice = 10;
+        IOSchedulingClass = "idle";
+        TimeoutStartSec = "45min";
+      };
+    };
+
+    systemd.timers.butler-monitor = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "3min";
+        OnUnitInactiveSec = "2min";
+      };
+    };
+  };
+}

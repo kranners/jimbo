@@ -413,6 +413,46 @@ let
       })
     ];
 
+    # butler-monitor's readings of every machine, from its textfile, beside the alerts it sends through butler.
+    machines = dashboard "spike-machines" "Spike / Machines" [
+      (stat {
+        title = "Up";
+        targets = [ (target "butler_monitor_host_up" "{{host}}") ];
+        w = 8;
+        extra.options.colorMode = "background";
+      })
+      (stat {
+        title = "Problems open";
+        targets = [ (target "butler_monitor_findings" "{{level}}") ];
+        w = 8;
+      })
+      (stat {
+        title = "Last monitor run";
+        unit = "s";
+        targets = [ (target "time() - butler_monitor_last_run_timestamp_seconds" "ago") ];
+        w = 8;
+      })
+      (timeseries {
+        title = "Memory free";
+        unit = "percentunit";
+        targets = [ (target "butler_monitor_memory_free_ratio" "{{host}}") ];
+      })
+      (timeseries {
+        title = "Disk free";
+        unit = "decbytes";
+        targets = [ (target "butler_monitor_disk_free_bytes" "{{host}}") ];
+      })
+      (timeseries {
+        title = "Load per core (15 min)";
+        targets = [ (target "butler_monitor_load_ratio" "{{host}}") ];
+      })
+      (timeseries {
+        title = "Battery";
+        unit = "percent";
+        targets = [ (target "butler_monitor_battery_percent" "{{host}}") ];
+      })
+    ];
+
     claude = dashboard "spike-claude" "Spike / Claude" [
       (stat {
         title = "Session limit used";
