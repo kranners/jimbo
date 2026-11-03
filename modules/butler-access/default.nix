@@ -12,6 +12,10 @@ let
   # pilot is the employer's Jamf-managed Mac, whose lock policy keep-awake would sidestep, so it stays off there until
   # Aaron turns it on himself.
   keepAwakeByDefault = host.hostname != "pilot";
+  # Aaron asked for piggys-MBP, his own Mac, never to lock by itself while it sits idle, so butler is never locked out
+  # of it overnight: no screen saver, and no password after the screen saver or display sleep. Set this false to bring
+  # the idle lock back; the lid-close lock and FileVault at boot are untouched either way. pilot keeps its employer's.
+  idleLockOff = host.hostname == "piggys-MBP";
   authorizedKey = ''from="${spike}",restrict,port-forwarding,permitopen="127.0.0.1:5900" ${butlerKey}'';
   helperPort = (import ./helper.nix).port;
   tokenFile = "${home}/.local/state/butler-access/hammerspoon-token";
@@ -80,16 +84,23 @@ in
           echo "power: $(/usr/bin/pmset -g batt | sed -n "s/.*'\(.*\)'.*/\1/p"), $(/usr/bin/pmset -g batt | grep -o '[0-9]*%' | head -1)"
           echo "pmset: $(/usr/bin/pmset -g | /usr/bin/awk '$1 ~ /^(sleep|displaysleep|disablesleep|lidwake|womp)$/ { printf "%s %s  ", $1, $2 }')"
           /usr/sbin/sysadminctl -screenLock status 2>&1 | sed 's/.*\] //' | tail -1
+          echo "screen saver after: $(/usr/bin/defaults -currentHost read com.apple.screensaver idleTime 2> /dev/null || echo "macOS's default") s"
+          if [ -s "$HOME/.local/state/butler-access/last-lock" ]; then
+            echo "last lock: $(/usr/bin/cut -f 2- "$HOME/.local/state/butler-access/last-lock" | tr '\t' ' ')"
+          fi
         }
 
         case "''${1:-status}" in
           agent)
+            # Each caffeinate outlives the next one's start by 10 s, so the assertions never lapse between runs, as
+            # they could while one run ended and the next began; launchd's KeepAlive restarts the loop itself.
+            trap '/bin/kill $(jobs -p) 2> /dev/null; exit 0' TERM INT
             while :; do
               if [ "$(wanted)" = on ]; then
-                /usr/bin/caffeinate -d -i -m -s -u -t 30
-              else
-                /bin/sleep 30
+                /usr/bin/caffeinate -d -i -m -s -u -t 40 &
               fi
+              /bin/sleep 30 &
+              wait $!
             done
             ;;
           on | off)
@@ -147,6 +158,26 @@ in
         fi
       '';
 
+      # The screen saver never starts, so nothing idle locks the screen behind it, in the ByHost domain macOS reads
+      # it from and the user domain, and the activation says when macOS's own lock after display sleep is still on,
+      # which only `sysadminctl -screenLock off -password -`, typed by Aaron, turns off.
+      targets.darwin.currentHostDefaults."com.apple.screensaver" = lib.mkIf idleLockOff {
+        idleTime = 0;
+        askForPassword = 0;
+        askForPasswordDelay = 0;
+      };
+      targets.darwin.defaults."com.apple.screensaver" = lib.mkIf idleLockOff {
+        askForPassword = 0;
+        askForPasswordDelay = 0;
+      };
+      home.activation.butlerIdleLock = lib.mkIf idleLockOff (
+        lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          if ! /usr/sbin/sysadminctl -screenLock status 2>&1 | grep -q 'screenLock is off'; then
+            echo "butler-access: this Mac still locks after display sleep; run: sysadminctl -screenLock off -password -" >&2
+          fi
+        ''
+      );
+
       launchd.agents.hammerspoon = {
         enable = true;
 
@@ -157,8 +188,9 @@ in
         };
       };
 
-      # caffeinate holds display, idle, disk and AC system sleep off, and declares the user active, for 30 s at a
-      # time, so neither the screen saver nor display sleep ever starts, and the lock that follows them never comes.
+      # caffeinate holds display, idle, disk and AC system sleep off, and declares the user active, in overlapping
+      # 40 s runs started every 30 s, so neither the screen saver nor display sleep ever starts, and the lock that
+      # follows them never comes.
       launchd.agents.butler-keepawake = {
         enable = true;
 
