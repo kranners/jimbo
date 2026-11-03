@@ -20,6 +20,7 @@ Its runner, `backlogic-runner-aaron`, runs as the system user `backlogic-runner`
 A session the runner launched runs as `backlogic-runner`, so it cannot run `sudo`, `just` or a switch, read `aaron`'s home or `~/workspace/jimbo`, or reach Docker, and it reaches `aaron` only to run Bowerbird's `bin/deploy`, and nothing else, as `ssh bowerbird-deploy`.
 It lands a jimbo branch on `main` and stops there; Aaron, or a timer, deploys it.
 `backlogic-sweep.timer` counts, read-only every 10 minutes as `backlogic-runner`, the tickets broken sessions left claimed, parked for the host, asking to run again, stuck in review, stale, or closed with unlanded work on their branch, for Grafana, and DMs Aaron the ones newly needing him.
+`backlogic-source-instance` and `backlogic-source-runner` mirror the tracked source of the instance's and the runner's checkouts, read-only, into `/var/lib/backlogic-source` every 5 minutes, for butler and `butler-shell` to read.
 `:4200` is open on `wlp2s0` and `wg0`.
 `backlogic-tunnel` carries the instance's API, and only its `/api/`, to the public `https://backlogic-api.cute.engineer` through a Cloudflare Tunnel, by Caddy on `127.0.0.1:4201`, so the runner's cloud sessions on claude.ai reach it, every request still needing a session token, while the page stays on WireGuard.
 Its token, from the tunnel made by hand in Cloudflare's Zero Trust dashboard, which also routes the hostname, is `/var/lib/secrets/cloudflared-backlogic-token`, and the unit skips starting until it exists.

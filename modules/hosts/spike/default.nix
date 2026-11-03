@@ -31,6 +31,7 @@
         ./backlogic-sweep.nix
         ./bowerbird.nix
         ./butler.nix
+        ./butler-backlogic-source.nix
         ./butler-browser.nix
         ./butler-builders.nix
         ./butler-drive.nix

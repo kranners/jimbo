@@ -272,9 +272,14 @@ let
         exit 2
       }
 
+      # Aaron's own token reaches kranners; the backlogic organisation's repositories take their
+      # own read-only fine-grained token, since one fine-grained token reaches one owner alone.
+      token=${credential "github-issues-token"}
+      backlogic_token=${credential "github-backlogic-token"}
+
       github() {
         curl --silent --show-error --fail-with-body --globoff \
-          --header @<(printf 'Authorization: Bearer %s\n' "$(< ${credential "github-issues-token"})") \
+          --header @<(printf 'Authorization: Bearer %s\n' "$(< "$token")") \
           --header "Accept: application/vnd.github+json" \
           --header "X-GitHub-Api-Version: 2022-11-28" \
           "$@"
@@ -285,12 +290,28 @@ let
       if [ "$1" != repos ]; then
         [ $# -ge 2 ] || usage
         [[ $2 =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ && $2 != *..* ]] || usage
+        if [ "''${2%%/*}" = backlogic ]; then
+          if [ "$1" = create ]; then
+            echo "github-issue: backlogic's repositories are read-only here; file a backlogic ticket instead" >&2
+            exit 77
+          fi
+          if [ ! -s "$backlogic_token" ]; then
+            echo "github-issue: no token for the backlogic organisation yet; Aaron has to write a read-only fine-grained token to ${secret "github-backlogic-token"} on spike and restart butler" >&2
+            exit 78
+          fi
+          token=$backlogic_token
+        fi
       fi
 
       case "$1" in
         repos)
           github "https://api.github.com/user/repos?affiliation=owner&per_page=100" \
             | jq -r '.[] | select(.archived | not) | select(.has_issues) | "\(.full_name)\t\(.description // "")"'
+          if [ -s "$backlogic_token" ]; then
+            token=$backlogic_token
+            github "https://api.github.com/user/repos?per_page=100" \
+              | jq -r '.[] | select(.owner.login == "backlogic") | select(.archived | not) | "\(.full_name)\t\(.description // "") (read-only)"'
+          fi
           ;;
         files)
           [ $# -ge 2 ] || usage
@@ -371,6 +392,26 @@ let
 in
 {
   options.butler.credentialedTools = lib.mkEnableOption "the Fastmail and Gmail accounts and the calendar, GitHub and backlogic tools, once their credentials are in /var/lib/secrets";
+
+  # LoadCredential fails butler's start when its source is missing, so an empty placeholder
+  # stands in until Aaron writes the backlogic organisation's token, and github-issue says it has none.
+  config.systemd.services = lib.mkIf config.butler.credentialedTools {
+    butler-github-backlogic-token = {
+      description = "Create an empty placeholder for butler's backlogic GitHub token until one is written";
+      unitConfig.ConditionPathExists = "!${secret "github-backlogic-token"}";
+      serviceConfig = {
+        Type = "oneshot";
+        UMask = "0077";
+      };
+      script = ''
+        touch ${secret "github-backlogic-token"}
+      '';
+    };
+    butler = {
+      requires = [ "butler-github-backlogic-token.service" ];
+      after = [ "butler-github-backlogic-token.service" ];
+    };
+  };
 
   config.butler.commands = lib.mkIf config.butler.credentialedTools {
     calendar = {
@@ -480,7 +521,7 @@ in
     github-issue = {
       package = github-issue;
       description = ''
-        List Aaron's GitHub repositories, read their files and open issues, and open new issues.
+        List Aaron's GitHub repositories and the backlogic organisation's, read their files and open issues, and open new issues on Aaron's own; backlogic's are read-only.
         github-issue repos | github-issue files <owner/repo> [path regex] | github-issue read <owner/repo> <path> | github-issue issues <owner/repo> | github-issue create <owner/repo> <title> (body on stdin)
       '';
       stdin = true;
@@ -519,7 +560,10 @@ in
           acts = true;
         }
       ];
-      credentials.github-issues-token = secret "github-issues-token";
+      credentials = {
+        github-issues-token = secret "github-issues-token";
+        github-backlogic-token = secret "github-backlogic-token";
+      };
       skill = ./butler-skills/github-issues;
     };
 
