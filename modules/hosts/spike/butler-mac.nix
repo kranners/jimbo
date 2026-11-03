@@ -82,6 +82,8 @@ in
         match = [ "**" ];
         lanes = [ "interactive" ];
         egress = true;
+        # A thread Aaron typed drives his machines without his button, even after reading private data; one a voice request began still asks.
+        trusted = true;
       }
     ];
     credentials.butler-mac-key = "/var/lib/secrets/butler-mac-key";

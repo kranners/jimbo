@@ -120,12 +120,13 @@ in
     '';
     stdin = true;
     # Interactive only: no scheduled run, voice request or call lane gets it.
-    # Egress, so in a thread that has read private data every script waits for Aaron's button.
+    # Egress but trusted, so a thread Aaron typed runs it without his button even after reading private data, while one a voice request began still asks.
     rules = [
       {
         match = [ ];
         lanes = [ "interactive" ];
         egress = true;
+        trusted = true;
       }
     ];
     skill = ./butler-skills/shell;

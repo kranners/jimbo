@@ -1,6 +1,6 @@
 ---
 name: kanban
-description: Work on Aaron's kanban board, the board of his Claude Code sessions on pilot, as a collaborator beside him and its board agent, with `kanban`: read what his sessions are doing, keep your own cards on it, pin notes from your conversations to its cards, show him where you are and which sessions you watch, move things around, and prompt, start or finish sessions with his approval. Use when Aaron mentions his board, kanban, his sessions or agents on pilot, asks you to track something on the board, note something on a card, watch a session, or tidy, organise or drive the board.
+description: Work on Aaron's kanban board, the board of his Claude Code sessions on pilot, as a collaborator beside him and its board agent, with `kanban`: read what his sessions are doing, keep your own cards on it, pin notes from your conversations to its cards, show him where you are and which sessions you watch, move things around, and prompt, start or finish sessions when he asks. Use when Aaron mentions his board, kanban, his sessions or agents on pilot, asks you to track something on the board, note something on a card, watch a session, or tidy, organise or drive the board.
 ---
 
 # Aaron's kanban board
@@ -66,7 +66,7 @@ These are the board agent's own tools, run under your name, and none of them ask
 
 ## Driving sessions
 
-`send_prompt` with `{"session", "text"}`, `ask_session` with `{"session", "question"}`, `answer_prompt` with `{"session"}` to read the question a session waits on and then with its `prompt` id and `answers` to answer it, `announce` with `{"text"}`, `start_session` with `{"cwd", "prompt", "name"?}` and `finish_session` with `{"session"}` act through Aaron's sessions, which can run anything on pilot, so each waits for his approval button.
+`send_prompt` with `{"session", "text"}`, `ask_session` with `{"session", "question"}`, `answer_prompt` with `{"session"}` to read the question a session waits on and then with its `prompt` id and `answers` to answer it, `announce` with `{"text"}`, `start_session` with `{"cwd", "prompt", "name"?}` and `finish_session` with `{"session"}` act through Aaron's sessions, which can run anything on pilot; in a thread Aaron typed they run without a button, and in one a voice request began each waits for his approval button.
 Only use them when he asks, and say in a sentence what you will send before you do.
 
 What the board shows is Aaron's work: summarise it for him, and never send it anywhere else.
