@@ -8,6 +8,8 @@ let
   token = "/var/lib/secrets/butler-voice-token";
   # The imagine command's key, which the realtime call voice uses too.
   openaiKey = "/var/lib/secrets/butler-openai-api-key";
+  # The dedicated audio key, preferred while it is not empty; butler-voice-sample.nix keeps its placeholder.
+  audioKey = "/var/lib/secrets/butler-openai-audio-key";
   realtime = config.butler.voice.realtime;
   credential = name: "/run/credentials/butler.service/${name}";
 
@@ -103,7 +105,8 @@ in
       }
       // lib.optionalAttrs realtime.enable {
         DISCORD_CALL_REALTIME_MODEL = realtime.model;
-        DISCORD_CALL_REALTIME_KEY_FILE = credential "openai-api-key";
+        # The first file holding a key wins, so the dedicated audio key falls back to the shared one.
+        DISCORD_CALL_REALTIME_KEY_FILE = "${credential "openai-audio-key"}:${credential "openai-api-key"}";
         DISCORD_CALL_REALTIME_MONTHLY_USD = toString realtime.monthlyUsd;
         DISCORD_CALL_REALTIME_VOICE = "cedar";
         DISCORD_CALL_REALTIME_PROMPT_FILE = "${realtimePrompt}";
@@ -114,8 +117,11 @@ in
       serviceConfig.LoadCredential = [
         "voice-token:${token}"
       ]
-      # imagine already loads the same key under the same name.
-      ++ lib.optional (realtime.enable && !config.butler.imagine.enable) "openai-api-key:${openaiKey}";
+      # imagine and voice-sample already load the same keys under the same names.
+      ++ lib.optionals (realtime.enable && !config.butler.imagine.enable) [
+        "openai-api-key:${openaiKey}"
+        "openai-audio-key:${audioKey}"
+      ];
     };
 
     butler.commands = lib.mkMerge [
