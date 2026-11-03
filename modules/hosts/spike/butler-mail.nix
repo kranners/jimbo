@@ -215,6 +215,7 @@ in
     (lib.mkIf (mailAccounts != { }) {
       mail = {
         package = mail;
+        private = true;
         description = ''
             Read and archive Aaron's email; it cannot delete or move mail anywhere else, and sends only through mail-send.
           mail accounts | mail unread-counts | mail <account> mailboxes | mail <account> unread [count] | mail <account> list [count] | mail <account> search <query>... | mail <account> read <id> | mail <account> archive <id>...
@@ -260,6 +261,7 @@ in
               "**"
             ];
             lanes = interactive;
+            acts = true;
           }
         ];
         credentials = lib.mergeAttrsList (lib.catAttrs "credentials" (lib.attrValues mailAccounts));

@@ -7,7 +7,7 @@ let
     flakeIgnore = [ "E501" ];
   } (builtins.readFile ./butler-maps/maps.py);
 
-  # Every call sends its words to Google, so it is egress like WebSearch.
+  # Every call sends its words to Google, so it is egress like WebSearch, and a lookup like it.
   verb = verb: {
     match = [
       verb
@@ -19,6 +19,7 @@ let
       "call"
     ];
     egress = true;
+    lookup = true;
   };
 in
 {

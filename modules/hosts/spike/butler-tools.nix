@@ -268,6 +268,7 @@ in
             "**"
           ];
           lanes = interactive;
+          acts = true;
         }
       ];
       credentials.home-assistant-token = secret "home-assistant-token";
@@ -313,6 +314,7 @@ in
             "**"
           ];
           lanes = interactive;
+          acts = true;
         }
       ];
       credentials.github-issues-token = secret "github-issues-token";
@@ -344,6 +346,7 @@ in
             "**"
           ];
           lanes = interactive;
+          acts = true;
         }
       ];
       credentials.backlogic-token = secret "backlogic-token";

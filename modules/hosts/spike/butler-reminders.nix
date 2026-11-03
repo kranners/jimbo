@@ -61,6 +61,7 @@ in
           "**"
         ];
         lanes = [ "interactive" ];
+        acts = true;
       }
       {
         match = [
@@ -68,6 +69,7 @@ in
           "**"
         ];
         lanes = [ "interactive" ];
+        acts = true;
       }
     ];
     skill = ./butler-skills/reminders;
