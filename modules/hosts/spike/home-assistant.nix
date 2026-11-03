@@ -161,6 +161,8 @@ let
   framerScreenBrightness = "sensor.framer_screen_brightness";
   framerScreenAndMicrophoneOff = "switch.framer_screen_and_microphone_off";
   framerPanelRemote = "http://10.100.0.5:8124";
+  # Dim but visible, so the off screen's time and weather still show.
+  framerScreenOffPercent = 5;
   panelScreensaver = "input_boolean.panel_screensaver";
   wallpanelProfile = "input_text.wallpanel_profile";
   framerMovieNight = "input_boolean.framer_movie_night";
@@ -178,33 +180,10 @@ let
     voice = framerVoice;
   };
 
+  # The movie night card without Butler: the time and the weather's icon and temperature.
   assistantOffCard = {
-    type = "markdown";
-    content = ''
-      {% set spoken = ${builtins.toJSON spokenConditions} %}
-      {% set condition = states('weather.home') %}
-      # {{ now().strftime('%-H:%M') }}
-      {{ state_attr('weather.home', 'temperature') | round }}° {{ spoken.get(condition, condition) }}
-    '';
-    card_mod.style = ''
-      ha-card {
-        position: fixed;
-        inset: 0;
-        z-index: 10;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        text-align: center;
-        background: black;
-        border: none;
-        border-radius: 0;
-        box-shadow: none;
-        font-size: 3em;
-        line-height: 1.2;
-        --primary-text-color: #5a5a5a;
-        color: #5a5a5a;
-      }
-    '';
+    type = "custom:framer-movie-night-card";
+    butler = false;
   };
 
   movieNightCard = {
@@ -355,17 +334,14 @@ in
             {
               name = "framer screen and microphone off";
               unique_id = "framer_screen_and_microphone_off";
-              state = "{{ is_state('${framerScreen}', 'off') and is_state('${framerMute}', 'on') }}";
+              state = "{{ states('${framerScreenBrightness}') | int(100) <= ${toString framerScreenOffPercent} and is_state('${framerMute}', 'on') }}";
               turn_on = [
-                {
-                  action = "light.turn_off";
-                  target.entity_id = framerScreen;
-                }
                 {
                   action = "switch.turn_on";
                   target.entity_id = framerMute;
                 }
-              ];
+              ]
+              ++ runFramerPanel "brightness/${toString framerScreenOffPercent}";
               turn_off = [
                 {
                   action = "light.turn_on";
