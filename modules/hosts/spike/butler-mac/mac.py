@@ -13,6 +13,7 @@ HOSTS = json.loads('@hosts@')
 SSH = '@ssh@'
 FFMPEG = '@ffmpeg@'
 OUTBOX = '@outbox@'
+WINDOWS_SHOT_INSTALLER = '@windowsScreenshot@'
 STATE = os.path.expanduser('~/.local/state/mac')
 RUNTIME = '/tmp/mac'
 PASSWORD = '.local/state/butler-access/vnc-password'
@@ -38,6 +39,10 @@ HANDSHAKE_TIMEOUT = 20
 # The first frame is the whole screen in raw pixels, 29 MB on jimbo's 5120x1440 monitor, so it gets a second per
 # megabyte on top of the handshake's 20 s, and start_session waits for both.
 FRAME_TIMEOUT = 20
+# Windows sends no frames over VNC, which carries only input there: each picture is a screenshot its butler-screenshot
+# task takes on Aaron's desktop, already scaled down, so a look waits a fixed moment after an action instead.
+WINDOWS_SHOT_TIMEOUT = 15
+WINDOWS_SETTLE = 0.6
 START_TIMEOUT = 90
 IDLE = 600
 DRAG_STEPS = 12
@@ -228,6 +233,17 @@ class Handshake:
 
 
 def screen(host):
+    """Connects to host's screen, saying which stage failed: ssh, the tunnel, the VNC handshake or the first frame."""
+    stage = ['ssh']
+    try:
+        return open_screen(host, stage)
+    except Refused:
+        raise
+    except Exception as error:
+        raise Refused('%s failed: %s: %s' % (stage[0], type(error).__name__, error))
+
+
+def open_screen(host, stage):
     from vncdotool import api, client as vnc, rfb
     system = system_of(host)
     far = '127.0.0.1:5900'
@@ -238,11 +254,19 @@ def screen(host):
         if runtime.returncode != 0:
             raise Refused('wayvnc is not running on %s: Hyprland is not up yet, or butler-wayvnc failed (mac %s run systemctl --user status butler-wayvnc)' % (host, host))
         far = '%s/%s' % (runtime.stdout.strip(), WAYVNC)
+        stage[0] = 'ssh tunnel'
         path = tunnel(host, far)
         password = None
         rfb.RFBClient.SUPPORTED_AUTHS = {rfb.AuthTypes.NONE}
     else:
         if system == 'windows':
+            stage[0] = 'installing the butler-screenshot task'
+            with open(WINDOWS_SHOT_INSTALLER) as installer:
+                installed = remote(host, installer.read(), timeout=40)
+            if installed.returncode != 0:
+                raise Refused('could not install the butler-screenshot task on %s: %s; Aaron runs docs/windows-screenshot.ps1 in an administrator PowerShell' % (
+                    host, ' '.join((installed.stderr or installed.stdout).split()) or 'exit %d' % installed.returncode))
+            stage[0] = 'reading the VNC password'
             password = remote(host, "Get-Content -Raw '%s\\vnc-password'" % WINDOWS_STATE)
             missing = '%s has no VNC password yet; Aaron runs docs/windows-remote.ps1 on Windows first' % host
         else:
@@ -252,6 +276,7 @@ def screen(host):
             raise Refused(missing)
         # Windows PowerShell can start its output with a byte-order mark, which strip() keeps.
         password = password.stdout.replace('\ufeff', '').strip()
+        stage[0] = 'ssh tunnel'
         path = tunnel(host, far)
         rfb.RFBClient.SUPPORTED_AUTHS = {rfb.AuthTypes.VNC_AUTHENTICATION}
     vnc.VNCDoToolClient.encoding = rfb.Encoding.RAW
@@ -271,6 +296,7 @@ def screen(host):
             reactor.callLater(STREAM_INTERVAL, request, protocol)
 
     vnc.VNCDoToolClient.commitUpdate = streamed
+    stage[0] = 'VNC handshake'
     handshake = Handshake()
     client = api.connect(path, password=password, timeout=HANDSHAKE_TIMEOUT, factory_class=handshake.factory())
     try:
@@ -279,10 +305,19 @@ def screen(host):
         why = '%s: %s' % (type(error).__name__, error)
         if isinstance(error, TimeoutError):
             why = 'the VNC handshake did not finish in %d s (the server said: %s)' % (HANDSHAKE_TIMEOUT, handshake.said())
+        elif not isinstance(error, ConnectionError):
+            why = 'the VNC handshake failed: ' + why
         if system != 'linux':
             why += '; %s' % hello(host, far)
         raise Refused(why)
     width, height = client.protocol.width, client.protocol.height
+    if system == 'windows':
+        # VNC is for input alone here; pictures come from the PC, see windows_picture.
+        client.__dict__['shot_host'] = host
+        stage[0] = 'first screenshot'
+        windows_picture(client)
+        return client
+    stage[0] = 'first VNC frame'
     client.timeout = FRAME_TIMEOUT + width * height * 4 / 1e6
     try:
         client.refreshScreen()
@@ -292,9 +327,60 @@ def screen(host):
     return client
 
 
+def size(client):
+    """The screen's size in real pixels, the coordinates VNC input takes."""
+    if client.__dict__.get('shot_host'):
+        return client.protocol.width, client.protocol.height
+    return client.screen.size
+
+
 def scale(client):
-    width, _ = client.screen.size
+    width, _ = size(client)
     return max(1.0, width / SHOT_WIDTH)
+
+
+def target(client):
+    width, height = size(client)
+    factor = scale(client)
+    return round(width / factor), round(height / factor)
+
+
+# Runs as Aaron's butler-screenshot task on his own desktop, from docs/windows-screenshot.ps1, and prints its result:
+# a line `ok <width> <height>` of the real screen, then the PNG in base64.
+WINDOWS_SHOT = r'''
+$dir = '%s'
+Remove-Item "$dir\shot.done", "$dir\shot.out", "$dir\shot.png" -ErrorAction SilentlyContinue
+Set-Content "$dir\shot.request" '%d %d'
+$run = & schtasks.exe /run /tn butler-screenshot 2>&1
+if ($LASTEXITCODE) { [Console]::Error.WriteLine("could not start the butler-screenshot task: $run"); exit 3 }
+$deadline = (Get-Date).AddSeconds(%d)
+while (-not (Test-Path "$dir\shot.done") -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 50 }
+$said = if (Test-Path "$dir\shot.out") { (Get-Content -Raw "$dir\shot.out").Trim() } else { '' }
+if ($said -like 'ok *' -and (Test-Path "$dir\shot.png")) { $said; [Convert]::ToBase64String([IO.File]::ReadAllBytes("$dir\shot.png")); exit 0 }
+$user = (Get-CimInstance Win32_ComputerSystem).UserName
+$why = if (-not $user) { 'nobody is signed in, so the PC is at its login screen, which only Aaron passes' }
+  elseif (Get-Process LogonUI -ErrorAction SilentlyContinue) { 'the PC is locked, which only Aaron undoes at the PC' }
+  elseif (-not (Test-Path "$dir\shot.done")) { "the butler-screenshot task did not finish within %d s" }
+  else { "the capture on Aaron's desktop failed: $said" }
+[Console]::Error.WriteLine($why)
+exit 4
+'''
+
+
+def windows_picture(client):
+    import io
+    from PIL import Image
+    host = client.__dict__['shot_host']
+    width, height = target(client)
+    result = remote(host, WINDOWS_SHOT % (WINDOWS_STATE, width, height, WINDOWS_SHOT_TIMEOUT, WINDOWS_SHOT_TIMEOUT), timeout=WINDOWS_SHOT_TIMEOUT + 20)
+    lines = result.stdout.split()
+    if result.returncode != 0 or len(lines) < 4 or lines[0] != 'ok':
+        raise Refused('the screenshot on %s failed: %s' % (host, ' '.join(result.stderr.split()) or 'exit %d, %s' % (result.returncode, ' '.join(lines[:3]) or 'no output')))
+    client.__dict__['shot_source'] = (int(lines[1]), int(lines[2]))
+    image = Image.open(io.BytesIO(base64.b64decode(''.join(lines[3:])))).convert('RGB')
+    if image.size != (width, height):
+        image = image.resize((width, height), Image.BILINEAR)
+    return image
 
 
 def point(client, x, y):
@@ -304,6 +390,8 @@ def point(client, x, y):
 
 def picture(client):
     from PIL import Image
+    if client.__dict__.get('shot_host'):
+        return windows_picture(client)
     factor = scale(client)
     width, height = client.screen.size
     image = client.screen.convert('RGB')
@@ -313,6 +401,9 @@ def picture(client):
 
 
 def settle(client, acted):
+    if client.__dict__.get('shot_host'):
+        time.sleep(max(0, WINDOWS_SETTLE - (time.time() - acted)))
+        return
     while time.time() - acted < SETTLE_LIMIT:
         changed = getattr(client.protocol, 'changed', 0)
         if changed > acted and time.time() - changed >= QUIET:
@@ -420,17 +511,25 @@ def serve(host):
         def handle(self):
             request = json.loads(self.rfile.readline())
             done = 'nothing'
+            stage = 'screenshot'
             try:
                 acted = None
                 if request['verb'] != 'look':
+                    stage = 'input'
                     done = act(client, request['verb'], request['args'], request['stdin'])
                     acted = time.time()
                     journal(host, done)
+                    stage = 'screenshot'
                 reply = {'ok': True, 'text': look(host, client, acted)}
-                self.server.done = client.screen.size != (client.protocol.width, client.protocol.height)
+                if client.__dict__.get('shot_host'):
+                    # The PC's screen changed size since VNC connected, so input would land in the wrong place.
+                    self.server.done = client.__dict__.get('shot_source') != size(client)
+                else:
+                    self.server.done = client.screen.size != (client.protocol.width, client.protocol.height)
             except Exception as error:
                 self.server.done = True
-                reply = {'ok': False, 'did': done, 'text': '%s: %s' % (type(error).__name__, error)}
+                why = str(error) if isinstance(error, Refused) else '%s: %s' % (type(error).__name__, error)
+                reply = {'ok': False, 'did': done, 'text': '%s failed: %s' % (stage, why)}
             self.wfile.write(json.dumps(reply).encode() + b'\n')
 
     class Server(socketserver.UnixStreamServer):
@@ -469,7 +568,8 @@ def start_session(host, path):
             if server.poll() is not None or time.time() > deadline:
                 with open(logged) as failed:
                     lines = failed.read().strip().splitlines()
-                raise Refused('could not reach %s screen: %s' % (host, lines[-1] if lines else 'timed out'))
+                last = lines[-1] if lines else 'timed out after %d s' % START_TIMEOUT
+                raise Refused('could not reach %s screen: %s' % (host, last[len('mac: '):] if last.startswith('mac: ') else last))
             time.sleep(0.2)
 
 

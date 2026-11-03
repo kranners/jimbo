@@ -15,6 +15,8 @@
 #   4. registers the scheduled task butler-desktop, which lists the windows on Aaron's own desktop, since an ssh
 #      session runs in session 0 and sees none of them.
 #
+# butler installs a second task, butler-screenshot, from docs/windows-screenshot.ps1 itself over ssh when it first looks.
+#
 # Checked from a cloud session on 3 Nov 2026, without a Windows machine to run it on:
 #   - the installer URL and its SHA-256, 9693cb4c...170ce, from the file tightvnc.com serves;
 #   - the MSI's property names (SET_*/VALUE_OF_*, SERVER_REGISTER_AS_SERVICE, ADDLOCAL=Server), read from the MSI itself;
