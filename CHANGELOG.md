@@ -239,3 +239,4 @@
 - 2026-11-01: Any session can message Aaron on Discord through butler with `butler-notify` on spike, and read and add to butler's memory with the `butler` skill.
 - 2026-11-01: The `butler` skill ships `send`, which DMs Aaron through butler from any machine, running `butler-notify` on spike or over SSH elsewhere.
 - 2026-11-01: butler's self-fix sessions run in auto mode, so they land a fix without asking Aaron to approve anything, check jimbo with its `github:` inputs fetched over git, and spike DMs Aaron when one finishes or waits on him.
+- 2026-11-03: piggys-MBP pushes its browser history to butler's index daily like pilot, as the device `piggysmbp`.

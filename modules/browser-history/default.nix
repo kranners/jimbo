@@ -1,3 +1,7 @@
+{ host, lib, ... }:
+let
+  device = lib.toLower (lib.replaceStrings [ "-" ] [ "" ] host.hostname);
+in
 {
   darwinHomeModule =
     {
@@ -35,7 +39,7 @@
               [ -f "$history" ] || continue
               profile=$(basename "$(dirname "$history")")
               profile=''${profile//[^A-Za-z0-9_]/_}
-              name="pilot-$browser-$profile.sqlite"
+              name="${device}-$browser-$profile.sqlite"
               snapshot="$snapshots/$name"
               if sqlite3 "file:''${history// /%20}?immutable=1" "VACUUM INTO '$snapshot'" \
                 && [ "$(sqlite3 "$snapshot" "PRAGMA quick_check")" = ok ] \
@@ -57,7 +61,7 @@
         lib.hm.dag.entryBetween [ "setupLaunchAgents" ] [ "writeBoundary" ]
           ''
             mkdir -p ${logs} "$(dirname ${key})"
-            [ -f ${key} ] || ${pkgs.openssh}/bin/ssh-keygen -q -t ed25519 -N "" -C browser-history@pilot -f ${key}
+            [ -f ${key} ] || ${pkgs.openssh}/bin/ssh-keygen -q -t ed25519 -N "" -C browser-history@${device} -f ${key}
           '';
 
       launchd.agents.browser-history = {
