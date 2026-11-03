@@ -95,3 +95,35 @@ button.quiet { background: transparent; }
 .show-bar { position: absolute; right: 10px; top: calc(10px + env(safe-area-inset-top)); z-index: 6; opacity: .6; background: var(--bar); color: var(--bar-fg); }
 .kbd { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; font-size: 16px; border: 0; padding: 0; resize: none; }
 .overlay { position: absolute; left: 0; right: 0; z-index: 7; }
+
+/* Phones. The machine list is one compact column; the viewer's toolbar is a sideways-scrolling strip that moves to
+   the bottom in one-hand mode and sits just above the on-screen keyboard while it is up; the more menu opens from
+   whichever edge the toolbar is on. */
+#viewer.one-hand .toolbar, #viewer.kbd-open .toolbar { order: 2; padding-top: 6px; }
+#viewer.one-hand .toolbar { padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+#viewer.kbd-open .toolbar { padding-bottom: 6px; }
+#viewer.kbd-open { inset: auto 0 auto 0; }
+#viewer.one-hand .menu, #viewer.kbd-open .menu { top: auto; bottom: calc(60px + env(safe-area-inset-bottom)); max-height: 60vh; overflow-y: auto; }
+#viewer.one-hand .notice { top: calc(12px + env(safe-area-inset-top)); }
+#viewer.one-hand .show-bar { top: auto; bottom: calc(10px + env(safe-area-inset-bottom)); }
+.menu button { min-height: 44px; }
+
+@media (max-width: 600px) {
+  .view { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .narrow { margin-top: 6vh; }
+  .bar { margin-bottom: 10px; }
+  .hosts { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .host { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 12px 14px; gap: 4px 12px; }
+  .host .name, .host .state, .host > .small { grid-column: 1; }
+  .host .connect { grid-column: 2; grid-row: 1 / span 3; min-height: 44px; }
+  .toolbar .title { flex: none; max-width: 30vw; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* A landscape phone has little height to spare, so the toolbar is slimmer and drops the machine's name. */
+@media (max-height: 500px) and (pointer: coarse) {
+  .toolbar { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: 4px; gap: 4px; }
+  .toolbar button { min-height: 36px; padding: 6px 9px; }
+  .toolbar .title { display: none; }
+  .menu { top: calc(46px + env(safe-area-inset-top)); grid-template-columns: 1fr 1fr; }
+  .narrow { margin-top: 2vh; }
+}

@@ -531,7 +531,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Each screen opens its own ssh connection with the gateway's key, `/var/lib/remote-desk/ssh/id_ed25519`, generated on first start and printed by `sudo remote-desk key`, apart from butler's key, and the machine's own VNC password is typed on the iPad, never stored on spike.
   The launcher shows each machine up, locked or down from port 22 and the key's forced status command, whether butler has an ssh connection to it, from `ss`, and which other devices are viewing it.
   Every login, failure, lockout and screen is logged to the journal under `remote-desk`, and `sudo remote-desk sessions` lists who is on.
- loads the tools it downloads, which are built for other Linuxes, such as backlogic's Deno and Python (`modules/hosts/spike/mise.nix`).
+  It fits an iPhone too, with a one-column machine list, a toolbar strip that one-hand mode moves to the bottom and that sits above the on-screen keyboard while it is up, and a very wide screen such as jimbo's opening at its middle third in pan mode.
+- mise is installed system-wide, and `programs.nix-ld` loads the tools it downloads, which are built for other Linuxes, such as backlogic's Deno and Python (`modules/hosts/spike/mise.nix`).
   Remote Control has `~/.local/share/mise/shims` last on its `PATH`, and backlogic's runner its own user's, so a session finds a repository's mise tools, and its git hooks run, while the system's `python3` still wins outside one.
   `/etc/mise/config.toml` trusts every `mise.toml` under `aaron`'s and the runner's `~/workspace/backlogic`, their worktrees included, and takes prebuilt Python, since building it from source fails here.
   A shim resolves its version from the working directory's `mise.toml`, so the file also sets Deno to the newest installed everywhere else, for hooks and tests that run Deno outside a checkout.
