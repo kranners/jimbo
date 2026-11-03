@@ -176,7 +176,7 @@ async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--uri", required=True)
     parser.add_argument("--model", required=True)
-    parser.add_argument("--voice", choices=SPEAKERS, default="bm_george")
+    parser.add_argument("--voice", choices=SPEAKERS, default="bm_lewis")
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--threads", type=int, default=4)
     args = parser.parse_args()

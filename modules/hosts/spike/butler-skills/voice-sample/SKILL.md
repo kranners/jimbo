@@ -14,7 +14,7 @@ Every OpenAI voice costs about a cent for a short line, so keep the line short a
 Never put his private details in the line.
 
 Do not pick a voice for him.
-Once he picks one, tell him to send `/realtime voice <name>` for an OpenAI voice, which calls use from the next call, or `/realtime kokoro <name>` for the ordinary Kokoro voice, used when the realtime voice is off or gives up; `/realtime` shows both, and `default` goes back to the configured voice.
+Once he picks one, tell him to send `/realtime voice <name>` for the realtime call voice, an OpenAI voice or a Kokoro one such as `lewis`, whose text Kokoro then speaks, from the next call, or `/realtime kokoro <name>` for the ordinary Kokoro voice, used when the realtime voice is off or gives up; `/realtime` shows both, and `default` goes back to the configured voice.
 On a call, the realtime voice also follows the voice brief these samples are read with, so the call sounds like the sample.
 When a Kokoro voice fails, the local speech server on spike is down; say so and send the rest.
 When any voice fails the tool fails, and its error names each failed voice, why, and every clip that did render, which you still attach; when it says the OpenAI key lacks a permission, tell Aaron plainly which one, since no OpenAI voice works until the key is given it in OpenAI's dashboard.
