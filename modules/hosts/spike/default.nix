@@ -18,6 +18,7 @@
         ./butler-drive.nix
         ./butler-health.nix
         ./butler-imagine.nix
+        ./butler-kanban.nix
         inputs.butler.nixosModules.index
         ./butler-mac.nix
         ./butler-mail.nix

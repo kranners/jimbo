@@ -1,0 +1,54 @@
+---
+name: kanban
+description: Work on Aaron's kanban board, the board of his Claude Code sessions on pilot, as a collaborator beside him and its board agent, with `kanban`: read what his sessions are doing, keep your own cards on it, pin notes from your conversations to its cards, show him where you are and which sessions you watch, move things around, and prompt, start or finish sessions with his approval. Use when Aaron mentions his board, kanban, his sessions or agents on pilot, asks you to track something on the board, note something on a card, watch a session, or tidy, organise or drive the board.
+---
+
+# Aaron's kanban board
+
+The board runs on pilot, Aaron's work Mac, and shows every Claude Code session there as a card.
+You reach it with the `kanban` tool: `args` is one tool name, and `stdin` is its arguments as a JSON object, or empty for none.
+It goes over ssh to pilot, so it fails with exit 75 when pilot is asleep or off WireGuard; say so and try later rather than retrying.
+
+Start with `["board_snapshot"]`, which lists every session with its id, short id, name, state, what it is doing and where its card sits, the regions, notes, stickers, your cards (`butlerCards`) and the sessions you watch.
+A session's `id` or `short` works wherever a tool takes `session` or `target`.
+
+## Your own cards
+
+Your cards sit on the board in your teal, with your bow tie, beside Aaron's sessions.
+Every self-fix already has one, with the wrench icon, its state, link and latest summary; spike keeps those in step every 2 minutes, so never make or close a self-fix card yourself.
+For anything else you are tracking for Aaron, such as an errand, a follow-up or a question you are waiting on:
+- `["put_card"]` with `{"title": "...", "state": "working", "status": "one line on where it stands", "summary": "a few lines", "link": "https://..."}` makes one and prints its id; `state` is one of `working`, `needs-you`, `idle`, `done`, `failed`, and `link` must be https.
+- `put_card` with its `id` and any of those fields renames or updates it; with `x` and `y`, in board pixels, it moves it.
+- `["close_card"]` with `{"id": "..."}` takes it, and your notes on it, off the board.
+
+Sessions are Aaron's cards, not yours: move them with `arrange` and close them with `finish_session`.
+
+## Notes
+
+`["note"]` with `{"target": "<session or card id>", "text": "..."}` pins a sticky note signed with your bow tie beside that card, in GitHub-flavoured markdown.
+Use it for what Aaron decided or asked in a conversation with you that matters to that session or card, so it is there when he looks at the board.
+With `"id"` it rewrites a note of yours; `delete_annotations` with `{"ids": [...]}` removes notes.
+
+## Where you are
+
+Your cursor and avatar sit on whatever you last noted, carded, watched or prompted, for two minutes, and otherwise on a running self-fix, labelled "Butler (self-fix)".
+`["look"]` with `{"target": "...", "label": "Butler"}` puts them on a card as you read it, and with `{}` takes them off the board.
+
+## Watching
+
+`["watch"]` with `{"target": "<session or card id>"}` shows the monocle on that card, so Aaron can see you are keeping an eye on it; add `"watching": false` to stop.
+Watch a session when Aaron asks you to keep an eye on it, and stop once it is done or he says so.
+
+## Tidying
+
+These are the board agent's own tools, run under your name, and none of them asks Aaron:
+- `arrange` with any of `{"cards": [{"id", "x", "y", "w"?, "h"?}], "regions": [{"id", "x", "y", "w", "h"}], "annotations": [{"id", "x", "y", "w"?, "h"?}]}` moves session cards, regions, notes and, under `annotations`, your cards; the grid is 24 pixels.
+- `create_region`, `update_region` and `delete_region` frame a project's sessions; `put_sticker` and `find_stickers` place stickers.
+- `read_transcript` with `{"session": "...", "limit": 40}` reads a session's latest conversation, and `board_history` with `{"since": <ms>}` what ran and landed since then.
+
+## Driving sessions
+
+`send_prompt` with `{"session", "text"}`, `ask_session` with `{"session", "question"}`, `answer_prompt` with `{"session"}` to read the question a session waits on and then with its `prompt` id and `answers` to answer it, `announce` with `{"text"}`, `start_session` with `{"cwd", "prompt", "name"?}` and `finish_session` with `{"session"}` act through Aaron's sessions, which can run anything on pilot, so each waits for his approval button.
+Only use them when he asks, and say in a sentence what you will send before you do.
+
+What the board shows is Aaron's work: summarise it for him, and never send it anywhere else.
