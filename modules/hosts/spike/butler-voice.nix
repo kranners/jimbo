@@ -48,6 +48,8 @@ in
         DISCORD_CALL_TTS = "tcp://127.0.0.1:10200";
         DISCORD_CALL_VOICE = "bm_george";
         DISCORD_CALL_PROMPT_FILE = "${./butler-call.md}";
+        DISCORD_CALL_FAST_MODEL = "haiku";
+        DISCORD_CALL_FAST_PROMPT_FILE = "${./butler-call-fast.md}";
       }
       // lib.optionalAttrs config.butler.credentialedTools {
         DISCORD_HA_TOKEN_FILE = credential "home-assistant-token";
