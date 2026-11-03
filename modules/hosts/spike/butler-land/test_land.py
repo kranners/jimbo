@@ -242,6 +242,26 @@ class LandingQueue(unittest.TestCase):
         land.failed(["jimbo", "bbb", "build", "Give butler a weather command"])
         self.assertIn("say |A landed fix failed to build on spike", heard())
 
+    def test_a_young_turn_holds_a_butler_restart_at_most_ten_minutes(self):
+        busy = {"runningStartedAt": [(clock[0] - 300) * 1000], "running": 1}
+        call(live=False, turns=busy)
+        self.assertEqual(gate(), 3)
+        self.assertIn("1 turn butler is working on to finish", land.status())
+        # A speech service alone does not touch butler's turns, so it goes.
+        self.assertEqual(land.gate(["claude-discord-threads", "a", "b", commits, "wyoming-kokoro.service", ""]), 0)
+        clock[0] += 300
+        call(live=False, turns=busy)
+        land.tick()
+        self.assertFalse(land.queue()["jimbo"].get("released"))
+        clock[0] += 300
+        call(live=False, turns=busy)
+        land.tick()
+        self.assertTrue(land.queue()["jimbo"]["released"])
+
+    def test_an_old_turn_does_not_hold(self):
+        call(live=False, turns={"runningStartedAt": [(clock[0] - 25 * 60) * 1000], "running": 1})
+        self.assertEqual(gate(), 0)
+
     def test_watch_stops_once_empty(self):
         call()
         gate()

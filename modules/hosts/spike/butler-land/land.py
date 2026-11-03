@@ -18,7 +18,9 @@ Its state lives in one directory, `LAND_STATE`: `settings.json` (the mode and
 Aaron's cues), `queue.json` (present only while something is held) and
 `log.jsonl` (every hold and release, with its reason).  The daemon's call
 state file, `LAND_CALL_STATE`, says whether a call is live and how long it
-has been quiet.
+has been quiet, and its `turns`, live call or not, which turns are running
+and since when, so a landing that restarts butler also waits, at most
+TURN_HOLD_S, while a turn under TURN_YOUNG_S old is in flight.
 """
 
 import fcntl
@@ -39,6 +41,10 @@ STALE_S = int(os.environ.get("LAND_STALE_S", "20"))
 SENTENCE_S = float(os.environ.get("LAND_SENTENCE_S", "1.5"))
 # How long to wait after the shout for butler to finish saying it and Aaron to stop talking.
 CUE_WAIT_S = float(os.environ.get("LAND_CUE_WAIT_S", "20"))
+# A deploy that restarts butler waits while a turn younger than this runs, since it may well finish soon.
+TURN_YOUNG_S = int(os.environ.get("LAND_TURN_YOUNG_S", str(20 * 60)))
+# The longest that wait for a running turn holds a landing.
+TURN_HOLD_S = int(os.environ.get("LAND_TURN_HOLD_S", str(10 * 60)))
 POLL_S = float(os.environ.get("LAND_POLL_S", "5"))
 # How long `now` with nothing waiting marks the next landing urgent.
 NOW_WINDOW_S = 15 * 60
@@ -141,6 +147,26 @@ def call_state(at=None):
     return c
 
 
+def turns_state(at=None):
+    """The daemon's turn pool, or None: from the same file, trusted only while fresh, call or not."""
+    at = now() if at is None else at
+    try:
+        with open(CALL_STATE) as f:
+            c = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if at - c.get("updatedAt", 0) / 1000 > STALE_S or not isinstance(c.get("turns"), dict):
+        return None
+    return c["turns"]
+
+
+def young_turns(turns, at):
+    """How many running turns started under TURN_YOUNG_S ago."""
+    if not turns:
+        return 0
+    return sum(1 for started in turns.get("runningStartedAt") or [] if at - started / 1000 < TURN_YOUNG_S)
+
+
 def quiet_for(call, at):
     """Seconds the call has had no speech, audio or work, or 0 while it has any."""
     if any(call.get(k) for k in ("callerSpeaking", "butlerSpeaking", "audioPlaying", "working")):
@@ -152,7 +178,7 @@ def clock(t):
     return time.strftime("%H:%M", time.localtime(t))
 
 
-def decide(entry, s, call, at):
+def decide(entry, s, call, at, turns=None):
     """Whether a held entry goes now, and why: (go, reason)."""
     if s["mode"] == "off":
         return True, "the landing queue is off"
@@ -169,6 +195,9 @@ def decide(entry, s, call, at):
         return False, "Aaron is holding landings"
     if later:
         return False, f"waiting until {clock(s['at'])}"
+    young = young_turns(turns, at) if "butler.service" in entry.get("restarts", []) else 0
+    if young and at - entry["heldSince"] < TURN_HOLD_S:
+        return False, f"waiting for {young} turn{'s' if young != 1 else ''} butler is working on to finish, at most {TURN_HOLD_S // 60} minutes"
     if call is None:
         if s["mode"] == "always":
             return False, "always holding, until Aaron lands it, a set time or the longest hold"
@@ -202,7 +231,7 @@ def cue(entry):
     """Tells Aaron a held landing goes now, and waits so it never cuts in: True once it may go."""
     if call_state() is None:
         n = len(entry["commits"])
-        run([NOTIFY], f"Landing {n} fix{'es' if n != 1 else ''} held back during your call now; butler restarts for a moment.")
+        run([NOTIFY], f"Landing {n} fix{'es' if n != 1 else ''} held back for your call or a running turn now; butler restarts for a moment.")
         return True
     # butler defers its own restart to a quiet moment and announces it, so only a speech service restarted at once needs this shout.
     direct = [u for u in entry.get("restarts", []) if u not in DEFERRED]
@@ -268,7 +297,7 @@ def gate(args):
             **({"cuedAt": entry["cuedAt"]} if entry and "cuedAt" in entry else {}),
         }
         s = settings()
-        go, reason = decide(fresh, s, call_state(at), at)
+        go, reason = decide(fresh, s, call_state(at), at, turns_state(at))
         if go and (not entry or urgent):
             if entry:
                 del q[repo]
@@ -337,7 +366,7 @@ def tick():
         for repo, entry in q.items():
             if entry.get("released"):
                 continue
-            go, reason = decide(entry, s, call_state(at), at)
+            go, reason = decide(entry, s, call_state(at), at, turns_state(at))
             if go:
                 due.append((repo, reason))
     for repo, reason in due:
@@ -413,7 +442,7 @@ def status():
         lines.append("Nothing is waiting.")
     for repo, entry in sorted(q.items()):
         held = int((at - entry["heldSince"]) // 60)
-        state = "released, deploying" if entry.get("released") else decide(entry, s, call, at)[1]
+        state = "released, deploying" if entry.get("released") else decide(entry, s, call, at, turns_state(at))[1]
         latest = entry["heldSince"] + MAX_HOLD_S
         lines.append(f"{repo}: held since {clock(entry['heldSince'])} ({held} min), would restart {', '.join(entry['restarts'])}; {state}.")
         if not entry.get("released") and not (s.get("at") and s["at"] > at):
@@ -500,7 +529,7 @@ def main(argv):
         with locked():
             entry = queue().get(rest[0]) if rest else None
         probe = entry or {"repo": "", "commits": [], "restarts": ["butler.service"], "heldSince": at}
-        return 3 if entry or not decide(probe, settings(), call_state(at), at)[0] else 0
+        return 3 if entry or not decide(probe, settings(), call_state(at), at, turns_state(at))[0] else 0
     code, out = control(argv[1:])
     print(out)
     return code

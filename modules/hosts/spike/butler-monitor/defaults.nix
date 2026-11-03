@@ -21,6 +21,11 @@
     downMinutes = 10;
     claudeWarnPercent = 80;
     claudeActPercent = 95;
+    # butler runs at most 2 turns at once while any account is at this share of its session or week.
+    claudeBackoffPercent = 90;
+    # butler's turn pool: a turn waiting this long for a slot, or every slot busy this long, warns once.
+    turnQueueWarnSeconds = 120;
+    turnSlotsBusyMinutes = 15;
     maxRunningChanges = 4;
     maxChangeHours = 3;
     dockerCacheGB = 20;

@@ -63,6 +63,9 @@ let
       "framer"
     ];
     work = config.butler.work.snapshot;
+    # The daemon's call state file, which carries its turn pool, and the back-off file it reads.
+    callState = "/run/butler-call/call.json";
+    inherit (cfg) backoffFile;
     limits = "/var/lib/claude-limits";
     outbox = "${config.users.users.butler.home}/outbox";
     group = "butler";
@@ -200,6 +203,12 @@ in
       default = "${state}/machines.json";
       readOnly = true;
     };
+    backoffFile = mkOption {
+      description = "Whether butler should run fewer turns at once, written every run from claude-limits, the daemon's DISCORD_LIMITS_FILE.";
+      type = types.str;
+      default = "${state}/concurrency.json";
+      readOnly = true;
+    };
     holdFile = mkOption {
       description = "Present while the monitor, acting, holds new change sessions and runner launches.";
       type = types.str;
@@ -268,6 +277,7 @@ in
     ];
 
     systemd.services.butler = {
+      environment.DISCORD_LIMITS_FILE = cfg.backoffFile;
       serviceConfig = {
         BindReadOnlyPaths = [ "-${state}" ];
         BindPaths = [ "-${control}" ];
