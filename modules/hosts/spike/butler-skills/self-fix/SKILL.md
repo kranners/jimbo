@@ -13,6 +13,7 @@ Only when Aaron asks for a change to butler itself, never on your own initiative
 4. Call it again with `["status", "<id>"]` until it prints a link instead of "Still starting." (about a minute), then give Aaron the link.
 
 spike DMs Aaron the session's summary when it finishes, fails or is archived, and the link whenever it waits on him, so you need not watch it.
+When a fix lands, that DM carries a picture report card: what changed, before and after, what is ready to use, and what must happen to go live; when Aaron asks about one later, answer from the same headings.
 
 When Aaron asks how a fix is going, call `["status", "<id>"]` again, with the id from this thread.
 When he asks without one, or about all his fixes, call `["list"]`, which prints every self-fix of the last 7 days, newest first, each with its id, title, state, when it last did anything and its link, then `["status", "<id>"]` for any he wants in detail.
