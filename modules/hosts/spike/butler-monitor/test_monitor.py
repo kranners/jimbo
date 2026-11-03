@@ -162,7 +162,7 @@ check('a Mac reading normalises', m['load15'] == 6.9 and m['mem_free_ratio'] == 
 w = monitor.normalise('windows', monitor.parse_pairs('cores=16\nmem_total_kb=16000000\nmem_free_kb=3900000\ndisk_total=500000000000\ndisk_free=23900000000\nlocked=no\nkeepawake=on\n'))
 check('a Windows reading normalises', abs(w['mem_free_ratio'] - 0.24375) < 1e-9 and w['disk_free_bytes'] == 23.9e9 and 'on_battery' not in w)
 check('status and metrics render', 'pilot' in monitor.status_text(snap(baseline), [], 'dry-run', 0) and
-      'butler_monitor_host_up{host="pilot"} 1.0' in monitor.prom_lines(snap(baseline), [], 'dry-run', 0))
+      'butler_monitor_host_up{machine="pilot"} 1.0' in monitor.prom_lines(snap(baseline), [], 'dry-run', 0))
 
 if failures:
     print('%d failed' % len(failures))
