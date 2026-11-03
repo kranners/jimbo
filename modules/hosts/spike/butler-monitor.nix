@@ -155,7 +155,10 @@ in
     thresholds = mkOption {
       description = "Every limit the monitor judges by, in one place.";
       type = types.attrsOf types.number;
-      default = defaults.thresholds;
+      # Pruned after every switch, so a few more than the keep-count means pruning stopped.
+      default = defaults.thresholds // {
+        maxGenerations = config.jimbo.keepGenerations + 2;
+      };
     };
     alwaysOn = mkOption {
       description = "Machines whose being down is urgent and repeats hourly; any other is told once per spell.";
@@ -185,7 +188,7 @@ in
     };
     keepGenerations = mkOption {
       type = types.int;
-      default = 5;
+      default = config.jimbo.keepGenerations;
     };
     journalVacuum = mkOption {
       type = types.str;

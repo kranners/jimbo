@@ -24,7 +24,8 @@
     maxRunningChanges = 4;
     maxChangeHours = 3;
     dockerCacheGB = 20;
-    maxGenerations = 30;
+    # butler-monitor.nix sets it from jimbo.keepGenerations.
+    maxGenerations = 5;
   };
   # Between start and end only urgent notices go out; the rest wait for a summary at summary.
   quiet = {

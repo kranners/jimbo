@@ -603,6 +603,15 @@ let
       fi
       rm -f "$failed_record" "$STATE_DIRECTORY/switching"
       butler-land landed jimbo "$latest"
+      # Only after a switch that worked: keep the newest system generations, the running one among them, and collect the store when a backlog of them went.
+      if pruned=$(sudo /run/current-system/sw/bin/prune-generations ${toString config.jimbo.keepGenerations} /nix/var/nix/profiles/system); then
+        echo "$pruned"
+        count=''${pruned#Deleted }
+        count=''${count%% *}
+        [ "$count" -le ${toString config.jimbo.keepGenerations} ] || sudo systemctl start --no-block nix-gc.service || true
+      else
+        echo "Pruning old system generations failed" >&2
+      fi
     '';
   };
 in
