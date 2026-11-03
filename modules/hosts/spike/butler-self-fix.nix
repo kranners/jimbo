@@ -40,7 +40,7 @@ let
 
     Aaron's request, relayed by butler, is at the end. Make the smallest change that does what it asks, in whichever repository it belongs, and land it:
 
-    - jimbo: follow its .claude/CLAUDE.md and keep its CLAUDE.md files true in the same commit. Check with the cloud session's `nix flake check` in its .claude/CLAUDE.md. Within about 5 minutes of main moving, spike's jimbo-switch pulls it and switches spike, restarting butler only when its service changed, at once or during a live call at its next quiet moment, and a commit whose build fails is never switched to.
+    - jimbo: follow its .claude/CLAUDE.md and keep its CLAUDE.md files true in the same commit. Check with the cloud session's `nix flake check` in its .claude/CLAUDE.md. Within about 5 minutes of main moving, spike's jimbo-switch pulls it and switches spike, restarting butler only when its service changed, at once or during a live call at its next quiet moment, and a commit whose build fails is never switched to; while Aaron is on a call, spike's landing queue may hold that switch first, for a quiet moment or at most 30 minutes, and a `Land: now` line in the commit message skips the queue for a fix that cannot wait.
     - claude-discord-threads: put /opt/node24/bin first on PATH, then `npm ci && npm run typecheck && npm test`. butler-pull deploys its main within about 2 minutes and restarts butler, at once or during a live call at its next quiet moment.
     - butler-memory: plain files butler reads; butler-memory-pull brings main to spike within 5 minutes.
     - butler: follow its CLAUDE.md and check with `nix flake check`. It goes live once jimbo's lock moves: in jimbo run `nix flake update butler`, then land that on jimbo's main.
@@ -481,17 +481,24 @@ let
     '';
   };
 
+  # Switches spike to jimbo's main, holding a switch that would restart butler in the landing queue (butler-land.nix) while Aaron is on a call.
   jimbo-switch = pkgs.writeShellApplication {
     name = "jimbo-switch";
     runtimeInputs = [
       pkgs.coreutils
+      pkgs.diffutils
       pkgs.git
+      pkgs.gnugrep
       pkgs.nh
       pkgs.nix
       pkgs.openssh
+      config.butler.land.package
     ];
     text = ''
       failed_record="$STATE_DIRECTORY/failed"
+      # The system built ahead of a held switch, kept as a GC root, and the commit it was built from.
+      system_link="$STATE_DIRECTORY/system"
+      built_record="$STATE_DIRECTORY/built"
       [ "$(git branch --show-current)" = main ] || { echo "Not switching: the checkout is not on main" >&2; exit 0; }
       [ -z "$(git status --porcelain)" ] || { echo "Not switching: the checkout has uncommitted changes" >&2; exit 0; }
       git fetch --quiet origin main
@@ -500,15 +507,65 @@ let
       [ "$latest" != "$running" ] || exit 0
       [ "$latest" != "$(cat "$failed_record" 2>/dev/null)" ] || exit 0
       git merge-base --is-ancestor "$running" "$latest" || { echo "Not switching: $latest does not descend from $running" >&2; exit 0; }
+      subject=$(git log -1 --format=%s "$latest")
+      commits=$(mktemp)
+      trap 'rm -f "$commits"' EXIT
+      git log --no-merges --format=$'%H\t%ct\t%s' "$running..$latest" > "$commits"
+
+      # A fix for a commit that failed to switch, or one that asks, skips the landing queue.
+      urgent=""
+      [ ! -s "$failed_record" ] || urgent="it follows a commit that failed to switch"
+      ! git log --format=%B "$running..$latest" | grep -qiE '^Land: *now' || urgent="a commit asks to land now"
+
+      system=""
+      if [ -n "$urgent" ]; then
+        butler-land gate jimbo "$running" "$latest" "$commits" unknown "$urgent" || true
+      elif ! butler-land would-hold jimbo; then
+        # Built first, so a held commit that fails to build is reported now rather than when it is released.
+        if [ "$(cat "$built_record" 2>/dev/null)" = "$latest" ] && [ -e "$system_link" ]; then
+          system=$(readlink -f "$system_link")
+        elif system=$(nix build --out-link "$system_link" --print-out-paths "git+file://$PWD?rev=$latest#nixosConfigurations.spike.config.system.build.toplevel"); then
+          echo "$latest" > "$built_record"
+        else
+          echo "$latest" > "$failed_record"
+          butler-land failed jimbo "$latest" build "$subject"
+          exit 1
+        fi
+        same() {
+          [ ! -e "$1" ] && [ ! -e "$2" ] && return 0
+          diff -rq "$1" "$2" > /dev/null 2>&1
+        }
+        restarts=""
+        for unit in ${lib.escapeShellArgs config.butler.land.restartUnits}; do
+          old=/run/current-system/etc/systemd/system/$unit
+          new=$system/etc/systemd/system/$unit
+          if ! same "$old" "$new" || ! same "$old.d" "$new.d"; then restarts="$restarts $unit"; fi
+        done
+        held=0
+        butler-land gate jimbo "$running" "$latest" "$commits" "$restarts" "" || held=$?
+        # 3 is held; anything else from the queue itself switches anyway, as before it existed.
+        [ "$held" -ne 3 ] || exit 0
+      fi
+
       # What this switch brings in, for butler to say why it restarted if the switch restarts it.
       git log --no-merges --format=%s "$running..$latest" > "$STATE_DIRECTORY/switching"
       git merge --quiet --ff-only "$latest"
-      if ! nh os switch .; then
+      switch() {
+        if [ -n "$system" ]; then
+          # Built already, so a released landing activates in seconds, close behind its cue.
+          sudo nix-env --profile /nix/var/nix/profiles/system --set "$system" && sudo "$system/bin/switch-to-configuration" switch
+        else
+          nh os switch .
+        fi
+      }
+      if ! switch; then
         rm -f "$STATE_DIRECTORY/switching"
         echo "$latest" > "$failed_record"
+        butler-land failed jimbo "$latest" switch "$subject"
         exit 1
       fi
       rm -f "$failed_record" "$STATE_DIRECTORY/switching"
+      butler-land landed jimbo "$latest"
     '';
   };
 in

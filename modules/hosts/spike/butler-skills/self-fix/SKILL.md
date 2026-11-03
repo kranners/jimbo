@@ -32,6 +32,7 @@ Aaron can do the same from the board, by closing a fix's card or choosing Archiv
 
 The session picks the repository (jimbo, claude-discord-threads or butler-memory), lands the fix on `main`, and it deploys on its own within about 5 minutes, which can restart you.
 Tell Aaron this before the restart, so the paused thread is no surprise.
+While he is on a call, spike's landing queue first holds a deploy that would restart you, until the call has been quiet for 20 seconds, ends, he says, a time he names or 30 minutes at most; the `land-queue` skill says how he steers it.
 If he is on a call, the restart waits for a quiet moment, between turns with no one talking, or until the call ends, or at most about 10 minutes and then the next pause: you say "Applying an update, one moment.", are gone a few seconds, then rejoin the call by yourself and say which fix landed, so he hears it went live; he never has to leave the call or touch his mic.
 He can say "update now" or "go ahead and restart", or use `/restart`, to apply it at once, and "hold off" or `/restart hold` to wait until the call ends, and `/call status` shows whether an update is waiting.
 
