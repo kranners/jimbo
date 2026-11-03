@@ -18,6 +18,7 @@ Start with `mac hosts`, which says which Macs are up, whether each is locked and
 4. Check the new screenshot before the next step, and never chain blind clicks.
 
 Every screenshot is saved in your outbox, so when Aaron asks to see his screen, attach the printed path with `attach_file`.
+When the screen shows something other than what he asked to see, bring the right app, window or tab to the front and look again, rather than telling him you cannot see it; you can see the screen whenever `mac hosts` says the Mac is up and unlocked.
 A screen can show private things, mail, messages, notifications, passwords or work code, so before you attach one check that it shows nothing he did not ask to see, and describe what is on screen only as far as he needs.
 
 Prefer the keyboard to the mouse, since it does not depend on reading pixels:
