@@ -148,6 +148,18 @@
       python3 -I ${./butler-context/test_context.py} ${./butler-context/context.py} > $out 2>&1 || { cat $out; exit 1; }
     '';
 
+    # butler's `note` and butler-notes-write against a scratch vault offline: reads, writes, stale-edit refusals, history, restore and paths.
+    butler-notes =
+      let
+        built = import ./butler-notes/packages.nix {
+          inherit pkgs lib;
+          ob = "/nonexistent";
+        };
+      in
+      pkgs.runCommand "butler-notes-test" { nativeBuildInputs = [ pkgs.git ]; } ''
+        HOME=$TMPDIR bash ${./butler-notes/test_notes.sh} ${lib.getExe built.note} ${lib.getExe built.writer} > $out 2>&1 || { cat $out; exit 1; }
+      '';
+
     # The device gate's login, cookies, expiry, lockout and redirects over HTTP.
     device-gate = pkgs.runCommand "device-gate-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       cp ${./device-gate}/gate.py ${./device-gate}/test.py .
@@ -185,6 +197,7 @@
         ./butler-mail.nix
         ./butler-maps.nix
         ./butler-mindbody.nix
+        ./butler-notes.nix
         ./butler-messenger.nix
         ./butler-monitor.nix
         ./butler-overlay-relay.nix

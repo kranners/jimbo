@@ -24,7 +24,7 @@ in
   butler.commands.mindbody = {
     package = mindbody;
     description = ''
-      REVL Collingwood's class timetable from its public Mindbody schedule, read-only: the coming week's classes with coach, spots free and class id.
+      REVL Collingwood's class timetable from its public Mindbody schedule: the coming week's classes with coach, spots free and class id. Aaron's own bookings, booking, cancelling and waitlists go through his Mindbody login in your browser, by the mindbody skill.
       mindbody timetable [today|tomorrow|week|<weekday>|YYYY-MM-DD] [<class name words>] | mindbody class <class id> | mindbody link
     '';
     rules = map view [

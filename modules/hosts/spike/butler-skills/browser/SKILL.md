@@ -14,6 +14,7 @@ Prefer `WebFetch` and `WebSearch` for public pages, and use the browser only for
 
 Every browser tool runs without asking.
 Before you submit, send, buy, pay, book, post or message anything, ask Aaron in plain text and wait for his yes.
+His own request in the thread for exactly that action, such as booking one named class, is that yes, and so is a mission he approved that lists it; never pay without asking, whatever the request.
 
 ## Logins
 
