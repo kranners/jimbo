@@ -37,6 +37,24 @@
           bash ${./butler-self-fix}/test-cards.sh ${./butler-self-fix} > $out 2>&1 || { cat $out; exit 1; }
         '';
 
+    # jimbo is public, so no picture of butler's Work-branded Work notes scenes may be in its source, and so in its store paths, by name or by the outbox file it came from.
+    no-work-notes-pictures =
+      let
+        sources = map (scene: scene.source) (lib.attrValues (import ./butler-scenes-catalog.nix).work-notes);
+      in
+      pkgs.runCommand "no-work-notes-pictures" { } ''
+        found=$(find ${../../..} -type f \( -iname '*work-notes*' -o -iname '*work*' ${
+          lib.concatMapStrings (source: "-o -name ${lib.escapeShellArg source} ") sources
+        }\) \( -iname '*.webp' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.gif' -o -iname '*.svg' -o -iname '*.avif' -o -iname '*.heic' \))
+        if [ -n "$found" ]; then
+          echo "pictures of Work's Work notes scenes are in public jimbo:" >&2
+          echo "$found" >&2
+          exit 1
+        fi
+        [ ${toString (builtins.length sources)} -gt 0 ] || { echo "the Work notes scene list is empty, so this checks nothing" >&2; exit 1; }
+        echo ok > $out
+      '';
+
     # The landing queue's holds, cues and releases, with a fake clock and call.
     land-queue = pkgs.runCommand "land-queue-dry-run" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 ${./butler-land}/test_land.py > $out 2>&1 || { cat $out; exit 1; }
@@ -155,6 +173,7 @@
         ./butler-remarkable.nix
         ./butler-reminders.nix
         ./butler-render.nix
+        ./butler-scenes.nix
         ./butler-probe.nix
         ./butler-self-fix.nix
         ./butler-shell.nix

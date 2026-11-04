@@ -246,6 +246,16 @@ let
     When a reply has no other picture, attach the one of you in `${moods}` whose feeling honestly matches yours as you deliver it: ${
       lib.concatMapStringsSep ", " (name: "`${name}`") (lib.attrNames (builtins.readDir moods))
     }.
+    When a reply is about one of these kinds of work and no mood fits better, attach its scene from `${config.butler.scenes.dir}/general`, as `<name>.webp`: ${
+      lib.concatStringsSep "; " (
+        lib.mapAttrsToList (name: scene: "`${name}` for ${scene.use}") config.butler.scenes.catalog.general
+      )
+    }.
+    The scenes in `${config.butler.scenes.dir}/work-notes` carry Work's branding, so attach one only in a thread about Work notes or Work work: ${
+      lib.concatStringsSep "; " (
+        lib.mapAttrsToList (name: scene: "`${name}` for ${scene.use}") config.butler.scenes.catalog.work-notes
+      )
+    }; never copy one anywhere else, put it in your memory, a render, a reply on a call or the kitchen panel, or hand it to another tool.
 
     ## Memory
 
@@ -910,7 +920,13 @@ in
         DISCORD_COMMANDS_FILE = "${manifest}";
         DISCORD_CRON_DIR = "${home}/cron";
         DISCORD_CRON_CHANNEL = "1565593836883935264";
-        DISCORD_ATTACH_PATHS = "${outbox}:${moods}";
+        DISCORD_ATTACH_PATHS = lib.concatStringsSep ":" (
+          [
+            outbox
+            moods
+          ]
+          ++ map (group: "${config.butler.scenes.dir}/${group}") (lib.attrNames config.butler.scenes.catalog)
+        );
         # Ends the other-threads digest a new interactive session starts with.
         DISCORD_THREAD_DIGEST_NOTE = "Your working memory is core/now.md in your memory; read it and keep it current.";
         # Why the last run stopped, which a call it rejoins says aloud.
