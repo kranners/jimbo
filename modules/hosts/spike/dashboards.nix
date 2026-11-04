@@ -457,7 +457,7 @@ let
         targets = [
           (target "butler_turns_lane" "{{lane}} running")
           (target "butler_turns_queued" "waiting")
-          (target "butler_turns_cap" "slots")
+          (target "butler_turns_host_blocked" "{{lane}} held by spike")
           (target "butler_turns_backoff" "backing off")
         ];
       })
