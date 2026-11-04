@@ -208,7 +208,7 @@ in
           "add"
           "**"
         ];
-        lanes = [ "interactive" ];
+        lanes = both;
         acts = true;
       }
       {
@@ -216,7 +216,7 @@ in
           "remove"
           "*"
         ];
-        lanes = [ "interactive" ];
+        lanes = both;
         acts = true;
       }
     ];

@@ -223,11 +223,17 @@ let
         "status"
         "*"
       ];
-      lanes = [ "interactive" ];
+      lanes = [
+        "interactive"
+        "cron"
+      ];
     }
     {
       match = [ "list" ];
-      lanes = [ "interactive" ];
+      lanes = [
+        "interactive"
+        "cron"
+      ];
     }
     {
       match = [

@@ -89,6 +89,11 @@ let
         );
         default = null;
       };
+      # Options, such as "--from", that may stand in the match's "*" or trailing "**", which otherwise refuse any argument starting with "-".
+      flags = mkOption {
+        type = types.listOf (types.strMatching "--?[a-z][a-z0-9-]*");
+        default = [ ];
+      };
     };
   };
 
@@ -128,11 +133,14 @@ let
           r:
           lib.filterAttrs (
             n: v:
-            !(lib.elem n [
-              "grant"
-              "outcomes"
-            ])
-            || v != null
+            (
+              !(lib.elem n [
+                "grant"
+                "outcomes"
+              ])
+              || v != null
+            )
+            && (n != "flags" || v != [ ])
           ) (r // { taints = r.taints || c.private; })
         ) c.rules;
       }) commands;
