@@ -174,6 +174,7 @@
         ./butler-mac.nix
         ./butler-mail.nix
         ./butler-maps.nix
+        ./butler-mindbody.nix
         ./butler-messenger.nix
         ./butler-monitor.nix
         ./butler-overlay-relay.nix
