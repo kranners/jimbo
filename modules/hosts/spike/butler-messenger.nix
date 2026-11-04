@@ -224,6 +224,10 @@ in
           lanes = [ "interactive" ];
           taints = true;
           egress = true;
+          outcome = {
+            kind = "message";
+            to = 0;
+          };
         }
       ];
       inherit credentials;

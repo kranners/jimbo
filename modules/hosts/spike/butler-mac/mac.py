@@ -1258,11 +1258,23 @@ def guard_password(host):
 # refuses it until butler states the outcome with `mac <host> confirm "<what will happen>" <action...>`, which the
 # daemon always asks Aaron for, showing that statement. It reads only the front app and its window's title or URL, so
 # it misses a send it cannot see there, and an unreadable front window lets the action through.
-MESSAGING_APPS = re.compile(r'(?i)^(?:messages|mail|slack|discord|whatsapp|messenger|signal|telegram|microsoft outlook|outlook|microsoft teams|teams|spark|airmail|mimestream|superhuman|thunderbird|facetime|paypal|wallet)\b')
+# Under a mission Aaron approved, the daemon names in BUTLER_MISSION_KINDS the outcome kinds it lists on this machine,
+# and a messaging or mail window lets the action through when it lists sends or publishing there, since Aaron asked on
+# 4 Nov 2026 for one approval per run. A payment, checkout or bank page still wants `confirm`, which asks him nothing
+# under such a mission but is how the daemon checks the payee and amount against the mission's cap.
+MESSAGING_APPS = re.compile(r'(?i)^(?:messages|mail|slack|discord|whatsapp|messenger|signal|telegram|microsoft outlook|outlook|microsoft teams|teams|spark|airmail|mimestream|superhuman|thunderbird|facetime)\b')
+PAYING_APPS = re.compile(r'(?i)^(?:paypal|wallet)\b')
 BROWSERS = re.compile(r'(?i)chrom|safari|firefox|arc\b|brave|edge|orion|vivaldi|opera|cmux|webkit')
-SENDING_PAGES = re.compile(r'(?i)\b(?:gmail|inbox|outlook|mail|messenger|messages|whatsapp|slack|discord|facebook|instagram|linkedin|twitter|compose|reply|checkout|check out|payment|pay|paypal|cart|basket|order|billing|purchase|subscribe|subscription|bank|banking|netbank|commbank|westpac|anz|nab|stripe|afterpay|transfer|booking|book now|reservation|sign up)\b')
+SENDING_PAGES = re.compile(r'(?i)\b(?:gmail|inbox|outlook|mail|messenger|messages|whatsapp|slack|discord|facebook|instagram|linkedin|twitter|compose|reply|sign up)\b')
+PAYING_PAGES = re.compile(r'(?i)\b(?:checkout|check out|payment|pay|paypal|cart|basket|order|billing|purchase|subscribe|subscription|bank|banking|netbank|commbank|westpac|anz|nab|stripe|afterpay|transfer|booking|book now|reservation)\b')
+MISSION_SENDS = {'message', 'publish', 'confirm', 'signup'}
 LINUX_FRONT = LINUX_ENV + 'hyprctl activewindow -j 2> /dev/null'
 CONFIRMED = []
+
+
+def mission_kinds():
+    """The outcome kinds the thread's mission lists on this call's machine, as the daemon passes them."""
+    return set(filter(None, os.environ.get('BUTLER_MISSION_KINDS', '').split(',')))
 
 
 def front_context(host):
@@ -1307,8 +1319,12 @@ def guard_outcome(host, verb, args, stdin=''):
     if not context:
         return
     app, title = context
-    sending = MESSAGING_APPS.search(app or '') or (BROWSERS.search(app or '') and SENDING_PAGES.search(title or ''))
-    if not sending:
+    browser = BROWSERS.search(app or '')
+    paying = PAYING_APPS.search(app or '') or (browser and PAYING_PAGES.search(title or ''))
+    sending = MESSAGING_APPS.search(app or '') or (browser and SENDING_PAGES.search(title or ''))
+    if not sending and not paying:
+        return
+    if sending and not paying and mission_kinds() & MISSION_SENDS:
         return
     where = '%s%s' % (app, ', "%s"' % clip(title, 80) if title else '')
     raise Refused('outcome check: the front window on %s is %s, where this %s may send, post or pay something. Tell Aaron exactly what will happen, then run it again as: mac %s confirm "<what will happen, such as: send \'on my way\' to Rylee in Messages>" %s' % (

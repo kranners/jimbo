@@ -311,6 +311,10 @@ in
             lanes = interactive;
             taints = true;
             egress = true;
+            outcome = {
+              kind = "message";
+              to = 1;
+            };
           }
         ];
         credentials = lib.mergeAttrsList (lib.catAttrs "credentials" (lib.attrValues mailAccounts));
