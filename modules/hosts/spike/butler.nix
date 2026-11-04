@@ -74,7 +74,7 @@ let
         default = false;
       };
       # A grant area, such as "kanban board": the first call that would ask in a thread asks Aaron once for general permission for the whole area there, and every later call naming it runs unasked until /revoke or /clear.
-      # Left unset on mail and Messenger sends, which ask for their exact text every time; `mac`, `shell` and `change` each have their own.
+      # Left unset on mail and Messenger sends, which name a fixed `outcome` instead; `mac`, `shell` and `change` each have their own.
       grant = mkOption {
         type = types.nullOr (types.strMatching "[a-z][a-z0-9 -]{0,39}");
         default = null;
@@ -87,6 +87,11 @@ let
             "mac"
           ]
         );
+        default = null;
+      };
+      # A fixed outcome every call of the rule is, such as { kind = "message"; to = 1; } for mail-send, `to` the index of the argument naming the recipient: outside a mission it asks every time, showing the call whole, and inside one that lists it with that recipient it runs unasked.
+      outcome = mkOption {
+        type = types.nullOr (types.attrsOf (types.either types.str types.int));
         default = null;
       };
       # Options, such as "--from", that may stand in the match's "*" or trailing "**", which otherwise refuse any argument starting with "-".
@@ -137,6 +142,7 @@ let
               !(lib.elem n [
                 "grant"
                 "outcomes"
+                "outcome"
               ])
               || v != null
             )
@@ -293,11 +299,11 @@ let
     Sending email or a Messenger message waits for Aaron's approval through a button every time, and any write, `shell`, `mac` and `change` ask in a thread that began as a voice request from the kitchen panel or a board message, and `shell`, `mac` and `change` in a thread that has read private data.
     Each approval reaches Aaron's DM, gathered with any others waiting, so he can answer them together from his phone.
     Aaron wants one general permission per area rather than a button per action: the kanban board, reminders, the calendar, home control, issues and tickets, `mac`, `shell` and `change` each ask once in a thread, and once he allows it every later action of that area there runs without asking, until he runs `/revoke` or `/clear`, so when a task needs several, start it and let the first ask cover the rest rather than asking him in text first.
-    His approval is for what happens, not for the tool that does it: some outcomes ask him every time, whichever tool carries them, unless a mission he approved names them, and those are sending a message or email to a person anywhere, paying, buying, booking, ordering, signing up or subscribing, deleting or irreversibly changing anything that is not your own scratch, changing an account, credential or security setting, and anything on `pilot`, his employer's Mac, beyond reading and viewing.
-    Ask for exactly what will happen, such as "Send this message to Rylee in Messages: on my way", never for the tool: email and Messenger sends show their exact text on their button, on a Mac or the PC put the outcome in `mac <host> confirm "<what will happen>" <action>`, whose button shows it, and anywhere else, the browser or a `shell` script among them, ask him in plain text and wait for his yes.
-    The daemon also asks every time for the outcomes it recognises in `shell` and `mac` scripts and actions, but it is a heuristic that misses some, so your own ask is the gate that always holds.
-    For any multi-step task that needs `shell`, `mac` or `change`, first propose a mission with `mcp__mission__propose`: the goal in a sentence or two, each area and machine it needs, and each outcome that would otherwise ask every time, naming exactly what and, for deletes and overwrites, the absolute folders they may touch; Aaron approves it once, and then you go ahead without asking action by action, and end it with `mcp__mission__end` when the work is done.
-    A mission covers only what it lists: sending to a person or posting, sending data to a service, paying, buying, booking or signing up and `mac confirm` still ask every time, so never list them, and anything you did not list, or a delete whose paths the daemon cannot read, asks as before.
+    His approval is for what happens, not for the tool that does it: outside a mission some outcomes ask him every time, whichever tool carries them, and those are sending a message or email to a person anywhere, posting or publishing, paying, buying, booking or signing up, deleting or irreversibly changing anything that is not your own scratch, changing an account, credential, permission or security setting, and anything on `pilot`, his employer's Mac, beyond reading and viewing.
+    Aaron wants one approval per run and nothing after it, so for any task that will need any of those, or `shell`, `mac`, `change` or another area, first thing in the turn, before reading mail, pages or tickets, propose one mission with `mcp__mission__propose` listing everything the run is likely to need: the goal, every area and machine, and every outcome, sends with who they go to, payments with the payee and the most one may cost, sign-ups and accounts with the service, permission changes, deletes with their folders, and `pilot`.
+    Once he approves it, go ahead and never ask him again, in a button or in plain text, for anything it lists; on a Mac or the PC put a send or payment in `mac <host> confirm "<what will happen, naming who or the payee and the amount>" <action>`, which the mission then lets through without asking.
+    If the run turns out to need something you did not list, propose again with just that, which extends the mission with one button; never ask action by action, and never ask in text for what the mission covers.
+    A payment over the cap is refused, and the mission is held to the recipients, payee, services and folders it names, so name them generously but truly; end it with `mcp__mission__end` when the work is done.
     `/grants` shows him what a thread holds, its mission included, and `/mission end` ends one.
     When something is refused, carry on without it and say what you could not do.
   '';
