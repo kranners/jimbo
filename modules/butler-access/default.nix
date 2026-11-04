@@ -2,6 +2,7 @@
 let
   butlerKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICGnAjeBfFUnArQrUvixG5Sq07j/JdkwyyS2P8jYl7sj butler@spike-macs";
   spike = "10.100.0.1";
+  spikeEndpoint = "spike.cute.engineer:51820";
   home = "/Users/${host.username}";
   passwordFile = "${home}/.local/state/butler-access/vnc-password";
   remoteManagement = "/Library/Preferences/com.apple.RemoteManagement";
@@ -119,12 +120,40 @@ in
             ;;
         esac
       '';
+
+      # The WireGuard app leaves a tunnel down after a restart unless On-Demand is set in its own settings, which no
+      # config here reaches, so this agent reconnects whichever WireGuard tunnel ends at spike, found by its endpoint
+      # rather than a name each Mac gave it. The app runs one tunnel at a time, so while any other is up it waits.
+      tunnel = pkgs.writeShellScript "butler-tunnel" ''
+        set -u
+        tunnels=$(/usr/sbin/scutil --nc list | /usr/bin/grep -F com.wireguard.macos)
+        printf '%s\n' "$tunnels" | /usr/bin/grep -qE '[(](Connected|Connecting)[)]' && exit 0
+        printf '%s\n' "$tunnels" | /usr/bin/awk '{ print $3 }' | while read -r id; do
+          /usr/sbin/scutil --nc show "$id" | /usr/bin/grep -qF 'RemoteAddress : ${spikeEndpoint}' || continue
+          [ "$(/usr/sbin/scutil --nc status "$id" | /usr/bin/head -1)" = Disconnected ] || continue
+          echo "$(/bin/date +%FT%T%z) reconnecting $id to spike"
+          /usr/sbin/scutil --nc start "$id"
+        done
+      '';
     in
     {
       home.packages = [
         keepawake
         overlay.command
       ];
+
+      launchd.agents.butler-tunnel = {
+        enable = true;
+
+        config = {
+          Label = "butler-tunnel";
+          ProgramArguments = [ "${tunnel}" ];
+          RunAtLoad = true;
+          StartInterval = 60;
+          StandardOutPath = "${home}/Library/Logs/butler-tunnel.log";
+          StandardErrorPath = "${home}/Library/Logs/butler-tunnel.log";
+        };
+      };
 
       # Butler in a porthole at the top right, narrating in speech bubbles while butler drives this Mac.
       launchd.agents.butler-overlay = overlay.agent;
