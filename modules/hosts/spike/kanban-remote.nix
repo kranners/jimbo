@@ -24,6 +24,7 @@ let
 
   # Devices that may reach the board, by WireGuard peer name, each still signing in through the device gate.
   viewers = [
+    "pilot"
     "ipad"
     "phone"
     "phone-2"
@@ -46,6 +47,11 @@ in
 {
   users.groups.kanban-tunnel = { };
   users.users.${config.services.caddy.user}.extraGroups = [ "kanban-tunnel" ];
+  # A process takes its supplementary groups only when it starts, and a Caddyfile change only reloads Caddy, so
+  # restart it whenever its groups change, or it keeps answering every request through the socket with a 502.
+  systemd.services.caddy.restartTriggers = [
+    (builtins.toJSON config.users.users.${config.services.caddy.user}.extraGroups)
+  ];
 
   # The board listens on pilot's loopback alone, and butler's Mac key may forward to nothing there but Screen
   # Sharing, so each connection Caddy opens to this socket runs `nc` to the board's port over that key's ssh, the
@@ -72,7 +78,7 @@ in
   };
 
   services.caddy.virtualHosts.${domain} = lib.mkIf (viewerAddresses != [ ]) {
-    logFormat = null;
+    # The module's default access log, /var/log/caddy/access-${domain}.log, says what each request got.
     extraConfig = ''
       @outsider not remote_ip ${lib.concatStringsSep " " viewerAddresses}
       @foreignOrigin {
@@ -92,7 +98,8 @@ in
       # The board trusts loopback callers on these, and through the tunnel every request comes from loopback.
       @machineOnly path /api/agent/* /api/butler/tools/* /api/docs/tools/* /api/hooks/* /api/runners /api/runners/* /runner.js
       route {
-        abort @outsider
+        # A plain refusal rather than an abort, so a device left off the list says so instead of a reset stream.
+        respond @outsider "This device may not reach the board." 403
         abort @foreignOrigin
         ${lib.optionalString (runnerAddresses != [ ]) ''
           reverse_proxy @runner unix/${board} {
