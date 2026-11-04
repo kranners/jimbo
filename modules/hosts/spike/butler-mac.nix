@@ -166,15 +166,13 @@ in
     skill = ./butler-skills/mac;
   };
 
-  # The private flake's ingest reads only the folders it knows; exports holds statements and service exports, PDFs,
-  # CSVs and zips, it has no reader for yet, so they wait there, kept, until one is written.
+  # The private flake's ingest makes and reads the inbox's exports folder, where statements and service exports go.
   systemd.tmpfiles.rules = [
     "d ${home}/.cache 0700 butler butler -"
     "d ${drop} 0700 butler butler -"
     "d ${drop}/spool 0700 butler butler -"
     "d ${drop}/partial 0700 butler butler -"
     "d ${drop}/results 0700 butler butler -"
-    "d ${inbox}/exports 0700 butler butler -"
   ];
 
   # A burst of fetches starts the mover once per file; with systemd's default start limit, 5 in 10 seconds, the fifth
