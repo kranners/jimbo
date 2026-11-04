@@ -262,7 +262,7 @@ def parse_size(text):
     return float(match.group(1)) * {'': 1, 'k': 1e3, 'K': 1e3, 'M': 1e6, 'G': 1e9, 'T': 1e12}[match.group(2)]
 
 
-def collect_spike_extras():
+def collect_spike_extras(failed, state, now):
     extras = {}
     try:
         result = subprocess.run([CONFIG['docker'], 'system', 'df', '--format', '{{json .}}'], capture_output=True, text=True, timeout=60)
@@ -274,27 +274,147 @@ def collect_spike_extras():
                 extras['docker_images_reclaimable_bytes'] = parse_size(row.get('Reclaimable'))
     except (OSError, subprocess.TimeoutExpired, ValueError):
         pass
-    streaks = {}
-    for unit, spec in CONFIG.get('failStreaks', {}).items():
-        entry = {'failed_runs': 0, 'running_seconds': None}
-        try:
-            entry['failed_runs'] = int(open(spec['file']).read().strip() or 0)
-        except (OSError, ValueError):
-            pass
-        try:
-            state, since = subprocess.run([CONFIG['systemctl'], 'show', unit, '-p', 'ActiveState', '-p', 'InactiveExitTimestampMonotonic', '--value'],
-                                          capture_output=True, text=True, timeout=30).stdout.split()
-            if state == 'activating' and int(since):
-                entry['running_seconds'] = time.monotonic() - int(since) / 1e6
-        except (OSError, subprocess.TimeoutExpired, ValueError):
-            pass
-        streaks[unit] = entry
-    extras['unit_streaks'] = streaks
+    extras['units'] = collect_units(failed, state, now)
     try:
         extras['system_generations'] = len([n for n in os.listdir('/nix/var/nix/profiles') if re.fullmatch(r'system-[0-9]+-link', n)])
     except OSError:
         pass
     return extras
+
+
+# ---------------------------------------------------------------- failed units
+
+# systemd's own journal messages about a unit, by MESSAGE_ID.
+UNIT_RESULT = 'd9b373ed55a64feb8242e02dbe79a49c'  # Failed with result '...'.
+UNIT_SUCCESS = '7ad2d189f7e94e70a38c781354912448'  # Deactivated successfully.
+UNIT_STARTED = '39f53479d3a045ac8e11786248231fbf'  # Started or Finished, with JOB_RESULT.
+UNIT_EXIT = '98e322203f7a4ed290d09fe03c09fe15'  # Main process exited, with EXIT_CODE and EXIT_STATUS.
+# The rest of systemd's routine lines about a unit, which say nothing about why it failed.
+UNIT_ROUTINE = {UNIT_RESULT, UNIT_SUCCESS, UNIT_STARTED, UNIT_EXIT,
+                '7d4958e842da4a758f6c1cdc7b36dcc5', 'be02cf6855d2428ba40df7e9d022f03d', 'ae8f7b866b0347b9af31fe1c80b127c0',
+                'de5b426a63be47a7b6ac3eaac82e2f6f', '9d1aaa27d60140bd96365438aad20286', '5eb03494b6584870a536b337290809b3'}
+SECRETISH = re.compile(r'(gh[pousr]_|github_pat_|sk-|xox[abpr]-|glpat-)[A-Za-z0-9_-]+|[A-Za-z0-9+/_=-]{32,}')
+
+
+def journal_text(value):
+    if isinstance(value, list):
+        return bytes(b & 0xff for b in value if isinstance(b, int)).decode('utf-8', 'replace')
+    return str(value or '')
+
+
+def plain_line(text):
+    """One journal line fit for Aaron: its unit prefix, secrets and control characters gone, clipped."""
+    text = re.sub(r'[\x00-\x1f\x7f]+', ' ', text).strip()
+    text = re.sub(r'^[\w@.-]+(\.service)?: ', '', text)
+    return SECRETISH.sub('…', text)[:160]
+
+
+def parse_unit_journal(unit, entries):
+    """A unit's last day of runs from its journal entries, oldest first: failed runs in a row, failures in the day,
+    when the streak began and the last failure and recovery were, and the cause, from what the failing run logged."""
+    d = {'failed_runs': 0, 'fails_day': 0, 'failed_since': None, 'last_fail': None, 'recovered_at': None,
+         'cause': None, 'exit': None, 'result': None}
+    lines, exit_ = [], None
+    for e in entries:
+        try:
+            at = int(e.get('__REALTIME_TIMESTAMP')) / 1e6
+        except (TypeError, ValueError):
+            continue
+        mid = e.get('MESSAGE_ID')
+        if mid == UNIT_RESULT:
+            d['failed_runs'] += 1
+            d['fails_day'] += 1
+            d['failed_since'] = d['failed_since'] or at
+            d['last_fail'] = at
+            d['result'] = e.get('UNIT_RESULT')
+            d['exit'] = exit_
+            # The run's own last words are the cause; failing those, systemd's own complaint.
+            own = [x for x in lines if x[1]] or lines
+            d['cause'] = '; '.join(dict.fromkeys(text for text, _ in own[-2:])) or None
+            lines, exit_ = [], None
+        elif mid == UNIT_SUCCESS or (mid == UNIT_STARTED and e.get('JOB_RESULT') == 'done'):
+            if d['failed_runs']:
+                d['recovered_at'] = at
+            d['failed_runs'], d['failed_since'] = 0, None
+            lines, exit_ = [], None
+        elif mid == UNIT_EXIT:
+            if e.get('EXIT_CODE') == 'exited':
+                exit_ = 'exit %s' % e.get('EXIT_STATUS')
+            elif e.get('EXIT_CODE'):
+                exit_ = '%s by signal %s' % (e['EXIT_CODE'], e.get('EXIT_STATUS'))
+        elif mid not in UNIT_ROUTINE:
+            text = plain_line(journal_text(e.get('MESSAGE')))
+            if text and not text.startswith(('Starting ', 'Started ', 'Finished ')):
+                lines.append((text, e.get('_SYSTEMD_UNIT') == unit and e.get('_PID') != '1'))
+            lines = lines[-20:]
+    if d['failed_runs']:
+        d['recovered_at'] = None
+    return d
+
+
+def run_json(args, timeout=30):
+    return subprocess.run(args, capture_output=True, text=True, timeout=timeout).stdout
+
+
+def journal(args):
+    out = []
+    for line in run_json([CONFIG['journalctl'], '--no-pager', '-o', 'json', '--output-fields',
+                          'MESSAGE,MESSAGE_ID,_PID,_SYSTEMD_UNIT,UNIT,UNIT_RESULT,JOB_RESULT,EXIT_CODE,EXIT_STATUS'] + args).splitlines():
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            pass
+    return out
+
+
+def collect_units(failed, state, now):
+    """Diagnoses every unit on spike failed now, failed since the last run, watched after a recent failure, or in
+    failStreaks: its last day's runs and cause from the journal, its state, and when its timer runs it next."""
+    since = state.get('last_run') or now - 300
+    watch = state.setdefault('unit_watch', {})
+    streaks = CONFIG.get('failStreaks', {})
+    recent = set()
+    try:
+        recent = {e.get('UNIT') for e in journal(['--since', '@%d' % (since - 5), 'MESSAGE_ID=' + UNIT_RESULT, '_PID=1'])}
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    names = sorted({u for u in set(failed) | recent | set(watch) | set(streaks) if u and re.fullmatch(r'[\w@:.\\-]+\.service', u)})
+    timers = {}
+    try:
+        for t in json.loads(run_json([CONFIG['systemctl'], 'list-timers', '--all', '-o', 'json', '--no-pager']) or '[]'):
+            if t.get('next'):
+                timers[t.get('activates')] = t['next'] / 1e6
+    except (OSError, subprocess.TimeoutExpired, ValueError, TypeError):
+        pass
+    units = {}
+    for unit in names:
+        try:
+            d = parse_unit_journal(unit, journal(['-u', unit, '--since', '@%d' % (now - 86400), '-n', '3000']))
+        except (OSError, subprocess.TimeoutExpired):
+            d = {'unreadable': True}
+        try:
+            props = parse_pairs(run_json([CONFIG['systemctl'], 'show', unit, '-p', 'ActiveState', '-p', 'Result', '-p', 'InactiveExitTimestampMonotonic']))
+            d['state'] = props.get('ActiveState')
+            if d['state'] == 'activating' and int(props.get('InactiveExitTimestampMonotonic') or 0):
+                d['running_seconds'] = time.monotonic() - int(props['InactiveExitTimestampMonotonic']) / 1e6
+        except (OSError, subprocess.TimeoutExpired, ValueError):
+            pass
+        spec = streaks.get(unit) or {}
+        if spec.get('file'):
+            # A unit that counts its own failed runs, as backlogic-switch does, is believed when it counts more.
+            try:
+                d['failed_runs'] = max(d.get('failed_runs') or 0, int(open(spec['file']).read().strip() or 0))
+            except (OSError, ValueError):
+                pass
+        d['next_run'] = timers.get(unit)
+        units[unit] = d
+        if d.get('last_fail'):
+            watch[unit] = d['last_fail']
+    for unit, last in list(watch.items()):
+        if now - last > 86400:
+            del watch[unit]
+    state['last_run'] = now
+    return units
 
 
 def read_limits():
@@ -367,7 +487,7 @@ def read_work():
     }
 
 
-def collect():
+def collect(state, now):
     machines = {}
     remotes = [n for n in CONFIG['hosts']]
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(remotes) or 1) as pool:
@@ -383,7 +503,7 @@ def collect():
             except Exception as error:  # noqa: BLE001
                 machines[name] = {'up': False, 'why': str(error)[:120]}
     if machines.get('spike', {}).get('up'):
-        machines['spike'].update(collect_spike_extras())
+        machines['spike'].update(collect_spike_extras(machines['spike'].get('failed_units') or [], state, now))
     return {'machines': machines, 'claude': read_limits(), 'limits': read_limit_kinds(), 'work': read_work(), 'turns': read_turns(time.time())}
 
 
@@ -428,7 +548,7 @@ def evaluate(snapshot, state, now, expected=None):
                     out.append(finding('%s:down' % host, host, 'info', text, why='a laptop or the PC being off is ordinary'))
         else:
             down.pop(host, None)
-            out += judge_machine(host, m)
+            out += judge_machine(host, m, now, snapshot.get('mode'))
     out = [dict(quiet_down(f, 'expected: ' + expected[f['host']]['reason']), expected=True)
            if f['host'] in expected and f['key'].endswith(EXPECTABLE) else f for f in out]
     claude = snapshot.get('claude') or {}
@@ -466,7 +586,7 @@ def evaluate(snapshot, state, now, expected=None):
     return out
 
 
-def judge_machine(host, m):
+def judge_machine(host, m, now=None, mode=None):
     out = []
     mac = m.get('os') == 'macos'
     free, total = m.get('disk_free_bytes'), m.get('disk_total_bytes')
@@ -514,35 +634,117 @@ def judge_machine(host, m):
     if awake == 'off' and host in CONFIG['keepAwakeHosts']:
         out.append(finding('%s:keepawake' % host, host, 'act', "%s's keep-awake is off." % host,
                            advice='Ask me to turn it back on, or tell me it is meant to be off.'))
-    streaks = CONFIG.get('failStreaks', {})
-    for unit in m.get('failed_units') or []:
-        if unit in streaks:
-            continue
-        out.append(finding('%s:failed:%s' % (host, unit), host, 'warn', '%s has failed on %s.' % (unit, host),
-                           advice='Read its journal, or ask me to.'))
-    # A unit that retries itself is news only after several failed runs in a row, or one run stuck, not one that self-heals.
-    for unit, entry in (m.get('unit_streaks') or {}).items():
-        spec = streaks.get(unit)
-        if not spec:
-            continue
-        runs = entry.get('failed_runs') or 0
-        key = '%s:failed:%s' % (host, unit)
-        if runs >= spec['runs']:
-            out.append(finding(key, host, 'warn', '%s has failed %d runs in a row on %s.' % (unit, runs, host),
-                               advice='Read its journal, or ask me to.'))
-        elif runs:
-            out.append(finding(key, host, 'info', '%s failed its last %s on %s.' % (unit, 'run' if runs == 1 else '%d runs' % runs, host),
-                               why='under %d in a row; it retries itself' % spec['runs']))
-        running = entry.get('running_seconds')
-        if running is not None and running >= spec['stuckMinutes'] * 60:
-            out.append(finding('%s:stuck:%s' % (host, unit), host, 'warn', '%s has been running for %d minutes on %s.' % (unit, running // 60, host),
-                               advice='It may be stuck; read its journal, or ask me to.'))
+    out += judge_units(host, m, now, mode)
     if m.get('docker_build_cache_bytes', 0) > th('dockerCacheGB') * GB:
         out.append(finding('spike:docker', host, 'info', "Docker's build cache on spike holds %s." % gb(m['docker_build_cache_bytes']),
                            why='docker-prune clears it daily'))
     if m.get('system_generations', 0) > th('maxGenerations'):
         out.append(finding('spike:generations', host, 'warn', 'spike keeps %d system generations.' % m['system_generations'],
                            advice='Pruning has stopped; ask for a change to look at it.'))
+    return out
+
+
+def hm(at):
+    return time.strftime('%H:%M', time.localtime(at))
+
+
+def when(at, now):
+    """A time of day, with the day when it is not today."""
+    if time.strftime('%Y-%m-%d', time.localtime(at)) == time.strftime('%Y-%m-%d', time.localtime(now)):
+        return hm(at)
+    return time.strftime('%a %H:%M', time.localtime(at))
+
+
+def unit_name(unit):
+    return unit[:-len('.service')] if unit.endswith('.service') else unit
+
+
+def unit_cause(d):
+    """Why it failed, in plain words, from what it logged and how it ended."""
+    cause = d.get('cause') or 'it logged nothing before failing'
+    how = d.get('exit') or ''
+    if d.get('result') == 'timeout':
+        how = 'it ran past its time limit'
+    elif d.get('exit') == 'exit 243' or 'credential' in cause.lower():
+        how = 'a secret file it loads is missing'
+    elif d.get('exit') == 'exit 78':
+        how = 'it says a setting or token it needs is missing'
+    elif 'No space left' in cause:
+        how = "spike's disk is full"
+    return cause + (' (%s)' % how if how else '')
+
+
+def unit_next(unit, d, mode, now):
+    """What happens next, or the one thing Aaron must do."""
+    if re.fullmatch(CONFIG['restartable'], unit) and unit not in CONFIG['neverRestart'] and d.get('state') == 'failed':
+        if mode == 'on':
+            return "I'm restarting it once now, and if that doesn't hold, say \"fix it\" and I'll start a change on it."
+        return "I'd restart it once, but my acting is in dry-run, so say \"fix it\" and I'll start a change on it."
+    if d.get('next_run') and d['next_run'] > now:
+        return 'Its timer tries again at %s; say "fix it" and I\'ll start a change on it.' % hm(d['next_run'])
+    return 'Nothing retries it by itself; say "fix it" and I\'ll start a change on it.'
+
+
+def judge_units(host, m, now, mode):
+    """Every failed unit arrives investigated: a failure that healed itself, or is still under the bar, is only logged
+    with its cause; repeated, lasting or frequent failures are told with the cause, its state and what happens next."""
+    out = []
+    now = time.time() if now is None else now
+    streaks = CONFIG.get('failStreaks', {})
+    units = m.get('units') or {}
+    failed_now = set(m.get('failed_units') or [])
+    for unit in sorted(failed_now | set(units)):
+        d = units.get(unit)
+        key = '%s:failed:%s' % (host, unit)
+        name = unit_name(unit)
+        if d is None or d.get('unreadable'):
+            if unit in failed_now:
+                out.append(finding(key, host, 'warn', "%s has failed on %s, and I couldn't read its journal to see why." % (name, host),
+                                   advice='Say "fix it" and I\'ll start a change on it.'))
+            continue
+        spec = streaks.get(unit) or {}
+        runs_bar = spec.get('runs', th('unitFailRuns'))
+        is_failed = d.get('state') == 'failed' if d.get('state') else unit in failed_now
+        runs, day = d.get('failed_runs') or 0, d.get('fails_day') or 0
+        since = d.get('failed_since')
+        cause = unit_cause(d)
+        if runs:
+            lasting = is_failed and since and now - since >= th('unitFailedMinutes') * 60
+            if runs >= runs_bar or lasting or day >= th('unitFailsPerDay'):
+                if runs >= runs_bar and runs > 1:
+                    head = 'has failed %d runs in a row since %s' % (runs, when(since, now))
+                elif lasting:
+                    head = 'has been down since %s' % when(since, now)
+                else:
+                    head = 'has failed %d times in the last day, last at %s' % (day, when(d['last_fail'], now))
+                if is_failed:
+                    state_line = 'It is still down.'
+                elif d.get('state') == 'activating':
+                    state_line = 'Its next run is going now.'
+                else:
+                    state_line = 'It runs again at %s.' % hm(d['next_run']) if d.get('next_run') and d['next_run'] > now else ''
+                out.append(finding(key, host, 'warn', ('%s on %s %s: %s. %s' % (name, host, head, cause, state_line)).strip(),
+                                   advice=unit_next(unit, d, mode, now)))
+            else:
+                out.append(finding(key, host, 'info', '%s on %s failed at %s: %s.' % (name, host, when(d['last_fail'], now), cause),
+                                   why='%s; it is told after %d in a row or %d minutes down' % (
+                                       'one failed run' if runs == 1 else '%d failed runs' % runs, runs_bar, th('unitFailedMinutes'))))
+        elif d.get('last_fail') and now - d['last_fail'] < 86400:
+            if day >= th('unitFailsPerDay'):
+                out.append(finding(key, host, 'warn', '%s on %s has failed %d times in the last day, last at %s: %s. It recovered by itself each time, last at %s, but keeps failing.' % (
+                    name, host, day, when(d['last_fail'], now), cause, when(d['recovered_at'], now) if d.get('recovered_at') else 'its next run'),
+                    advice='Say "fix it" and I\'ll start a change on it.'))
+            else:
+                out.append(finding(key, host, 'info', '%s on %s failed at %s: %s.' % (name, host, when(d['last_fail'], now), cause),
+                                   why='recovered by itself at %s' % when(d['recovered_at'], now) if d.get('recovered_at') else 'recovered by itself'))
+        elif is_failed:
+            out.append(finding(key, host, 'warn', '%s on %s has been down for over a day, and its journal for the last day does not say why.' % (name, host),
+                               advice=unit_next(unit, d, mode, now)))
+        running = d.get('running_seconds')
+        if spec.get('stuckMinutes') and running is not None and running >= spec['stuckMinutes'] * 60:
+            out.append(finding('%s:stuck:%s' % (host, unit), host, 'warn',
+                               '%s on %s has been running for %d minutes without finishing.' % (name, host, running // 60),
+                               advice="If it's still going in another 10 minutes, say \"fix it\" and I'll start a change on it."))
     return out
 
 
@@ -605,6 +807,9 @@ def choose_actions(findings, snapshot):
         if f['key'].endswith(':locked') and f['host'] in CONFIG['keepAwakeHosts'] and f['host'] not in CONFIG['readOnlyHosts']:
             actions.append(('keepawake-reassert', f['host']))
     for unit in spike.get('failed_units') or []:
+        # Only a failure Aaron is told about is worth a restart; one that heals itself is left to its timer.
+        if keys.get('spike:failed:' + unit, {}).get('level', 'info') == 'info':
+            continue
         if re.fullmatch(CONFIG['restartable'], unit) and unit not in CONFIG['neverRestart']:
             actions.append(('restart:' + unit, 'spike'))
     tight = any(f['level'] == 'act' and (f['key'].startswith('claude:') or f['host'] == 'spike') for f in findings)
@@ -751,7 +956,7 @@ def notices(findings, results, state, now, local, unreadable=()):
     quiet = in_quiet(local)
     overnight = state.setdefault('overnight', [])
     out, urgent, log = [], [], []
-    present = set()
+    present, seen_info = set(), set()
 
     def route(f, name, why=None):
         mark = '%s/%s/%s' % (f['level'], name, why or f.get('why') or '')
@@ -762,6 +967,7 @@ def notices(findings, results, state, now, local, unreadable=()):
     for f in findings:
         if f['level'] == 'info':
             route(f, 'kept')
+            seen_info.add(f['key'])
             continue
         present.add(f['key'])
         previous = sent.get(f['key'])
@@ -797,6 +1003,10 @@ def notices(findings, results, state, now, local, unreadable=()):
             routes.pop(key, None)
             log.append({'at': int(now), 'key': key, 'host': key.split(':', 1)[0], 'level': entry['level'],
                         'text': entry['text'], 'route': 'cleared', 'why': 'gone for %d minutes' % th('clearMinutes')})
+    # A quiet finding that went away is logged afresh when it comes back, such as a unit failing again next week.
+    for key in list(routes):
+        if key not in present and key not in seen_info and key not in sent:
+            del routes[key]
     for r in results:
         # Only what the monitor really did is news; a dry-run plan is logged, and the hold flag is housekeeping.
         if r['result'] == 'dry-run' or r['action'] in ('hold-work', 'release-work'):
@@ -1075,7 +1285,8 @@ def run():
     local = time.localtime(now)
     state = load_state()
     mode = read_mode()
-    snapshot = collect()
+    snapshot = collect(state, now)
+    snapshot['mode'] = mode
     expected = read_expected(now)
     entries = []
     for host in settle_expected(expected, snapshot, now):
