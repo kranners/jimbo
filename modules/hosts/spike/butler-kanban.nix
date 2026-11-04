@@ -98,7 +98,11 @@ in
           }) reading
           ++ map (tool: {
             match = [ tool ];
-            lanes = [ "interactive" ];
+            # Scheduled runs may tidy too, for the nightly tidy pass.
+            lanes = [
+              "interactive"
+              "cron"
+            ];
             egress = true;
             grant = "kanban board";
           }) tidying
