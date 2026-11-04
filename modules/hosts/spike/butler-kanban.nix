@@ -25,6 +25,7 @@ let
     "@selfFix@" = "${config.users.users.butler.home}/self-fix";
     "@board@" = board;
     "@spoolUser@" = "butler";
+    "@context@" = lib.getExe config.butler.context.package;
   };
 
   kanban = pkgs.writers.writePython3Bin "kanban" { flakeIgnore = [ "E501" ]; } (

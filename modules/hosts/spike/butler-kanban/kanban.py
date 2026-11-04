@@ -22,6 +22,8 @@ SSH = '@ssh@'
 SELF_FIX = '@selfFix@'
 BOARD = '@board@'
 SPOOL_USER = '@spoolUser@'
+# Prints the context pack a prompt to a session starts with, from `context prefix`.
+CONTEXT = '@context@'
 # Spike collects the board's messages this often; the board calls spike unreachable after 20 s without.
 RELAY_EVERY = 3
 MESSAGE_ID = re.compile(r'^[A-Za-z0-9-]{1,64}$')
@@ -92,6 +94,47 @@ def call(tool, args):
     except ValueError:
         raise Unreachable('the board answered with something other than JSON: %s' % result.stdout[:300])
     return reply
+
+
+def session_cwd(target):
+    """The folder a session on the board works in, for picking its context pack."""
+    try:
+        reply = call('board_snapshot', {})
+    except Unreachable:
+        return None
+    text = reply.get('text', '') if reply.get('ok') else ''
+    start = text.find('{')
+    try:
+        snapshot = json.JSONDecoder().raw_decode(text[start:])[0] if start >= 0 else {}
+    except ValueError:
+        return None
+    for session in (snapshot.get('sessions') or []) if isinstance(snapshot, dict) else []:
+        if isinstance(session, dict) and str(target) in (str(session.get('id')), str(session.get('short'))):
+            return session.get('cwd')
+    return None
+
+
+def with_context(tool, args):
+    """Puts the matching context pack in front of a session's prompt, so it starts where Aaron and Butler are."""
+    field = 'prompt' if tool == 'start_session' else 'text'
+    original = args.get(field)
+    if not isinstance(original, str) or not original.strip() or original.startswith('Context from Butler:'):
+        return args, None
+    cwd = args.get('cwd') if tool == 'start_session' else session_cwd(args.get('session'))
+    request = {'cwd': cwd, 'text': '%s %s' % (args.get('name') or '', original), 'default': 'board'}
+    if tool == 'send_prompt':
+        # A running session already has its start's pack, so a later prompt carries a shorter one.
+        request['limit'] = 2000
+    try:
+        block = subprocess.run([CONTEXT, 'prefix'], input=json.dumps(request), capture_output=True, text=True, timeout=20).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return args, None
+    area = re.search(r"spike's ([a-z]+) pack", block)
+    if not area:
+        return args, None
+    refreshed = re.search(r'^Refreshed (.+?) by spike', block, re.MULTILINE)
+    return dict(args, **{field: block + original}), 'Context sent: the %s pack%s, in front of the prompt.' % (
+        area.group(1), ', refreshed %s' % refreshed.group(1) if refreshed else '')
 
 
 def read(path):
@@ -336,6 +379,9 @@ def main(argv):
         if not isinstance(args, dict):
             print('kanban: the arguments on stdin must be a JSON object', file=sys.stderr)
             return 2
+    sent = None
+    if tool in ('start_session', 'send_prompt'):
+        args, sent = with_context(tool, args)
     try:
         reply = call(tool, args)
     except Unreachable as error:
@@ -346,6 +392,8 @@ def main(argv):
         if tool == 'self_fixes':
             text = apply_board_actions(text, known)
         print(text)
+        if sent:
+            print(sent)
         return 0
     print('kanban: %s' % reply.get('error', 'the board refused'), file=sys.stderr)
     return 1

@@ -117,8 +117,8 @@ in
         DISCORD_CALL_REALTIME_VOICE = "bm_lewis";
         DISCORD_CALL_REALTIME_PROMPT_FILE = "${realtimePrompt}";
         # Butler's own notes on who he is, read at each call's start so his memory's edits reach it.
-        # Then how he sounds, the same brief voice-sample reads its samples with.
-        DISCORD_CALL_REALTIME_BRIEF_FILES = "${config.users.users.butler.home}/memory/core/character.md:${./butler-voice-style.md}";
+        # Then how he sounds, the same brief voice-sample reads its samples with, then the context packs' index, as every thread has it.
+        DISCORD_CALL_REALTIME_BRIEF_FILES = "${config.users.users.butler.home}/memory/core/character.md:${./butler-voice-style.md}:/var/lib/butler-context/index.md";
       };
       serviceConfig.LoadCredential = [
         "voice-token:${token}"

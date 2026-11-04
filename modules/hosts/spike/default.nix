@@ -88,6 +88,11 @@
         ${lib.getExe test} $out/work.json
       '';
 
+    # The context packs from fixture memory, a fake board and a fake pilot, checking nothing private reaches one.
+    butler-context = pkgs.runCommand "butler-context-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      python3 -I ${./butler-context/test_context.py} ${./butler-context/context.py} > $out 2>&1 || { cat $out; exit 1; }
+    '';
+
     # The device gate's login, cookies, expiry, lockout and redirects over HTTP.
     device-gate = pkgs.runCommand "device-gate-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       cp ${./device-gate}/gate.py ${./device-gate}/test.py .
@@ -108,6 +113,7 @@
         ./butler-backlogic-source.nix
         ./butler-browser.nix
         ./butler-builders.nix
+        ./butler-context.nix
         ./butler-work.nix
         ./butler-drive.nix
         ./butler-health.nix
