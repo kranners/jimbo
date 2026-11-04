@@ -160,7 +160,7 @@ def login_page(host, target, message="", lifetime=LIFETIME):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="referrer" content="no-referrer">
+<meta name="referrer" content="same-origin">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Sign in to {html.escape(host)}</title>
 <style>
@@ -209,7 +209,8 @@ def handler_for(gate, clock=time.time, sleep=time.sleep):
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Security-Policy", POLICY)
             self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("Referrer-Policy", "no-referrer")
+            # no-referrer makes Chromium send `Origin: null` on the login POST, which Caddy aborts as a foreign Origin.
+            self.send_header("Referrer-Policy", "same-origin")
             for name, value in headers:
                 self.send_header(name, value)
             self.send_header("Content-Length", str(len(body)))

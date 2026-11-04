@@ -347,7 +347,8 @@ def main_serve():
             "default-src 'self'; connect-src 'self' wss://%s; img-src 'self' data:; style-src 'self'; "
             "frame-ancestors 'none'; base-uri 'none'; form-action 'self'" % CONFIG['domain'])
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['Referrer-Policy'] = 'no-referrer'
+        # same-origin, not no-referrer, so a POST carries the site's Origin, which Caddy checks, rather than `null`.
+        response.headers['Referrer-Policy'] = 'same-origin'
         if request.path.startswith('/api/'):
             response.headers['Cache-Control'] = 'no-store'
         return response
