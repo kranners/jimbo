@@ -31,6 +31,7 @@ in
     ./formatting
     ./butler-access
     ./browser-history
+    ./kanban-runner
   ]
   ++ lib.optionals host.desktop [
     ./hyprland
