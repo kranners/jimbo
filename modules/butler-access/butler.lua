@@ -681,3 +681,64 @@ end):start()
 
 -- Keeps the event log to its newest 500 lines, once per load.
 os.execute("f='" .. lockEvents .. "'; [ -f \"$f\" ] && /usr/bin/tail -n 500 \"$f\" > \"$f.new\" && /bin/mv \"$f.new\" \"$f\"")
+
+-- Butler's on-screen overlay: while ~/.local/state/butler-overlay/active exists, which `butler-overlay` touches with
+-- every event, this keeps one copy of jimbo's overlay launcher running, which draws him with osascript and exits once
+-- he is hidden or has heard nothing for a while. Hammerspoon starts it rather than a LaunchAgent, because on pilot
+-- every run launchd started ended killed with SIGKILL before it drew anything, while the same script started from a
+-- login shell stayed up. Every run that ends other than cleanly is logged with how, and what it printed, to
+-- ~/Library/Logs/butler-overlay.log, and one that ends while `active` still exists is started again after 5 seconds.
+local overlayActive = os.getenv("HOME") .. "/.local/state/butler-overlay/active"
+local overlayLog = os.getenv("HOME") .. "/Library/Logs/butler-overlay.log"
+local overlayLauncher = "@overlay@"
+local overlayStarted = 0
+
+local function overlayNote(text)
+  local log = io.open(overlayLog, "a")
+  if log then
+    log:write(os.date("%Y-%m-%dT%H:%M:%S%z") .. " " .. text .. "\n")
+    log:close()
+  end
+end
+
+local function overlayCheck()
+  local file = io.open(overlayActive)
+  if not file then
+    return
+  end
+  file:close()
+  if butlerOverlayTask and butlerOverlayTask:isRunning() then
+    return
+  end
+  if os.time() - overlayStarted < 5 then
+    return
+  end
+  overlayStarted = os.time()
+  -- One a reload of this config left running keeps drawing; the bracket keeps pgrep from matching this shell.
+  if os.execute("/usr/bin/pgrep -q -f '[b]utler-overlay[.]js'") then
+    return
+  end
+  local task
+  task = hs.task.new(overlayLauncher, function(code, out, err)
+    local how = task and task:terminationReason() or "exit"
+    if how ~= "exit" or code ~= 0 then
+      overlayNote("overlay ended by " .. (how == "exit" and ("exit code " .. code) or ("signal " .. code)))
+    end
+    local printed = ((out or "") .. (err or "")):gsub("%s+$", "")
+    if printed ~= "" then
+      overlayNote("overlay printed: " .. printed:sub(1, 2000))
+    end
+  end)
+  if not task or not task:start() then
+    overlayNote("overlay could not start " .. overlayLauncher)
+    return
+  end
+  butlerOverlayTask = task
+end
+
+butlerOverlayTimer = hs.timer.doEvery(1, function()
+  local ok, problem = pcall(overlayCheck)
+  if not ok then
+    overlayNote("overlay check failed: " .. tostring(problem))
+  end
+end)

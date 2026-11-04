@@ -1,15 +1,16 @@
 # Butler's on-screen overlay for the Macs: Butler in a porthole at the top right, with his narration in speech bubbles
 # under him, while butler on spike drives the Mac or works on anything at all. Spike's `mac` drives it over ssh with
 # `butler-overlay`, and so does spike's overlay relay while any of butler's turns runs, with `work` every few seconds
-# and `rest` once none does; each writes an event and wakes the `butler-overlay` LaunchAgent, which draws them with
-# ./overlay.js and exits once butler is done, or after `idle` seconds with no event, so it never outlives a crashed
-# or interrupted turn.
+# and `rest` once none does; each writes an event and touches `active`, and butler's Hammerspoon helper, which checks
+# for it every second, starts the launcher below, which draws them with ./overlay.js and exits once butler is done, or
+# after `idle` seconds with no event, so it never outlives a crashed or interrupted turn. Hammerspoon starts it, not a
+# LaunchAgent, because on pilot launchd's every run of it ended killed with SIGKILL before it drew anything, while the
+# same script run from a login shell stayed up.
 {
   pkgs,
   lib,
   idle,
   busy,
-  home,
 }:
 let
   layers = [
@@ -43,7 +44,7 @@ let
 
   state = ''"$HOME/.local/state/butler-overlay"'';
 
-  # The agent's program: it exits at once unless a session is live, and drops one that went quiet without a word.
+  # What Hammerspoon runs: it exits at once unless a session is live, and drops one that went quiet without a word.
   launcher = pkgs.writeShellScript "butler-overlay-agent" ''
     active=${state}/active
     [ -e "$active" ] || exit 0
@@ -62,7 +63,6 @@ let
     # Touched by `work` while butler's turns run: `mac`'s `hide` waits until it is BUSY seconds old, so finishing on
     # a Mac mid-turn does not fade him out while he is still working, and only `rest` or the agent's idle ends it.
     busy="$dir/busy"
-    label=butler-overlay
 
     usage() {
       echo "usage: butler-overlay show | say <text> | act <text> | work [text] | rest | hide | status" >&2
@@ -74,7 +74,6 @@ let
       [ -e "$active" ] || : > "$events"
       printf '%s\t%s\t%s\n' "$(/bin/date +%s)" "$1" "$text" >> "$events"
       /usr/bin/touch "$active"
-      /bin/launchctl kickstart "gui/$(/usr/bin/id -u)/$label" > /dev/null 2>&1 || true
     }
 
     age() { echo $(( $(/bin/date +%s) - $(/usr/bin/stat -f %m "$1") )); }
@@ -109,26 +108,13 @@ let
         else
           echo "overlay: hidden"
         fi
-        echo "agent: $(/bin/launchctl print "gui/$(/usr/bin/id -u)/$label" 2> /dev/null | /usr/bin/awk '$1 == "state" { print $3; exit }' | /usr/bin/grep . || echo "not loaded")"
+        if /usr/bin/pgrep -q -f '[b]utler-overlay[.]js'; then echo "drawing: running"; else echo "drawing: not running"; fi
+        /usr/bin/tail -n 3 "$HOME/Library/Logs/butler-overlay.log" 2> /dev/null | /usr/bin/sed 's/^/log: /'
         ;;
       *) usage ;;
     esac
   '';
 in
 {
-  inherit art command;
-
-  agent = {
-    enable = true;
-    config = {
-      Label = "butler-overlay";
-      ProgramArguments = [ "${launcher}" ];
-      # launchd starts it whenever a session is live, and again if it exits while one is.
-      KeepAlive.PathState."${home}/.local/state/butler-overlay/active" = true;
-      ThrottleInterval = 1;
-      ProcessType = "Interactive";
-      StandardOutPath = "${home}/Library/Logs/butler-overlay.log";
-      StandardErrorPath = "${home}/Library/Logs/butler-overlay.log";
-    };
-  };
+  inherit art command launcher;
 }

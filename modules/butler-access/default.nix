@@ -33,7 +33,6 @@ in
 {
   darwinHomeModule =
     {
-      config,
       lib,
       pkgs,
       ...
@@ -42,7 +41,6 @@ in
       overlay = import ./overlay {
         inherit pkgs lib;
         inherit (import ./overlay/settings.nix) idle busy;
-        home = config.home.homeDirectory;
       };
 
       keepawake = pkgs.writeShellScriptBin "butler-keepawake" ''
@@ -155,9 +153,6 @@ in
         };
       };
 
-      # Butler in a porthole at the top right, narrating in speech bubbles while butler drives this Mac.
-      launchd.agents.butler-overlay = overlay.agent;
-
       # butler's helper runs inside Hammerspoon, a Developer ID signed app whose Accessibility and Screen Recording
       # grants follow its signature through every update, where a helper built in the Nix store would lose them on
       # each rebuild. Its config lives under ~/.config, so it never touches a ~/.hammerspoon of Aaron's own.
@@ -166,9 +161,9 @@ in
           -- Written by jimbo's butler-access module.
           dofile(hs.configdir .. "/butler.lua")
         '';
-        "hammerspoon/butler.lua".text = builtins.replaceStrings [ "@port@" ] [ (toString helperPort) ] (
-          builtins.readFile ./butler.lua
-        );
+        "hammerspoon/butler.lua".text =
+          builtins.replaceStrings [ "@port@" "@overlay@" ] [ (toString helperPort) "${overlay.launcher}" ]
+            (builtins.readFile ./butler.lua);
       };
 
       targets.darwin.defaults."org.hammerspoon.Hammerspoon" = {
