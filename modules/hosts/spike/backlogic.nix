@@ -305,8 +305,15 @@ in
     memoryHigh = "6G";
     memoryMax = "8G";
     memorySwapMax = "2G";
-    tasksMax = 1024;
+    tasksMax = 4096;
     cpuQuota = "600%";
+    # 64 sessions never binds: launches stop at a load of 8, one per thread, or once the runner
+    # holds 70% of its 8G, 5.6G, under MemoryHigh's 6G, and resume as either clears.
+    gates = {
+      sessions = 64;
+      loadPerCpu = 1.0;
+      memoryAvailableFloor = 0.3;
+    };
   };
 
   systemd.timers.backlogic-switch = {
