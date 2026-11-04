@@ -1,0 +1,1 @@
+Change 20261105-095408-2170623: claude-discord-threads approval prompts — when a voice yes/no on a call resolves an approval, edit the Discord prompt (buttons removed, 'Approved/Denied by voice on the call, HH:MM'), idempotent with buttons and timeouts. Touches src/discord approvals/missions/call.
