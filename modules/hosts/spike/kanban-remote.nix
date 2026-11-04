@@ -19,10 +19,21 @@ let
     "ipad"
     "phone"
     "phone-2"
+    "piggys-MBP"
+    "jimbo"
   ];
-  viewerAddresses = lib.concatMap (peer: peer.allowedIPs) (
-    lib.filter (peer: lib.elem peer.name viewers) config.networking.wireguard.interfaces.wg0.peers
-  );
+  # Machines whose kanban runner (modules/kanban-runner) checks in with the board's runner token.
+  runners = [
+    "piggys-MBP"
+    "jimbo"
+  ];
+  addressesOf =
+    names:
+    lib.concatMap (peer: peer.allowedIPs) (
+      lib.filter (peer: lib.elem peer.name names) config.networking.wireguard.interfaces.wg0.peers
+    );
+  viewerAddresses = addressesOf viewers;
+  runnerAddresses = addressesOf runners;
 in
 {
   users.users.kanban-tunnel = {
@@ -106,11 +117,28 @@ in
         header Origin *
         not header Origin https://${domain}
       }
+      ${lib.optionalString (runnerAddresses != [ ]) ''
+        # A runner's own calls, from a runner machine, carrying a bearer token and no browser Origin, skip the
+        # device gate: the board checks its KANBAN_RUNNER_TOKEN on each, and these paths are all a runner needs.
+        @runner {
+          remote_ip ${lib.concatStringsSep " " runnerAddresses}
+          header Authorization "Bearer *"
+          not header Origin *
+          path_regexp ^/(runner\.js|api/runners/(register|[a-z0-9-]+/(heartbeat|commands(/[A-Za-z0-9_-]+)?)))$
+        }
+      ''}
       # The board trusts loopback callers on these, and through the tunnel every request comes from loopback.
       @machineOnly path /api/agent/* /api/butler/tools/* /api/docs/tools/* /api/hooks/* /api/runners /api/runners/* /runner.js
       route {
         abort @outsider
         abort @foreignOrigin
+        ${lib.optionalString (runnerAddresses != [ ]) ''
+          reverse_proxy @runner unix/${board} {
+            header_up Host 127.0.0.1:7420
+            header_up Cf-Connecting-Ip {remote_host}
+            header_up -Cookie
+          }
+        ''}
         respond @machineOnly 403
         reverse_proxy /.gate/* unix/${config.spike.deviceGate.socket}
         forward_auth unix/${config.spike.deviceGate.socket} {

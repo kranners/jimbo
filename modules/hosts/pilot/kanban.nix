@@ -60,6 +60,9 @@ in
           WorkingDirectory = checkout;
           EnvironmentVariables = {
             KANBAN_AUTH = "off";
+            # Runners (modules/kanban-runner) reach the board through spike; the board reads their shared
+            # KANBAN_RUNNER_TOKEN from ~/.config/kanban/env itself, so it never enters the plist.
+            KANBAN_RUNNERS = "piggys-mbp,jimbo";
             PATH = path;
           };
           RunAtLoad = true;

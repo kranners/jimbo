@@ -8,7 +8,7 @@ Nix flake configuring five machines for a single user (`aaron`, `aaronpierce` on
 
 - `jimbo`, NixOS PC, `x86_64-linux`, dual booting a Windows install Nix does not manage
 - `piggys-MBP`, MacBook via nix-darwin, `aarch64-darwin`
-- `pilot`, second MacBook via nix-darwin, `aarch64-darwin`, same setup as `piggys-MBP` plus the tooling its work repositories expect (`modules/hosts/pilot/work-tools.nix`), the kanban board and its `kanban-sync` updater as launchd agents (`modules/hosts/pilot/kanban.nix`), which butler on spike drives through its `kanban` command and whose `/` popup messages butler, which spike's Caddy serves to the iPad and Aaron's phones through an ssh forward of its port alone, its computer and network names set to `pilot` by nix-darwin
+- `pilot`, second MacBook via nix-darwin, `aarch64-darwin`, same setup as `piggys-MBP` plus the tooling its work repositories expect (`modules/hosts/pilot/work-tools.nix`), the kanban board and its `kanban-sync` updater as launchd agents (`modules/hosts/pilot/kanban.nix`), which butler on spike drives through its `kanban` command and whose `/` popup messages butler, which spike's Caddy serves to the iPad, Aaron's phones, `piggys-MBP` and `jimbo` through an ssh forward of its port alone, and which expects runners on `piggys-MBP` and `jimbo` through `KANBAN_RUNNERS`, its computer and network names set to `pilot` by nix-darwin
 - `spike`, always-on NixOS box, `x86_64-linux`
 - `framer`, NixOS Surface Book 2 laptop, `x86_64-linux`
 
@@ -180,12 +180,13 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   A device signs in once with a password whose scrypt hash `sudo device-gate-password` writes to `/var/lib/secrets/device-gate-password`, signing every device out as it does, and keeps an HttpOnly, SameSite=Strict cookie bound to the site's host and to the WireGuard peer it signed in from, named from the address Caddy forwards, for 30 days, signed with a key in `/var/lib/device-gate`, and ten wrong passwords in 15 minutes lock every login for the rest of them.
   `sudo device-gate-revoke <peer>` signs one device out at once, recording the time in `/var/lib/device-gate/revoked.json`, which the gate reads on every request, and the gate logs each sign-in and wrong password with the peer's name under `journalctl -u device-gate`.
   Until that file exists neither the gate nor its socket starts, so every gated site answers 502, and the flake check `device-gate` runs `device-gate/test.py` against it.
-  It gates the iPad and Aaron's phones, `phone` and `phone-2`, through butler's `butler.index.explorer.gatedDevices` for the life explorer and money dashboard and through `kanban.spike.cute.engineer` for the board, and every viewer of Remote Desk below.
+  It gates the iPad and Aaron's phones, `phone` and `phone-2`, through butler's `butler.index.explorer.gatedDevices` for the life explorer and money dashboard, them, `piggys-MBP` and `jimbo` through `kanban.spike.cute.engineer` for the board, and every viewer of Remote Desk below.
   A verified request answers with `X-Device-Gate-Device`, the peer's name, and a site may sign devices in for less than 30 days through `spike.deviceGate.lifetimes`.
-  Caddy serves pilot's kanban board at `https://kanban.spike.cute.engineer` (`modules/hosts/spike/kanban-remote.nix`), whose DNS-only A record points at `10.100.0.1`, to the iPad and Aaron's phones alone and only once the gate has signed each in, refusing any foreign `Origin` and the paths the board trusts from local agents and machines, `/api/agent/*`, `/api/butler/tools/*`, `/api/docs/tools/*`, `/api/hooks/*`, `/api/runners` and `/runner.js`.
+  Caddy serves pilot's kanban board at `https://kanban.spike.cute.engineer` (`modules/hosts/spike/kanban-remote.nix`), whose DNS-only A record points at `10.100.0.1`, to the iPad, Aaron's phones, `piggys-MBP` and `jimbo` alone and only once the gate has signed each in, refusing any foreign `Origin` and the paths the board trusts from local agents and machines, `/api/agent/*`, `/api/butler/tools/*`, `/api/docs/tools/*`, `/api/hooks/*`, `/api/runners` and `/runner.js`.
+  The one exception is a kanban runner's own calls, from `piggys-MBP` or `jimbo`, with an `Authorization: Bearer` header and no `Origin`, to `/runner.js`, `/api/runners/register` or a runner's `heartbeat` or `commands`, which skip the gate and keep their `Authorization`, so the board's own `KANBAN_RUNNER_TOKEN` check guards them.
   It proxies to `/run/kanban-tunnel/board.sock`, which `kanban-tunnel.service`, as the system user `kanban-tunnel` whose group alone holds Caddy, forwards over ssh to `127.0.0.1:7420` on `pilot`, the board's loopback port, with the key `kanban-tunnel-key.service` generates in `/var/lib/kanban-tunnel`.
   The tunnel runs only once `modules/hosts/spike/kanban-remote-key.nix` holds that key's public half, which `pilot` then authorizes from `10.100.0.1` alone to forward to `127.0.0.1:7420` and nothing else, with no shell.
-  Caddy rewrites each request's `Host` and `Origin` to the board's own loopback ones after checking the `Origin` against its site, adds `Cf-Connecting-Ip`, so the board never takes a proxied request for a local agent, and drops `Authorization` and `Cookie`.
+  Caddy rewrites each request's `Host` and `Origin` to the board's own loopback ones after checking the `Origin` against its site, adds `Cf-Connecting-Ip`, so the board never takes a proxied request for a local agent, and drops `Cookie`, and `Authorization` from all but a runner's calls.
   Its certificates come from Let's Encrypt by DNS-01, through the `caddy-dns/cloudflare` plugin built in with `pkgs.caddy.withPlugins`.
   It reads the cloudflare-dyndns token as the systemd credential `cloudflare-token`, through Caddy's `{file.*}` placeholder, so the token never reaches the Nix store.
   Spike's network answers every DNS query itself, whatever server it is sent to, and hides answers with private addresses, so Caddy skips its own propagation check, `propagation_timeout -1`, and waits 30 seconds for Let's Encrypt instead.
@@ -683,6 +684,13 @@ Sleep, suspend and hibernate are disabled, and logind ignores the lid switch and
 Lua edits take effect immediately without a rebuild; only `init.lua` and the LSP/tool packages in `default.nix` require a rebuild.
 
 Lua is formatted with stylua (`stylua.toml` at repo root).
+
+### Kanban runners
+
+`modules/kanban-runner` runs a kanban runner on `piggys-MBP`, as the launchd agent `kanban-runner`, logging to `~/Library/Logs/kanban-runner.log`, and on `jimbo`'s NixOS, as the user unit `kanban-runner`, so the board on `pilot` can start Claude Code sessions there, named `piggys-mbp` and `jimbo`.
+Each fetches the board's own `/runner.js` from `https://kanban.spike.cute.engineer` with its token and runs it with Node against that hub, keeping the last copy it fetched for when the hub is away.
+The token is `KANBAN_RUNNER_TOKEN` in `~/.config/kanban/env`, mode 600, the same on `pilot` and each runner, written by hand and never in the repository, and the runner waits, retrying every 5 minutes, until it is there.
+`jimbo`'s runner reaches spike only once spike has its WireGuard peer, through `jimboPublicKey`, and runs only while it is booted into NixOS, since its Windows install runs none.
 
 ### Speed reading
 

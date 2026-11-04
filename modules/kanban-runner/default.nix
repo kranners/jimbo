@@ -1,8 +1,8 @@
 # A kanban runner on each of Aaron's own machines, so the board on pilot can start sessions there.
 # It reaches the board through spike's kanban.spike.cute.engineer, whose runner route passes only the runner
 # endpoints and /runner.js through, and the board checks the shared token on each, so pilot opens no port.
-# The token is KANBAN_RUNNER_TOKEN in ~/.config/kanban/env, mode 600, written by hand; until it is there the
-# runner waits.
+# The token is KANBAN_RUNNER_TOKEN in ~/.config/kanban/env, mode 600, written by hand and never in this repository;
+# until it is there the runner waits. jimbo runs it only while booted into NixOS.
 { host, lib, ... }:
 let
   hosts = [
