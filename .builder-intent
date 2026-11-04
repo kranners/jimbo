@@ -1,0 +1,1 @@
+Change 20261104-161922-3587130: Butler threads view. jimbo: new modules/hosts/spike/butler-threads.nix root timer snapshotting the daemon's threads.db (names, kinds, times, status only) to /var/lib/butler-threads/threads.json; butler: life explorer Butler section Threads view reading it.
