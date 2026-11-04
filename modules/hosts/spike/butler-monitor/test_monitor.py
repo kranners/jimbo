@@ -103,23 +103,36 @@ f = judge({'spike': hot}, state, now=600)
 check('the pressure notice names the biggest cgroup and its size',
       [x['text'] for x in f if x['key'] == 'spike:pressure'] == [
           'spike is under critical memory pressure. Biggest: system.slice/backlogic-runner-aaron.service at 7.1 GB of its 8.0 GB cap.'])
-picked = [a for a, _ in monitor.choose_actions(judge({'spike': hot}), snap({'spike': hot}))]
-check('a listed service over its limit is restarted before the notice is due', 'limit-restart:backlogic-runner-aaron.service' in picked)
-check('butler is never restarted for its memory, even when listed', 'limit-restart:butler.service' not in picked)
-calm = dict(hot, pressure='normal')
-check('no restart without critical pressure', not [a for a, _ in monitor.choose_actions([], snap({'spike': calm})) if a.startswith('limit-')])
-under = dict(hot, memory_cgroups=[dict(runner, bytes=5 * GB)])
-check('no restart while the service is under its limit', not [a for a, _ in monitor.choose_actions([], snap({'spike': under})) if a.startswith('limit-')])
-calls, state = [], {}
-restart = [('limit-restart:backlogic-runner-aaron.service', 'spike')]
-monitor.act(restart, state, 'on', 0, lambda n, h: calls.append(n) or ('7.1 GB used', '0.4 GB used'))
-monitor.act(restart, state, 'on', 29 * 60, lambda n, h: calls.append(n) or ('7.1 GB used', '0.4 GB used'))
-check('an over-limit restart happens at most once in 30 minutes', len(calls) == 1)
-monitor.act(restart, state, 'on', 30 * 60, lambda n, h: calls.append(n) or ('7.1 GB used', '0.4 GB used'))
-check('and again after 30 minutes if it is still over', len(calls) == 2)
-results = monitor.act(restart, {}, 'on', 0, lambda n, h: ('7.1 GB used', '0.4 GB used'))
-lines, _, _ = monitor.notices([], results, {}, 0, time.localtime(12 * 3600 - 10 * 3600))
-check('the restart is told at once', any('backlogic-runner-aaron' in line and '7.1 GB used' in line for line in lines))
+# The over-limit restart is remediate's: a listed service at its own MemoryHigh under critical pressure, whatever its
+# share of RAM, at most once in 30 minutes, never butler.
+
+
+def over_spike(groups, pressure='critical'):
+    return snap({'spike': healthy(os='linux', pressure=pressure, failed_units=[], on_battery=None, keepawake=None, cgroups=groups,
+                                  local={'psi_some': 5, 'psi_full': 1, 'mem_total': 16 * GB, 'mem_avail': 4 * GB, 'swap_total': 8 * GB, 'swap_free': 6 * GB})})
+
+
+over_runner = {'name': 'backlogic-runner-aaron.service', 'mem': 3 * GB, 'current': int(6.1 * GB), 'high': 6 * GB, 'max': 8 * GB, 'tasks': 600}
+over_butler = {'name': 'butler.service', 'mem': 4 * GB, 'current': 4 * GB, 'high': 3 * GB, 'max': 4 * GB, 'tasks': 40}
+restarted = []
+
+
+def remedy(snapshot, st, now):
+    return monitor.remediate(snapshot, st, 'on', now, lambda kind, target: restarted.append(target), lambda c, st: 'calm')
+
+
+st = {}
+r = remedy(over_spike([over_butler, over_runner]), st, 0)
+check('a listed service over its own limit is restarted under critical pressure, though under 25% of RAM, butler never',
+      restarted == ['backlogic-runner-aaron.service'] and r and 'over its own limit' in r[0]['line'])
+check('no restart without critical pressure', remedy(over_spike([over_runner], 'normal'), {}, 0) == [] and len(restarted) == 1)
+check('no restart while the service is under its limit', remedy(over_spike([dict(over_runner, current=5 * GB)]), {}, 0)[0]['result'] == 'reported' and len(restarted) == 1)
+remedy(over_spike([over_runner], 'normal'), st, 120)
+remedy(over_spike([over_runner]), st, 29 * 60)
+check('an over-limit restart happens at most once in 30 minutes', len(restarted) == 1)
+remedy(over_spike([over_runner], 'normal'), st, 30 * 60)
+remedy(over_spike([over_runner]), st, 31 * 60)
+check('and again after 30 minutes if it is still over', len(restarted) == 2)
 check('load 2.5x cores is only noted', levels(judge({'a': healthy(load15=20, load_ratio=2.5)})) == {} and
       noted(judge({'a': healthy(load15=20, load_ratio=2.5)})) == {'a:load'})
 # pilot at 11:27 on 4 Nov: 39.7 on 18 cores, from Aaron's own board sessions, is not news.
@@ -356,8 +369,8 @@ machines = {'spike': healthy(os='linux', disk_free_bytes=5 * GB, failed_units=['
 f = judge(machines)
 actions = monitor.choose_actions(f, snap(machines))
 names = [a for a, _ in actions]
-check('spike disk act picks every disk action', all(a in names for a in monitor.SPIKE_DISK_ACTIONS))
-check('only a butler-owned failed unit is restarted', [a for a in names if a.startswith('restart:')] == ['restart:butler-memory-pull.service'])
+check('a full disk is left to remediate, not the hourly actions', not [a for a in names if 'gc' in a or 'prune' in a])
+check('only a listed failed unit is restarted, never butler or postgres', [a for a in names if a.startswith('restart:')] == ['restart:butler-memory-pull.service'])
 check('keep-awake back on for piggys-MBP alone', [h for a, h in actions if a == 'keepawake-on'] == ['piggys-MBP'])
 check('spike tight holds work', ('hold-work', 'spike') in actions)
 
@@ -383,7 +396,7 @@ calls.clear()
 monitor.act(actions, state, 'on', 1800, doer)
 check('on repeats nothing within the hour, the unit restart never while it stays failed', calls == [])
 monitor.act(actions, state, 'on', 3700, doer)
-check('after an hour the disk actions may run again, not the restart', ('restart:butler-memory-pull.service', 'spike') not in calls and ('docker-prune', 'spike') in calls)
+check('after an hour the keep-awake may run again, not the restart', ('restart:butler-memory-pull.service', 'spike') not in calls and ('keepawake-on', 'piggys-MBP') in calls)
 
 # Quiet hours: warnings and real actions wait for one short morning list; urgent items do not; dry-run plans never show.
 state = {}
@@ -471,6 +484,194 @@ signed = monitor.judge_machine('pilot', healthy(claude_signed_out=['work']))
 check('a signed-out Claude account is one warn per account',
       [(f['key'], f['level']) for f in signed if 'claude-account' in f['key']] == [('pilot:claude-account:work', 'warn')])
 check('a healthy accounts file raises nothing', not [f for f in monitor.judge_machine('pilot', healthy(claude_signed_out=[])) if 'claude' in f['key']])
+
+# ---------------------------------------------------------------- remediation on spike
+# The 4 Nov evening: backlogic-runner-aaron held 7.2 GB in 704 tasks, memory stall 98%, swap 6.2 of 7.9 GB.
+import copy
+import stat as _stat
+monitor.time.sleep = lambda seconds: None
+GiB = 1024 ** 3
+STRESS = 'butler-monitor-stress.service'
+monitor.CONFIG['remediation'] = copy.deepcopy(monitor.CONFIG['remediation'])
+for step in ('memoryPressure', 'runawayLoad'):
+    monitor.CONFIG['remediation'][step]['restartable'].append(r'butler-monitor-stress\.service')
+remedy_cfg = monitor.CONFIG['remediation']
+check('every remediation is a named step with its allowlist, and protect covers butler, Home Assistant, Docker, sshd and WireGuard',
+      set(remedy_cfg) >= {'protect', 'memoryPressure', 'diskFull', 'failedUnit', 'runawayLoad'} and
+      all(monitor.protected(n) for n in ('butler.service', 'home-assistant.service', 'docker.service', 'sshd.service', 'wireguard-wg0.service', 'user-1000.slice')))
+check('the disk step is gc and dangling images, nothing else', remedy_cfg['diskFull']['steps'] == ['gc-generations', 'docker-image-prune'])
+check('the runner and its container are on the memory list', monitor.target_of('memoryPressure', {'name': 'backlogic-runner-aaron.service'}) ==
+      ('restart-service', 'backlogic-runner-aaron.service') and monitor.target_of('memoryPressure', {'name': 'docker-ab.scope', 'project': 'backlogic', 'container': 'backlogic-app-1'})
+      == ('restart-container', 'backlogic-app-1') and monitor.target_of('memoryPressure', {'name': 'docker-cd.scope', 'project': 'bowerbird', 'container': 'bowerbird-db-1'}) is None)
+check('a failed listed unit may be started, a protected one never', monitor.may_start_failed('grafana.service') and monitor.may_start_failed('butler-index-up.service')
+      and not monitor.may_start_failed('butler.service') and not monitor.may_start_failed('butler-monitor.service') and not monitor.may_start_failed('postgresql.service'))
+
+check('PSI and meminfo parse', monitor.read_psi('some avg10=98.12 avg60=90.00 avg300=70.00 total=1\nfull avg10=45.50 avg60=40.00 avg300=30.00 total=1\n') ==
+      {'some': 98.12, 'full': 45.5} and monitor.read_meminfo('MemTotal:       16000000 kB\nMemAvailable:    1000000 kB\n')['MemAvailable'] == 1024000000)
+
+# A fixture cgroup tree and /proc, read by the real collector.
+fs = os.path.join(tmp, 'fs')
+
+
+def put(path, text):
+    full = os.path.join(fs, path)
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    with open(full, 'w') as fh:
+        fh.write(text)
+
+
+def cgroup(slice_, name, mem, tasks=10, cpu_usec=0, file=0, swap=0):
+    base = 'cg/%s/%s/' % (slice_, name)
+    put(base + 'memory.current', '%d\n' % mem)
+    put(base + 'memory.swap.current', '%d\n' % swap)
+    put(base + 'memory.stat', 'anon %d\nfile %d\n' % (mem - file, file))
+    put(base + 'pids.current', '%d\n' % tasks)
+    put(base + 'cpu.stat', 'usage_usec %d\nuser_usec 0\n' % cpu_usec)
+
+
+def proc(some, full, avail=10 * GiB, swap_free=7 * GiB):
+    put('proc/pressure/memory', 'some avg10=%.2f avg60=0 avg300=0 total=0\nfull avg10=%.2f avg60=0 avg300=0 total=0\n' % (some, full))
+    put('proc/meminfo', 'MemTotal: %d kB\nMemAvailable: %d kB\nSwapTotal: %d kB\nSwapFree: %d kB\n' % (16 * GiB // 1024, avail // 1024, 8 * GiB // 1024, swap_free // 1024))
+
+
+cgroup('system.slice', 'backlogic-runner-aaron.service', int(6.2 * GiB), tasks=704, swap=GiB)
+cgroup('system.slice', 'butler.service', int(1.5 * GiB), file=GiB)
+cgroup('system.slice', 'home-assistant.service', GiB // 2)
+cgroup('user.slice', 'user-1000.slice', 3 * GiB, file=2 * GiB)
+put('cg/system.slice/system-getty.slice/memory.current', '1000\n')
+proc(98, 45, avail=1 * GiB, swap_free=int(1.7 * GiB))
+monitor.CONFIG.update(cgroupRoot=os.path.join(fs, 'cg'), procRoot=os.path.join(fs, 'proc'), diskRoot=tmp)
+read = monitor.collect_local({}, 0)
+top = read['cgroups'][0]
+check('the collector ranks cgroups by the memory they hold, swap in and page cache out',
+      top['name'] == 'backlogic-runner-aaron.service' and abs(top['mem'] - 7.2 * GiB) < 1 and top['tasks'] == 704
+      and [g['name'] for g in read['cgroups']][1] == 'user-1000.slice')
+check('and reads PSI, meminfo and the disk', read['local']['psi_some'] == 98 and read['local']['mem_total'] == 16 * GiB and read['local']['disk_total'] > 0)
+
+
+def spike_now(cgroups=None, some=98, full=45, avail=10 * GiB, swap_free=7 * GiB, disk_free=120 * GB, load=None, **over):
+    local = {'psi_some': some, 'psi_full': full, 'mem_total': 16 * GiB, 'mem_avail': avail, 'swap_total': 8 * GiB,
+             'swap_free': swap_free, 'disk_free': disk_free, 'disk_total': 233 * GB}
+    m = healthy(os='linux', on_battery=None, keepawake=None, failed_units=[], local=local,
+                cgroups=read['cgroups'] if cgroups is None else cgroups, **over)
+    if load:
+        m.update(load15=load, load_ratio=load / 8, cores=8)
+    return snap({'spike': m})
+
+
+calls = []
+
+
+def remedy_doer(kind, target):
+    calls.append((kind, target))
+
+
+def run_remedy(snapshot, state, now, mode='on'):
+    return monitor.remediate(snapshot, state, mode, now, remedy_doer, lambda condition, st: 'stalled 3% of the time, 0% fully, 9.8 GB of 17.2 GB available, swap 40% used')
+
+
+state = {}
+check('one run of high PSI is not yet critical', run_remedy(spike_now(), state, 0) == [] and calls == [])
+r = run_remedy(spike_now(), state, 120)
+check('two runs of high PSI restart the runner once, at once', calls == [('restart-service', 'backlogic-runner-aaron.service')] and len(r) == 1 and r[0]['result'] == 'done')
+line = r[0]['line'] if r else ''
+check('the line says what was wrong with the numbers, what it did and how it is now',
+      line.startswith('Spike was under critical memory pressure, stalled 98% of the time, 45% fully, ') and 'restarted backlogic-runner-aaron, which held 7.7 GB (45% of its memory) in 704 tasks' in line
+      and line.endswith('now stalled 3% of the time, 0% fully, 9.8 GB of 17.2 GB available, swap 40% used.'))
+print('     ' + line)
+check('it is logged with before and after', r and r[0]['before'].startswith('spike was under') and r[0]['after'].startswith('stalled 3%'))
+f = [monitor.finding('spike:pressure', 'spike', 'act', 'spike is under critical memory pressure.', urgent=True, advice='Close or stop something big on it.')]
+nstate = {}
+lines, shout, _ = monitor.notices(f, r, nstate, 120, local_day)
+check('Aaron is told once, in one line, not the bare finding beside it', lines == [line] and shout is None)
+lines, _, _ = monitor.notices(f, [], nstate, 240, local_day)
+check('and a slower reading of the same pressure next run is not told again', lines == [])
+lines, _, _ = monitor.notices(f, r, {}, 120, local_night)
+check('a fix at night waits for the morning list, the bare finding too', lines == [])
+
+r = run_remedy(spike_now(), state, 240)
+check('still critical after the fix: escalated once with the diagnosis, no second restart', len(calls) == 1 and len(r) == 1 and r[0]['result'] == 'escalated'
+      and r[0]['urgent'] and 'not doing it again' in r[0]['line'] and 'the biggest now is backlogic-runner-aaron' in r[0]['line'])
+lines, shout, _ = monitor.notices(f, r, {}, 240, local_night)
+check('an escalation goes out at once, even at night, and is shouted on a call', lines == [r[0]['line']] and shout and shout.startswith('Monitor: Spike is under'))
+check('and is not repeated while it lasts', run_remedy(spike_now(), state, 360) == [] and len(calls) == 1)
+run_remedy(spike_now(some=2, full=0), state, 480)
+check('once it clears the episode ends', 'memory' not in state['remedy']['on']['episodes'])
+run_remedy(spike_now(), state, 600)
+r = run_remedy(spike_now(), state, 720)
+check('pressure back within 30 minutes of the restart: escalated, the runner not restarted twice', len(calls) == 1 and r and r[0]['result'] == 'escalated' and 'within 30 minutes' in r[0]['line'])
+run_remedy(spike_now(some=2, full=0), state, 840)
+run_remedy(spike_now(), state, 120 + 1800)
+r = run_remedy(spike_now(), state, 120 + 1920)
+check('after 30 minutes it may restart the runner again', len(calls) == 2 and r and r[0]['result'] == 'done')
+
+# A harmless stress unit on the list: restarted once and not twice within 30 minutes.
+calls.clear()
+stress = [{'name': STRESS, 'mem': 6 * GiB, 'tasks': 3, 'cpu_usec': 0}] + read['cgroups'][1:]
+state = {}
+for t in range(0, 1800, 120):
+    run_remedy(spike_now(stress), state, t)
+check('a stress unit under 30 minutes of critical pressure is restarted exactly once', calls == [('restart-service', STRESS)])
+
+# Never touched, only reported.
+for name in ('butler.service', 'home-assistant.service', 'docker.service', 'sshd.service', 'wireguard-wg0.service', 'containerd.service'):
+    calls.clear()
+    state = {}
+    run_remedy(spike_now([{'name': name, 'mem': 9 * GiB, 'tasks': 50}]), state, 0)
+    r = run_remedy(spike_now([{'name': name, 'mem': 9 * GiB, 'tasks': 50}]), state, 120)
+    check('%s at the top is never touched, only reported once' % name, calls == [] and len(r) == 1 and r[0]['result'] == 'reported'
+          and 'which I never restart' in r[0]['line'] and run_remedy(spike_now([{'name': name, 'mem': 9 * GiB}]), state, 240) == [])
+state = {}
+r = run_remedy(spike_now([{'name': 'grafana.service', 'mem': 3 * GiB, 'tasks': 9}], avail=GiB, swap_free=GiB), state, 0)
+check('MemAvailable under 10% with swap over 70% is critical at once, and a listed service under 25% of RAM is only reported',
+      calls == [] and r and r[0]['result'] == 'reported' and 'under the 25%' in r[0]['line'])
+state = {}
+r = run_remedy(spike_now([{'name': 'user-1000.slice', 'mem': 9 * GiB}], avail=GiB, swap_free=GiB), state, 0)
+check("Aaron's own sessions at the top are only reported", calls == [] and r and r[0]['result'] == 'reported')
+
+# dry-run says what it would do and does nothing; off does nothing at all.
+state = {}
+run_remedy(spike_now(), state, 0, 'dry-run')
+r = run_remedy(spike_now(), state, 120, 'dry-run')
+check('dry-run does nothing but logs what it would have done', calls == [] and r and r[0]['result'] == 'dry-run' and 'would have restarted backlogic-runner-aaron' in r[0]['line'])
+check('dry-run says it once an episode', run_remedy(spike_now(), state, 240, 'dry-run') == [])
+check('and its plan is not told to Aaron', monitor.notices(f, r, {}, 120, local_day)[0] == [told for told in [monitor.told(f[0])]])
+check('off neither acts nor logs', run_remedy(spike_now(), {}, 0, 'off') == [] and run_remedy(spike_now(), {'psi_runs': 5}, 120, 'off') == [] and calls == [])
+
+# Disk over 92% used: gc and dangling images, nothing else.
+state = {}
+r = run_remedy(spike_now(some=0, full=0, disk_free=15 * GB), state, 0)
+check('a disk 94% full runs gc and dangling image pruning alone', calls == [('gc-generations', 'spike'), ('docker-image-prune', 'spike')] and r[0]['keys'] == ['spike:disk']
+      and "Spike's disk was 94% used, 15 GB free" in r[0]['line'])
+check('a disk 91% full does nothing', run_remedy(spike_now(some=0, full=0, disk_free=22 * GB), {}, 0) == [])
+
+# Load over 4x the cores for 10 minutes: the busiest listed service restarted once, the busiest of all named.
+calls.clear()
+busy = [{'name': 'nix-daemon.service', 'mem': GiB, 'cpu': 6.0, 'tasks': 40}, {'name': STRESS, 'mem': GiB, 'cpu': 2.5, 'tasks': 3}]
+state = {}
+check('load 5x the cores for 9 minutes does nothing yet', run_remedy(spike_now(busy, some=0, full=0, load=40), state, 0) == [] and
+      run_remedy(spike_now(busy, some=0, full=0, load=40), state, 540) == [])
+r = run_remedy(spike_now(busy, some=0, full=0, load=40), state, 600)
+check('at 10 minutes the busiest listed service is restarted and the busiest of all is named', calls == [('restart-service', STRESS)] and r
+      and 'the busiest being nix-daemon' in r[0]['line'] and 'restarted butler-monitor-stress' in r[0]['line'])
+state = {}
+run_remedy(spike_now(busy[:1], some=0, full=0, load=40), state, 0)
+r = run_remedy(spike_now(busy[:1], some=0, full=0, load=40), state, 600)
+check('a load whose only busy cgroup is protected is reported, not touched', len(calls) == 1 and r and r[0]['result'] == 'reported')
+
+# The real steps against a fake systemctl: the stress unit is restarted, a failed unit reset and started.
+log_file = os.path.join(tmp, 'systemctl.log')
+fake = os.path.join(tmp, 'systemctl')
+with open(fake, 'w') as fh:
+    fh.write('#!/bin/sh\necho "$@" >> %s\n[ "$1" = is-active ] && echo active\nexit 0\n' % log_file)
+os.chmod(fake, os.stat(fake).st_mode | _stat.S_IEXEC)
+monitor.CONFIG['systemctl'] = fake
+monitor.do_remedy('restart-service', STRESS)
+monitor.do_action('restart:butler-memory-pull.service', 'spike')
+with open(log_file) as fh:
+    ran = fh.read().splitlines()
+check('the real steps run systemctl restart for the stress unit, then reset-failed and start for a failed one',
+      ran[0] == 'restart --no-block ' + STRESS and 'reset-failed butler-memory-pull.service' in ran and 'start --no-block butler-memory-pull.service' in ran)
 
 if failures:
     print('%d failed' % len(failures))

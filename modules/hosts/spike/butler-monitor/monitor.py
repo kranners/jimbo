@@ -300,6 +300,7 @@ def collect_spike_extras(failed, state, now):
                 extras['docker_images_reclaimable_bytes'] = parse_size(row.get('Reclaimable'))
     except (OSError, subprocess.TimeoutExpired, ValueError):
         pass
+    extras.update(collect_local(state, now))
     extras['units'] = collect_units(failed, state, now)
     extras['memory_cgroups'] = collect_memory_cgroups()
     try:
@@ -348,16 +349,108 @@ def biggest_memory(m):
     return ' Biggest: %s at %s%s.' % (c['cgroup'], gb(c['bytes']), ' of its %s cap' % gb(cap) if cap else '')
 
 
-def over_limit(m):
-    """The services listed in overLimitRestart that are over their soft limit, or their hard one when they have none."""
-    out = []
-    for c in m.get('memory_cgroups') or []:
-        if c['unit'] not in CONFIG.get('overLimitRestart', []) or c['unit'] in CONFIG['neverRestart']:
-            continue
-        limit = c.get('high') or c.get('max')
-        if limit and c['bytes'] >= limit * 0.98:
-            out.append(c)
+# ---------------------------------------------------------------- spike's own memory, cgroups and CPU
+
+def read_text(path, default=None):
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return default
+
+
+def read_psi(text):
+    """PSI's some and full avg10, in percent, from /proc/pressure/memory."""
+    out = {}
+    for line in (text or '').splitlines():
+        match = re.match(r'(some|full) avg10=([0-9.]+)', line)
+        if match:
+            out[match.group(1)] = float(match.group(2))
     return out
+
+
+def read_meminfo(text):
+    out = {}
+    for line in (text or '').splitlines():
+        match = re.match(r'(\w+):\s+([0-9]+) kB', line)
+        if match:
+            out[match.group(1)] = int(match.group(2)) * 1024
+    return out
+
+
+def read_cgroups(root):
+    """Every service, scope and slice one level under the top slices, with the memory it really holds (anon, kernel and
+    swap, not page cache it gives back), its tasks and its CPU time so far."""
+    out = []
+    try:
+        parents = sorted(e.path for e in os.scandir(root) if e.is_dir() and e.name.endswith('.slice'))
+    except OSError:
+        return out
+    for parent in parents:
+        try:
+            children = sorted(os.scandir(parent), key=lambda e: e.name)
+        except OSError:
+            continue
+        for e in children:
+            if not e.is_dir() or not e.name.endswith(('.service', '.scope', '.slice')):
+                continue
+            current = num(read_text(os.path.join(e.path, 'memory.current'), '').strip())
+            if current is None:
+                continue
+            stat = dict(line.split()[:2] for line in (read_text(os.path.join(e.path, 'memory.stat'), '') or '').splitlines() if ' ' in line)
+            swap = num((read_text(os.path.join(e.path, 'memory.swap.current'), '0') or '0').strip()) or 0
+            cpu = dict(line.split()[:2] for line in (read_text(os.path.join(e.path, 'cpu.stat'), '') or '').splitlines() if ' ' in line)
+            out.append({'name': e.name, 'mem': max(0, current - float(stat.get('file', 0))) + swap, 'current': current,
+                        'high': read_limit(os.path.join(e.path, 'memory.high')), 'max': read_limit(os.path.join(e.path, 'memory.max')),
+                        'tasks': int(num((read_text(os.path.join(e.path, 'pids.current'), '0') or '0').strip()) or 0),
+                        'cpu_usec': float(cpu.get('usage_usec', 0))})
+    return out
+
+
+def docker_names(ids):
+    """Compose project and container name of each running container id, for the docker-<id>.scope cgroups."""
+    if not ids:
+        return {}
+    try:
+        result = subprocess.run([CONFIG['docker'], 'inspect', '--format',
+                                 '{{.Id}} {{index .Config.Labels "com.docker.compose.project"}} {{.Name}}'] + ids,
+                                capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired, KeyError):
+        return {}
+    out = {}
+    for line in result.stdout.splitlines():
+        parts = line.split()
+        if len(parts) == 3:
+            out[parts[0]] = {'project': parts[1], 'container': parts[2].lstrip('/')}
+    return out
+
+
+def collect_local(state, now, root=None):
+    """spike's own readings, which the monitor takes as root on spike for its remediations: PSI, meminfo, disk and the
+    cgroups by memory and by CPU used since the last run."""
+    root = root or CONFIG.get('cgroupRoot', '/sys/fs/cgroup')
+    proc = CONFIG.get('procRoot', '/proc')
+    psi = read_psi(read_text(os.path.join(proc, 'pressure/memory')))
+    info = read_meminfo(read_text(os.path.join(proc, 'meminfo')))
+    groups = read_cgroups(root)
+    containers = docker_names([g['name'][len('docker-'):-len('.scope')] for g in groups
+                               if g['name'].startswith('docker-') and g['name'].endswith('.scope')])
+    previous = state.get('cpu_prev') or {}
+    for g in groups:
+        if g['name'].startswith('docker-') and g['name'].endswith('.scope'):
+            g.update(containers.get(g['name'][len('docker-'):-len('.scope')], {}))
+        last = previous.get(g['name'])
+        if last and now > last[1] and g['cpu_usec'] >= last[0]:
+            g['cpu'] = (g['cpu_usec'] - last[0]) / 1e6 / (now - last[1])
+    state['cpu_prev'] = {g['name']: [g['cpu_usec'], now] for g in groups}
+    local = {'psi_some': psi.get('some'), 'psi_full': psi.get('full'), 'mem_total': info.get('MemTotal'),
+             'mem_avail': info.get('MemAvailable'), 'swap_total': info.get('SwapTotal'), 'swap_free': info.get('SwapFree')}
+    try:
+        s = os.statvfs(CONFIG.get('diskRoot', '/'))
+        local.update(disk_free=s.f_bavail * s.f_frsize, disk_total=s.f_blocks * s.f_frsize)
+    except OSError:
+        pass
+    return {'local': local, 'cgroups': sorted(groups, key=lambda g: -g['mem'])}
 
 
 # ---------------------------------------------------------------- failed units
@@ -762,7 +855,7 @@ def unit_cause(d):
 
 def unit_next(unit, d, mode, now):
     """What happens next, or the one thing Aaron must do."""
-    if re.fullmatch(CONFIG['restartable'], unit) and unit not in CONFIG['neverRestart'] and d.get('state') == 'failed':
+    if may_start_failed(unit) and d.get('state') == 'failed':
         if mode == 'on':
             return "I'm restarting it once now, and if that doesn't hold, say \"fix it\" and I'll start a change on it."
         return "I'd restart it once, but my acting is in dry-run, so say \"fix it\" and I'll start a change on it."
@@ -873,17 +966,25 @@ def duration(seconds):
 
 # ---------------------------------------------------------------- actions
 
-SPIKE_DISK_ACTIONS = ['clean-outbox', 'journal-vacuum', 'docker-prune', 'gc-generations']
+def protected(name):
+    return any(re.fullmatch(p, name) for p in CONFIG['remediation']['protect'])
+
+
+def listed(step, name):
+    return not protected(name) and any(re.fullmatch(p, name) for p in CONFIG['remediation'][step]['restartable'])
+
+
+def may_start_failed(unit):
+    return listed('failedUnit', unit)
 
 
 def choose_actions(findings, snapshot):
-    """The safe actions these findings call for, by (name, host). Nothing outside this table is ever done."""
+    """The safe actions these findings call for, by (name, host). Nothing outside this table is ever done; spike's
+    critical memory, disk and load are remediate's."""
     actions = []
     keys = {f['key']: f for f in findings}
     spike = snapshot['machines'].get('spike') or {}
-    if keys.get('spike:disk', {}).get('level') == 'act':
-        actions += [(name, 'spike') for name in SPIKE_DISK_ACTIONS]
-    elif 'spike:docker' in keys:
+    if 'spike:docker' in keys:
         actions.append(('docker-prune', 'spike'))
     for f in findings:
         if f.get('expected'):
@@ -896,11 +997,8 @@ def choose_actions(findings, snapshot):
         # Only a failure Aaron is told about is worth a restart; one that heals itself is left to its timer.
         if keys.get('spike:failed:' + unit, {}).get('level', 'info') == 'info':
             continue
-        if re.fullmatch(CONFIG['restartable'], unit) and unit not in CONFIG['neverRestart']:
+        if may_start_failed(unit):
             actions.append(('restart:' + unit, 'spike'))
-    # Raw pressure, not the settled finding, so a runaway listed service is restarted before the notice's hold ends.
-    if spike.get('pressure') == 'critical':
-        actions += [('limit-restart:' + c['unit'], 'spike') for c in over_limit(spike)]
     tight = any(f['level'] == 'act' and (f['key'].startswith('claude:') or f['host'] == 'spike') for f in findings)
     actions.append(('hold-work' if tight else 'release-work', 'spike'))
     return actions
@@ -908,12 +1006,8 @@ def choose_actions(findings, snapshot):
 
 def describe(name, host):
     if name.startswith('restart:'):
-        return 'restart %s on spike once' % name.split(':', 1)[1]
-    if name.startswith('limit-restart:'):
-        return 'restart %s on spike, which was over its memory limit under critical pressure' % name.split(':', 1)[1]
+        return 'reset and start the failed %s on spike once' % name.split(':', 1)[1]
     return {
-        'clean-outbox': "delete butler's own outbox pictures older than 2 days and spike's aged temp files",
-        'journal-vacuum': "shrink spike's journal to %s" % CONFIG['journalVacuum'],
         'docker-prune': "clear Docker's build cache and dangling images on spike",
         'gc-generations': 'collect Nix garbage on spike, keeping the newest %d system generations' % CONFIG['keepGenerations'],
         'keepawake-on': "turn %s's keep-awake back on" % host,
@@ -953,26 +1047,14 @@ def do_action(name, host):
             os.unlink(hold)
         return before, 'held' if name == 'hold-work' else 'free'
     before = disk_free()
-    if name == 'clean-outbox':
-        run_local(['find', CONFIG['outbox'], '-xdev', '-type', 'f', '-mtime', '+2', '-delete'])
-        run_local([CONFIG['tmpfiles'], '--clean'])
-    elif name == 'journal-vacuum':
-        run_local([CONFIG['journalctl'], '--vacuum-size=' + CONFIG['journalVacuum']])
-    elif name == 'docker-prune':
+    if name == 'docker-prune':
         run_local([CONFIG['docker'], 'builder', 'prune', '--force'])
         run_local([CONFIG['docker'], 'image', 'prune', '--force'])
-    elif name == 'gc-generations':
-        run_local([CONFIG['nixEnv'], '--profile', '/nix/var/nix/profiles/system', '--delete-generations', '+%d' % CONFIG['keepGenerations']])
-        run_local([CONFIG['nixStore'], '--gc'], timeout=1800)
-    elif name.startswith('limit-restart:'):
-        unit = name.split(':', 1)[1]
-        cgroup = '/sys/fs/cgroup/system.slice/' + unit
-        before = read_limit(cgroup + '/memory.current') or 0
-        run_local([CONFIG['systemctl'], 'restart', unit], timeout=120)
-        return gb(before) + ' used', gb(read_limit(cgroup + '/memory.current') or 0) + ' used'
     elif name.startswith('restart:'):
-        run_local([CONFIG['systemctl'], 'restart', name.split(':', 1)[1]], timeout=120)
-        return 'failed', subprocess.run([CONFIG['systemctl'], 'is-active', name.split(':', 1)[1]], capture_output=True, text=True).stdout.strip()
+        unit = name.split(':', 1)[1]
+        run_local([CONFIG['systemctl'], 'reset-failed', unit], timeout=60)
+        run_local([CONFIG['systemctl'], 'start', '--no-block', unit], timeout=60)
+        return 'failed', wait_active(unit)
     else:
         raise RuntimeError('not a known action')
     return gb(before) + ' free', gb(disk_free()) + ' free'
@@ -989,7 +1071,7 @@ def act(actions, state, mode, now, doer=do_action):
             held = state.get(held_key, False)
             if (name == 'hold-work') == held:
                 continue
-        elif ident in last and now - last[ident] < (th('overLimitRestartMinutes') * 60 if name.startswith('limit-restart:') else 3600):
+        elif ident in last and now - last[ident] < 3600:
             continue
         if name.startswith('restart:') and name in state.setdefault('restarted', {}):
             continue
@@ -1024,6 +1106,243 @@ def act(actions, state, mode, now, doer=do_action):
     return results
 
 
+# ---------------------------------------------------------------- remediation
+
+# spike fixes its own critical conditions while acting is on, each a named step of CONFIG['remediation'] with its
+# allowlist, and tells Aaron once, in one line, what was wrong, what it did and how it is now; a condition its fix did
+# not clear is told with the diagnosis instead of being fixed again.
+
+def wait_active(unit, timeout=90):
+    """The unit's state once it has settled, up to timeout seconds."""
+    deadline = time.time() + timeout
+    status = ''
+    while time.time() < deadline:
+        status = subprocess.run([CONFIG['systemctl'], 'is-active', unit], capture_output=True, text=True).stdout.strip()
+        if status not in ('activating', 'deactivating', 'reloading'):
+            break
+        time.sleep(3)
+    return status or 'unknown'
+
+
+def ram_text(local):
+    parts = []
+    if local.get('psi_some') is not None:
+        parts.append('stalled %.0f%% of the time, %.0f%% fully' % (local['psi_some'], local.get('psi_full') or 0))
+    if local.get('mem_avail') is not None and local.get('mem_total'):
+        parts.append('%s of %s available' % (gb(local['mem_avail']), gb(local['mem_total'])))
+    if local.get('swap_total'):
+        parts.append('swap %.0f%% used' % (swap_used(local) * 100))
+    return ', '.join(parts) or 'no reading'
+
+
+def swap_used(local):
+    return 1 - (local.get('swap_free') or 0) / local['swap_total'] if local.get('swap_total') else 0
+
+
+def disk_text(local):
+    return '%.0f%% used, %s free' % (disk_used(local) * 100, gb(local['disk_free'])) if local.get('disk_total') else 'no reading'
+
+
+def disk_used(local):
+    return 1 - local['disk_free'] / local['disk_total'] if local.get('disk_total') else 0
+
+
+def label(group):
+    if group.get('container'):
+        return 'the container %s' % group['container']
+    return unit_name(group['name'])
+
+
+def group_text(group, total):
+    share = ' (%.0f%% of its memory)' % (group['mem'] / total * 100) if total else ''
+    cores = ', %.1f cores' % group['cpu'] if (group.get('cpu') or 0) >= 0.05 else ''
+    return '%s with %s%s in %d tasks%s' % (label(group), gb(group['mem']), share, group.get('tasks', 0), cores)
+
+
+def target_of(step, group):
+    """How to restart a cgroup if its step's allowlist names it, else None."""
+    spec = CONFIG['remediation'][step]
+    name = group['name']
+    if protected(name):
+        return None
+    if group.get('container'):
+        return ('restart-container', group['container']) if group.get('project') in spec.get('containers', []) else None
+    if name.endswith('.service') and any(re.fullmatch(p, name) for p in spec['restartable']):
+        return ('restart-service', name)
+    return None
+
+
+def over_own_limit(group):
+    """Whether a cgroup is at its own MemoryHigh, or its MemoryMax when it has none, as backlogic's runner was on 4 Nov."""
+    limit = group.get('high') or group.get('max')
+    return bool(limit and group.get('current') and group['current'] >= limit * 0.98)
+
+
+def memory_critical(local, runs):
+    """Whether spike's memory is critical now, and why, from PSI held for psiCriticalRuns runs or MemAvailable with swap."""
+    hot = (local.get('psi_some') or 0) > th('psiSomeCritical') or (local.get('psi_full') or 0) > th('psiFullCritical')
+    tight = (local.get('mem_total') and local.get('mem_avail') is not None and local['mem_avail'] / local['mem_total'] < th('memAvailCritical')
+             and swap_used(local) > th('swapUsedCritical'))
+    return bool((hot and runs >= th('psiCriticalRuns')) or tight)
+
+
+def conditions(spike, state, now):
+    """spike's critical conditions this run: (condition, finding keys it covers, what is wrong, plan), where plan is
+    a list of (kind, target) steps or a reason it may do nothing."""
+    local = spike.get('local') or {}
+    groups = spike.get('cgroups') or []
+    total = local.get('mem_total') or 0
+    out = []
+    hot = (local.get('psi_some') or 0) > th('psiSomeCritical') or (local.get('psi_full') or 0) > th('psiFullCritical')
+    state['psi_runs'] = state.get('psi_runs', 0) + 1 if hot else 0
+    if memory_critical(local, state['psi_runs']) or spike.get('pressure') == 'critical':
+        found = 'spike was under critical memory pressure, %s' % ram_text(local)
+        top = groups[0] if groups else None
+        over = next((g for g in groups if over_own_limit(g) and target_of('memoryPressure', g)), None)
+        if over is not None:
+            plan = [target_of('memoryPressure', over) + (group_text(over, total) + ', over its own limit',)]
+        elif top is None:
+            plan = 'I could not read its cgroups to see what holds the memory'
+        else:
+            target = target_of('memoryPressure', top)
+            if protected(top['name']):
+                plan = 'the biggest is %s, which I never restart' % group_text(top, total)
+            elif target is None:
+                plan = 'the biggest is %s, which is not on my list to restart' % group_text(top, total)
+            elif total and top['mem'] / total <= th('remedyShareOfRam'):
+                plan = 'the biggest is %s, under the %.0f%% I restart at' % (group_text(top, total), th('remedyShareOfRam') * 100)
+            else:
+                plan = [target + (group_text(top, total),)]
+        out.append(('memory', ['spike:pressure', 'spike:memory'], found, plan))
+    if local.get('disk_total') and disk_used(local) > th('diskUsedCritical'):
+        found = "spike's disk was %s" % disk_text(local)
+        out.append(('disk', ['spike:disk'], found, [(step, 'spike', '') for step in CONFIG['remediation']['diskFull']['steps']]))
+    ratio = spike.get('load_ratio') or 0
+    if ratio > th('loadRatio'):
+        since = state.setdefault('load_since', now)
+        if now - since >= th('loadRemedyMinutes') * 60:
+            busy = sorted((g for g in groups if g.get('cpu') is not None), key=lambda g: -g['cpu'])
+            found = "spike's load had averaged %.0f on %d cores for %s" % (spike.get('load15') or 0, spike.get('cores') or 0, duration(now - since))
+            if busy:
+                found += ', the busiest being %s' % group_text(busy[0], total)
+            pick = next(((g, target_of('runawayLoad', g)) for g in busy if target_of('runawayLoad', g)), None)
+            if pick and pick[0]['cpu'] >= th('loadRemedyMinCores'):
+                plan = [pick[1] + (group_text(pick[0], total),)]
+            else:
+                plan = 'nothing on my list to restart is using a core or more' if busy else 'I could not read its cgroups to see what is busy'
+            out.append(('load', ['spike:load'], found, plan))
+    else:
+        state.pop('load_since', None)
+    return out
+
+
+def describe_step(kind, target, about=''):
+    return {
+        'restart-service': 'restarted %s, which held %s' % (unit_name(target), about.split(' with ', 1)[-1]) if about else 'restarted %s' % unit_name(target),
+        'restart-container': 'restarted the container %s, which held %s' % (target, about.split(' with ', 1)[-1]) if about else 'restarted the container %s' % target,
+        'gc-generations': 'collected Nix garbage beyond the newest %d system generations' % CONFIG['keepGenerations'],
+        'docker-image-prune': 'pruned dangling Docker images',
+    }[kind]
+
+
+def do_remedy(kind, target):
+    """Runs one remediation step on spike."""
+    if kind == 'restart-service':
+        run_local([CONFIG['systemctl'], 'restart', '--no-block', target], timeout=60)
+        time.sleep(5)
+        wait_active(target, timeout=120)
+    elif kind == 'restart-container':
+        run_local([CONFIG['docker'], 'restart', '--time', '30', target], timeout=150)
+    elif kind == 'gc-generations':
+        run_local([CONFIG['nixEnv'], '--profile', '/nix/var/nix/profiles/system', '--delete-generations', '+%d' % CONFIG['keepGenerations']])
+        run_local([CONFIG['nixStore'], '--gc'], timeout=1800)
+    elif kind == 'docker-image-prune':
+        run_local([CONFIG['docker'], 'image', 'prune', '--force'])
+    else:
+        raise RuntimeError('not a known remediation')
+
+
+def read_after(condition, state):
+    """How spike looks once a fix has had a moment, in the condition's own numbers."""
+    time.sleep(15)
+    local = collect_local({}, time.time())['local']
+    return disk_text(local) if condition == 'disk' else ram_text(local)
+
+
+def remediate(snapshot, state, mode, now, doer=do_remedy, after=read_after):
+    """Fixes spike's critical conditions once each, logging every step with before and after numbers; returns result
+    entries shaped like act()'s, each with the finding keys its one line stands for."""
+    spike = snapshot['machines'].get('spike') or {}
+    if mode == 'off' or not spike.get('up') or 'local' not in spike:
+        return []
+    book = state.setdefault('remedy', {}).setdefault(mode, {})
+    episodes = book.setdefault('episodes', {})
+    restarted = book.setdefault('restarted', {})
+    cooldown = th('remedyCooldownMinutes') * 60
+    for target in [t for t, at in restarted.items() if now - at >= cooldown]:
+        del restarted[target]
+    results, seen = [], set()
+    for condition, keys, found, plan in conditions(spike, state, now):
+        seen.add(condition)
+        ep = episodes.get(condition)
+        entry = {'at': int(now), 'action': 'remedy:' + condition, 'host': 'spike', 'mode': mode, 'keys': keys, 'before': found}
+        if ep is None:
+            ep = episodes[condition] = {'since': int(now)}
+        elif ep.get('acted_at') and not ep.get('escalated') and mode == 'on' and now - ep['acted_at'] >= 60:
+            ep['escalated'] = True
+            now_why = plan if isinstance(plan, str) else ('the biggest now is ' + plan[0][2] if plan[0][2] else 'it needs you')
+            entry.update(result='escalated', urgent=True, what='tell Aaron the fix did not hold',
+                         line='%s still, after I %s at %s, so I am not doing it again: %s.' % (
+                             found.replace(' was ', ' is ', 1), ep['did'], hm(ep['acted_at']), now_why))
+            results.append(entry)
+            continue
+        else:
+            continue
+        if isinstance(plan, str):
+            ep['reported'] = True
+            line = '%s; %s, so it needs you.' % (found.replace(' was ', ' is ', 1), plan)
+            entry.update(what='tell Aaron, since nothing on the list may be restarted')
+            if mode == 'on':
+                entry.update(result='reported', urgent=True, line=line)
+            else:
+                entry.update(result='dry-run', line='Would have told Aaron: %s (acting is in dry-run).' % line)
+            results.append(entry)
+            continue
+        cooling = [t for _, t, _ in plan if t in restarted]
+        if cooling:
+            ep['reported'] = True
+            if mode == 'on':
+                entry.update(result='escalated', urgent=True, what='tell Aaron, since its fix ran in the last %d minutes' % th('remedyCooldownMinutes'),
+                             line='%s again; I already restarted %s at %s, so I am not doing it again within %d minutes: it needs you.' % (
+                                 found.replace(' was ', ' is ', 1), unit_name(cooling[0]), hm(restarted[cooling[0]]), th('remedyCooldownMinutes')))
+                results.append(entry)
+            continue
+        did = ' and '.join(describe_step(kind, target, about) for kind, target, about in plan)
+        ep.update(acted_at=int(now), did=did.split(', which ')[0])
+        entry['what'] = did
+        if mode == 'dry-run':
+            entry.update(result='dry-run', line='Would have fixed it: %s, so I would have %s (acting is in dry-run).' % (found, did))
+            results.append(entry)
+            continue
+        try:
+            for kind, target, _ in plan:
+                doer(kind, target)
+                if kind.startswith('restart-'):
+                    restarted[target] = int(now)
+            entry.update(result='done', after=after(condition, state))
+            entry['line'] = '%s; I %s; now %s.' % (found, did, entry['after'])
+        except Exception as error:  # noqa: BLE001
+            ep['escalated'] = True
+            entry.update(result='failed', urgent=True, error=str(error)[:200],
+                         line='%s; I tried to fix it, but it failed: %s. It needs you.' % (found.replace(' was ', ' is ', 1), str(error)[:120]))
+        results.append(entry)
+    for condition in [c for c in episodes if c not in seen]:
+        del episodes[condition]
+    for r in results:
+        r['line'] = r['line'][0].upper() + r['line'][1:]
+    return results
+
+
 # ---------------------------------------------------------------- notices
 
 def in_quiet(local):
@@ -1054,6 +1373,15 @@ def notices(findings, results, state, now, local, unreadable=()):
     overnight = state.setdefault('overnight', [])
     out, urgent, log = [], [], []
     present, seen_info = set(), set()
+    # A remediation's one line stands for the findings it fixed or escalated, so they are not told beside it, now or
+    # when a slower reading of the same problem turns up on a later run.
+    for r in results:
+        if r['result'] == 'dry-run':
+            continue
+        for key in r.get('keys') or []:
+            previous = sent.get(key) or {}
+            sent[key] = {'first': previous.get('first', now), 'at': now, 'level': 'act', 'text': r['line'], 'reraised': False}
+            routes[key] = 'act/told with its fix/'
 
     def route(f, name, why=None):
         mark = '%s/%s/%s' % (f['level'], name, why or f.get('why') or '')
@@ -1108,7 +1436,10 @@ def notices(findings, results, state, now, local, unreadable=()):
         # Only what the monitor really did is news; a dry-run plan is logged, and the hold flag is housekeeping.
         if r['result'] == 'dry-run' or r['action'] in ('hold-work', 'release-work'):
             continue
-        if quiet:
+        if r.get('urgent'):
+            out.append(r['line'])
+            urgent.append(r['line'])
+        elif quiet:
             overnight.append({'key': 'action', 'text': r['line']})
         else:
             out.append(r['line'])
@@ -1391,7 +1722,7 @@ def run():
         entries.append({'at': int(now), 'key': host + ':expected', 'host': host, 'level': 'info',
                         'text': '%s is back, so it is no longer expected off.' % host, 'route': 'cleared', 'why': None})
     findings = settle(evaluate(snapshot, state, now, expected), state, now)
-    results = act(choose_actions(findings, snapshot), state, mode, now)
+    results = act(choose_actions(findings, snapshot), state, mode, now) + remediate(snapshot, state, mode, now)
     with open(os.path.join(CONFIG['state'], 'actions.jsonl'), 'a') as log:
         for r in results:
             log.write(json.dumps(r, ensure_ascii=False) + '\n')

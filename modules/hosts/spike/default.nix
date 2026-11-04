@@ -65,7 +65,7 @@
       let
         config = pkgs.writeText "butler-monitor-test.json" (
           builtins.toJSON {
-            inherit (import ./butler-monitor/defaults.nix) thresholds quiet;
+            inherit (import ./butler-monitor/defaults.nix) thresholds quiet remediation;
             alwaysOn = [
               "spike"
               "framer"
@@ -75,19 +75,12 @@
               "jimbo"
             ];
             readOnlyHosts = [ "pilot" ];
-            restartable = "butler-[a-z0-9-]+\\.service";
-            neverRestart = [ "butler.service" ];
-            overLimitRestart = [
-              "backlogic-runner-aaron.service"
-              "butler.service"
-            ];
             failStreaks."backlogic-switch.service" = {
               file = "/nonexistent";
               runs = 3;
               stuckMinutes = 10;
             };
             keepGenerations = 5;
-            journalVacuum = "500M";
             hosts = { };
             prometheusHosts = [
               "spike"
