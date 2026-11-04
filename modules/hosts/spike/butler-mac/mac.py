@@ -85,6 +85,7 @@ USAGE = '''usage: mac hosts
        mac <host> windows              (front app, running apps, windows front to back)
        mac <host> run [shell words]    (script on stdin when no arg)
        mac <host> record start | stop
+       mac <host> confirm "<what will happen>" <action...>   (an action the outcome check refused, once Aaron said yes)
        mac <host> keepawake [status|on|off]
        mac <host> sleep                (keep-awake off, then sleep now)
        mac jimbo boot <linux|windows> [confirm]   (restart into the other system)
@@ -1153,6 +1154,68 @@ def guard_password(host):
         raise Refused('the keyboard focus on %s is in a password field or macOS\'s password prompt: Aaron types it himself, never you' % host)
 
 
+# Outcome check: approval is for what an action does, not for the Mac. Where the front window is a messaging, mail or
+# payment context, pressing Return, typing a newline, clicking or pressing a control may send, post or pay, so mac
+# refuses it until butler states the outcome with `mac <host> confirm "<what will happen>" <action...>`, which the
+# daemon always asks Aaron for, showing that statement. It reads only the front app and its window's title or URL, so
+# it misses a send it cannot see there, and an unreadable front window lets the action through.
+MESSAGING_APPS = re.compile(r'(?i)^(?:messages|mail|slack|discord|whatsapp|messenger|signal|telegram|microsoft outlook|outlook|microsoft teams|teams|spark|airmail|mimestream|superhuman|thunderbird|facetime|paypal|wallet)\b')
+BROWSERS = re.compile(r'(?i)chrom|safari|firefox|arc\b|brave|edge|orion|vivaldi|opera|cmux|webkit')
+SENDING_PAGES = re.compile(r'(?i)\b(?:gmail|inbox|outlook|mail|messenger|messages|whatsapp|slack|discord|facebook|instagram|linkedin|twitter|compose|reply|checkout|check out|payment|pay|paypal|cart|basket|order|billing|purchase|subscribe|subscription|bank|banking|netbank|commbank|westpac|anz|nab|stripe|afterpay|transfer|booking|book now|reservation|sign up)\b')
+LINUX_FRONT = LINUX_ENV + 'hyprctl activewindow -j 2> /dev/null'
+CONFIRMED = []
+
+
+def front_context(host):
+    """The front app and window title or URL, or None when they cannot be read."""
+    system = system_of(host)
+    try:
+        if system == 'macos':
+            try:
+                found = helper(host, 'front', timeout=15)
+                return found.get('app', ''), ' '.join(filter(None, [found.get('title', ''), found.get('url', '')]))
+            except Refused:
+                lines = remote(host, 'lsappinfo info -only name `lsappinfo front`', timeout=10).stdout.splitlines()
+                return (lines[0].split('=', 1)[-1].strip().strip('"') if lines else ''), ''
+        if system == 'linux':
+            found = json.loads(remote(host, LINUX_FRONT, timeout=10).stdout or '{}')
+            return found.get('class', ''), found.get('title', '')
+    except (Refused, subprocess.TimeoutExpired, ValueError):
+        return None
+    return None
+
+
+def committing(verb, args, stdin):
+    """Whether an action could send, post or pay in the window it lands in."""
+    if verb in ('click', 'press'):
+        return True
+    if verb == 'display':
+        return args[1:2] == ['click']
+    if verb == 'menu':
+        return len(args) > 1
+    if verb == 'key':
+        return any(keys(combo).split('-')[-1] == 'enter' for combo in args)
+    if verb == 'type':
+        return '\n' in (' '.join(args) if args else stdin)
+    return False
+
+
+def guard_outcome(host, verb, args, stdin=''):
+    """Refuses an action that may send, post or pay in a messaging, mail or payment window until it is confirmed."""
+    if CONFIRMED or not committing(verb, args, stdin):
+        return
+    context = front_context(host)
+    if not context:
+        return
+    app, title = context
+    sending = MESSAGING_APPS.search(app or '') or (BROWSERS.search(app or '') and SENDING_PAGES.search(title or ''))
+    if not sending:
+        return
+    where = '%s%s' % (app, ', "%s"' % clip(title, 80) if title else '')
+    raise Refused('outcome check: the front window on %s is %s, where this %s may send, post or pay something. Tell Aaron exactly what will happen, then run it again as: mac %s confirm "<what will happen, such as: send \'on my way\' to Rylee in Messages>" %s' % (
+        host, where, verb, host, ' '.join([verb] + [shlex.quote(arg) for arg in args])))
+
+
 # Control sessions: from the first command that uses a machine's screen or shell until `mac <host> done`, its
 # connection closing, or CONTROL_IDLE seconds without a command, the last of which also covers a turn that ended,
 # crashed or was cut short by a restart of butler, since nothing tells mac a turn is over. On a Mac, Butler sits at
@@ -1401,6 +1464,12 @@ def main():
 
 
 def act_on(host, verb, rest):
+    if verb == 'confirm':
+        if len(rest) < 2 or rest[1] == 'confirm':
+            raise Refused('confirm takes what will happen, in quotes, then the action, such as confirm "send \'on my way\' to Rylee in Messages" key enter')
+        audit([(host, 'confirmed outcome, approved by Aaron: %s | %s' % (clip(redact(rest[0]), 200), describe(rest[1], rest[2:], '')))])
+        CONFIRMED.append(rest[0])
+        return act_on(host, rest[1], rest[2:])
     if verb == 'say':
         return say(host, rest)
     if verb == 'done':
@@ -1429,6 +1498,7 @@ def act_on(host, verb, rest):
             audit([(host, 'boot ' + ' '.join(rest))])
         return boot(host, rest)
     if verb == 'menu':
+        guard_outcome(host, verb, rest)
         take(host, 'menu ' + ' > '.join(rest), clip(redact('Choosing ' + ' > '.join(rest[1:]) if rest[1:] else 'Reading the menus of ' + ' '.join(rest[:1])), 80))
         if menu(host, rest):
             print(after(host))
@@ -1438,6 +1508,7 @@ def act_on(host, verb, rest):
         print(helper(host, 'dialog', {'app': rest[0] if rest else 'front'}))
         return
     if verb in ('press', 'focus'):
+        guard_outcome(host, verb, rest)
         take(host, '%s %s' % (verb, redact(' '.join(rest))), '%s %s' % ('Pressing' if verb == 'press' else 'Moving to', clip(redact(' '.join(rest[:1])), 60)))
         press_or_focus(host, verb, rest)
         if verb == 'press':
@@ -1448,6 +1519,7 @@ def act_on(host, verb, rest):
         displays(host)
         return
     if verb == 'display':
+        guard_outcome(host, verb, rest)
         clicking = rest[1:2] == ['click']
         take(host, 'display ' + ' '.join(rest), 'Clicking on display %s' % rest[0] if clicking and rest else None)
         return display(host, rest)
@@ -1464,6 +1536,7 @@ def act_on(host, verb, rest):
         raise Refused('type sends Latin-1 only, not %s; on a Mac run pbcopy with the text on stdin, then key cmd-v; on Linux run wl-copy with it, then key ctrl-v' % ' '.join(wide))
     if verb == 'type' and system_of(host) == 'macos':
         guard_password(host)
+    guard_outcome(host, verb, rest, stdin)
     take(host, describe(verb, rest, stdin), narrate(verb, rest, stdin), opening='Taking a look at the screen')
     print(ask(host, {'verb': verb, 'args': rest, 'stdin': stdin}))
 

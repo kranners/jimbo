@@ -419,6 +419,25 @@ function M.secure()
   return { secure = attr(element, "AXRole") == "AXSecureTextField" or attr(element, "AXSubrole") == "AXSecureTextField" }
 end
 
+-- front {}: the front app and its focused window's title, with the page's URL where the window exposes one as
+-- AXDocument, so mac can tell a messaging, mail or payment screen before pressing Return or clicking there.
+function M.front()
+  local app = hs.application.frontmostApplication()
+  if not app then
+    return { app = "", title = "", url = "" }
+  end
+  local result = { app = app:name() or "", bundle = app:bundleID() or "", title = "", url = "" }
+  if not hs.accessibilityState() then
+    return result
+  end
+  local window = attr(ax.applicationElement(app), "AXFocusedWindow")
+  if window then
+    result.title = tostring(attr(window, "AXTitle") or "")
+    result.url = tostring(attr(window, "AXDocument") or "")
+  end
+  return result
+end
+
 -- Displays
 
 -- Every display, the one with the menu bar first, then left to right, numbered from 1 in that order.

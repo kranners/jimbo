@@ -81,11 +81,15 @@ in
       Every action but say, done, windows, run, record, keepawake, sleep and boot prints the outbox path of a fresh screenshot to read or attach with attach_file; x and y are pixels of that picture.
     '';
     stdin = true;
+    # Egress, so in a thread that has read private data or began as a voice request or board message the first action asks Aaron once for the `mac` area, and the rest run unasked.
+    # An action the daemon's mac checker reads as an outcome, anything on pilot beyond reading, a `run` that would send or delete, a Send-like control or a `confirm`, asks every time.
     rules = [
       {
         match = [ "**" ];
         lanes = [ "interactive" ];
         egress = true;
+        grant = "mac";
+        outcomes = "mac";
       }
     ];
     credentials.butler-mac-key = "/var/lib/secrets/butler-mac-key";

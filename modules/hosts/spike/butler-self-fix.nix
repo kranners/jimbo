@@ -209,11 +209,14 @@ let
   };
 
   # Who may run `change`, and how it is gated, which the `self-fix` alias shares exactly.
+  # `start` and `archive` share the `change` area: asked once in a thread that read private data or began as a voice request or board message.
+  # A change that would widen butler's reach still asks Aaron for that outcome before it lands, as its session's preamble says.
   rules = [
     {
       match = [ "start" ];
       lanes = [ "interactive" ];
       egress = true;
+      grant = "change";
     }
     {
       match = [
@@ -233,6 +236,7 @@ let
       ];
       lanes = [ "interactive" ];
       egress = true;
+      grant = "change";
     }
   ];
 
