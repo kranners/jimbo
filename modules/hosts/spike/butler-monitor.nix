@@ -79,6 +79,17 @@ let
       runs = 3;
       stuckMinutes = 10;
     };
+    # Every identity spike reaches GitHub with, from github.nix, each checked with `ssh -T git@github.com` every run.
+    github = lib.mapAttrs (_: i: {
+      inherit (i)
+        user
+        key
+        reaches
+        usedBy
+        fix
+        ;
+    }) config.spike.github.identities;
+    runuser = "${pkgs.util-linux}/bin/runuser";
     ssh = lib.getExe pkgs.openssh;
     docker = "${config.virtualisation.docker.package}/bin/docker";
     nixEnv = "${config.nix.package}/bin/nix-env";

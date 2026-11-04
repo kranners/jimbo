@@ -200,6 +200,7 @@
         ./docker.nix
         ./environments.nix
         ./framer-vnc.nix
+        ./github.nix
         ./home-assistant.nix
         ./messenger.nix
         ./mise.nix

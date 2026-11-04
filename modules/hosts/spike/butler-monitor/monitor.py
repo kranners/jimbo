@@ -658,6 +658,90 @@ def read_work():
     }
 
 
+# ---------------------------------------------------------------- GitHub
+
+GITHUB_STATUS = 'https://www.githubstatus.com/api/v2/components.json'
+
+
+def check_github(name):
+    """One `ssh -T git@github.com` as one of spike's GitHub identities: None when GitHub accepted the key, else why not."""
+    ident = CONFIG['github'][name]
+    args = [CONFIG['ssh'], '-T', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15']
+    if ident.get('key'):
+        # Its own known_hosts and no ssh config, as root reading the key the units use.
+        args = [CONFIG['ssh'], '-T', '-F', '/dev/null', '-i', ident['key'], '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes',
+                '-o', 'ConnectTimeout=15', '-o', 'StrictHostKeyChecking=accept-new',
+                '-o', 'UserKnownHostsFile=' + os.path.join(CONFIG['state'], 'github_known_hosts')]
+    else:
+        # The user's own ssh config and default key, as that user, the way their units reach GitHub.
+        args = [CONFIG['runuser'], '-u', ident['user'], '--'] + args
+    try:
+        result = subprocess.run(args + ['git@github.com'], capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
+    except subprocess.TimeoutExpired:
+        return 'no answer in 30 seconds'
+    except OSError as error:
+        return str(error)[:120]
+    said = (result.stdout + result.stderr).strip()
+    # GitHub greets a key it knows and closes with exit 1, since it gives no shell.
+    if re.search(r'successfully authenticated', said, re.I):
+        return None
+    lines = [line for line in said.splitlines() if line.strip() and not line.startswith('Warning: Permanently added')]
+    return (lines[-1] if lines else 'ssh exited %d' % result.returncode)[:160]
+
+
+def github_git_status():
+    """GitHub's own word on Git Operations, such as operational or major_outage, or None when it cannot be read."""
+    try:
+        with urllib.request.urlopen(GITHUB_STATUS, timeout=8) as response:
+            components = json.load(response).get('components') or []
+    except Exception:  # noqa: BLE001 - a status page down says nothing either way
+        return None
+    for c in components:
+        if c.get('name') == 'Git Operations':
+            return c.get('status')
+    return None
+
+
+def collect_github():
+    names = sorted(CONFIG.get('github') or {})
+    if not names:
+        return None
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(names)) as pool:
+        refused = dict(zip(names, pool.map(check_github, names)))
+    return {'refused': refused, 'gitops': github_git_status() if any(refused.values()) else None}
+
+
+def judge_github(github, state, now):
+    """A key GitHub keeps refusing, now and then or all the time, for githubAuthMinutes, told once with the one thing to do."""
+    out = []
+    seen = state.setdefault('github', {})
+    window = th('githubAuthMinutes') * 60
+    for name, why in sorted((github.get('refused') or {}).items()):
+        record = seen.get(name)
+        if why:
+            record = seen[name] = dict(record or {'first': now}, last=now, why=why)
+        elif record and now - record['last'] >= window:
+            del seen[name]
+            continue
+        elif record:
+            # Accepted between refusals, as through GitHub's own incidents.
+            record['flaky'] = True
+        if not record or now - record['first'] < window:
+            continue
+        ident = CONFIG['github'][name]
+        status = github.get('gitops')
+        if status and status != 'operational':
+            advice = 'Nothing to do: GitHub reports Git Operations as %s, and the pulls retry and catch up once it recovers.' % status.replace('_', ' ')
+        else:
+            advice = 'GitHub looks healthy, so check the key is still added at %s.' % ident['fix']
+        out.append(finding('github:%s' % name, 'spike', 'warn',
+                           "GitHub has refused spike's %s key (%s, used by %s) %s since %s: %s." % (
+                               name, ident['reaches'], ', '.join(ident['usedBy']),
+                               'on and off' if record.get('flaky') else 'every time', hm(record['first']), record['why']),
+                           advice=advice))
+    return out
+
+
 def collect(state, now):
     machines = {}
     remotes = [n for n in CONFIG['hosts']]
@@ -675,7 +759,13 @@ def collect(state, now):
                 machines[name] = {'up': False, 'why': str(error)[:120]}
     if machines.get('spike', {}).get('up'):
         machines['spike'].update(collect_spike_extras(machines['spike'].get('failed_units') or [], state, now))
-    return {'machines': machines, 'claude': read_limits(), 'limits': read_limit_kinds(), 'work': read_work(), 'turns': read_turns(time.time())}
+    try:
+        github = collect_github()
+    except Exception as error:  # noqa: BLE001 - the GitHub check must not stop the rest
+        print('butler-monitor: could not check GitHub: %s' % str(error)[:120], file=sys.stderr)
+        github = None
+    return {'machines': machines, 'claude': read_limits(), 'limits': read_limit_kinds(), 'work': read_work(),
+            'turns': read_turns(time.time()), 'github': github}
 
 
 # ---------------------------------------------------------------- judging
@@ -750,6 +840,8 @@ def evaluate(snapshot, state, now, expected=None):
             out.append(finding('butler:slots', 'spike', 'info',
                                "All %d of Butler's turn slots have been busy for %s." % (turns.get('cap', 0), duration(now - full / 1000)),
                                why='busy is not stuck; a stuck turn is told'))
+    if snapshot.get('github'):
+        out += judge_github(snapshot['github'], state, now)
     work = snapshot.get('work')
     if work:
         if work['running'] > th('maxRunningChanges'):
@@ -1664,6 +1756,9 @@ def status_text(snapshot, findings, mode, now, expected=None):
     turns = snapshot.get('turns')
     if turns:
         lines.append(turns_line(turns))
+    refused = ((snapshot.get('github') or {}).get('refused') or {})
+    if refused:
+        lines.append('GitHub: ' + ', '.join('%s %s' % (name, 'refused' if why else 'ok') for name, why in sorted(refused.items())))
     problems = [f['text'] for f in findings if f['level'] != 'info']
     noted = [f['text'] + (' (%s)' % f['why'] if f.get('why') else '') for f in findings if f['level'] == 'info']
     lines.append('Open problems: ' + ('; '.join(problems) if problems else 'none'))
@@ -1708,6 +1803,8 @@ def prom_lines(snapshot, findings, mode, now):
             'butler_turns_oldest_queued_seconds %d' % (max(0, now - oldest / 1000) if oldest else 0),
             'butler_turns_slots_busy_seconds %d' % (max(0, now - full / 1000) if full else 0),
         ]
+    for name, why in sorted(((snapshot.get('github') or {}).get('refused') or {}).items()):
+        out.append('butler_monitor_github_auth_ok{identity="%s"} %d' % (name, 0 if why else 1))
     for level in ('info', 'warn', 'act'):
         out.append('butler_monitor_findings{level="%s"} %d' % (level, sum(f['level'] == level for f in findings)))
     return '\n'.join(out) + '\n'

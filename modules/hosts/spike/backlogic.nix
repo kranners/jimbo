@@ -156,7 +156,7 @@ let
         exit 0
       }
       running=$(git rev-parse HEAD)
-      git fetch --quiet origin main
+      ${lib.getExe config.spike.github.retry} git fetch --quiet origin main
       latest=$(git rev-parse FETCH_HEAD)
 
       # Records the look in `checked`, then offers main and the changelog lines it adds to the
