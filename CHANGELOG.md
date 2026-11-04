@@ -1,6 +1,7 @@
 # Changelog
 
 - 2026-11-05: butler reads Aaron's conversations across Slack, Messenger, Instagram, Discord, Google Chat, iMessage, SMS and LinkedIn in one read-only `chat` call, both sides where the source holds them, and says who is waiting on him.
+- 2026-11-05: The Macs reconnect their WireGuard tunnel to spike by themselves within a minute of Aaron logging in after a restart, or of any drop while no other WireGuard tunnel is up, so butler no longer loses them until someone clicks Connect.
 - 2026-11-03: butler's self-fixes are now called changes, started with `change`, since Aaron uses them for any work, with `self-fix` still working as its old name for now.
 - 2026-11-03: butler checks the weather with `weather`, from Open-Meteo with no key, and says whether Aaron should ride his e-bike to work and back or take an Uber.
 - 2026-11-03: butler can see and drive Aaron's MacBooks with `mac`, his real screen, mouse and keyboard through Screen Sharing and a shell through ssh, and record what it did, once Screen Sharing is switched on by hand on each Mac.
