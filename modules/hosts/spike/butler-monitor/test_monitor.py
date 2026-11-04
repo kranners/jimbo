@@ -194,6 +194,22 @@ check('every Claude account at 95% warns', levels(judge({}, claude={'personal': 
 work = {'running': 6, 'long': [{'id': 'x', 'title': 'Long one', 'started': 1000 * DAY - 4 * 3600}]}
 check('a long change warns, many at once is only noted', levels(judge({}, work=work)) == {'work:long:x': 'warn'} and 'work:running' in noted(judge({}, work=work)))
 
+# A unit that retries itself: one or two failed runs are only noted, three in a row or one stuck run warns.
+unit = 'backlogic-switch.service'
+check('the streak unit is configured', unit in monitor.CONFIG['failStreaks'])
+
+
+def streak(runs, running=None, failed=True):
+    return {'spike': healthy(os='linux', failed_units=[unit] if failed else [], unit_streaks={unit: {'failed_runs': runs, 'running_seconds': running}})}
+
+
+check('one failed run of a self-retrying unit is only noted', levels(judge(streak(1))) == {} and 'spike:failed:' + unit in noted(judge(streak(1))))
+check('two failed runs are only noted', levels(judge(streak(2))) == {})
+check('three failed runs in a row warn', levels(judge(streak(3))) == {'spike:failed:' + unit: 'warn'})
+check('three in a row warn while the next run is going', levels(judge(streak(3, running=20, failed=False))) == {'spike:failed:' + unit: 'warn'})
+check('a run going 10 minutes warns as stuck', levels(judge(streak(0, running=601, failed=False))) == {'spike:stuck:' + unit: 'warn'})
+check('a run going 5 minutes raises nothing', judge(streak(0, running=300, failed=False)) == [])
+
 # Action choice: only the table's safe actions, nothing on pilot.
 machines = {'spike': healthy(os='linux', disk_free_bytes=5 * GB, failed_units=['butler-memory-pull.service', 'butler.service', 'postgresql.service']),
             'pilot': healthy(keepawake='off'), 'piggys-MBP': healthy(keepawake='off')}

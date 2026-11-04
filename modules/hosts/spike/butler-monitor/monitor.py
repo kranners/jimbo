@@ -274,6 +274,22 @@ def collect_spike_extras():
                 extras['docker_images_reclaimable_bytes'] = parse_size(row.get('Reclaimable'))
     except (OSError, subprocess.TimeoutExpired, ValueError):
         pass
+    streaks = {}
+    for unit, spec in CONFIG.get('failStreaks', {}).items():
+        entry = {'failed_runs': 0, 'running_seconds': None}
+        try:
+            entry['failed_runs'] = int(open(spec['file']).read().strip() or 0)
+        except (OSError, ValueError):
+            pass
+        try:
+            state, since = subprocess.run([CONFIG['systemctl'], 'show', unit, '-p', 'ActiveState', '-p', 'InactiveExitTimestampMonotonic', '--value'],
+                                          capture_output=True, text=True, timeout=30).stdout.split()
+            if state == 'activating' and int(since):
+                entry['running_seconds'] = time.monotonic() - int(since) / 1e6
+        except (OSError, subprocess.TimeoutExpired, ValueError):
+            pass
+        streaks[unit] = entry
+    extras['unit_streaks'] = streaks
     try:
         extras['system_generations'] = len([n for n in os.listdir('/nix/var/nix/profiles') if re.fullmatch(r'system-[0-9]+-link', n)])
     except OSError:
@@ -498,9 +514,29 @@ def judge_machine(host, m):
     if awake == 'off' and host in CONFIG['keepAwakeHosts']:
         out.append(finding('%s:keepawake' % host, host, 'act', "%s's keep-awake is off." % host,
                            advice='Ask me to turn it back on, or tell me it is meant to be off.'))
+    streaks = CONFIG.get('failStreaks', {})
     for unit in m.get('failed_units') or []:
+        if unit in streaks:
+            continue
         out.append(finding('%s:failed:%s' % (host, unit), host, 'warn', '%s has failed on %s.' % (unit, host),
                            advice='Read its journal, or ask me to.'))
+    # A unit that retries itself is news only after several failed runs in a row, or one run stuck, not one that self-heals.
+    for unit, entry in (m.get('unit_streaks') or {}).items():
+        spec = streaks.get(unit)
+        if not spec:
+            continue
+        runs = entry.get('failed_runs') or 0
+        key = '%s:failed:%s' % (host, unit)
+        if runs >= spec['runs']:
+            out.append(finding(key, host, 'warn', '%s has failed %d runs in a row on %s.' % (unit, runs, host),
+                               advice='Read its journal, or ask me to.'))
+        elif runs:
+            out.append(finding(key, host, 'info', '%s failed its last %s on %s.' % (unit, 'run' if runs == 1 else '%d runs' % runs, host),
+                               why='under %d in a row; it retries itself' % spec['runs']))
+        running = entry.get('running_seconds')
+        if running is not None and running >= spec['stuckMinutes'] * 60:
+            out.append(finding('%s:stuck:%s' % (host, unit), host, 'warn', '%s has been running for %d minutes on %s.' % (unit, running // 60, host),
+                               advice='It may be stuck; read its journal, or ask me to.'))
     if m.get('docker_build_cache_bytes', 0) > th('dockerCacheGB') * GB:
         out.append(finding('spike:docker', host, 'info', "Docker's build cache on spike holds %s." % gb(m['docker_build_cache_bytes']),
                            why='docker-prune clears it daily'))

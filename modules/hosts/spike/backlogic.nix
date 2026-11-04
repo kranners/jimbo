@@ -145,6 +145,7 @@ let
     name = "backlogic-switch";
     runtimeInputs = [
       backlogic-compose
+      pkgs.bash
       pkgs.claude-code
       pkgs.deno
       pkgs.findutils
@@ -156,6 +157,56 @@ let
     text = ''
       failed_record="${updatesDir}/failed"
       pending_record="$STATE_DIRECTORY/pending"
+      refresh_record="$STATE_DIRECTORY/plugin-refresh-failed"
+
+      installed_plugin_version() {
+        claude plugin list --json | jq -r '.[] | select(.id == "backlogic@backlogic") | .version'
+      }
+      # The marketplace serves main, so the plugin can be ahead of a commit an owner chose, and
+      # rules-fresh-session compares what arrived against this checkout's rules.
+      # A retry checks the rules whenever the plugin is at the checkout, since the update it retries may already have taken.
+      # It runs as an if condition, where errexit is off, so each step returns its own failure.
+      update_plugin() {
+        local version_before version_after
+        claude plugin marketplace update backlogic || return
+        version_before=$(installed_plugin_version) || return
+        claude plugin update backlogic@backlogic || return
+        version_after=$(installed_plugin_version) || return
+        if [ "$1" != retry ] && { [ "$version_before" = "$version_after" ] \
+          || [ -z "$(git diff --name-only "$version_before" "$version_after" -- rules .claude-plugin hooks 2>/dev/null || echo unknown)" ]; }; then
+          return 0
+        fi
+        if [[ "$(git rev-parse HEAD)" != "$version_after"* ]]; then
+          echo "Not checking the rules arrived: the plugin is at $version_after, the checkout at $(git rev-parse --short HEAD)" >&2
+          return 0
+        fi
+        bin/rules-fresh-session
+      }
+      # A refresh or one of the plugin's hooks failing never fails the switch, whose result is the rebuild's:
+      # it is logged and recorded, and the next run retries it once.
+      # ~/.claude is the default config, whose .claude.json sits in the home, not inside it as CLAUDE_CONFIG_DIR would read it.
+      refresh_plugins() {
+        local mode=''${1:-first} failed=""
+        update_plugin "$mode" || failed="$failed ~/.claude"
+        CLAUDE_CONFIG_DIR=${home}/.claude-work update_plugin "$mode" || failed="$failed ~/.claude-work"
+        if [ -z "$failed" ]; then
+          rm -f "$refresh_record"
+        elif [ "$mode" = retry ]; then
+          echo "The backlogic plugin refresh failed again in$failed; not retrying it until the next rebuild" >&2
+          rm -f "$refresh_record"
+        else
+          echo "The backlogic plugin refresh failed in$failed; the next run retries it once" >&2
+          touch "$refresh_record"
+        fi
+      }
+      # Every run that rebuilds nothing retries a refresh the last rebuild left failed.
+      finish() {
+        if [ -e "$refresh_record" ]; then
+          echo "Retrying the backlogic plugin refresh that failed last run"
+          refresh_plugins retry
+        fi
+        exit 0
+      }
       running=$(git rev-parse HEAD)
       git fetch --quiet origin main
       latest=$(git rev-parse FETCH_HEAD)
@@ -191,17 +242,17 @@ let
       elif [ -e "${updatesDir}/automatic" ]; then
         target=$latest
         if [ "$target" = "$running" ] || [ "$target" = "$(cat "$failed_record" 2>/dev/null)" ]; then
-          exit 0
+          finish
         fi
         if [ "$target" != "$(cat "$pending_record" 2>/dev/null)" ]; then
           echo "$target" > "$pending_record"
-          exit 0
+          finish
         fi
         if [ -z "$(find "$pending_record" -mmin +${toString quietMinutes})" ]; then
-          exit 0
+          finish
         fi
       else
-        exit 0
+        finish
       fi
 
       if ! git merge-base --is-ancestor "$running" "$target"; then
@@ -221,30 +272,18 @@ let
       write_available
       backlogic-compose up --detach --wait
 
-      installed_plugin_version() {
-        claude plugin list --json | jq -r '.[] | select(.id == "backlogic@backlogic") | .version'
-      }
-      # The marketplace serves main, so the plugin can be ahead of a commit an owner chose, and
-      # rules-fresh-session compares what arrived against this checkout's rules.
-      update_plugin() {
-        claude plugin marketplace update backlogic
-        local version_before version_after
-        version_before=$(installed_plugin_version)
-        claude plugin update backlogic@backlogic
-        version_after=$(installed_plugin_version)
-        if [ "$version_before" = "$version_after" ] \
-          || [ -z "$(git diff --name-only "$version_before" "$version_after" -- rules .claude-plugin hooks 2>/dev/null || echo unknown)" ]; then
-          return
-        fi
-        if [[ "$(git rev-parse HEAD)" != "$version_after"* ]]; then
-          echo "Not checking the rules arrived: the plugin is at $version_after, the checkout at $(git rev-parse --short HEAD)" >&2
-          return
-        fi
-        bin/rules-fresh-session
-      }
-      # ~/.claude is the default config, whose .claude.json sits in the home, not inside it as CLAUDE_CONFIG_DIR would read it.
-      update_plugin
-      CLAUDE_CONFIG_DIR=${home}/.claude-work update_plugin
+      refresh_plugins
+    '';
+  };
+  backlogic-switch-streak = pkgs.writeShellApplication {
+    name = "backlogic-switch-streak";
+    text = ''
+      streak="$STATE_DIRECTORY/failed-runs"
+      if [ "$SERVICE_RESULT" = success ]; then
+        rm -f "$streak"
+      else
+        echo $(( $(cat "$streak" 2>/dev/null || echo 0) + 1 )) > "$streak"
+      fi
     '';
   };
 in
@@ -284,12 +323,20 @@ in
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
     unitConfig.ConditionPathExists = "${checkout}/.git";
+    # The plugin's hooks and backlogic's bin/ scripts run under `env bash` and call whatever tools aaron has,
+    # so the unit has the system's path, as the runner's sessions do.
+    path = [
+      "/run/wrappers"
+      "/run/current-system/sw"
+    ];
     serviceConfig = {
       Type = "oneshot";
       User = "aaron";
       WorkingDirectory = checkout;
       StateDirectory = "backlogic-switch";
       ExecStart = lib.getExe backlogic-switch;
+      # Counts failed runs in a row for butler-monitor, which tells Aaron only once there are failStreak of them.
+      ExecStopPost = lib.getExe backlogic-switch-streak;
     };
   };
 
