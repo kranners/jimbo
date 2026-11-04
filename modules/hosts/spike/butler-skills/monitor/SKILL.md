@@ -23,7 +23,7 @@ Call the `monitor` tool with these `args`:
 - `[]` or `["status"]`: each machine's last reading in a line, the problems open now, what it saw but did not think worth telling, and which machines are expected off. Fine on a call. Answer in a sentence or two, not the raw list.
 - `["log"]`: the last 30 things it saw and what became of each: told, held or noted for the morning, kept (with why: below the bar, already told, expected off) or cleared.
 - `["log", "quiet"]`: the same, only what it did not tell Aaron at once.
-- `["log", "actions"]`: the last 20 things it did, or would have done in dry-run, with before and after numbers.
+- `["log", "actions"]`: the last 20 things it did, or would have done in dry-run, with before and after numbers, its own fixes of spike among them.
 - `["expect"]`: which machines are expected off, why and until when.
 - `["expect", "<host>", "down", "until", "07:00", "reason words"]`, or `"for", "3h"` in place of the until, or neither for 12 hours: mark a machine Aaron or you switched off on purpose, so the monitor says nothing about it being down, asleep, locked or its keep-awake off until then or until it is back and awake; its disk and the rest still count. Do it whenever Aaron says he is turning a machine off, or you shut one down yourself other than with `mac`.
 - `["expect", "<host>", "clear"]`: drop the mark.
@@ -39,7 +39,19 @@ It is told only once it has failed 3 runs in a row (`backlogic-switch` keeps its
 When Aaron answers such a notice with "fix it" or the like, start a change with `change start` whose brief quotes the notice's unit, cause and exit code; never tell him to read a journal himself, and use `shell`'s `journalctl -u <unit>` yourself if he asks for more.
 What is only logged: one Claude account past 80% or 95% (moving accounts is automatic), Butler's slots all busy, a turn queued under 30 minutes, more than 4 changes at once, Docker's build cache over 20 GB (pruned daily), and any machine expected off.
 
-With acting on, the only things it ever does by itself, each at most once an hour per machine and each reported: on spike when its disk is nearly full, delete your outbox files older than 2 days and aged temp files, shrink the journal to 500 MB, clear Docker's build cache and dangling images, and collect Nix garbage keeping the newest system generations; clear Docker's build cache when it is large; restart a failed unit of yours once (never `butler` itself, its restarters, the landing queue or a change launch); turn keep-awake back on for piggys-MBP and jimbo, unless they are expected off; and write a hold flag while spike or a Claude account is tight, which nothing reads yet.
-It never kills Aaron's processes, touches pilot, deletes his data, reboots or sleeps a machine, or changes firewall, network or power settings beyond keep-awake.
+Aaron asked on 4 Nov 2026 for spike to fix its own critical problems at once, without waiting for him or for you, so with acting on it remediates these by itself, as root, with no thread and no approval, and tells him once, in one line, what was wrong with the number, what it did and how it is now:
+
+- Critical memory pressure (memory stall over 40%, or fully stalled over 10%, two runs in a row, or under 10% of memory available with swap over 70% used): it finds the cgroup holding the most memory and, if that is a service on its list (backlogic's runner and its container, the `butler-index-*` units, the photo captioner, reMarkable and notes syncs, your browser, Grafana, Prometheus, cAdvisor, Bowerbird's worker, Remote Control) holding over a quarter of the RAM, restarts it.
+- spike's disk over 92% used: collects Nix garbage beyond the newest 3 system generations and prunes dangling Docker images, nothing else.
+- A listed unit failed long enough to be told (3 runs in a row or 10 minutes down): resets it and starts it once; your own `butler-*` units are listed, never `butler` itself, its restarters, the landing queue, a change launch or the monitor.
+- Load over 4 times the cores for 10 minutes: names the busiest cgroup and restarts the busiest listed service once, if it is using a core or more.
+
+Each service is restarted by itself at most once in 30 minutes; if the problem is still there after its fix, or comes back within those 30 minutes, it tells Aaron, urgently and with the diagnosis, instead of fixing it again.
+It never touches `butler` itself, Home Assistant, Docker, sshd, WireGuard, Postgres, Bowerbird's compose, the speech servers, Caddy, Nix's daemon or Aaron's own sessions, and when one of those is the problem it only tells him; it never drops caches.
+The steps and their lists live in jimbo's `modules/hosts/spike/butler-monitor/defaults.nix`, under `remediation`, so read them there if Aaron asks exactly what it may restart.
+`monitor log actions` shows each fix with its before and after numbers; in dry-run it does none of them and only logs what it would have done, and `monitor act off` stops them all.
+
+Besides those, with acting on it clears Docker's build cache when it is large, at most once an hour; turns keep-awake back on for piggys-MBP and jimbo, unless they are expected off; and writes a hold flag while spike or a Claude account is tight, which nothing reads yet.
+It never touches pilot, deletes Aaron's data, reboots or sleeps a machine, or changes firewall, network or power settings beyond keep-awake.
 For anything else, say what is wrong and the one thing Aaron could do, and wait for him.
 Grafana's Spike / Machines dashboard charts the same readings, and an alert fires if the monitor itself stops for 10 minutes.

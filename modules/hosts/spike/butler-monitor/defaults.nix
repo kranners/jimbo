@@ -1,4 +1,23 @@
-# The machines monitor's limits, in one place: butler-monitor.nix's defaults and its flake check both read them.
+# The machines monitor's limits and its remediations, in one place: butler-monitor.nix's defaults and its flake check
+# both read them.
+let
+  # Services spike may restart by itself when one of them is what is wrong; each loses only work it redoes.
+  restartable = [
+    "backlogic-runner-aaron\\.service"
+    "butler-index-[a-z0-9-]+\\.service"
+    "butler-photo-caption\\.service"
+    "butler-remarkable-sync\\.service"
+    "butler-notes-sync\\.service"
+    "butler-browser\\.service"
+    "grafana\\.service"
+    "prometheus\\.service"
+    "cadvisor\\.service"
+    "bowerbird-worker\\.service"
+    "claude-remote-control\\.service"
+  ];
+  # Docker containers spike may restart, by compose project: backlogic-aaron's.
+  containers = [ "backlogic" ];
+in
 {
   thresholds = {
     # Free disk: under either warns, under either acts.
@@ -20,8 +39,23 @@
     swapCritical = 0.9;
     # Critical pressure is told only once it has lasted this long, unless the monitor acted on it first.
     pressureMinutes = 10;
-    # A service in overLimitRestart over its memory limit under critical pressure is restarted at most this often.
-    overLimitRestartMinutes = 30;
+    # spike's own memory remediation: critical once PSI's some avg10 is over psiSomeCritical or its full avg10 over
+    # psiFullCritical for psiCriticalRuns runs in a row, or at once while MemAvailable is under memAvailCritical of
+    # RAM with swap over swapUsedCritical used; the top cgroup is restarted only past remedyShareOfRam of RAM.
+    psiSomeCritical = 40;
+    psiFullCritical = 10;
+    psiCriticalRuns = 2;
+    memAvailCritical = 0.10;
+    swapUsedCritical = 0.70;
+    remedyShareOfRam = 0.25;
+    # One automatic restart per service in this long, and a condition that outlasts its fix is told, not fixed again.
+    remedyCooldownMinutes = 30;
+    # spike's disk past this share used runs the diskFull steps.
+    diskUsedCritical = 0.92;
+    # spike's load over loadRatio times its cores for this long restarts the busiest listed service, if it uses at
+    # least loadRemedyMinCores.
+    loadRemedyMinutes = 10;
+    loadRemedyMinCores = 1;
     # On battery with keep-awake on.
     batteryWarnPercent = 40;
     batteryActPercent = 20;
@@ -53,6 +87,54 @@
     stillOpenHours = 24;
     # butler-monitor.nix sets it from jimbo.keepGenerations.
     maxGenerations = 5;
+  };
+  # What the monitor fixes on spike by itself while acting is on, each a named step with its allowlist; anything
+  # matching protect is never touched by any of them, only reported, and anything on no list is only reported too.
+  remediation = {
+    protect = [
+      "butler\\.service"
+      "home-assistant\\.service"
+      "docker\\.service"
+      "containerd\\.service"
+      "sshd\\.service"
+      "wireguard-.*"
+      "wg-quick-.*"
+      "systemd-.*"
+      "nix-daemon\\.service"
+      "caddy\\.service"
+      "postgresql\\.service"
+      "bowerbird-compose\\.service"
+      "tuwunel\\.service"
+      "mautrix-.*"
+      "wyoming-.*"
+      "jimbo-switch.*"
+      "butler-self-fix\\.service"
+      "butler-restart\\.service"
+      "butler-restart-overdue\\.service"
+      "butler-land\\.service"
+      "butler-monitor\\.service"
+      "init\\.scope"
+      ".*\\.slice"
+    ];
+    memoryPressure = {
+      what = "Critical memory pressure: restart the cgroup holding the most memory if it is a listed service or container over remedyShareOfRam of RAM.";
+      inherit restartable containers;
+    };
+    runawayLoad = {
+      what = "Load over loadRatio times the cores for loadRemedyMinutes: restart the busiest listed service or container once.";
+      inherit restartable containers;
+    };
+    diskFull = {
+      what = "Disk over diskUsedCritical used: collect Nix garbage beyond the newest keepGenerations system generations and prune dangling Docker images, nothing else.";
+      steps = [
+        "gc-generations"
+        "docker-image-prune"
+      ];
+    };
+    failedUnit = {
+      what = "A listed unit failed long enough to be told (unitFailRuns, unitFailedMinutes): reset-failed, then start it once.";
+      restartable = [ "butler-[a-z0-9@-]+\\.service" ] ++ restartable;
+    };
   };
   # Between start and end only urgent notices go out; the rest wait for one short summary at summary, sent only when
   # something was held or done overnight.

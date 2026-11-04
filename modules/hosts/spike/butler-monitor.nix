@@ -51,7 +51,7 @@ let
       readOnlyHosts
       defaultMode
       keepGenerations
-      journalVacuum
+      remediation
       snapshot
       holdFile
       ;
@@ -69,22 +69,8 @@ let
     callState = "/run/butler-call/call.json";
     inherit (cfg) backoffFile;
     limits = "/var/lib/claude-limits";
-    outbox = "${config.users.users.butler.home}/outbox";
     group = "butler";
     quiet = cfg.quietHours;
-    # Failed units of butler's own a run may restart once; never the daemon, its restarters, the landing queue or a change launch.
-    restartable = "butler-[a-z0-9-]+\\.service";
-    neverRestart = [
-      "butler.service"
-      "butler-self-fix.service"
-      "butler-restart.service"
-      "butler-restart-overdue.service"
-      "butler-land.service"
-      "butler-monitor.service"
-    ];
-    # Services restarted when over their own memory limit while spike is under critical pressure, at most once per
-    # overLimitRestartMinutes; never one in neverRestart.
-    inherit (cfg) overLimitRestart;
     # Every failed unit is judged from its own journal, by unitFailRuns, unitFailedMinutes and unitFailsPerDay; these
     # set a unit's own bar of failed runs in a row, a count the unit keeps itself in file, believed when it says
     # more, and how long one run may go before it counts as stuck.
@@ -99,7 +85,6 @@ let
     nixStore = "${config.nix.package}/bin/nix-store";
     journalctl = "${config.systemd.package}/bin/journalctl";
     systemctl = "${config.systemd.package}/bin/systemctl";
-    tmpfiles = "${config.systemd.package}/bin/systemd-tmpfiles";
     notify = "/run/current-system/sw/bin/butler-notify";
     callSay = "/run/current-system/sw/bin/butler-call-say";
   };
@@ -142,7 +127,7 @@ let
           [ -f ${state}/actions.jsonl ] || { echo "Nothing done or planned yet."; exit 0; }
           tail -n 20 ${state}/actions.jsonl | jq -r '"\(.at | strflocaltime("%a %d %b %H:%M")) [\(.result)] \(.line)"'
           ;;
-        "act ") echo "Acting is $(mode). on takes the safe steps, dry-run only says what it would do, off neither." ;;
+        "act ") echo "Acting is $(mode). on takes the safe steps and fixes spike's critical memory, disk, load and failed units by itself, dry-run only says what it would do, off neither." ;;
         "act on" | "act off" | "act dry-run")
           printf '%s\n' "$2" > ${control}/mode.tmp
           mv ${control}/mode.tmp ${control}/mode
@@ -194,11 +179,6 @@ in
         "framer"
       ];
     };
-    overLimitRestart = mkOption {
-      description = "Services on spike the monitor, acting, restarts while one is over its own memory limit under critical memory pressure, at most once per overLimitRestartMinutes.";
-      type = types.listOf types.str;
-      default = [ "backlogic-runner-aaron.service" ];
-    };
     keepAwakeHosts = mkOption {
       description = "Machines whose keep-awake the monitor turns back on when acting.";
       type = types.listOf types.str;
@@ -221,9 +201,13 @@ in
       type = types.int;
       default = config.jimbo.keepGenerations;
     };
-    journalVacuum = mkOption {
-      type = types.str;
-      default = "500M";
+    remediation = mkOption {
+      description = ''
+        What the monitor fixes on spike by itself while acting is on: each named step's allowlist of services and
+        containers, and protect, which no step ever touches and only reports; the thresholds hold their numbers.
+      '';
+      type = types.attrs;
+      default = defaults.remediation;
     };
     snapshot = mkOption {
       description = "The Machines snapshot, plain lines per machine and the open problems, readable by the group butler.";
