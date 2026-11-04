@@ -426,6 +426,21 @@ with open(call_state, 'w') as fh:
     json.dump({'live': False, 'updatedAt': now * 1000, 'turns': pool}, fh)
 check('the pool is read from the call state file while fresh', monitor.read_turns(now) == pool and monitor.read_turns(now + 120) is None)
 
+import base64 as _b64
+accounts_file = {'schemaVersion': 1, 'accounts': [
+    {'label': 'work', 'state': 'signed-out', 'status': 'revoked', 'sessionExpiresAt': None},
+    {'label': 'ap2', 'state': 'signed-in', 'status': 'ok', 'sessionExpiresAt': '2020-01-01T00:00:00.000Z'},
+    {'label': 'personal', 'state': 'expiring', 'status': 'ok', 'sessionExpiresAt': '2099-01-01T00:00:00.000Z'},
+]}
+encoded = _b64.b64encode(json.dumps(accounts_file).encode()).decode()
+check('signed-out and expired Claude accounts are read, expiring ones are not', monitor.claude_signed_out(encoded) == ['ap2', 'work'])
+check('a garbled accounts file reads as nothing', monitor.claude_signed_out('!!') == [] and monitor.claude_signed_out('') == [])
+check('the Mac read reports the accounts file', 'claude_accounts=' in monitor.MAC_READ)
+signed = monitor.judge_machine('pilot', healthy(claude_signed_out=['work']))
+check('a signed-out Claude account is one warn per account',
+      [(f['key'], f['level']) for f in signed if 'claude-account' in f['key']] == [('pilot:claude-account:work', 'warn')])
+check('a healthy accounts file raises nothing', not [f for f in monitor.judge_machine('pilot', healthy(claude_signed_out=[])) if 'claude' in f['key']])
+
 if failures:
     print('%d failed' % len(failures))
     sys.exit(1)
