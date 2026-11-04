@@ -30,6 +30,13 @@ WAYVNC = 'butler-wayvnc.sock'
 WINDOWS_STATE = r'C:\ProgramData\butler-access'
 OVERLAY = '/etc/profiles/per-user/$USER/bin/butler-overlay'
 MEMORY_AUDIT = '@memoryAudit@'
+# fetch copies a file from a Mac's or Linux jimbo's ~/Downloads or ~/butler-drop into this spool, under butler's
+# ~/.cache, which its Read is denied, and butler-index-drop, as butler outside the daemon's sandbox, checks it and
+# moves it into the index inbox, answering in the results folder beside it.
+DROP = '@drop@'
+DROP_MAX = @dropMax@
+# Never from pilot, Aaron's employer's Mac, unless he changes this himself.
+DROP_HOSTS = ('piggys-MBP', 'jimbo')
 # The machines monitor's expected-off marks: sleeping, booting or letting a machine idle tells it to say nothing about it.
 EXPECTED = '@expected@'
 # A control session ends after this many seconds without a mac command, as the overlay on the Mac does by itself.
@@ -87,6 +94,7 @@ USAGE = '''usage: mac hosts
        mac <host> record start | stop
        mac <host> confirm "<what will happen>" <action...>   (an action the outcome check refused, once Aaron said yes)
        mac <host> keepawake [status|on|off]
+       mac <host> fetch <file> <inbox folder> [name]   (copy a file from ~/Downloads or ~/butler-drop into spike's index inbox)
        mac <host> sleep                (keep-awake off, then sleep now)
        mac jimbo boot <linux|windows> [confirm]   (restart into the other system)
 Macs only, through the Hammerspoon helper butler-access installs:
@@ -725,6 +733,97 @@ def run(host, words, stdin=''):
     if result.stderr:
         print('[stderr]\n' + result.stderr, end='')
     print('[exit %d]' % result.returncode)
+
+
+FETCH_RESOLVE = r"""
+p=%s
+case "$p" in
+  '~/'*) p="$HOME/${p#??}" ;;
+  /*) ;;
+  *) p="$HOME/Downloads/$p" ;;
+esac
+if [ -L "$p" ] || [ ! -f "$p" ]; then echo "not a regular file: $p" >&2; exit 3; fi
+d=$(cd "$(dirname "$p")" && pwd -P) || exit 3
+h=$(cd && pwd -P)
+case "$d/" in
+  "$h/Downloads/"*|"$h/butler-drop/"*) ;;
+  *) echo "only files under ~/Downloads and ~/butler-drop are fetched, not $d" >&2; exit 4 ;;
+esac
+f="$d/$(basename "$p")"
+printf '%%s\n' "$f"
+wc -c < "$f" | tr -d ' '
+"""
+FOLDER = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
+DROP_NAME = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._ ()+,-]{0,199}$')
+
+
+def fetch(host, args):
+    """Copies one file from host's ~/Downloads or ~/butler-drop into the index inbox's folder, through the drop spool."""
+    if host not in DROP_HOSTS:
+        raise Refused('fetch copies files from %s only, never from %s' % (' and '.join(DROP_HOSTS), host))
+    if len(args) not in (2, 3):
+        raise Refused('usage: mac <host> fetch <file> <inbox folder> [name]; a bare file name is in ~/Downloads')
+    path, folder = args[0], args[1]
+    if not FOLDER.match(folder):
+        raise Refused('the inbox folder is one lowercase name, such as exports or messages, not %s' % folder)
+    if system_of(host) == 'windows':
+        raise Refused('fetch works on jimbo only while it runs Linux')
+    take(host, 'fetch %s into %s' % (clip(redact(path), 200), folder), 'Copying %s to spike' % clip(os.path.basename(path), 60))
+    result = remote(host, FETCH_RESOLVE % shlex.quote(path), timeout=25)
+    lines = result.stdout.splitlines()
+    if result.returncode != 0 or len(lines) != 2 or not lines[1].isdigit():
+        raise Refused((result.stderr.strip() or 'could not read %s on %s' % (path, host)))
+    source, size = lines[0], int(lines[1])
+    if size > DROP_MAX:
+        raise Refused('%s is %d MB, over the %d MB fetch limit' % (source, size >> 20, DROP_MAX >> 20))
+    name = args[2] if len(args) == 3 else os.path.basename(source)
+    if not DROP_NAME.match(name) or name.endswith('.partial'):
+        name = re.sub(r'[^A-Za-z0-9._ ()+,-]', '_', name).lstrip('._ -')[:200] or 'file'
+        if len(args) == 3:
+            raise Refused('the name may hold letters, digits, spaces and . _ ( ) + , - only; try %s' % name)
+    partials, spool, results = (os.path.join(DROP, part) for part in ('partial', 'spool', 'results'))
+    for folder_path in (partials, spool, results):
+        os.makedirs(folder_path, mode=0o700, exist_ok=True)
+    now = time.time()
+    for old in os.listdir(partials):
+        if now - os.path.getmtime(os.path.join(partials, old)) > 3600:
+            os.unlink(os.path.join(partials, old))
+    entry = '%s--%s' % (folder, name)
+    partial = os.path.join(partials, '%d-%s' % (os.getpid(), name))
+    answer = os.path.join(results, entry)
+    try:
+        os.unlink(answer)
+    except FileNotFoundError:
+        pass
+    started = time.time()
+    try:
+        with open(partial, 'wb') as out:
+            copied = subprocess.run(ssh_args(host) + ['cat -- %s' % shlex.quote(source)], stdin=subprocess.DEVNULL,
+                                    stdout=out, stderr=subprocess.PIPE, timeout=900)
+        got = os.path.getsize(partial)
+        if copied.returncode != 0:
+            raise Refused('copying %s failed: %s' % (source, copied.stderr.decode(errors='replace').strip() or 'exit %d' % copied.returncode))
+        if got != size:
+            raise Refused('%s changed while it was copied, %d bytes then %d; try again once it has finished downloading' % (source, size, got))
+        os.rename(partial, os.path.join(spool, entry))
+    except subprocess.TimeoutExpired:
+        raise Refused('gave up copying %s after 15 minutes' % source)
+    finally:
+        if os.path.exists(partial):
+            os.unlink(partial)
+    audit([(host, 'fetched %s (%d bytes) into the index inbox %s as %s' % (clip(redact(source), 200), size, folder, name))])
+    deadline = time.time() + 30
+    while time.time() < deadline and not os.path.exists(answer):
+        time.sleep(0.5)
+    if not os.path.exists(answer):
+        print('copied %s (%d bytes, %.0f s) to spike; the index inbox has not answered yet, so check again later' % (source, size, time.time() - started))
+        return
+    with open(answer) as handle:
+        verdict = handle.read().strip()
+    os.unlink(answer)
+    if not verdict.startswith('ok'):
+        raise Refused('the index inbox refused %s: %s' % (name, verdict.partition(' ')[2] or verdict))
+    print('copied %s (%d bytes, %.0f s) into the index inbox as %s/%s; the ingest picks it up from there' % (source, size, time.time() - started, folder, name))
 
 
 WINDOWS = r'''
@@ -1479,6 +1578,8 @@ def act_on(host, verb, rest):
         journal(host, describe('run', rest, stdin))
         take(host, describe('run', rest, stdin), narrate('run', rest, stdin))
         return run(host, rest, stdin)
+    if verb == 'fetch':
+        return fetch(host, rest)
     if verb == 'windows':
         take(host, 'windows', narrate('windows', rest, ''))
         return windows(host)
