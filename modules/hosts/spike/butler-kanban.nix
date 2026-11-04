@@ -26,6 +26,7 @@ let
     "@board@" = board;
     "@spoolUser@" = "butler";
     "@context@" = lib.getExe config.butler.context.package;
+    "@hubMarker@" = config.spike.kanban.hubMarker;
   };
 
   kanban = pkgs.writers.writePython3Bin "kanban" { flakeIgnore = [ "E501" ]; } (
@@ -111,6 +112,11 @@ in
         credentials.butler-mac-key = "/var/lib/secrets/butler-mac-key";
         skill = ./butler-skills/kanban;
       };
+
+      # The marker saying the board runs on spike, so the daemon's own `kanban` calls follow a cutover.
+      systemd.services.butler.serviceConfig.BindReadOnlyPaths = [
+        "-${dirOf config.spike.kanban.hubMarker}"
+      ];
 
       # One card per change on the board, refreshed as butler-self-fix-progress reads each session.
       systemd.services.butler-kanban-sync = {
