@@ -16,6 +16,7 @@ private, and only when more than its refresh line changed.
 import base64
 import json
 import os
+import random
 import re
 import subprocess
 import sys
@@ -433,7 +434,12 @@ def publish(memory, body, stamp):
     git(memory, '-c', 'user.name=%s' % AUTHOR[0], '-c', 'user.email=%s' % AUTHOR[1],
         'commit', '--quiet', '--message', 'Refresh the builders in flight digest')
     pushed = git(memory, 'push', '--quiet', 'origin', 'HEAD:main', check=False)
-    return 'pushed' if pushed.returncode == 0 else 'rejected'
+    if pushed.returncode == 0:
+        return 'pushed'
+    publish.error = clean(pushed.stderr or 'git push exited %d' % pushed.returncode, 300)
+    # Another writer moved main first, such as mac's audit trail, which commits every few seconds while butler drives a Mac.
+    raced = re.search(r'non-fast-forward|fetch first|\[rejected\]|cannot lock ref|failed to update ref', pushed.stderr or '')
+    return 'raced' if raced else 'rejected'
 
 
 def main(argv):
@@ -457,13 +463,25 @@ def main(argv):
     if private is not True:
         print('butler-builders: not publishing, GitHub did not confirm %s is private' % MEMORY_REPO, file=sys.stderr)
         return 0
-    for _ in range(3):
+    outcome = None
+    for attempt in range(6):
+        if attempt:
+            # Fetch main afresh, after a jittered pause so a burst of other pushes can pass, and commit on top of it.
+            time.sleep(random.uniform(1, 2 + attempt))
+            try:
+                sync_memory(memory)
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+                print('butler-builders: could not fetch butler-memory: %s' % clean(getattr(error, 'stderr', '') or error, 300), file=sys.stderr)
+                return 1
         outcome = publish(memory, body, stamp)
-        if outcome != 'rejected':
+        if outcome in ('pushed', 'unchanged'):
             print('butler-builders: digest %s, %d lines' % (outcome, body.count('\n')))
             return 0
-        sync_memory(memory)
-    print('butler-builders: could not push the digest; the next run tries again', file=sys.stderr)
+    if outcome == 'raced':
+        # A lost race is not a failure: the local digest is written and the next run, 2 minutes on, pushes it.
+        print('butler-builders: warning: main kept moving, so the digest was not pushed this run; the next run pushes it: %s' % publish.error)
+        return 0
+    print('butler-builders: could not push the digest: %s' % publish.error, file=sys.stderr)
     return 1
 
 

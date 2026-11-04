@@ -32,7 +32,10 @@ let
             mkdir -p "$results"
             find "$results" -type f -mmin +1440 -delete
             shopt -s nullglob
-            for entry in "$spool"/*; do
+            # A fetch of several files spools them seconds apart, so settle a moment and keep going until the spool
+            # stays empty, taking a whole burst in one run instead of one start per file.
+            while sleep 2; entries=("$spool"/*); [ ''${#entries[@]} -gt 0 ]; do
+            for entry in "''${entries[@]}"; do
               base=''${entry##*/}
               folder=''${base%%--*} name=''${base#*--}
               verdict=""
@@ -66,6 +69,7 @@ let
               echo "moved $base into inbox/$folder"
               printf 'ok %s/%s
       ' "$folder" "$name" > "$results/.$base" && mv -f "$results/.$base" "$results/$base"
+            done
             done
     '';
   };
@@ -173,13 +177,28 @@ in
     "d ${inbox}/exports 0700 butler butler -"
   ];
 
+  # A burst of fetches starts the mover once per file; with systemd's default start limit, 5 in 10 seconds, the fifth
+  # failed both units with start-limit-hit, and no later drop was moved until they were reset. Neither has a limit now.
   systemd.paths.butler-index-drop = {
     wantedBy = [ "paths.target" ];
-    pathConfig.DirectoryNotEmpty = "${drop}/spool";
+    unitConfig.StartLimitIntervalSec = 0;
+    pathConfig = {
+      DirectoryNotEmpty = "${drop}/spool";
+      TriggerLimitIntervalSec = 0;
+    };
+  };
+
+  # A switch clears a failed state left by an earlier one, so landing brings the drop back without a hand reset.
+  system.activationScripts.butler-index-drop-reset = {
+    deps = [ "etc" ];
+    text = ''
+      ${config.systemd.package}/bin/systemctl reset-failed butler-index-drop.path butler-index-drop.service 2>/dev/null || true
+    '';
   };
 
   systemd.services.butler-index-drop = {
     description = "Move the files butler fetched from the Macs into its index inbox";
+    unitConfig.StartLimitIntervalSec = 0;
     serviceConfig = {
       Type = "oneshot";
       User = "butler";
