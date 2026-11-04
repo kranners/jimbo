@@ -23,6 +23,10 @@ let
 
   mailPassword = name: "email-${name}-password";
 
+  # Aaron's Work work Google account is read through the Gmail API, read-only, by butler-work-google.nix's reader.
+  workGoogle = config.butler.workGoogle.enable;
+  workReader = lib.getExe' config.butler.workGoogle.package "work-google";
+
   passwordLogin = name: address: {
     username = address;
     password.command = "${pkgs.coreutils}/bin/cat ${credential (mailPassword name)}";
@@ -72,6 +76,7 @@ let
         echo "       mail <account> search <query>..." >&2
         echo "       mail <account> read <id>" >&2
         echo "       mail <account> archive <id>..." >&2
+        ${lib.optionalString workGoogle ''echo "       mail work unread [count] | list [count] | search <words>... | read <id>  (read-only)" >&2''}
         exit 2
       }
 
@@ -103,8 +108,21 @@ let
 
       if [ "$1" = accounts ]; then
         himalaya account list
+        ${lib.optionalString workGoogle ''echo "work (Work work Google account, read-only)"''}
         exit
       fi
+
+      ${lib.optionalString workGoogle ''
+        if [ "$1" = work ]; then
+          shift
+          for argument in "$@"; do
+            case "$argument" in
+              -*) usage ;;
+            esac
+          done
+          exec ${workReader} mail "$@"
+        fi
+      ''}
 
       if [ "$1" = unread-counts ]; then
         for account in ${lib.escapeShellArgs (lib.attrNames mailAccounts)}; do
@@ -114,6 +132,13 @@ let
             echo "$account unavailable"
           fi
         done
+        ${lib.optionalString workGoogle ''
+          if count=$(${workReader} mail unread-count); then
+            echo "work $count"
+          else
+            echo "work unavailable"
+          fi
+        ''}
         exit
       fi
 
@@ -243,6 +268,7 @@ in
         description = ''
             Read and archive Aaron's email; it cannot delete or move mail anywhere else, and sends only through mail-send.
           mail accounts | mail unread-counts | mail <account> mailboxes | mail <account> unread [count] | mail <account> list [count] | mail <account> search <query>... | mail <account> read <id> | mail <account> archive <id>...
+          ${lib.optionalString workGoogle "mail work unread [count] | mail work list [count] | mail work search <Gmail search words>... | mail work read <id>: Aaron's Work work Google mail, read-only, in a conversation alone; it cannot archive or send."}
         '';
         rules = [
           {

@@ -1,6 +1,6 @@
 ---
 name: email
-description: Read Aaron's email (Fastmail, Gmail and Outlook) to answer questions about it, summarise it, or archive messages he asks to archive.
+description: Read Aaron's email (Fastmail, Gmail, Outlook and his Work work Google account) to answer questions about it, summarise it, or archive messages he asks to archive.
 ---
 
 # Email
@@ -17,11 +17,20 @@ It can read and archive: it cannot delete, flag or move a message anywhere but i
 - `mail <account> read <id>` prints one message's headers and full text, the id being the first column of a listing.
 - `mail <account> archive <id>...` moves messages out of the inbox into the account's archive, the same as archiving them in its own app.
 
+## Work mail
+
+`work` is Aaron's work Google Workspace mail, read through Google's API with a read-only login: it lists, searches and reads, and can never archive, delete or send.
+- `mail work unread [count]`, `mail work list [count]` and `mail work read <id>` work as for the other accounts, the id being a listing's first column.
+- `mail work search <words>...` takes Gmail's own search words, such as `from:sam`, `subject:standup`, `newer_than:2d` or plain words.
+- It runs only in a conversation; a scheduled run sees work mail only as its unread count in `mail unread-counts`.
+- If it says the account is not logged in yet, or the login was refused, tell Aaron the one command it names, run on spike, and stop; if it says Work's admin blocks the app, say so plainly.
+- This is his employer's mail: answer what he asks, and never copy its text, senders or subjects into memory, the journal, a change brief or anything outside the thread.
+
 No arg may start with `-`.
 
 Archive only messages Aaron has asked to archive, such as "archive that" after reading one or "archive everything from the newsletter", listing first to find their ids, then say in one sentence how many were archived and from whom.
 
-When Aaron asks about his email without naming an account, check every account.
+When Aaron asks about his email without naming an account, check every account; check `work` too when he means work or Work.
 
 ## Writing about mail
 
