@@ -128,6 +128,11 @@
       python3 -I ${./butler-threads/test_threads.py} ${./butler-threads/threads.py} > $out 2>&1 || { cat $out; exit 1; }
     '';
 
+    # The chat cache from a fixture index and live feeds: normalisation, conversation kinds, contacts and who is waiting on Aaron.
+    butler-chat = pkgs.runCommand "butler-chat-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      python3 -I ${./butler-chat/test_chat.py} ${./butler-chat/chat.py} > $out 2>&1 || { cat $out; exit 1; }
+    '';
+
     # The context packs from fixture memory, a fake board and a fake pilot, checking nothing private reaches one.
     butler-context = pkgs.runCommand "butler-context-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 -I ${./butler-context/test_context.py} ${./butler-context/context.py} > $out 2>&1 || { cat $out; exit 1; }
@@ -151,6 +156,7 @@
         ./bowerbird.nix
         ./butler.nix
         ./butler-backlogic-source.nix
+        ./butler-chat.nix
         ./butler-browser.nix
         ./butler-builders.nix
         ./butler-context.nix

@@ -206,6 +206,8 @@ let
           "Read(//var/lib/butler-index/**)"
           # The inbox monitor's audit log quotes mail, so it is read through `inbox`, which taints the thread.
           "Read(//var/lib/butler-inbox/**)"
+          # The chat cache holds other people's messages, so it is read through `chat`, which taints the thread.
+          "Read(//var/lib/butler-chat/**)"
           "Read(//proc/**)"
           "Read(//run/**)"
         ];

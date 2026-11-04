@@ -14,3 +14,5 @@ Project structure:
 
 Trying to emulate [`nix-config-modules`](https://github.com/chadac/nix-config-modules) using `lib` functions.
 
+
+Design notes for butler's larger pieces live in `docs/`, such as [`docs/butler-chat.md`](docs/butler-chat.md), its one read-only view of Aaron's chats.
