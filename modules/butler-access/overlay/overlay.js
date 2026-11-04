@@ -1,7 +1,7 @@
 // Butler's on-screen overlay: Butler in a porthole at the top right of the main screen, with up to three speech
 // bubbles beneath him, shown while butler on spike drives this Mac.
 //
-// launchd runs this, through the launcher in ./default.nix, while ~/.local/state/butler-overlay/active exists, and
+// butler's Hammerspoon helper runs this, through the launcher in ./default.nix, while ~/.local/state/butler-overlay/active exists, and
 // `butler-overlay` writes the events it shows to ~/.local/state/butler-overlay/events, one line each:
 // `<epoch seconds>\t<show|say|act|work|hide>\t<text>`. It polls that file ten times a second while it runs, fades out
 // and exits on `hide` or after IDLE seconds without an event, so nothing runs while it is hidden. `work` and `act` keep
@@ -456,7 +456,7 @@ guarded(() => poll(true));
 if (!shown) show();
 
 // One event that fails to draw is logged and skipped, never the end of him: an exception escaping the loop would end
-// the agent, which launchd starts again while `active` exists, so he would only flash up and vanish, over and over.
+// it, and Hammerspoon starts it again while `active` exists, so he would only flash up and vanish, over and over.
 let lastError = '';
 function guarded(fn) {
   try {
