@@ -1,8 +1,10 @@
-"""Butler's way onto Aaron's kanban board, which runs on pilot.
+"""Butler's way onto Aaron's kanban board, on pilot or, once cut over, on spike.
 
-The board listens on pilot's loopback alone, so every call goes over ssh
-as Aaron, with butler's Mac key, and curl posts it to the board's
-Butler endpoint there. `kanban changes` also builds the list of
+While the board runs on pilot it listens on pilot's loopback alone, so
+every call goes over ssh as Aaron, with butler's Mac key, and curl posts
+it to the board's Butler endpoint there. Once `kanban-hub cutover` has
+moved it to spike, which it marks with HUB_MARKER, every call posts to
+spike's own loopback instead. `kanban changes` also builds the list of
 butler's changes from spike's own records and sends it, which is how
 `butler-kanban-sync` keeps a card per change on the board, and reads
 back what Aaron did to those cards there: a card he closed asks spike to
@@ -16,6 +18,8 @@ import re
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 
 HOST = json.loads('@host@')
 SSH = '@ssh@'
@@ -28,6 +32,8 @@ CONTEXT = '@context@'
 RELAY_EVERY = 3
 MESSAGE_ID = re.compile(r'^[A-Za-z0-9-]{1,64}$')
 PORT = 7420
+# Present once the board runs on spike itself (modules/hosts/spike/kanban.nix).
+HUB_MARKER = '@hubMarker@'
 ID = re.compile(r'^[0-9]{8}-[0-9]{6}-[0-9]+$')
 TOOL = re.compile(r'^[a-z_]{1,64}$')
 LINK = re.compile(r'https://claude\.ai/code/session_[A-Za-z0-9]+')
@@ -71,8 +77,29 @@ def ssh_args():
     return [SSH, *options, '%s@%s' % (HOST['user'], HOST['address'])]
 
 
+def call_local(tool, args):
+    """Posts one tool call to the board on spike's loopback and returns its reply."""
+    request = urllib.request.Request(
+        'http://127.0.0.1:%d/api/butler/tools/%s' % (PORT, tool),
+        data=json.dumps(args).encode(), headers={'content-type': 'application/json'}, method='POST',
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            body = response.read().decode('utf-8', 'replace')
+    except urllib.error.HTTPError as error:
+        body = error.read().decode('utf-8', 'replace')
+    except (urllib.error.URLError, OSError) as error:
+        raise Unreachable('the board on spike is not answering: %s' % getattr(error, 'reason', error))
+    try:
+        return json.loads(body)
+    except ValueError:
+        raise Unreachable('the board answered with something other than JSON: %s' % body[:300])
+
+
 def call(tool, args):
-    """Posts one tool call to the board on pilot and returns its reply."""
+    """Posts one tool call to the board, on spike once cut over, else on pilot, and returns its reply."""
+    if os.path.exists(HUB_MARKER):
+        return call_local(tool, args)
     remote = (
         'curl --silent --show-error --max-time 60 '
         '--header "content-type: application/json" --data-binary @- '

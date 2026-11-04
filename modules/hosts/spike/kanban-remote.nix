@@ -31,8 +31,10 @@ let
     "piggys-MBP"
     "jimbo"
   ];
-  # Machines whose kanban runner (modules/kanban-runner) checks in with the board's runner token.
+  # Machines whose kanban runner (modules/kanban-runner) checks in with the board's runner token; pilot's runs
+  # only once its own board is unloaded, after the cutover to spike.
   runners = [
+    "pilot"
     "piggys-MBP"
     "jimbo"
   ];
@@ -61,6 +63,9 @@ in
     wantedBy = [ "multi-user.target" ];
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
+    # Once `kanban-hub cutover` moves the board to spike, kanban-bridge serves this socket from it instead, and
+    # this unit stays defined but idle, for `kanban-hub rollback`.
+    unitConfig.ConditionPathExists = "!${config.spike.kanban.hubMarker}";
     serviceConfig = {
       Group = "kanban-tunnel";
       RuntimeDirectory = "kanban-tunnel";

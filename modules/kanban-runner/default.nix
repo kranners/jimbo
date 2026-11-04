@@ -1,4 +1,6 @@
-# A kanban runner on each of Aaron's own machines, so the board on pilot can start sessions there.
+# A kanban runner on each of Aaron's own machines, so the board can start sessions there.
+# On pilot it waits while pilot's own board, the launchd agent `kanban`, is loaded, so it runs only once the board
+# has moved to spike (modules/hosts/spike/kanban.nix) and pilot's board is unloaded.
 # It reaches the board through spike's kanban.spike.cute.engineer, whose runner route passes only the runner
 # endpoints and /runner.js through, and the board checks the shared token on each, so pilot opens no port.
 # The token is KANBAN_RUNNER_TOKEN in ~/.config/kanban/env, mode 600, written by hand and never in this repository;
@@ -6,6 +8,7 @@
 { host, lib, ... }:
 let
   hosts = [
+    "pilot"
     "piggys-MBP"
     "jimbo"
   ];
@@ -29,6 +32,11 @@ let
         token=$(grep -s '^KANBAN_RUNNER_TOKEN=' "$env_file" | head -n1 | cut -d= -f2- || true)
         if [ -z "$token" ]; then
           echo "kanban-runner: no KANBAN_RUNNER_TOKEN in $env_file yet, waiting" >&2
+          sleep 300
+          exit 0
+        fi
+        if [ -x /bin/launchctl ] && /bin/launchctl print "gui/$(id -u)/kanban" > /dev/null 2>&1; then
+          echo "kanban-runner: this Mac's own board is loaded, so it carries its sessions itself; waiting" >&2
           sleep 300
           exit 0
         fi
@@ -72,7 +80,7 @@ lib.optionalAttrs enabled {
     { config, pkgs, ... }:
     {
       systemd.user.services.kanban-runner = {
-        Unit.Description = "kanban runner, sessions for the board on pilot";
+        Unit.Description = "kanban runner, sessions for the board on spike";
         Service = {
           ExecStart = "${runner pkgs}/bin/kanban-runner";
           Environment = [

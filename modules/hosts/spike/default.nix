@@ -204,6 +204,7 @@
         ./caddy.nix
         ./claude.nix
         ./device-gate.nix
+        ./kanban.nix
         ./kanban-remote.nix
         ./dns.nix
         ./docker.nix
