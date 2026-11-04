@@ -79,5 +79,7 @@ These are the board's own tools, run under your name, and none of them asks Aaro
 
 `send_prompt` with `{"session", "text"}`, `ask_session` with `{"session", "question"}`, `answer_prompt` with `{"session"}` to read the question a session waits on and then with its `prompt` id and `answers` to answer it, `announce` with `{"text"}`, `start_session` with `{"cwd", "prompt", "name"?}` and `finish_session` with `{"session"}` act through Aaron's sessions, which can run anything on pilot, so the first in a thread asks him for the `kanban board` permission, which then covers the rest of the thread.
 Only use them when he asks, and say in a sentence what you will send before you do.
+`start_session` and `send_prompt` put spike's matching context pack in front of the prompt by themselves, picked by the session's folder, then by what the prompt is about, and print `Context sent: the <area> pack` after the board's reply: the area's pointers, its sessions on the board with their states, its changes in flight, your memory's notes on it and, for Bloom, the repositories on pilot with their branches, latest commits and open PRs (see the `context` skill).
+So never tell Aaron a session starts with no context: read the pack first with `context show <area>`, keep your own prompt to the task, and tell him in a few words which pack the session received and which sibling sessions it names.
 
 What the board shows is Aaron's work: summarise it for him, and never send it anywhere else.

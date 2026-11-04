@@ -303,6 +303,8 @@ let
         {
           cat ${preamble}
           jq -r .request "$request"
+          # The context pack the request is about, Butler's own systems' when it names none, as every surface reads it.
+          jq '{text: .request, default: "butler"}' "$request" | ${lib.getExe config.butler.context.package} prefix | sed '1s/^/\n\n/' || true
           ${probeBrief}
           if [ -s "${digest}" ]; then
             printf '\n\nOther builders in flight (read before you edit; coordinate and rebase). You are change %s, listed as queued:\n\n' "$id"
