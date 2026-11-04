@@ -1,0 +1,1 @@
+Change 20261105-085423-1326597: read-only `mindbody` butler command (REVL bookings from Mindbody, likely parsed from booking emails via existing mail creds) in jimbo modules/hosts/spike/butler-mindbody*.nix + skill; maybe calendar move/delete of butler-created events in butler-tools.nix; butler-memory skills/mindbody, calendar skill note.
