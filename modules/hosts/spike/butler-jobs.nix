@@ -108,11 +108,12 @@ let
         fi
 
         {
-          printf -- '---\ntitle: %s\nat: %s\ndays: %s\n' "$name" "$at" "$days"
+          printf -- '---\ntitle: %s\nat: %s\ndays: %s\nquiet: true\n' "$name" "$at" "$days"
           [ -z "$once" ] || printf 'once: %s\n' "$once"
           printf -- '---\n%s\n\n' "$prompt"
           printf '%s\n' "This is butler's scheduled job $name, set up by Aaron in a conversation."
           printf '%s\n' "When you have finished, send Aaron the result in a few lines with \`notify\`, its text on stdin."
+          printf '%s\n' "If you found nothing new he needs to hear, such as something not arrived yet, send nothing with \`notify\` and make NOTHING the last line of your reply, so this run leaves no thread behind."
         } >"$file.tmp"
         mv "$file.tmp" "$file"
 
@@ -193,7 +194,7 @@ in
   butler.commands.jobs = {
     package = jobs;
     description = ''
-      Create, list and remove scheduled jobs: prompts the daemon runs in a new thread of #general at a time, which DM Aaron the result.
+      Create, list and remove scheduled jobs: prompts the daemon runs in a new thread of #general at a time, which DM Aaron the result, or end with NOTHING to leave no thread when there is nothing to say.
       jobs list | jobs add <name> <daily|weekdays|weekends|mon,wed,...> <HH:MM> | jobs add <name> once <YYYY-MM-DD|today|tomorrow> <HH:MM> | jobs remove <name>
       add takes the prompt on stdin.
     '';
