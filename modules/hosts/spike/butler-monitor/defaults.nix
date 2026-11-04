@@ -18,6 +18,10 @@
     # Critical memory pressure on Linux: the percent of time fully stalled, or the share of swap used.
     psiCritical = 10;
     swapCritical = 0.9;
+    # Critical pressure is told only once it has lasted this long, unless the monitor acted on it first.
+    pressureMinutes = 10;
+    # A service in overLimitRestart over its memory limit under critical pressure is restarted at most this often.
+    overLimitRestartMinutes = 30;
     # On battery with keep-awake on.
     batteryWarnPercent = 40;
     batteryActPercent = 20;

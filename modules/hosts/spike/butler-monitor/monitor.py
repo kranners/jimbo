@@ -301,11 +301,63 @@ def collect_spike_extras(failed, state, now):
     except (OSError, subprocess.TimeoutExpired, ValueError):
         pass
     extras['units'] = collect_units(failed, state, now)
+    extras['memory_cgroups'] = collect_memory_cgroups()
     try:
         extras['system_generations'] = len([n for n in os.listdir('/nix/var/nix/profiles') if re.fullmatch(r'system-[0-9]+-link', n)])
     except OSError:
         pass
     return extras
+
+
+def read_limit(path):
+    """A cgroup memory file's bytes, None for `max` or a file that cannot be read."""
+    try:
+        with open(path) as f:
+            text = f.read().strip()
+    except OSError:
+        return None
+    return int(text) if text.isdigit() else None
+
+
+def collect_memory_cgroups(root='/sys/fs/cgroup', top=3):
+    """spike's biggest services by memory, with their soft and hard limits, so a pressure notice arrives diagnosed."""
+    out = []
+    for slice_ in ('system.slice', 'user.slice'):
+        try:
+            names = os.listdir(os.path.join(root, slice_))
+        except OSError:
+            continue
+        for name in names:
+            path = os.path.join(root, slice_, name)
+            if not name.endswith(('.service', '.slice', '.scope')) or not os.path.isdir(path):
+                continue
+            used = read_limit(os.path.join(path, 'memory.current'))
+            if used:
+                out.append({'unit': name, 'cgroup': slice_ + '/' + name, 'bytes': used,
+                            'high': read_limit(os.path.join(path, 'memory.high')), 'max': read_limit(os.path.join(path, 'memory.max'))})
+    return sorted(out, key=lambda c: -c['bytes'])[:top]
+
+
+def biggest_memory(m):
+    """The biggest memory cgroup in words, or '' when none was read."""
+    groups = m.get('memory_cgroups') or []
+    if not groups:
+        return ''
+    c = groups[0]
+    cap = c.get('max') or c.get('high')
+    return ' Biggest: %s at %s%s.' % (c['cgroup'], gb(c['bytes']), ' of its %s cap' % gb(cap) if cap else '')
+
+
+def over_limit(m):
+    """The services listed in overLimitRestart that are over their soft limit, or their hard one when they have none."""
+    out = []
+    for c in m.get('memory_cgroups') or []:
+        if c['unit'] not in CONFIG.get('overLimitRestart', []) or c['unit'] in CONFIG['neverRestart']:
+            continue
+        limit = c.get('high') or c.get('max')
+        if limit and c['bytes'] >= limit * 0.98:
+            out.append(c)
+    return out
 
 
 # ---------------------------------------------------------------- failed units
@@ -631,13 +683,16 @@ def judge_machine(host, m, now=None, mode=None):
             if mem < th('memWarnRatio'):
                 out.append(finding('%s:memory' % host, host, 'info', text, why='a Mac is judged by memory pressure'))
         else:
+            text += biggest_memory(m)
             if mem < th('memActRatio'):
                 out.append(finding('%s:memory' % host, host, 'act', text, urgent=host in CONFIG['alwaysOn'], hold=th('memActMinutes') * 60,
                                    advice='Stop something big on it before the OOM killer does.'))
             if mem < th('memWarnRatio'):
                 out.append(finding('%s:memory' % host, host, 'warn', text, advice='Check what is using its memory.'))
     if m.get('pressure') == 'critical':
-        out.append(finding('%s:pressure' % host, host, 'act', '%s is under critical memory pressure.' % host, urgent=host in CONFIG['alwaysOn'],
+        # Told only once it has lasted pressureMinutes; restarting an over-limit service is told at once, as an action.
+        out.append(finding('%s:pressure' % host, host, 'act', '%s is under critical memory pressure.%s' % (host, biggest_memory(m)),
+                           urgent=host in CONFIG['alwaysOn'], hold=th('pressureMinutes') * 60,
                            advice='Close or stop something big on it.'))
     ratio = m.get('load_ratio') or 0
     if ratio > th('loadNoteRatio'):
@@ -843,6 +898,9 @@ def choose_actions(findings, snapshot):
             continue
         if re.fullmatch(CONFIG['restartable'], unit) and unit not in CONFIG['neverRestart']:
             actions.append(('restart:' + unit, 'spike'))
+    # Raw pressure, not the settled finding, so a runaway listed service is restarted before the notice's hold ends.
+    if spike.get('pressure') == 'critical':
+        actions += [('limit-restart:' + c['unit'], 'spike') for c in over_limit(spike)]
     tight = any(f['level'] == 'act' and (f['key'].startswith('claude:') or f['host'] == 'spike') for f in findings)
     actions.append(('hold-work' if tight else 'release-work', 'spike'))
     return actions
@@ -851,6 +909,8 @@ def choose_actions(findings, snapshot):
 def describe(name, host):
     if name.startswith('restart:'):
         return 'restart %s on spike once' % name.split(':', 1)[1]
+    if name.startswith('limit-restart:'):
+        return 'restart %s on spike, which was over its memory limit under critical pressure' % name.split(':', 1)[1]
     return {
         'clean-outbox': "delete butler's own outbox pictures older than 2 days and spike's aged temp files",
         'journal-vacuum': "shrink spike's journal to %s" % CONFIG['journalVacuum'],
@@ -904,6 +964,12 @@ def do_action(name, host):
     elif name == 'gc-generations':
         run_local([CONFIG['nixEnv'], '--profile', '/nix/var/nix/profiles/system', '--delete-generations', '+%d' % CONFIG['keepGenerations']])
         run_local([CONFIG['nixStore'], '--gc'], timeout=1800)
+    elif name.startswith('limit-restart:'):
+        unit = name.split(':', 1)[1]
+        cgroup = '/sys/fs/cgroup/system.slice/' + unit
+        before = read_limit(cgroup + '/memory.current') or 0
+        run_local([CONFIG['systemctl'], 'restart', unit], timeout=120)
+        return gb(before) + ' used', gb(read_limit(cgroup + '/memory.current') or 0) + ' used'
     elif name.startswith('restart:'):
         run_local([CONFIG['systemctl'], 'restart', name.split(':', 1)[1]], timeout=120)
         return 'failed', subprocess.run([CONFIG['systemctl'], 'is-active', name.split(':', 1)[1]], capture_output=True, text=True).stdout.strip()
@@ -923,7 +989,7 @@ def act(actions, state, mode, now, doer=do_action):
             held = state.get(held_key, False)
             if (name == 'hold-work') == held:
                 continue
-        elif ident in last and now - last[ident] < 3600:
+        elif ident in last and now - last[ident] < (th('overLimitRestartMinutes') * 60 if name.startswith('limit-restart:') else 3600):
             continue
         if name.startswith('restart:') and name in state.setdefault('restarted', {}):
             continue

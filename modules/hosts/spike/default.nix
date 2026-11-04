@@ -77,6 +77,10 @@
             readOnlyHosts = [ "pilot" ];
             restartable = "butler-[a-z0-9-]+\\.service";
             neverRestart = [ "butler.service" ];
+            overLimitRestart = [
+              "backlogic-runner-aaron.service"
+              "butler.service"
+            ];
             failStreaks."backlogic-switch.service" = {
               file = "/nonexistent";
               runs = 3;
