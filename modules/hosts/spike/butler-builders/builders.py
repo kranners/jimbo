@@ -413,11 +413,30 @@ def git(memory, *args, check=True):
     return subprocess.run([GIT, '-C', memory, *args], capture_output=True, text=True, check=check, timeout=120)
 
 
+# What GitHub or the network failing looks like, worth another try, as spike.github's github-retry judges it:
+# on 4 Nov 2026 GitHub's Git Operations incident refused every key now and then for nearly two hours.
+TRANSIENT = re.compile(r'Permission denied \(publickey\)|Could not read from remote repository|Connection (reset|closed|timed out|refused)'
+                       r'|kex_exchange_identification|Could not resolve hostname|remote end hung up|early EOF|cannot lock ref', re.I)
+RETRY_DELAYS = (10, 30)
+
+
+def with_retries(run):
+    """Runs a GitHub fetch or clone, retrying it after RETRY_DELAYS when it failed the way GitHub failing looks."""
+    for delay in RETRY_DELAYS + (None,):
+        try:
+            return run()
+        except subprocess.CalledProcessError as error:
+            if delay is None or not TRANSIENT.search(error.stderr or ''):
+                raise
+            print('butler-builders: GitHub refused a fetch (%s), retrying in %ds' % (clean(error.stderr, 120), delay), file=sys.stderr)
+            time.sleep(delay + random.uniform(0, 4))
+
+
 def sync_memory(memory):
     if not os.path.isdir(os.path.join(memory, '.git')):
-        subprocess.run([GIT, 'clone', '--quiet', '--depth', '1', '--branch', 'main', MEMORY_REMOTE, memory],
-                       capture_output=True, text=True, check=True, timeout=300)
-    git(memory, 'fetch', '--quiet', '--depth', '1', 'origin', 'main')
+        with_retries(lambda: subprocess.run([GIT, 'clone', '--quiet', '--depth', '1', '--branch', 'main', MEMORY_REMOTE, memory],
+                                            capture_output=True, text=True, check=True, timeout=300))
+    with_retries(lambda: git(memory, 'fetch', '--quiet', '--depth', '1', 'origin', 'main'))
     git(memory, 'reset', '--quiet', '--hard', 'FETCH_HEAD')
 
 

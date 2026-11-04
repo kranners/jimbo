@@ -79,6 +79,9 @@ in
     unitFailRuns = 3;
     unitFailedMinutes = 10;
     unitFailsPerDay = 24;
+    # GitHub refusing one of spike's keys, even now and then as in its 4 Nov 2026 incident, is told once it has gone on
+    # this long; it clears once that key has gone this long without a refusal.
+    githubAuthMinutes = 10;
     # Prometheus not answering is told only once it has lasted this long.
     unknownMinutes = 30;
     # A problem must be gone this long before it counts as resolved, so one at a threshold's edge is not told twice.

@@ -680,6 +680,30 @@ with open(log_file) as fh:
 check('the real steps run systemctl restart for the stress unit, then reset-failed and start for a failed one',
       ran[0] == 'restart --no-block ' + STRESS and 'reset-failed butler-memory-pull.service' in ran and 'start --no-block butler-memory-pull.service' in ran)
 
+# GitHub refusing a key: told once it has gone on for githubAuthMinutes, even on and off, cleared after as long without.
+monitor.CONFIG['github'] = {'butler-memory': {'user': 'root', 'key': '/k', 'reaches': 'kranners/butler-memory, read-write',
+                                              'usedBy': ['butler-memory-pull'], 'fix': 'https://github.com/kranners/butler-memory/settings/keys'}}
+gh_state, t0 = {}, 1000 * DAY
+refusal = 'git@github.com: Permission denied (publickey).'
+seen_github = []
+for i in range(8):
+    now = t0 + i * 120
+    snapshot = snap({'spike': healthy(os='linux')})
+    snapshot['github'] = {'refused': {'butler-memory': refusal if i % 2 == 0 else None}, 'gitops': 'major_outage'}
+    seen_github.append([f for f in monitor.settle(monitor.evaluate(snapshot, gh_state, now), gh_state, now) if f['key'].startswith('github:')])
+check('a key GitHub refuses on and off is not told before githubAuthMinutes', not any(seen_github[:5]))
+check('it is told as a warning once refusals have gone on 10 minutes', seen_github[6] and seen_github[6][0]['level'] == 'warn')
+check('during a GitHub incident the advice says there is nothing to do', 'Nothing to do' in seen_github[6][0]['advice'] and 'on and off' in seen_github[6][0]['text'])
+snapshot = snap({'spike': healthy(os='linux')})
+snapshot['github'] = {'refused': {'butler-memory': refusal}, 'gitops': 'operational'}
+f = [x for x in monitor.evaluate(snapshot, gh_state, t0 + 16 * 60) if x['key'].startswith('github:')]
+check('with GitHub healthy the advice points at the key in the repository settings', f and 'settings/keys' in f[0]['advice'])
+snapshot['github'] = {'refused': {'butler-memory': None}, 'gitops': None}
+check('a key that works again is still open until it has gone githubAuthMinutes without a refusal',
+      [x for x in monitor.evaluate(snapshot, gh_state, t0 + 20 * 60) if x['key'].startswith('github:')])
+check('and is cleared after that', not [x for x in monitor.evaluate(snapshot, gh_state, t0 + 27 * 60) if x['key'].startswith('github:')])
+check('the textfile charts each identity', 'butler_monitor_github_auth_ok{identity="butler-memory"} 1' in monitor.prom_lines(snapshot, [], 'dry-run', t0))
+
 if failures:
     print('%d failed' % len(failures))
     sys.exit(1)

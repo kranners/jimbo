@@ -40,7 +40,9 @@ let
     echo "The current local time is $(${lib.getExe now})."
   '';
 
-  sshWithKey = key: "ssh -i ${key} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new";
+  # spike.github names every key spike reaches GitHub with, in github.nix.
+  sshWithKey = config.spike.github.sshCommand;
+  githubRetry = lib.getExe config.spike.github.retry;
 
   rule = types.submodule {
     options = {
@@ -566,16 +568,21 @@ let
     ];
     text = ''
       export GIT_SSH_COMMAND="${sshWithKey "$CREDENTIALS_DIRECTORY/memory-deploy-key"}"
-      exec 9>${memoryLock}
-      flock 9
 
       if [ -d ${memory}/.git ]; then
-        git -C ${memory} -c user.name=Butler -c user.email=butler@spike pull --rebase --autostash --quiet || { git -C ${memory} rebase --abort 2>/dev/null; exit 1; }
+        # Fetched, with retries, before taking the lock, so a slow GitHub never holds up memory-note and memory-save.
+        # A long run is the lock's wait behind mac's audit commits, which push every few seconds while butler drives a Mac.
+        ${githubRetry} git -C ${memory} fetch --quiet origin
+        exec 9>${memoryLock}
+        flock 9
+        git -C ${memory} -c user.name=Butler -c user.email=butler@spike rebase --autostash --quiet || { git -C ${memory} rebase --abort 2>/dev/null; exit 1; }
         if [ -n "$(git -C ${memory} rev-list '@{upstream}..HEAD')" ]; then
           git -C ${memory} push --quiet
         fi
       else
-        git clone --quiet ${memoryRepository} ${memory}
+        exec 9>${memoryLock}
+        flock 9
+        ${githubRetry} git clone --quiet ${memoryRepository} ${memory}
       fi
 
       shopt -s nullglob
@@ -610,7 +617,7 @@ let
     text = ''
       [ "$(git symbolic-ref --short HEAD)" = main ] || exit 0
       before=$(git rev-parse HEAD)
-      git fetch --quiet origin main
+      ${githubRetry} git fetch --quiet origin main
       latest=$(git rev-parse FETCH_HEAD)
       [ "$latest" != "$before" ] || exit 0
       # A new daemon restarts butler, so it waits in the landing queue while Aaron is on a call.
