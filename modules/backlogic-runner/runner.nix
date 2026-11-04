@@ -60,6 +60,41 @@ let
   '';
 
   gib = n: "${toString n}G";
+
+  # The gates the module owns in runner.json, the rest of which the instance writes.
+  gatesFile = pkgs.writeText "backlogic-runner-gates.json" (
+    builtins.toJSON {
+      inherit (cfg.gates) sessions loadPerCpu memoryAvailableFloor;
+    }
+  );
+
+  # Merges the gates into runner.json as the instance does, a read, a change and a rename,
+  # and only when they differ from those it last wrote, so an owner's edit in Control Panel
+  # holds until the module's own values change.
+  backlogic-runner-gates = pkgs.writeShellApplication {
+    name = "backlogic-runner-gates";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.coreutils
+      pkgs.diffutils
+    ];
+    text = ''
+      config=${cfg.configDir}/runner.json
+      stamp="$STATE_DIRECTORY/applied.json"
+      if cmp -s ${gatesFile} "$stamp"; then
+        echo "the gates in runner.json are already the module's: $(cat ${gatesFile})"
+        exit 0
+      fi
+      tmp=$(mktemp "${cfg.configDir}/.runner.json.gates.XXXXXX")
+      trap 'rm -f "$tmp"' EXIT
+      jq --slurpfile gates ${gatesFile} '. * $gates[0]' "$config" >"$tmp"
+      chmod --reference="$config" "$tmp"
+      before=$(jq -c '{sessions, loadPerCpu, memoryAvailableFloor}' "$config")
+      mv "$tmp" "$config"
+      cp ${gatesFile} "$stamp"
+      echo "runner.json's gates were $before, now $(cat ${gatesFile})"
+    '';
+  };
 in
 {
   options.backlogicRunner = {
@@ -101,8 +136,8 @@ in
       default = 4;
     };
 
-    # The runner's own memory gate launches a session only while 40% of its cgroup's memory.max is free,
-    # so MemoryMax is its concurrency ceiling.
+    # The runner's own memory gate launches a session only while gates.memoryAvailableFloor of its cgroup's
+    # memory.max is free, so MemoryMax, with the load gate, is its concurrency ceiling.
     memoryMax = mkOption {
       description = "The runner's hard memory cap, and so its concurrency ceiling; by default all but 3 GiB of the machine's memory.";
       type = types.str;
@@ -122,9 +157,31 @@ in
     };
 
     tasksMax = mkOption {
-      description = "The runner's task cap; by default 128 a thread.";
+      description = "The runner's task cap, high enough that the memory gate holds launches before forks fail; by default 512 a thread.";
       type = types.ints.positive;
-      default = 128 * cfg.cores;
+      default = 512 * cfg.cores;
+    };
+
+    # The runner's own launch gates, which the module writes into runner.json, so machine
+    # resources rather than a count decide how many sessions run at once.
+    gates = {
+      sessions = mkOption {
+        description = "runner.json's `sessions`, the most host sessions at once, set high enough that the load and memory gates bind first.";
+        type = types.ints.positive;
+        default = 64;
+      };
+
+      loadPerCpu = mkOption {
+        description = "runner.json's `loadPerCpu`: the one-minute load per CPU, over every CPU of the machine, past which no session launches.";
+        type = types.numbers.positive;
+        default = 1.0;
+      };
+
+      memoryAvailableFloor = mkOption {
+        description = "runner.json's `memoryAvailableFloor`: the share of the runner's own memoryMax that must be free for a launch, which its cgroup namespace shows it as the container's cap.";
+        type = types.numbers.between 0 1;
+        default = 0.3;
+      };
     };
 
     cpuQuota = mkOption {
@@ -227,6 +284,22 @@ in
         ProtectControlGroups = "private";
         ManagedOOMMemoryPressure = "kill";
         ManagedOOMMemoryPressureLimit = "60%";
+      };
+    };
+
+    # Writes the gates into runner.json on each switch that changes them, as the owner, whose
+    # directory it is, skipping a host where no runner.json is there yet.
+    systemd.services.backlogic-runner-gates = {
+      description = "the backlogic runner's launch gates written into runner.json";
+      wantedBy = [ "multi-user.target" ];
+      inherit (cfg) after;
+      unitConfig.ConditionPathExists = "${cfg.configDir}/runner.json";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        User = host.username;
+        StateDirectory = "backlogic-runner-gates";
+        ExecStart = lib.getExe backlogic-runner-gates;
       };
     };
   };
