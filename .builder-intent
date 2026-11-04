@@ -1,0 +1,1 @@
+Change 20261104-130558-1884812: exports/ importers (Hostplus, Spaceship, Goodreads, Letterboxd, LinkedIn, generic PDF/CSV) in kranners/butler ingest.py, life sources, and life explorer Finance/Books/Films views; then bump jimbo's butler lock. Files: butler index/ingest.py, life.py, explorer.py, explorer/*.js, index.nix, CLAUDE.md; jimbo flake.lock, maybe CLAUDE.md.
