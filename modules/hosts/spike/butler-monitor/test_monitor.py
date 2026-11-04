@@ -88,7 +88,38 @@ check('memory 6% acts after 5 min', levels(judge({'a': healthy(mem_free_ratio=0.
 check('memory hold resets once it recovers', levels(judge({'a': healthy(**lin)}, state, now=360)) == {} and
       levels(judge({'a': healthy(mem_free_ratio=0.06, **lin)}, state, now=420)) == {'a:memory': 'warn'})
 
-check('critical pressure acts', levels(judge({'a': healthy(pressure='critical')})) == {'a:pressure': 'act'})
+state = {}
+check('critical pressure is quiet at first', levels(judge({'a': healthy(pressure='critical')}, state, now=0)) == {})
+check('critical pressure acts once it lasts 10 minutes', levels(judge({'a': healthy(pressure='critical')}, state, now=600)) == {'a:pressure': 'act'})
+
+# 4 Nov 17:55: backlogic's runner held 7.1 GB under critical pressure; the notice names it and a run restarts it.
+runner = {'unit': 'backlogic-runner-aaron.service', 'cgroup': 'system.slice/backlogic-runner-aaron.service',
+          'bytes': int(7.1 * GB), 'high': 6 * GB, 'max': 8 * GB}
+butler = {'unit': 'butler.service', 'cgroup': 'system.slice/butler.service', 'bytes': 4 * GB, 'high': 3 * GB, 'max': 4 * GB}
+hot = healthy(os='linux', pressure='critical', memory_cgroups=[runner, butler])
+state = {}
+judge({'spike': hot}, state, now=0)
+f = judge({'spike': hot}, state, now=600)
+check('the pressure notice names the biggest cgroup and its size',
+      [x['text'] for x in f if x['key'] == 'spike:pressure'] == [
+          'spike is under critical memory pressure. Biggest: system.slice/backlogic-runner-aaron.service at 7.1 GB of its 8.0 GB cap.'])
+picked = [a for a, _ in monitor.choose_actions(judge({'spike': hot}), snap({'spike': hot}))]
+check('a listed service over its limit is restarted before the notice is due', 'limit-restart:backlogic-runner-aaron.service' in picked)
+check('butler is never restarted for its memory, even when listed', 'limit-restart:butler.service' not in picked)
+calm = dict(hot, pressure='normal')
+check('no restart without critical pressure', not [a for a, _ in monitor.choose_actions([], snap({'spike': calm})) if a.startswith('limit-')])
+under = dict(hot, memory_cgroups=[dict(runner, bytes=5 * GB)])
+check('no restart while the service is under its limit', not [a for a, _ in monitor.choose_actions([], snap({'spike': under})) if a.startswith('limit-')])
+calls, state = [], {}
+restart = [('limit-restart:backlogic-runner-aaron.service', 'spike')]
+monitor.act(restart, state, 'on', 0, lambda n, h: calls.append(n) or ('7.1 GB used', '0.4 GB used'))
+monitor.act(restart, state, 'on', 29 * 60, lambda n, h: calls.append(n) or ('7.1 GB used', '0.4 GB used'))
+check('an over-limit restart happens at most once in 30 minutes', len(calls) == 1)
+monitor.act(restart, state, 'on', 30 * 60, lambda n, h: calls.append(n) or ('7.1 GB used', '0.4 GB used'))
+check('and again after 30 minutes if it is still over', len(calls) == 2)
+results = monitor.act(restart, {}, 'on', 0, lambda n, h: ('7.1 GB used', '0.4 GB used'))
+lines, _, _ = monitor.notices([], results, {}, 0, time.localtime(12 * 3600 - 10 * 3600))
+check('the restart is told at once', any('backlogic-runner-aaron' in line and '7.1 GB used' in line for line in lines))
 check('load 2.5x cores is only noted', levels(judge({'a': healthy(load15=20, load_ratio=2.5)})) == {} and
       noted(judge({'a': healthy(load15=20, load_ratio=2.5)})) == {'a:load'})
 # pilot at 11:27 on 4 Nov: 39.7 on 18 cores, from Aaron's own board sessions, is not news.

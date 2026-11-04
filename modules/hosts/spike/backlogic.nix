@@ -376,6 +376,11 @@ in
   # TMPDIR on tmpfs keeps the checks' fsyncs off the NVMe, and OOMPolicy=continue keeps the
   # other sessions running when one is killed for memory (backlogic's docs/decisions/runner.md).
   # Its weights and memory ceiling leave Bowerbird and the instance the box under pressure.
+  # Its own cgroup namespace shows the runner its own memory.max as /sys/fs/cgroup's, so its memory gate
+  # judges the room left under its cap, as in a container, rather than the whole box's MemAvailable, which
+  # let it launch sessions while its own cgroup sat throttled at MemoryHigh on 4 Nov.
+  # Past that, systemd-oomd kills the runner, and only the runner, once its own cgroup has stalled on memory
+  # for 30 seconds, and Restart brings it back, so a runaway swarm never drags the rest of spike down.
   systemd.services.backlogic-runner-aaron = {
     description = "backlogic runner launching sessions on Aaron's instance";
     wantedBy = [ "multi-user.target" ];
@@ -419,6 +424,11 @@ in
       MemoryHigh = "6G";
       MemoryMax = "8G";
       MemorySwapMax = "2G";
+      TasksMax = 1024;
+      CPUQuota = "600%";
+      ProtectControlGroups = "private";
+      ManagedOOMMemoryPressure = "kill";
+      ManagedOOMMemoryPressureLimit = "60%";
     };
   };
 

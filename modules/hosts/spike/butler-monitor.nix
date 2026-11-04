@@ -82,6 +82,9 @@ let
       "butler-land.service"
       "butler-monitor.service"
     ];
+    # Services restarted when over their own memory limit while spike is under critical pressure, at most once per
+    # overLimitRestartMinutes; never one in neverRestart.
+    inherit (cfg) overLimitRestart;
     # Every failed unit is judged from its own journal, by unitFailRuns, unitFailedMinutes and unitFailsPerDay; these
     # set a unit's own bar of failed runs in a row, a count the unit keeps itself in file, believed when it says
     # more, and how long one run may go before it counts as stuck.
@@ -190,6 +193,11 @@ in
         "spike"
         "framer"
       ];
+    };
+    overLimitRestart = mkOption {
+      description = "Services on spike the monitor, acting, restarts while one is over its own memory limit under critical memory pressure, at most once per overLimitRestartMinutes.";
+      type = types.listOf types.str;
+      default = [ "backlogic-runner-aaron.service" ];
     };
     keepAwakeHosts = mkOption {
       description = "Machines whose keep-awake the monitor turns back on when acting.";
