@@ -82,8 +82,9 @@ let
       "butler-land.service"
       "butler-monitor.service"
     ];
-    # Units that retry on their own every minute or so: a failure is news only once runs of them fail in a row,
-    # counted in file by the unit itself, or once one run has been going stuckMinutes.
+    # Every failed unit is judged from its own journal, by unitFailRuns, unitFailedMinutes and unitFailsPerDay; these
+    # set a unit's own bar of failed runs in a row, a count the unit keeps itself in file, believed when it says
+    # more, and how long one run may go before it counts as stuck.
     failStreaks."backlogic-switch.service" = {
       file = "/var/lib/backlogic-switch/failed-runs";
       runs = 3;

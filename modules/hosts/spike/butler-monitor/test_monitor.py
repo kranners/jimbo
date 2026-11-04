@@ -7,6 +7,10 @@ import sys
 import tempfile
 import time
 
+# Melbourne time without tzdata, which the build sandbox lacks, so the 4 Nov evidence reads as it did on spike.
+os.environ['TZ'] = 'AEST-10AEDT,M10.1.0,M4.1.0/3'
+time.tzset()
+
 spec = importlib.util.spec_from_file_location('monitor', sys.argv[1])
 monitor = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(monitor)
@@ -40,9 +44,11 @@ def snap(machines, claude=None, work=None, turns=None):
     return {'machines': machines, 'claude': claude or {}, 'work': work, 'turns': turns}
 
 
-def judge(machines, state=None, now=1000 * DAY, expected=None, **kw):
+def judge(machines, state=None, now=1000 * DAY, expected=None, mode=None, **kw):
     state = {} if state is None else state
-    return monitor.settle(monitor.evaluate(snap(machines, **kw), state, now, expected), state, now)
+    snapshot = snap(machines, **kw)
+    snapshot['mode'] = mode
+    return monitor.settle(monitor.evaluate(snapshot, state, now, expected), state, now)
 
 
 def levels(findings):
@@ -194,13 +200,116 @@ check('every Claude account at 95% warns', levels(judge({}, claude={'personal': 
 work = {'running': 6, 'long': [{'id': 'x', 'title': 'Long one', 'started': 1000 * DAY - 4 * 3600}]}
 check('a long change warns, many at once is only noted', levels(judge({}, work=work)) == {'work:long:x': 'warn'} and 'work:running' in noted(judge({}, work=work)))
 
-# A unit that retries itself: one or two failed runs are only noted, three in a row or one stuck run warns.
+# Failed units arrive investigated. butler-builders on 4 Nov: two runs failed at 12:42 and 12:42:38 with
+# `could not push the digest; the next run tries again`, exit 1, and the run at 12:43:36 and every one after worked.
+T0 = 1793756510.0  # 12:41:50 AEDT, Wed 4 Nov 2026
+
+
+def jl(at, mid=None, msg='', own=False, **fields):
+    e = {'__REALTIME_TIMESTAMP': str(int(at * 1e6)), 'MESSAGE': msg, '_PID': '4242' if own else '1',
+         '_SYSTEMD_UNIT': 'butler-builders.service' if own else 'init.scope'}
+    if mid:
+        e['MESSAGE_ID'] = mid
+    e.update(fields)
+    return e
+
+
+def failed_run(at):
+    return [jl(at, '7d4958e842da4a758f6c1cdc7b36dcc5', 'Starting Rebuild the builders digest...'),
+            jl(at + 20, msg='butler-builders: could not push the digest; the next run tries again', own=True),
+            jl(at + 20.1, monitor.UNIT_EXIT, 'butler-builders.service: Main process exited, code=exited, status=1/FAILURE', EXIT_CODE='exited', EXIT_STATUS='1'),
+            jl(at + 20.2, monitor.UNIT_RESULT, "butler-builders.service: Failed with result 'exit-code'.", UNIT_RESULT='exit-code'),
+            jl(at + 20.3, 'be02cf6855d2428ba40df7e9d022f03d', 'Failed to start Rebuild the builders digest', JOB_RESULT='failed')]
+
+
+def good_run(at):
+    return [jl(at, '7d4958e842da4a758f6c1cdc7b36dcc5', 'Starting Rebuild the builders digest...'),
+            jl(at + 15, msg='butler-builders: digest pushed, 122 lines', own=True),
+            jl(at + 15.1, monitor.UNIT_SUCCESS, 'butler-builders.service: Deactivated successfully.'),
+            jl(at + 15.2, monitor.UNIT_STARTED, 'Finished Rebuild the builders digest.', JOB_RESULT='done')]
+
+
+bb = 'butler-builders.service'
+key = 'spike:failed:' + bb
+history = good_run(T0 - 120) + failed_run(T0) + failed_run(T0 + 28)
+d = monitor.parse_unit_journal(bb, history)
+check('the journal gives the streak, its exit and its cause', d['failed_runs'] == 2 and d['exit'] == 'exit 1'
+      and d['cause'] == 'could not push the digest; the next run tries again' and d['recovered_at'] is None)
+healed = monitor.parse_unit_journal(bb, history + good_run(T0 + 86))
+check('a later good run ends the streak and records the recovery', healed['failed_runs'] == 0 and healed['fails_day'] == 2
+      and healed['recovered_at'] == T0 + 86 + 15.1 and healed['cause'] == d['cause'])
+
+
+def unit_spike(diag, failed=True, unit=bb):
+    return {'spike': healthy(os='linux', failed_units=[unit] if failed else [], units={unit: diag}, on_battery=None, keepawake=None)}
+
+
+now = T0 + 28 + 25
+state = {}
+f = judge(unit_spike(dict(d, state='failed', next_run=T0 + 150)), state, now=now)
+lines, shout, log = monitor.notices(f, [], state, now, local_day)
+check('the 12:42 failure, two runs and seconds old, is not told', lines == [] and shout is None and key in noted(f))
+check('it is logged quietly with its cause', log and log[0]['route'] == 'kept' and 'could not push the digest' in log[0]['text'])
+check('and choosing actions restarts nothing for it', not [a for a, _ in monitor.choose_actions(f, snap(unit_spike(d)))] or
+      all(not a.startswith('restart:') for a, _ in monitor.choose_actions(f, snap(unit_spike(d)))))
+now = T0 + 86 + 60
+f = judge(unit_spike(dict(healed, state='inactive', next_run=now + 60), failed=False), state, now=now)
+lines, _, log = monitor.notices(f, [], state, now, local_day)
+check('the next run working is silent too, and logged as recovered with the cause', lines == [] and log and
+      'recovered by itself' in log[0]['why'] and 'could not push the digest' in log[0]['text'])
+check('so "what did you not tell me" names it', 'could not push the digest' in monitor.status_text(snap(unit_spike(healed, failed=False)), f, 'dry-run', now))
+
+# Persistent: three runs in a row, still failing, is told once, diagnosed, never "read its journal".
+runs3 = monitor.parse_unit_journal(bb, history + failed_run(T0 + 150))
+now = T0 + 175
+state = {}
+f = judge(unit_spike(dict(runs3, state='failed', next_run=T0 + 270)), state, now=now, mode='dry-run')
+lines, _, _ = monitor.notices(f, [], state, now, local_day)
+check('three failed runs in a row are told', levels(f) == {key: 'warn'} and len(lines) == 1)
+text = lines[0] if lines else ''
+check('the notice says what, why, its state and what next', 'butler-builders on spike has failed 3 runs in a row since 12:42' in text
+      and 'could not push the digest' in text and '(exit 1)' in text and 'still down' in text and 'fix it' in text)
+check('no notice says "read its journal"', 'journal, or ask me' not in text and 'read its journal' not in text.lower())
+check('and it is not told again next run', monitor.notices(judge(unit_spike(dict(runs3, state='failed')), state, now=now + 120), [], state, now + 120, local_day)[0] == [])
+check('a butler unit told about is restarted when acting', ('restart:' + bb, 'spike') in monitor.choose_actions(f, snap(unit_spike(runs3))))
+
+# One failure that nothing retries is told once it has stayed down 10 minutes.
+one = monitor.parse_unit_journal(bb, failed_run(T0))
+check('one failure 5 minutes down is only noted', levels(judge(unit_spike(dict(one, state='failed')), now=T0 + 320)) == {})
+f = judge(unit_spike(dict(one, state='failed')), now=T0 + 20 + 601)
+check('one failure still down after 10 minutes is told', levels(f) == {key: 'warn'} and 'has been down since 12:42' in f[0]['text'])
+
+# Flapping: as many failures in a day as unitFailsPerDay, each recovered, is told though it is fine right now;
+# the 7 self-healed push failures butler-builders had by 12:56 on 4 Nov are not.
+day_bar = int(monitor.th('unitFailsPerDay'))
+
+
+def flapping(n):
+    runs = []
+    for i in range(n):
+        runs += failed_run(T0 - 23 * 3600 + i * 600) + good_run(T0 - 23 * 3600 + i * 600 + 120)
+    return judge(unit_spike(dict(monitor.parse_unit_journal(bb, runs), state='inactive'), failed=False), now=T0)
+
+
+check('seven self-healed failures in a day stay quiet', levels(flapping(7)) == {} and key in noted(flapping(7)))
+f = flapping(day_bar)
+check('%d failures in a day are told even when recovered' % day_bar, levels(f) == {key: 'warn'} and 'failed %d times in the last day' % day_bar in f[0]['text'])
+
+# A failed unit whose journal could not be read is still told, saying so.
+f = judge({'spike': healthy(os='linux', failed_units=['postgresql.service'], on_battery=None, keepawake=None)})
+check('an unread failure is told, saying the journal could not be read', levels(f) == {'spike:failed:postgresql.service': 'warn'}
+      and "couldn't read its journal" in f[0]['text'])
+
+# A unit that retries itself and counts its own runs, backlogic-switch, goes through the same judging.
 unit = 'backlogic-switch.service'
 check('the streak unit is configured', unit in monitor.CONFIG['failStreaks'])
 
 
 def streak(runs, running=None, failed=True):
-    return {'spike': healthy(os='linux', failed_units=[unit] if failed else [], unit_streaks={unit: {'failed_runs': runs, 'running_seconds': running}})}
+    diag = {'failed_runs': runs, 'fails_day': runs, 'failed_since': 1000 * DAY - 60 * runs if runs else None,
+            'last_fail': 1000 * DAY - 30 if runs else None, 'cause': 'plugin refresh failed', 'exit': 'exit 1',
+            'state': 'failed' if failed else ('activating' if running else 'inactive'), 'running_seconds': running}
+    return unit_spike(diag, failed=failed, unit=unit)
 
 
 check('one failed run of a self-retrying unit is only noted', levels(judge(streak(1))) == {} and 'spike:failed:' + unit in noted(judge(streak(1))))

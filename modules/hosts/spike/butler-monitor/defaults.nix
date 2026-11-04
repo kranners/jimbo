@@ -34,6 +34,13 @@
     maxRunningChanges = 4;
     maxChangeHours = 3;
     dockerCacheGB = 20;
+    # A failed unit on spike is told only once it fails this many runs in a row (failStreaks may set its own), stays
+    # failed this long, or fails this often in a day, about once an hour, since butler-builders alone self-heals a
+    # handful of failed pushes a day; anything less, such as one run that the next run fixed, is only
+    # logged with its cause.
+    unitFailRuns = 3;
+    unitFailedMinutes = 10;
+    unitFailsPerDay = 24;
     # Prometheus not answering is told only once it has lasted this long.
     unknownMinutes = 30;
     # A problem must be gone this long before it counts as resolved, so one at a threshold's edge is not told twice.
