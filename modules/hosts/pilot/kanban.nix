@@ -1,13 +1,4 @@
-{ host, lib, ... }:
-let
-  # spike's kanban tunnel may forward to the board's port on loopback and do nothing else, from spike alone.
-  tunnelKey = import ../spike/kanban-remote-key.nix;
-in
-{
-  darwinSystemModule.users.users.${host.username}.openssh.authorizedKeys.keys =
-    lib.optional (tunnelKey != null)
-      ''from="10.100.0.1",restrict,port-forwarding,permitopen="127.0.0.1:7420",command="/usr/bin/false" ${tunnelKey}'';
-
+_: {
   darwinHomeModule =
     {
       config,

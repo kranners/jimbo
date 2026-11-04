@@ -10,7 +10,7 @@ Each runner long-polls the hub, so the hub never connects out to a runner.
 
 ## Landed in jimbo
 
-- `kanban-remote-key.nix` holds spike's tunnel key, so pilot's next switch authorizes it (`from="10.100.0.1",restrict,permitopen="127.0.0.1:7420"`) and spike opens the tunnel.
+- `kanban-tunnel` carries each of Caddy's connections to the board over butler's own ssh to pilot, running `nc 127.0.0.1 7420` there, the route `butler-board-relay` already takes, so pilot authorizes no new key (change 20261104-174743-421626 replaced the dedicated tunnel key, which pilot never authorized).
 - `kanban-remote.nix` lets piggys-MBP and jimbo in as viewers, and passes a runner's calls (bearer token, no `Origin`, `/runner.js` and `/api/runners/(register|<id>/heartbeat|<id>/commands[/<cmd>])` alone) through to the board with `Authorization` kept, so the board's own `KANBAN_RUNNER_TOKEN` check guards them, not the device gate.
 - `pilot/kanban.nix` sets `KANBAN_RUNNERS=piggys-mbp,jimbo`.
 - `modules/kanban-runner` runs the runner on piggys-MBP (launchd) and jimbo's NixOS (user unit).
