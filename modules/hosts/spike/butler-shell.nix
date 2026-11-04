@@ -120,12 +120,15 @@ in
     '';
     stdin = true;
     # Interactive only: no scheduled run, voice request or call lane gets it.
-    # Egress, so in a thread that has read private data every script waits for Aaron's button.
+    # Egress, so in a thread that has read private data or began as a voice request or board message the first script asks Aaron once for the `shell` area, and the rest run unasked.
+    # A script the daemon's shell checker reads as sending, paying, deleting or changing security asks every time, showing what it matched.
     rules = [
       {
         match = [ ];
         lanes = [ "interactive" ];
         egress = true;
+        grant = "shell";
+        outcomes = "shell";
       }
     ];
     skill = ./butler-skills/shell;

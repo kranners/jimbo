@@ -74,9 +74,19 @@ let
         default = false;
       };
       # A grant area, such as "kanban board": the first call that would ask in a thread asks Aaron once for general permission for the whole area there, and every later call naming it runs unasked until /revoke or /clear.
-      # Left unset on mail and Messenger sends, which ask for their exact text every time.
+      # Left unset on mail and Messenger sends, which ask for their exact text every time; `mac`, `shell` and `change` each have their own.
       grant = mkOption {
         type = types.nullOr (types.strMatching "[a-z][a-z0-9 -]{0,39}");
+        default = null;
+      };
+      # An outcome checker, "shell" for a script on stdin or "mac" for a mac command: a call it recognises as sending to a person, paying, deleting or irreversibly changing data, or acting on pilot beyond reading asks for its own yes every time, whatever the thread's grant.
+      outcomes = mkOption {
+        type = types.nullOr (
+          types.enum [
+            "shell"
+            "mac"
+          ]
+        );
         default = null;
       };
     };
@@ -115,7 +125,15 @@ let
         description = lib.trim c.description;
         inherit (c) stdin;
         rules = map (
-          r: lib.filterAttrs (n: v: n != "grant" || v != null) (r // { taints = r.taints || c.private; })
+          r:
+          lib.filterAttrs (
+            n: v:
+            !(lib.elem n [
+              "grant"
+              "outcomes"
+            ])
+            || v != null
+          ) (r // { taints = r.taints || c.private; })
         ) c.rules;
       }) commands;
     }
@@ -254,11 +272,13 @@ let
     ## Approval
 
     Reading never asks: your files, the web, maps and the board run without a button, even after you have read his mail or other private data, unless a search or link would carry an email address or a long number such as a phone number out of such a thread.
-    Sending email or a Messenger message waits for Aaron's approval through a button, and so does any write, and `shell`, in a thread that began as a voice request from the kitchen panel, and `shell` in a thread that has read private data.
+    Sending email or a Messenger message waits for Aaron's approval through a button every time, and any write, `shell`, `mac` and `change` ask in a thread that began as a voice request from the kitchen panel or a board message, and `shell`, `mac` and `change` in a thread that has read private data.
     Each approval reaches Aaron's DM, gathered with any others waiting, so he can answer them together from his phone.
-    Aaron wants one general permission per area rather than a button per action: the kanban board, reminders, the calendar, home control, and issues and tickets each ask once in a thread, and once he allows it every later action of that area there runs without asking, until he runs `/revoke` or `/clear`, so when a task needs several, start it and let the first ask cover the rest rather than asking him in text first.
-    Email and Messenger sends still ask for their exact text every time, and `/grants` shows him what a thread holds.
-    Before you pay, buy, book, order, sign up, send, post or submit anything anywhere else, such as in the browser, ask Aaron in plain text and wait for his yes.
+    Aaron wants one general permission per area rather than a button per action: the kanban board, reminders, the calendar, home control, issues and tickets, `mac`, `shell` and `change` each ask once in a thread, and once he allows it every later action of that area there runs without asking, until he runs `/revoke` or `/clear`, so when a task needs several, start it and let the first ask cover the rest rather than asking him in text first.
+    His approval is for what happens, not for the tool that does it: some outcomes ask him every time, whichever tool carries them, and those are sending a message or email to a person anywhere, paying, buying, booking, ordering, signing up or subscribing, deleting or irreversibly changing anything that is not your own scratch, changing an account, credential or security setting, and anything on `pilot`, his employer's Mac, beyond reading and viewing.
+    Ask for exactly what will happen, such as "Send this message to Rylee in Messages: on my way", never for the tool: email and Messenger sends show their exact text on their button, on a Mac or the PC put the outcome in `mac <host> confirm "<what will happen>" <action>`, whose button shows it, and anywhere else, the browser or a `shell` script among them, ask him in plain text and wait for his yes.
+    The daemon also asks every time for the outcomes it recognises in `shell` and `mac` scripts and actions, but it is a heuristic that misses some, so your own ask is the gate that always holds.
+    `/grants` shows him what a thread holds.
     When something is refused, carry on without it and say what you could not do.
   '';
 
@@ -890,6 +910,9 @@ in
         # A deploy marks a restart as wanted, which the daemon takes at a quiet moment of a live call, asking for it through `now`.
         DISCORD_RESTART_WANTED_FILE = restartWanted;
         DISCORD_RESTART_DIR = restartDir;
+        # Every outcome Aaron says yes to, a send, a deletion or an action on pilot, goes to audit/<command> in the memory, beside mac's own trail.
+        DISCORD_OUTCOME_AUDIT_DIR = "${home}/.local/state/outcomes";
+        DISCORD_OUTCOME_AUDIT_COMMAND = lib.getExe memory-audit;
       };
 
       # A switch never restarts it, so a live call is never cut off: the activation below marks a restart as wanted instead.
