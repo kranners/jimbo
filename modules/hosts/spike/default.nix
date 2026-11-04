@@ -22,6 +22,21 @@
           bash ${./butler-probe}/dry-run.sh > $out
         '';
 
+    # A change's start card and landed report card, and the start notice's fall back to text and the mood picture, on fixture briefs.
+    change-cards =
+      pkgs.runCommand "change-cards-test"
+        {
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.jq
+            pkgs.gnugrep
+            pkgs.coreutils
+          ];
+        }
+        ''
+          bash ${./butler-self-fix}/test-cards.sh ${./butler-self-fix} > $out 2>&1 || { cat $out; exit 1; }
+        '';
+
     # The landing queue's holds, cues and releases, with a fake clock and call.
     land-queue = pkgs.runCommand "land-queue-dry-run" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 ${./butler-land}/test_land.py > $out 2>&1 || { cat $out; exit 1; }

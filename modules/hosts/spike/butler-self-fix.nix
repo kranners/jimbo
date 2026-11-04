@@ -112,7 +112,7 @@ let
           id="$(date +%Y%m%d-%H%M%S)-$$"
           jq -n --arg request "$request" '{request: $request}' > "${queue}/$id.json.tmp"
           mv "${queue}/$id.json.tmp" "${queue}/$id.json"
-          echo "Queued change $id. Its cloud session starts within a minute; read its link with: change status $id"
+          echo "Queued change $id. Its cloud session starts within a minute, and spike then DMs Aaron its start card with the link, so tell him in one line and leave the detail to the card; read its link with: change status $id"
           ;;
         status)
           [ "$#" -eq 2 ] || usage
@@ -246,6 +246,31 @@ let
     }
   ];
 
+  # A mood picture, inlined into a card, since render's page reaches no files or network: `fixed` for a landed change's report, `diligent` for a start.
+  inlineMood =
+    mood:
+    pkgs.runCommand "butler-self-fix-mood-${mood}" { } ''
+      printf 'data:image/webp;base64,%s' "$(base64 -w0 ${moods}/${mood}.webp)" > $out
+    '';
+  fixedMood = inlineMood "fixed";
+  render = lib.getExe config.butler.commands.render.package;
+  # Draws a card's HTML as butler, which render's outbox belongs to, printing the PNG's path.
+  renderAsButler = pkgs.writeShellScript "butler-self-fix-render" ''
+    exec ${pkgs.util-linux}/bin/runuser -u butler -- env HOME=${home} ${render} html 760
+  '';
+  # The start card, from the same style and renderer as the landed report.
+  startNotice = pkgs.writeShellScript "butler-self-fix-start-notice" ''
+    # butler-notify comes from the system path the launcher's unit has.
+    export PATH=${
+      lib.makeBinPath [
+        pkgs.coreutils
+        pkgs.jq
+      ]
+    }:$PATH
+    export CARD_DIR=${./butler-self-fix} MOOD_URI=${inlineMood "diligent"} MOOD_PICTURE=${moods}/diligent.webp RENDER=${renderAsButler}
+    exec ${pkgs.bash}/bin/bash ${./butler-self-fix/start-notice.sh} "$@"
+  '';
+
   cloudFromFile = pkgs.writeShellScript "claude-cloud-from-file" ''
     exec ${lib.getExe pkgs.claude-code} --cloud="$(cat "$1")" --permission-mode auto
   '';
@@ -334,8 +359,9 @@ let
         if [ -n "$session" ]; then
           echo "Started https://claude.ai/code/$session on $(basename "$config")" > "${sessions}/$id"
           touch "${watch}/$id"
-          printf 'Change started: %s\nhttps://claude.ai/code/%s\n' "$(jq -r '.request | split("\n") | map(select(test("\\S"))) | first // "" | .[:120]' "$request")" "$session" |
-            butler-notify ${moods}/diligent.webp > /dev/null || true
+          # The start card, with the diligent mood as its banner, or the text and the picture alone when it cannot be drawn.
+          pack=$(grep -m1 -oP "^Context from Butler: spike's \\K[a-z]+(?= pack)" "$work/prompt" || true)
+          ${startNotice} "$request" "$id" "https://claude.ai/code/$session" "$pack" "Started on the $(basename "$config" | sed 's/^\.claude-work$/work/; s/^\.claude$/personal/') account, running" || true
         else
           echo "Could not start a cloud session: $(sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' "$work/log" | tr -s '\r\n ' ' ' | tail -c 400)" > "${sessions}/$id"
           printf 'Change couldn'"'"'t start (%s): %s\n' "$id" "$(tail -c 300 "${sessions}/$id")" |
@@ -347,12 +373,6 @@ let
       done
     '';
   };
-
-  # The fixed mood picture, inlined into each report card, since render's page reaches no files or network.
-  fixedMood = pkgs.runCommand "butler-self-fix-mood" { } ''
-    printf 'data:image/webp;base64,%s' "$(base64 -w0 ${../../../assets/butler/moods/fixed.webp})" > $out
-  '';
-  render = lib.getExe config.butler.commands.render.package;
 
   # Turns a cloud session and its newest events, from /v1/code/sessions, into the summary butler reads.
   summarise = pkgs.writeText "butler-self-fix-progress.jq" ''
@@ -437,7 +457,7 @@ let
             # A landed change's report becomes the standard card, rendered as butler, and the text keeps to its summary and what Aaron must do.
             if [ "$state" = finished ] &&
               jq -n --slurpfile events "$work/events" --rawfile mood ${fixedMood} --arg title "$title" \
-                -f ${./butler-self-fix/report.jq} > "$work/report.json" && [ -s "$work/report.json" ]; then
+                --rawfile css ${./butler-self-fix/card.css} -f ${./butler-self-fix/report.jq} > "$work/report.json" && [ -s "$work/report.json" ]; then
               # It landed, so it shows `fixed`: inside the card, or on its own when the card cannot be drawn.
               mood=fixed
               card=$(jq -r .html "$work/report.json" | runuser -u butler -- env HOME=${home} ${render} html 760) ||
