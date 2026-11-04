@@ -40,7 +40,7 @@ in
     let
       overlay = import ./overlay {
         inherit pkgs lib;
-        inherit (import ./overlay/settings.nix) idle;
+        inherit (import ./overlay/settings.nix) idle busy;
         home = config.home.homeDirectory;
       };
 

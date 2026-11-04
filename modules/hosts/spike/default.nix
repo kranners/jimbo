@@ -176,6 +176,7 @@
         ./butler-maps.nix
         ./butler-messenger.nix
         ./butler-monitor.nix
+        ./butler-overlay-relay.nix
         ./butler-notify.nix
         ./butler-outlook.nix
         ./butler-photos.nix
