@@ -163,9 +163,22 @@ class Cloud:
         if not re.fullmatch(r"[0-9a-f]{64}", digest):
             raise ValueError(f"bad blob hash {digest!r}")
         data = self.get(f"{SYNC}/sync/v3/files/{digest}", **{"rm-filename": name}).content
-        if hashlib.sha256(data).hexdigest() != digest:
+        if hashlib.sha256(data).hexdigest() != digest and not (name.endswith(".docSchema") and index_hash(data) == digest):
             raise Stop(f"blob {name} did not match its hash")
         return data
+
+
+def index_hash(data):
+    """A schema 3 index is named, as rmapi's HashEntries names it, by the sha256 of its entries' binary hashes in id order,
+    not of its own bytes, which schema 4 indexes are named by; an index that does not parse matches nothing."""
+    try:
+        entries = parse_index(data)
+        hasher = hashlib.sha256()
+        for entry in sorted(entries, key=lambda entry: entry["id"]):
+            hasher.update(bytes.fromhex(entry["hash"]))
+        return hasher.hexdigest()
+    except (Stop, ValueError, UnicodeDecodeError):
+        return None
 
 
 def parse_index(data):
