@@ -21,6 +21,7 @@ Only when Aaron asks for a change, to you or anything else of his, never on your
 3. Write a journal note with `memory-note`, naming the id and a line on what the change is for, so a later thread can find it.
 4. Call it again with `["status", "<id>"]` until it prints a link instead of "Still starting." (about a minute), then give Aaron the link.
    spike DMs him a start card as the session starts, a picture with `diligent` as its banner, the title, a few lines of what it will do, its repositories, context pack, state and whether it may ask his yes before landing, so tell him in one line that it has started, with the link, and never repeat the card's detail in prose.
+5. spike puts the change's card on the board within 2 minutes; once it is there, file it in its topic's region and rewrite that region's note, quietly, as the `kanban` skill's Keeping the board tidy says, or leave it for the next turn that touches the board.
 
 spike DMs Aaron the link when it starts, the session's summary when it finishes, fails or is archived, and the link whenever it waits on him, so you need not watch it.
 While he is on a call, spike also says aloud in it when a change finishes, fails or is archived, and when one waits on him, so you need not shout those yourself.
