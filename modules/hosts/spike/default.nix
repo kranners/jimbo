@@ -241,6 +241,8 @@
       };
       butler.remarkable.enable = true;
       butler.index.captions.photosScript = ./butler-photos/photos.py;
+      # Butler's mood pictures, for the Daily tab and the picture of it DMed each morning.
+      butler.index.daily.moods = ../../../assets/butler/moods;
       # The index holds Aaron's payments, messages and more, so a thread that searched it counts as having read private data.
       butler.commands.life.private = true;
       # Every read-only verb runs in every lane, the board's and calls' included, with the options life.py takes; the private flake's own rules allowed no option, so every search with --from or --limit was refused.
