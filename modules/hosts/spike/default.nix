@@ -27,7 +27,7 @@
       python3 ${./butler-land}/test_land.py > $out 2>&1 || { cat $out; exit 1; }
     '';
 
-    # The machines monitor's thresholds, holds, repeats, quiet hours and action choice, on fake machines.
+    # The machines monitor's thresholds, holds, suppression, expected-off marks, escalation, quiet hours and action choice, on fake machines.
     butler-monitor =
       let
         config = pkgs.writeText "butler-monitor-test.json" (

@@ -10,8 +10,11 @@
     memWarnRatio = 0.15;
     memActRatio = 0.08;
     memActMinutes = 5;
-    # The 15-minute load average over the core count.
-    loadRatio = 2;
+    # The 15-minute load average over the core count: over loadNoteRatio is only logged, and only over loadRatio for
+    # loadMinutes is it news, since Aaron's own parallel sessions saturate pilot as a matter of course.
+    loadNoteRatio = 2;
+    loadRatio = 4;
+    loadMinutes = 30;
     # Critical memory pressure on Linux: the percent of time fully stalled, or the share of swap used.
     psiCritical = 10;
     swapCritical = 0.9;
@@ -26,13 +29,22 @@
     # butler's turn pool: a turn waiting this long for a slot, or every slot busy this long, warns once.
     turnQueueWarnSeconds = 120;
     turnSlotsBusyMinutes = 15;
+    # A turn that has waited this long is stuck, not just queued, and is the only turn finding Aaron is told.
+    turnStuckMinutes = 30;
     maxRunningChanges = 4;
     maxChangeHours = 3;
     dockerCacheGB = 20;
+    # Prometheus not answering is told only once it has lasted this long.
+    unknownMinutes = 30;
+    # A problem must be gone this long before it counts as resolved, so one at a threshold's edge is not told twice.
+    clearMinutes = 30;
+    # A problem Aaron was told about is told again, once, as still open after this long.
+    stillOpenHours = 24;
     # butler-monitor.nix sets it from jimbo.keepGenerations.
     maxGenerations = 5;
   };
-  # Between start and end only urgent notices go out; the rest wait for a summary at summary.
+  # Between start and end only urgent notices go out; the rest wait for one short summary at summary, sent only when
+  # something was held or done overnight.
   quiet = {
     start = "23:00";
     end = "07:00";

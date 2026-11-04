@@ -47,6 +47,7 @@ let
     "@windowsScreenshot@" = "${../../../docs/windows-screenshot.ps1}";
     "@helperPort@" = toString (import ../../butler-access/helper.nix).port;
     "@memoryAudit@" = lib.getExe config.butler.memoryAudit;
+    "@expected@" = config.butler.monitor.expectedDir;
     "@idle@" = toString (import ../../butler-access/overlay/settings.nix).idle;
   };
 

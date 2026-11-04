@@ -126,6 +126,7 @@ It is on by default on piggys-MBP and off by default on pilot, his employer's Ma
 - `mac <host> keepawake off` when Aaron says a Mac can sleep: it idle-sleeps and locks as usual again, and stays that way until `keepawake on`.
 - `mac <host> keepawake on` when he wants it held awake again.
 - `mac <host> sleep` turns keep-awake off and puts the Mac to sleep now, which drops it off WireGuard until he wakes it. Use it only when he asks.
+- `sleep`, `keepawake off` and `boot ... confirm` mark the machine expected off for the machines monitor, for a day, a week and half an hour, until it is back and awake, so it says nothing about it; `keepawake on` clears the mark, and `monitor expect` sets one for anything else.
 Every change is in `mac log`. Tell Aaron in a sentence whenever you change it, and never turn it on for pilot unless he asked for pilot by name.
 It cannot unlock a Mac that is already locked, keep one awake with its lid closed, or get past the FileVault password after a restart: those still need Aaron.
 

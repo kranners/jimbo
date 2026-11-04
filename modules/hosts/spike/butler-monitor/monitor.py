@@ -377,98 +377,136 @@ def gb(value):
     return '%.0f GB' % (value / GB) if value >= 10 * GB else '%.1f GB' % (value / GB)
 
 
-def finding(key, host, level, text, urgent=False, repeat=None, hold=0):
-    return {'key': key, 'host': host, 'level': level, 'text': text, 'urgent': urgent, 'repeat': repeat, 'hold': hold}
+def finding(key, host, level, text, urgent=False, hold=0, advice='', why=None, night_note=False):
+    """One problem. info is only logged and shown in the status; warn and act are told once, with the one thing to do."""
+    return {'key': key, 'host': host, 'level': level, 'text': text, 'urgent': urgent, 'hold': hold,
+            'advice': advice, 'why': why, 'night_note': night_note}
 
 
-def evaluate(snapshot, state, now):
-    """Every problem in this snapshot, before holds and repeats are applied."""
+def quiet_down(f, why):
+    """The same finding, kept to the log: Aaron is not told about it."""
+    return dict(f, level='info', urgent=False, why=why)
+
+
+# Findings an expectation covers: a machine meant to be off or asleep says nothing about being down, locked or awake.
+EXPECTABLE = (':down', ':locked', ':keepawake', ':unknown')
+
+
+def evaluate(snapshot, state, now, expected=None):
+    """Every problem in this snapshot, before holds and notices are applied."""
     out = []
+    expected = expected or {}
     down = state.setdefault('down_since', {})
     for host, m in sorted(snapshot['machines'].items()):
         if m.get('up') is None:
-            out.append(finding('%s:unknown' % host, host, 'warn', "Couldn't read %s: %s." % (host, m.get('why', 'no answer')), repeat=6 * 3600))
-            continue
-        if not m.get('up'):
+            out.append(finding('%s:unknown' % host, host, 'warn', "Couldn't read %s: %s." % (host, m.get('why', 'no answer')),
+                               hold=th('unknownMinutes') * 60, advice='Check Prometheus on spike.'))
+        elif not m.get('up'):
             since = down.setdefault(host, now)
-            minutes = (now - since) / 60
-            if minutes >= th('downMinutes'):
-                always = host in CONFIG['alwaysOn']
-                out.append(finding('%s:down' % host, host, 'act' if always else 'warn',
-                                   '%s has been unreachable for %s (%s).' % (host, duration(now - since), m.get('why', 'no answer')),
-                                   urgent=always, repeat=3600 if always else None))
-            continue
-        down.pop(host, None)
-        out += judge_machine(host, m)
-    for account, percent in sorted((snapshot.get('claude') or {}).items()):
-        if percent >= th('claudeActPercent'):
-            out.append(finding('claude:%s' % account, 'claude', 'act',
-                               "The %s Claude account is at %.0f%% of its week; butler and the runner move to the next account on their own." % (account, percent),
-                               urgent=False, repeat=12 * 3600))
-        elif percent >= th('claudeWarnPercent'):
-            out.append(finding('claude:%s' % account, 'claude', 'warn',
-                               'The %s Claude account is at %.0f%% of its week.' % (account, percent), repeat=24 * 3600))
+            if now - since >= th('downMinutes') * 60:
+                text = '%s has been unreachable since %s (%s).' % (host, time.strftime('%H:%M', time.localtime(since)), m.get('why', 'no answer'))
+                if host in CONFIG['alwaysOn']:
+                    out.append(finding('%s:down' % host, host, 'act', text, urgent=True, advice='Check its power and wifi.'))
+                else:
+                    # A laptop or the PC being off, asleep or away is ordinary; it is shown in the status, never told.
+                    out.append(finding('%s:down' % host, host, 'info', text, why='a laptop or the PC being off is ordinary'))
+        else:
+            down.pop(host, None)
+            out += judge_machine(host, m)
+    out = [dict(quiet_down(f, 'expected: ' + expected[f['host']]['reason']), expected=True)
+           if f['host'] in expected and f['key'].endswith(EXPECTABLE) else f for f in out]
+    claude = snapshot.get('claude') or {}
+    for account, percent in sorted(claude.items()):
+        if percent >= th('claudeWarnPercent'):
+            out.append(finding('claude:%s' % account, 'claude', 'info', 'The %s Claude account is at %.0f%% of its week.' % (account, percent),
+                               why='butler and the runner move to the next account on their own'))
+    if claude and all(p >= th('claudeActPercent') for p in claude.values()):
+        out.append(finding('claude:all', 'claude', 'warn', 'Every Claude account is at %.0f%% or more of its week, so Butler and the runner will stall.' % th('claudeActPercent'),
+                           advice='Pause the board sessions you can spare until the weekly reset.'))
     turns = snapshot.get('turns')
     if turns:
         oldest = turns.get('oldestQueuedAt')
         if oldest and now - oldest / 1000 >= th('turnQueueWarnSeconds'):
-            out.append(finding('butler:queue', 'spike', 'warn',
+            waited = now - oldest / 1000
+            stuck = waited >= th('turnStuckMinutes') * 60
+            out.append(finding('butler:queue', 'spike', 'warn' if stuck else 'info',
                                "A Butler turn has waited %s for a free slot (%d running, %d waiting)." % (
-                                   duration(now - oldest / 1000), turns.get('running', 0), turns.get('queued', 0))))
+                                   duration(waited), turns.get('running', 0), turns.get('queued', 0)),
+                               advice='Say /restart in my DM, or stop a long board turn.', why=None if stuck else 'queued, not stuck'))
         full = turns.get('fullSince')
         if full and now - full / 1000 >= th('turnSlotsBusyMinutes') * 60:
-            out.append(finding('butler:slots', 'spike', 'warn',
-                               "All %d of Butler's turn slots have been busy for %s." % (turns.get('cap', 0), duration(now - full / 1000))))
+            out.append(finding('butler:slots', 'spike', 'info',
+                               "All %d of Butler's turn slots have been busy for %s." % (turns.get('cap', 0), duration(now - full / 1000)),
+                               why='busy is not stuck; a stuck turn is told'))
     work = snapshot.get('work')
     if work:
         if work['running'] > th('maxRunningChanges'):
-            out.append(finding('work:running', 'spike', 'warn', '%d changes are running at once.' % work['running'], repeat=6 * 3600))
+            out.append(finding('work:running', 'spike', 'info', '%d changes are running at once.' % work['running'], why='his own requests'))
         for change in work['long']:
             if now - change['started'] > th('maxChangeHours') * 3600:
                 out.append(finding('work:long:%s' % change['id'], 'spike', 'warn',
-                                   'The change "%s" has been running for %s.' % (change['title'], duration(now - change['started'])), repeat=6 * 3600))
+                                   'The change "%s" has been running for %s.' % (change['title'], duration(now - change['started'])),
+                                   advice='Look at it on the Work tab, or archive it.'))
     return out
 
 
 def judge_machine(host, m):
     out = []
+    mac = m.get('os') == 'macos'
     free, total = m.get('disk_free_bytes'), m.get('disk_total_bytes')
     if free is not None and total:
         ratio = free / total
         text = "%s's disk has %s free (%.0f%%)." % (host, gb(free), ratio * 100)
         if ratio < th('diskActRatio') or free < th('diskActGB') * GB:
-            out.append(finding('%s:disk' % host, host, 'act', text, urgent=True, repeat=4 * 3600))
+            out.append(finding('%s:disk' % host, host, 'act', text, urgent=True, advice='Free some space on it soon.'))
         elif ratio < th('diskWarnRatio') or free < th('diskWarnGB') * GB:
-            out.append(finding('%s:disk' % host, host, 'warn', text, repeat=12 * 3600))
+            out.append(finding('%s:disk' % host, host, 'warn', text, advice='Free some space on it when you can.'))
     mem = m.get('mem_free_ratio')
     if mem is not None:
         text = '%s has %.0f%% of its memory free.' % (host, mem * 100)
-        if mem < th('memActRatio'):
-            out.append(finding('%s:memory' % host, host, 'act', text, urgent=True, repeat=4 * 3600, hold=th('memActMinutes') * 60))
-        if mem < th('memWarnRatio'):
-            out.append(finding('%s:memory' % host, host, 'warn', text, repeat=12 * 3600))
+        # macOS keeps its memory full by design, so a Mac is judged by its memory pressure alone.
+        if mac:
+            if mem < th('memWarnRatio'):
+                out.append(finding('%s:memory' % host, host, 'info', text, why='a Mac is judged by memory pressure'))
+        else:
+            if mem < th('memActRatio'):
+                out.append(finding('%s:memory' % host, host, 'act', text, urgent=host in CONFIG['alwaysOn'], hold=th('memActMinutes') * 60,
+                                   advice='Stop something big on it before the OOM killer does.'))
+            if mem < th('memWarnRatio'):
+                out.append(finding('%s:memory' % host, host, 'warn', text, advice='Check what is using its memory.'))
     if m.get('pressure') == 'critical':
-        out.append(finding('%s:pressure' % host, host, 'act', '%s is under critical memory pressure.' % host, urgent=True, repeat=4 * 3600))
-    if (m.get('load_ratio') or 0) > th('loadRatio'):
-        out.append(finding('%s:load' % host, host, 'warn', "%s's load has averaged %.1f over 15 minutes on %d cores." % (
-            host, m['load15'], m['cores']), repeat=6 * 3600))
+        out.append(finding('%s:pressure' % host, host, 'act', '%s is under critical memory pressure.' % host, urgent=host in CONFIG['alwaysOn'],
+                           advice='Close or stop something big on it.'))
+    ratio = m.get('load_ratio') or 0
+    if ratio > th('loadNoteRatio'):
+        text = "%s's load has averaged %.1f over 15 minutes on %d cores." % (host, m['load15'], m['cores'])
+        out.append(finding('%s:load' % host, host, 'info', text, why='busy, under %gx its cores' % th('loadRatio')))
+        if ratio > th('loadRatio'):
+            out.append(finding('%s:load' % host, host, 'warn', text, hold=th('loadMinutes') * 60,
+                               advice='Something on it may be runaway; check its busiest process.'))
     awake = m.get('keepawake')
     if m.get('on_battery') and awake == 'on' and m.get('battery') is not None:
         text = '%s is on battery at %.0f%% with keep-awake on.' % (host, m['battery'])
         if m['battery'] < th('batteryActPercent'):
-            out.append(finding('%s:battery' % host, host, 'act', text, urgent=True, repeat=3600))
+            out.append(finding('%s:battery' % host, host, 'act', text, advice='Plug it in.'))
         elif m['battery'] < th('batteryWarnPercent'):
-            out.append(finding('%s:battery' % host, host, 'warn', text, repeat=6 * 3600))
-    if awake == 'on' and m.get('locked') == 'yes' and m.get('os') == 'macos':
-        out.append(finding('%s:locked' % host, host, 'warn', "%s's screen is locked though keep-awake is on: %s." % (host, lock_reason(m)), repeat=12 * 3600))
+            out.append(finding('%s:battery' % host, host, 'warn', text, advice='Plug it in.'))
+    if awake == 'on' and m.get('locked') == 'yes' and mac:
+        # At night a locked Mac is only a line in the morning summary.
+        out.append(finding('%s:locked' % host, host, 'warn', "%s's screen is locked though keep-awake is on: %s." % (host, lock_reason(m)),
+                           advice='Unlock it when you want me to drive it.', night_note=True))
     if awake == 'off' and host in CONFIG['keepAwakeHosts']:
-        out.append(finding('%s:keepawake' % host, host, 'act', "%s's keep-awake is off." % host, repeat=12 * 3600))
+        out.append(finding('%s:keepawake' % host, host, 'act', "%s's keep-awake is off." % host,
+                           advice='Ask me to turn it back on, or tell me it is meant to be off.'))
     for unit in m.get('failed_units') or []:
-        out.append(finding('%s:failed:%s' % (host, unit), host, 'warn', '%s has failed on %s.' % (unit, host), repeat=12 * 3600))
+        out.append(finding('%s:failed:%s' % (host, unit), host, 'warn', '%s has failed on %s.' % (unit, host),
+                           advice='Read its journal, or ask me to.'))
     if m.get('docker_build_cache_bytes', 0) > th('dockerCacheGB') * GB:
-        out.append(finding('spike:docker', host, 'warn', "Docker's build cache on spike holds %s." % gb(m['docker_build_cache_bytes']), repeat=24 * 3600))
+        out.append(finding('spike:docker', host, 'info', "Docker's build cache on spike holds %s." % gb(m['docker_build_cache_bytes']),
+                           why='docker-prune clears it daily'))
     if m.get('system_generations', 0) > th('maxGenerations'):
-        out.append(finding('spike:generations', host, 'warn', 'spike keeps %d system generations.' % m['system_generations'], repeat=24 * 3600))
+        out.append(finding('spike:generations', host, 'warn', 'spike keeps %d system generations.' % m['system_generations'],
+                           advice='Pruning has stopped; ask for a change to look at it.'))
     return out
 
 
@@ -524,6 +562,8 @@ def choose_actions(findings, snapshot):
     elif 'spike:docker' in keys:
         actions.append(('docker-prune', 'spike'))
     for f in findings:
+        if f.get('expected'):
+            continue
         if f['key'].endswith(':keepawake') and f['host'] in CONFIG['keepAwakeHosts'] and f['host'] not in CONFIG['readOnlyHosts']:
             actions.append(('keepawake-on', f['host']))
         if f['key'].endswith(':locked') and f['host'] in CONFIG['keepAwakeHosts'] and f['host'] not in CONFIG['readOnlyHosts']:
@@ -654,59 +694,92 @@ def in_quiet(local):
     return hm >= start or hm < end if start > end else start <= hm < end
 
 
+def told(f, prefix=''):
+    return prefix + ('⚠️ ' if f['level'] == 'act' else '') + f['text'] + (' ' + f['advice'] if f.get('advice') else '')
+
+
+def log_entry(now, f, route, why=None):
+    return {'at': int(now), 'key': f['key'], 'host': f['host'], 'level': f['level'], 'text': f['text'], 'route': route,
+            'why': why if why is not None else f.get('why')}
+
+
 def notices(findings, results, state, now, local, unreadable=()):
-    """What to tell Aaron now: (dm lines, shout line or None); the rest waits in state for the morning summary."""
+    """What to tell Aaron now: (dm lines, shout line or None, log entries).
+
+    A problem is told once, when it is new, and again only when it gets worse, or once as still open after
+    stillOpenHours. Everything else, info findings, problems already told, dry-run plans and resolutions, only goes
+    to the log, written whenever a problem's route changes, so `monitor log` shows what was seen and not told.
+    """
     sent = state.setdefault('sent', {})
-    lines, urgent = [], []
-    current = {f['key']: f for f in findings}
-    for f in findings:
-        previous = sent.get(f['key'])
-        due = previous is None or rank(f['level']) > rank(previous['level']) or (
-            f['repeat'] is not None and now - previous['at'] >= f['repeat'])
-        if not due:
-            continue
-        sent[f['key']] = {'at': now, 'level': f['level'], 'text': f['text'], 'missing': 0}
-        lines.append(f)
-    cleared = []
-    for key, entry in list(sent.items()):
-        if key in current:
-            entry['missing'] = 0
-            continue
-        # A machine that is down says nothing about its disk or memory, and a problem must be gone for three runs.
-        if key.split(':', 1)[0] in unreadable and not key.endswith((':down', ':unknown')):
-            continue
-        entry['missing'] = entry.get('missing', 0) + 1
-        if entry['missing'] >= 3:
-            cleared.append(sent.pop(key)['text'])
+    routes = state.setdefault('routes', {})
     quiet = in_quiet(local)
-    out, overnight = [], state.setdefault('overnight', [])
-    for f in lines:
-        text = ('⚠️ ' if f['level'] == 'act' else '') + f['text']
+    overnight = state.setdefault('overnight', [])
+    out, urgent, log = [], [], []
+    present = set()
+
+    def route(f, name, why=None):
+        mark = '%s/%s/%s' % (f['level'], name, why or f.get('why') or '')
+        if routes.get(f['key']) != mark:
+            routes[f['key']] = mark
+            log.append(log_entry(now, f, name, why))
+
+    for f in findings:
+        if f['level'] == 'info':
+            route(f, 'kept')
+            continue
+        present.add(f['key'])
+        previous = sent.get(f['key'])
+        if previous is None:
+            reason, text = 'new', told(f)
+        elif rank(f['level']) > rank(previous['level']):
+            reason, text = 'worse', told(f, 'Worse: ')
+        elif not previous.get('reraised') and now - previous['at'] >= th('stillOpenHours') * 3600:
+            reason, text = 'still open', told(f, 'Still open after %s: ' % duration(now - previous.get('first', previous['at'])))
+        else:
+            previous.pop('gone', None)
+            route(f, 'kept', 'already told')
+            continue
+        sent[f['key']] = {'first': (previous or {}).get('first', (previous or {}).get('at', now)), 'at': now,
+                          'level': f['level'], 'text': f['text'], 'reraised': reason == 'still open'}
         if quiet and not f['urgent']:
-            overnight.append(text)
+            overnight.append({'key': f['key'], 'text': f['text'] if f.get('night_note') else text})
+            route(f, 'noted for the morning' if f.get('night_note') else 'held for the morning', reason)
         else:
             out.append(text)
+            route(f, 'told', reason)
             if f['urgent']:
                 urgent.append(f['text'])
+    for key, entry in list(sent.items()):
+        if key in present:
+            continue
+        # A machine that is down says nothing about its disk or memory, and a problem must be gone a while to count.
+        if key.split(':', 1)[0] in unreadable and not key.endswith((':down', ':unknown')):
+            continue
+        gone = entry.setdefault('gone', now)
+        if now - gone >= th('clearMinutes') * 60:
+            del sent[key]
+            routes.pop(key, None)
+            log.append({'at': int(now), 'key': key, 'host': key.split(':', 1)[0], 'level': entry['level'],
+                        'text': entry['text'], 'route': 'cleared', 'why': 'gone for %d minutes' % th('clearMinutes')})
     for r in results:
-        if quiet and r['result'] == 'dry-run':
-            overnight.append(r['line'])
+        # Only what the monitor really did is news; a dry-run plan is logged, and the hold flag is housekeeping.
+        if r['result'] == 'dry-run' or r['action'] in ('hold-work', 'release-work'):
+            continue
+        if quiet:
+            overnight.append({'key': 'action', 'text': r['line']})
         else:
             out.append(r['line'])
-            if r['result'] != 'dry-run':
-                urgent.append(r['line'])
-    for text in cleared:
-        (overnight if quiet else out).append('Resolved: ' + text)
     shout = None
     if urgent:
         shout = 'Monitor: ' + urgent[0]
         if len(urgent) > 1:
             shout += ' And %d more in Discord.' % (len(urgent) - 1)
         shout = shout[:200]
-    return out, shout
+    return out, shout, log
 
 
 def morning(state, local, findings):
+    """One short list after quiet hours, only when something was held or done overnight."""
     today = time.strftime('%Y-%m-%d', local)
     hm = '%02d:%02d' % (local.tm_hour, local.tm_min)
     if hm < CONFIG['quiet']['summary'] or in_quiet(local) or state.get('summary_date') == today:
@@ -715,11 +788,113 @@ def morning(state, local, findings):
     overnight = state.pop('overnight', [])
     if not overnight:
         return None
-    open_items = [f['text'] for f in findings]
-    text = ['Good morning. Overnight the monitor noted:'] + ['- ' + x for x in overnight[-15:]]
-    if open_items:
-        text += ['Still open now:'] + ['- ' + x for x in open_items[:10]]
-    return '\n'.join(text)
+    still = {f['key'] for f in findings if f['level'] != 'info'}
+    lines = []
+    for item in overnight[-10:]:
+        item = item if isinstance(item, dict) else {'key': 'action', 'text': item}
+        gone = item['key'] != 'action' and item['key'] not in still
+        lines.append('- ' + item['text'] + (' (since cleared)' if gone else ''))
+    return 'Overnight, machines:\n' + '\n'.join(lines)
+
+
+# ---------------------------------------------------------------- expectations
+
+def parse_expect(args, now, local=None):
+    """`<host> [down|asleep] [until HH:MM | for <N>h|<N>m] [reason...]` as (host, until, reason)."""
+    if not args:
+        raise ValueError('expect takes a machine')
+    host, rest = args[0], list(args[1:])
+    if host not in known_hosts():
+        raise ValueError('%s is not a machine the monitor watches: %s' % (host, ', '.join(sorted(known_hosts()))))
+    if rest[:1] in (['down'], ['asleep'], ['off']):
+        rest = rest[1:]
+    until = now + 12 * 3600
+    if rest[:1] == ['until'] and len(rest) >= 2:
+        match = re.fullmatch(r'([01]?[0-9]|2[0-3]):([0-5][0-9])', rest[1])
+        if not match:
+            raise ValueError('until takes HH:MM')
+        local = local or time.localtime(now)
+        midnight = now - (local.tm_hour * 3600 + local.tm_min * 60 + local.tm_sec)
+        until = midnight + int(match.group(1)) * 3600 + int(match.group(2)) * 60
+        if until <= now:
+            until += 86400
+        rest = rest[2:]
+    elif rest[:1] == ['for'] and len(rest) >= 2:
+        match = re.fullmatch(r'([0-9]{1,3})([hm])', rest[1])
+        if not match:
+            raise ValueError('for takes a number of hours or minutes, such as 3h or 45m')
+        until = now + int(match.group(1)) * (3600 if match.group(2) == 'h' else 60)
+        rest = rest[2:]
+    reason = ' '.join(rest).strip() or 'switched off on purpose'
+    return host, min(until, now + 7 * 86400), re.sub(r'[^\w .,:;()/\'-]', '', reason)[:120]
+
+
+def known_hosts():
+    return set(CONFIG['hosts']) | set(CONFIG['prometheusHosts'])
+
+
+def expect_path(host):
+    return os.path.join(CONFIG['expected'], host + '.json')
+
+
+def write_expect(host, until, reason, now, by='aaron'):
+    os.makedirs(CONFIG['expected'], exist_ok=True)
+    tmp = expect_path(host) + '.tmp'
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o660)
+    with os.fdopen(fd, 'w') as f:
+        json.dump({'host': host, 'until': int(until), 'reason': reason, 'set': int(now), 'by': by}, f)
+    os.replace(tmp, expect_path(host))
+
+
+def read_expected(now):
+    """Each machine's live expectation, read without following links, since butler writes the directory."""
+    out = {}
+    try:
+        names = os.listdir(CONFIG['expected'])
+    except OSError:
+        return out
+    for name in names:
+        host = name[:-5] if name.endswith('.json') else None
+        if host not in known_hosts():
+            continue
+        try:
+            fd = os.open(expect_path(host), os.O_RDONLY | os.O_NOFOLLOW)
+            with os.fdopen(fd) as f:
+                entry = json.loads(f.read(4096))
+            until, set_at = float(entry['until']), float(entry.get('set', now))
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+        if until > now:
+            out[host] = {'until': until, 'set': set_at, 'by': str(entry.get('by', ''))[:20],
+                         'reason': str(entry.get('reason') or 'switched off on purpose')[:120]}
+        else:
+            drop_expect(host)
+    return out
+
+
+def drop_expect(host):
+    try:
+        os.unlink(expect_path(host))
+    except OSError:
+        pass
+
+
+def settle_expected(expected, snapshot, now):
+    """Ends an expectation early once its machine is back, awake and unlocked, at least 10 minutes after it was set."""
+    ended = []
+    for host, entry in list(expected.items()):
+        m = snapshot['machines'].get(host) or {}
+        if m.get('up') and m.get('locked') != 'yes' and m.get('keepawake') != 'off' and now - entry['set'] >= 600:
+            del expected[host]
+            ended.append(host)
+    return ended
+
+
+def expected_text(expected):
+    if not expected:
+        return 'No machine is expected off.'
+    return '\n'.join('%s is expected off until %s: %s.' % (host, time.strftime('%a %H:%M', time.localtime(e['until'])), e['reason'])
+                     for host, e in sorted(expected.items()))
 
 
 # ---------------------------------------------------------------- output
@@ -770,7 +945,7 @@ def machine_line(host, m):
     return '%s: up, %s' % (host, ', '.join(parts) or 'no readings')
 
 
-def status_text(snapshot, findings, mode, now):
+def status_text(snapshot, findings, mode, now, expected=None):
     lines = ['Monitor checked at %s; acting is %s.' % (time.strftime('%H:%M', time.localtime(now)), mode)]
     lines += [machine_line(h, m) for h, m in sorted(snapshot['machines'].items())]
     for account, percent in sorted((snapshot.get('claude') or {}).items()):
@@ -780,7 +955,12 @@ def status_text(snapshot, findings, mode, now):
         lines.append('Butler turns: %d running of %d, %d waiting%s' % (
             turns.get('running', 0), turns.get('cap', 0), turns.get('queued', 0),
             ', backing off while %s' % turns['backoff'] if turns.get('backoff') else ''))
-    lines.append('Open problems: ' + ('; '.join(f['text'] for f in findings) if findings else 'none'))
+    problems = [f['text'] for f in findings if f['level'] != 'info']
+    noted = [f['text'] + (' (%s)' % f['why'] if f.get('why') else '') for f in findings if f['level'] == 'info']
+    lines.append('Open problems: ' + ('; '.join(problems) if problems else 'none'))
+    if noted:
+        lines.append('Seen, not worth telling Aaron: ' + '; '.join(noted))
+    lines.append(expected_text(expected or {}))
     return '\n'.join(lines) + '\n'
 
 
@@ -817,14 +997,14 @@ def prom_lines(snapshot, findings, mode, now):
             'butler_turns_oldest_queued_seconds %d' % (max(0, now - oldest / 1000) if oldest else 0),
             'butler_turns_slots_busy_seconds %d' % (max(0, now - full / 1000) if full else 0),
         ]
-    for level in ('warn', 'act'):
+    for level in ('info', 'warn', 'act'):
         out.append('butler_monitor_findings{level="%s"} %d' % (level, sum(f['level'] == level for f in findings)))
     return '\n'.join(out) + '\n'
 
 
 def send(lines, shout):
     if lines:
-        text = 'Machines monitor:\n' + '\n'.join('- ' + x for x in lines)
+        text = 'Machines: ' + lines[0] if len(lines) == 1 else 'Machines:\n' + '\n'.join('- ' + x for x in lines)
         subprocess.run([CONFIG['notify']], input=text[:1900], text=True, capture_output=True, timeout=30)
     if shout:
         subprocess.run([CONFIG['callSay'], '--urgent', '--call-only'], input=shout, text=True, capture_output=True, timeout=30)
@@ -838,28 +1018,51 @@ def load_state():
         return {}
 
 
+def append_log(entries):
+    """The notice log `monitor log` reads: everything seen and what became of it, cut back by half past 2 MB."""
+    path = os.path.join(CONFIG['state'], 'notices.jsonl')
+    if not entries:
+        return
+    with open(path, 'a') as log:
+        for entry in entries:
+            log.write(json.dumps(entry, ensure_ascii=False) + '\n')
+    if os.path.getsize(path) > 2 * 1000 ** 2:
+        with open(path) as f:
+            kept = f.readlines()
+        write_file(path, ''.join(kept[len(kept) // 2:]), 0o640)
+    else:
+        os.chmod(path, 0o640)
+
+
 def run():
     now = time.time()
     local = time.localtime(now)
     state = load_state()
     mode = read_mode()
     snapshot = collect()
-    findings = settle(evaluate(snapshot, state, now), state, now)
+    expected = read_expected(now)
+    entries = []
+    for host in settle_expected(expected, snapshot, now):
+        drop_expect(host)
+        entries.append({'at': int(now), 'key': host + ':expected', 'host': host, 'level': 'info',
+                        'text': '%s is back, so it is no longer expected off.' % host, 'route': 'cleared', 'why': None})
+    findings = settle(evaluate(snapshot, state, now, expected), state, now)
     results = act(choose_actions(findings, snapshot), state, mode, now)
     with open(os.path.join(CONFIG['state'], 'actions.jsonl'), 'a') as log:
         for r in results:
             log.write(json.dumps(r, ensure_ascii=False) + '\n')
     unreadable = {h for h, m in snapshot['machines'].items() if not m.get('up')}
-    lines, shout = notices(findings, results, state, now, local, unreadable)
+    lines, shout, logged = notices(findings, results, state, now, local, unreadable)
+    append_log(entries + logged)
     summary = morning(state, local, findings)
     if summary:
         subprocess.run([CONFIG['notify']], input=summary[:1900], text=True, capture_output=True, timeout=30)
     send(lines, shout)
     write_file(os.path.join(CONFIG['state'], 'state.json'), json.dumps(state), 0o600)
-    write_file(os.path.join(CONFIG['state'], 'status.txt'), status_text(snapshot, findings, mode, now))
+    write_file(os.path.join(CONFIG['state'], 'status.txt'), status_text(snapshot, findings, mode, now, expected))
     write_file(CONFIG['snapshot'], json.dumps({
         'version': 1, 'generated': int(now), 'mode': mode,
-        'machines': [{'host': h, 'line': machine_line(h, m), 'up': m.get('up')} for h, m in sorted(snapshot['machines'].items())],
+        'machines': [{'host': h, 'line': machine_line(h, m), 'up': m.get('up'), 'expected': h in expected} for h, m in sorted(snapshot['machines'].items())],
         'problems': [{'host': f['host'], 'level': f['level'], 'text': f['text']} for f in findings],
     }, ensure_ascii=False))
     write_file(CONFIG['textfile'], prom_lines(snapshot, findings, mode, now), 0o644)
@@ -870,12 +1073,38 @@ def run():
         len(snapshot['machines']), len(findings), len(results), mode, len(lines)))
 
 
+def expect_command(args):
+    """butler's `monitor expect`, run as butler: list, set or clear a machine's expected-off mark."""
+    now = time.time()
+    if not args:
+        print(expected_text(read_expected(now)))
+        return 0
+    if args[1:] == ['clear']:
+        if args[0] not in known_hosts():
+            print('%s is not a machine the monitor watches' % args[0], file=sys.stderr)
+            return 2
+        drop_expect(args[0])
+        print('%s is no longer expected off; the monitor judges it as usual from its next run.' % args[0])
+        return 0
+    try:
+        host, until, reason = parse_expect(args, now)
+    except ValueError as error:
+        print(str(error), file=sys.stderr)
+        return 2
+    write_expect(host, until, reason, now)
+    print('%s is expected off until %s (%s): the monitor will not mention it being down, asleep, locked or its keep-awake off '
+          'until then, or until it is back and awake.' % (host, time.strftime('%a %H:%M', time.localtime(until)), reason))
+    return 0
+
+
 def main(argv):
     load_config()
     if argv[1:] == ['run']:
         run()
         return 0
-    print('usage: butler-monitor run', file=sys.stderr)
+    if argv[1:2] == ['expect']:
+        return expect_command(argv[2:])
+    print('usage: butler-monitor run | butler-monitor expect [<host> [clear | [down] [until HH:MM | for <N>h] [reason]]]', file=sys.stderr)
     return 2
 
 
