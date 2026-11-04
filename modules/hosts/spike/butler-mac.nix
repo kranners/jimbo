@@ -153,10 +153,14 @@ in
     stdin = true;
     # Egress, so in a thread that has read private data or began as a voice request or board message the first action asks Aaron once for the `mac` area, and the rest run unasked.
     # An action the daemon's mac checker reads as an outcome, anything on pilot beyond reading, a `run` that would send or delete, a Send-like control or a `confirm`, asks every time.
+    # Scheduled runs may use it too, as Aaron asked on 4 Nov 2026, but no one can answer there: the daemon refuses those outcomes outside a conversation, and any egress once the run's thread has read private data.
     rules = [
       {
         match = [ "**" ];
-        lanes = [ "interactive" ];
+        lanes = [
+          "interactive"
+          "cron"
+        ];
         egress = true;
         grant = "mac";
         outcomes = "mac";
