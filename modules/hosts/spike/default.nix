@@ -133,6 +133,13 @@
       python3 -I ${./butler-chat/test_chat.py} ${./butler-chat/chat.py} > $out 2>&1 || { cat $out; exit 1; }
     '';
 
+    # The work Google reader against a mock Google: refresh, mail listings, reading, the calendar's filters, and that it never asks for more than read-only scopes.
+    butler-work-google =
+      pkgs.runCommand "butler-work-google-test" { nativeBuildInputs = [ pkgs.python3 ]; }
+        ''
+          python3 -I ${./butler-work-google/test_work_google.py} ${./butler-work-google/work_google.py} ${pkgs.tzdata}/share/zoneinfo > $out 2>&1 || { cat $out; exit 1; }
+        '';
+
     # The context packs from fixture memory, a fake board and a fake pilot, checking nothing private reaches one.
     butler-context = pkgs.runCommand "butler-context-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 -I ${./butler-context/test_context.py} ${./butler-context/context.py} > $out 2>&1 || { cat $out; exit 1; }
@@ -193,6 +200,7 @@
         ./butler-up.nix
         ./butler-voice.nix
         ./butler-weather.nix
+        ./butler-work-google.nix
         ./caddy.nix
         ./claude.nix
         ./device-gate.nix
@@ -225,6 +233,11 @@
         address = "aaronpierce@outlook.com.au";
       };
       butler.hevy.enable = true;
+      # Read-only; nothing is read until Aaron runs `sudo -u butler butler-work-google-login` on spike.
+      butler.workGoogle = {
+        enable = true;
+        address = "ap@bloomanalytics.ai";
+      };
       butler.remarkable.enable = true;
       butler.index.captions.photosScript = ./butler-photos/photos.py;
       # The index holds Aaron's payments, messages and more, so a thread that searched it counts as having read private data.

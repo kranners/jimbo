@@ -204,6 +204,7 @@ let
           "Read(~/.cache/**)"
           "Read(~/.local/share/pyicloud/**)"
           "Read(~/.local/share/ortie/**)"
+          "Read(~/.local/share/work-google/**)"
           "Read(~/.config/rclone/**)"
           "Read(//var/lib/butler-index/**)"
           # The inbox monitor's audit log quotes mail, so it is read through `inbox`, which taints the thread.

@@ -16,6 +16,10 @@ let
 
   homeAssistant = "http://127.0.0.1:8123";
 
+  # Aaron's Bloom work calendar is read straight from Google, read-only, by butler-work-google.nix's reader.
+  workGoogle = config.butler.workGoogle.enable;
+  workReader = lib.getExe' config.butler.workGoogle.package "work-google";
+
   calendar = pkgs.writeShellApplication {
     name = "calendar";
 
@@ -31,6 +35,7 @@ let
         echo "       calendar agenda [days]" >&2
         echo "       calendar events <calendar.entity> <start> <end>" >&2
         echo "       calendar create <calendar.entity> <summary> <start> <end>  (description on stdin)" >&2
+        ${lib.optionalString workGoogle ''echo "       calendar work agenda [days] | calendar work brief [days] | calendar work events <start> <end>  (read-only)" >&2''}
         echo "dates are YYYY-MM-DD, or YYYY-MM-DDTHH:MM[:SS] in local time unless an offset follows" >&2
         exit 2
       }
@@ -67,6 +72,12 @@ let
       [ $# -ge 1 ] || usage
 
       case "$1" in
+        ${lib.optionalString workGoogle ''
+          work)
+            shift
+            exec ${workReader} calendar "$@"
+            ;;
+        ''}
         calendars)
           [ $# -eq 1 ] || usage
           home_assistant "${homeAssistant}/api/calendars" | jq --raw-output '.[] | "\(.entity_id)\t\(.name)"'
@@ -421,6 +432,7 @@ in
         calendar calendars | calendar agenda [days] | calendar events <calendar.entity> <start> <end> | calendar create <calendar.entity> <summary> <start> <end> (description on stdin)
         Dates are YYYY-MM-DD, or YYYY-MM-DDTHH:MM in local time.
         Home Assistant's calendar.create_event cannot set reminders, so an event gets its calendar's default notifications; add any other reminder with the reminders tool.
+        ${lib.optionalString workGoogle "calendar work agenda [days] | calendar work events <start> <end>: Aaron's Bloom work Google calendar, read-only, with each meeting's response, attendee count and Meet link; calendar work brief [days] gives only times and titles, the one view a scheduled run may read."}
       '';
       stdin = true;
       rules = [
