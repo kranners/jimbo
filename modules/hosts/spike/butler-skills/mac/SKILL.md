@@ -118,6 +118,15 @@ When Aaron asks you to pair, or calls you, you drive and he navigates:
 Record when Aaron asks for proof or a replay of something you did. Call `record stop` on its own, only after the screenshot of your last action shows it done, never in the same batch of tool calls as an action, or the video ends before it.
 `mac log` lists the last actions you took on either Mac, with times, and `~/memory/audit/mac/` keeps them for good.
 
+## Moving files to spike
+
+`mac <host> fetch <file> <inbox folder> [name]` copies one file, up to 500 MB, from piggys-MBP's or jimbo's (while it runs Linux) `~/Downloads` or `~/butler-drop` into spike's personal data index inbox, where the ingest picks it up. Aaron said files may move to spike freely, so this needs no extra ask beyond the `mac` permission; it never works from pilot.
+- A bare file name is in `~/Downloads`: `mac piggys-MBP fetch hostplus-statement-FY25.pdf exports`, `mac piggys-MBP fetch goodreads_library_export.csv exports`.
+- The folder is one of the inbox's own, as the private flake's `CLAUDE.md` lists them, such as `discord`, `spotify`, `uber`, `takeout`, `messages`, or `exports` for statements and service exports with no reader of their own yet (Hostplus, Spaceship, Letterboxd, Goodreads, CMC, DiDi, LinkedIn, Ticketek): those are kept there until the ingest learns them, so say so rather than claiming they are searchable. `browser` is the Mac agents' alone.
+- iMessage and SMS: kick the Mac's own agent first, `mac piggys-MBP run launchctl kickstart -k gui/$(id -u)/messages-history`, which pushes a snapshot daily anyway. If that log says it failed, make one with `mac piggys-MBP run 'mkdir -p ~/butler-drop && sqlite3 ~/Library/Messages/chat.db ".backup $HOME/butler-drop/chat.sqlite"'` and fetch it as `mac piggys-MBP fetch '~/butler-drop/chat.sqlite' messages piggysmbp-messages.sqlite`; the name must be `<device>-messages.sqlite`.
+- Move anything from elsewhere on the Mac into `~/butler-drop` with `mac <host> run` first. Refusals say why: outside those folders, a symlink, over the cap, or a folder the inbox lacks.
+- Never `Read` the file on spike: the copy is the index's, and `life` is how you see what it holds.
+
 ## Keep-awake
 
 Each Mac runs a keep-awake agent, so it never idle-sleeps, its display never sleeps and its screen saver, and the lock that follows it, never starts, so you can always drive it.
