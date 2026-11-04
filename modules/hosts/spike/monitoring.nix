@@ -15,6 +15,9 @@ let
   grafanaDomain = "grafana.spike.cute.engineer";
   textfileDir = "/var/lib/claude-limits";
 
+  # The NUC is scraped only once it is spike's WireGuard peer, so its exporter never reads as down before then.
+  nucIsPeer = lib.any (peer: peer.name == "nuc") config.networking.wireguard.interfaces.wg0.peers;
+
   # Grafana fails to provision a datasource whose uid changed, so this is the one it derived from the name "Prometheus".
   prometheusUid = "PBFA97CFB590B2093";
   discordContactPoint = "Discord";
@@ -150,7 +153,11 @@ in
             targets = [ "10.100.0.5:9100" ];
             labels.host = "framer";
           }
-        ];
+        ]
+        ++ lib.optional nucIsPeer {
+          targets = [ "10.100.0.14:9100" ];
+          labels.host = "nuc";
+        };
       }
       {
         job_name = "cadvisor";

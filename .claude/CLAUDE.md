@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Nix flake configuring five machines for a single user (`aaron`, `aaronpierce` on the second MacBook):
+Nix flake configuring six machines for a single user (`aaron`, `aaronpierce` on the second MacBook):
 
 - `jimbo`, NixOS PC, `x86_64-linux`, dual booting a Windows install Nix does not manage
 - `piggys-MBP`, MacBook via nix-darwin, `aarch64-darwin`
 - `pilot`, second MacBook via nix-darwin, `aarch64-darwin`, same setup as `piggys-MBP` plus the tooling its work repositories expect (`modules/hosts/pilot/work-tools.nix`), the kanban board and its `kanban-sync` updater as launchd agents (`modules/hosts/pilot/kanban.nix`), which butler on spike drives through its `kanban` command and whose `/` popup messages butler, which spike's Caddy serves to the iPad, Aaron's phones, `piggys-MBP` and `jimbo` over butler's ssh to it, and which expects runners on `piggys-MBP` and `jimbo` through `KANBAN_RUNNERS`, its computer and network names set to `pilot` by nix-darwin
 - `spike`, always-on NixOS box, `x86_64-linux`
 - `framer`, NixOS Surface Book 2 laptop, `x86_64-linux`
+- `nuc`, a spare Intel NUC as spike's worker box, NixOS, `x86_64-linux`, not installed yet, every role it will take off until switched on (`modules/hosts/nuc/README.md`)
 
 ## Commands
 
@@ -124,7 +125,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Its `ExecStopPost` counts failed runs in a row in `/var/lib/backlogic-switch/failed-runs`, cleared by a run that works, and `butler-monitor` tells Aaron only once 3 have failed in a row or one run has gone 10 minutes, through its `failStreaks`, the same judging every failed unit gets.
   It skips that check, saying why, when the plugin's commit is not the one checked out, since the marketplace serves `main` and the check compares against the checkout's rules, so an older commit an owner chose would fail it.
   It redeploys production unattended and never touches `~/workspace/jimbo`, so that checkout's `main` stays clean.
-  Its runner, `backlogic-runner-aaron`, runs as the system user `backlogic-runner`, outside `wheel` and without `sudo`, so no session it launches can be root, from the detached checkout `~/workspace/backlogic--service` under its home `/var/lib/backlogic-runner`, beside its own clones of the projects its sessions work in, with its mise shims on its PATH so its sessions find `bin/check`'s tools, and a switch never restarts it, since its sessions run inside the unit.
+  Its runner, `backlogic-runner-aaron`, is `modules/backlogic-runner`'s, an option module on every Linux host that spike turns on with its own caps and the NUC can with caps derived from its memory, and runs as the system user `backlogic-runner`, outside `wheel` and without `sudo`, so no session it launches can be root, from the detached checkout `~/workspace/backlogic--service` under its home `/var/lib/backlogic-runner`, beside its own clones of the projects its sessions work in, with its mise shims on its PATH so its sessions find `bin/check`'s tools, and a switch never restarts it, since its sessions run inside the unit.
   Its unit runs at `Nice` 10 and a CPU and IO weight of 20 against everything else's 100, and its sessions, their `/dev/shm` temp files included, share a `MemoryHigh` of 6G, a `MemoryMax` of 8G of spike's 15 GiB and a `MemorySwapMax` of 2G, since a cap that leaves swap free still spends RAM on zram, so Bowerbird and `backlogic-aaron` win under pressure.
   It is also held to 6 of the 8 threads by `CPUQuota` and to 1024 tasks, and `ProtectControlGroups=private` gives it its own cgroup namespace, so its memory gate reads its own 8G `memory.max` as a container's and launches only while 40% of that is free, where on the host's cgroup root it judged the whole box's `MemAvailable` and kept launching while its own cgroup sat throttled at `MemoryHigh`, holding 7.1G, stalling spike at a load of 154 on 4 Nov 2026.
   systemd-oomd kills the runner alone, `ManagedOOMMemoryPressure=kill`, once its own cgroup stalls on memory past 60% for 30 seconds, and `Restart` brings it back, ending the sessions it left open as on any restart.
@@ -227,12 +228,14 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 - The journal keeps at most 1 GiB.
 - Spike is framer's remote builder (`modules/hosts/spike/remote-builder.nix`): framer's root logs in as the system user `nix-builder`, whose key may only run `nix-daemon --stdio`, and which Nix trusts.
   Spike's nix-daemon runs at idle CPU and IO priority, so those builds, and every other, yield to Bowerbird.
+  `nucBuilder` in the same file, off, sends spike's own builds to the NUC's `nix-builder` over WireGuard once it is on, with root's key `/var/lib/secrets/nuc-builder-key`, made by hand.
 - WireGuard `wg0` on UDP `51820` at `spike.cute.engineer` (kept current by cloudflare-dyndns, token in `/var/lib/secrets/cloudflare-dyndns-token`), spike is `10.100.0.1`.
   Its private key is generated on first boot at `/var/lib/wireguard/private`.
   Its peers are `piggys-MBP` at `10.100.0.2`, `phone` at `10.100.0.4`, `phone-2` at `10.100.0.9`, `framer` at `10.100.0.5`, `rylee` at `10.100.0.6`, `rylee-2` at `10.100.0.10`, `pilot` at `10.100.0.11`, `tower` at `10.100.0.7`, `windows` at `10.100.0.8`, the jimbo PC's Windows install, and `github-actions` at `10.100.0.3`, whose private key lives only in Bowerbird's GitHub secrets.
   spike forwards from Aaron's own peers, `piggys-MBP`, `phone`, `phone-2` and `framer`, to any other peer, and its `spike-wg0-forward` chain drops every other packet forwarded in from `wg0` but replies, so Rylee's `rylee`, `rylee-2` and `tower`, `github-actions` and `pilot` reach spike alone.
   The jimbo PC's NixOS install is `jimbo` at `10.100.0.12` (`modules/hosts/jimbo/wireguard.nix`), whose key it generates on its first boot, and spike adds that peer only once `jimboPublicKey` in `modules/hosts/spike/wireguard.nix` holds the public half, from `sudo wg show wg0 public-key` on jimbo.
   Aaron's iPad is `ipad` at `10.100.0.13`, whose key the WireGuard app generates, and spike adds that peer only once `ipadPublicKey` in `modules/hosts/spike/wireguard.nix` holds the public half; like `pilot` it reaches spike alone.
+  The NUC is `nuc` at `10.100.0.14` (`modules/hosts/nuc/wireguard.nix`), whose key it generates on its first boot in `/var/lib/secrets/wireguard-private`, and spike adds that peer, and scrapes its node_exporter, only once `nucPublicKey` in `modules/hosts/spike/wireguard.nix` holds the public half, new access that waits for Aaron's plain yes; like `pilot` it reaches spike alone.
   Spike resolves `ideas.noodlebra.in`, Rylee's backlogic instance, to `rylee-2` at `10.100.0.10`.
   It declares `ip_forward` itself, which it otherwise had only because Docker set it.
   There is no NAT for `10.100.0.0/24`, so a peer reaches nothing on the LAN through spike.
@@ -620,6 +623,15 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   `/etc/mise/config.toml` trusts every `mise.toml` under `aaron`'s and the runner's `~/workspace/backlogic`, their worktrees included, and takes prebuilt Python, since building it from source fails here.
   A shim resolves its version from the working directory's `mise.toml`, so the file also sets Deno to the newest installed everywhere else, for hooks and tests that run Deno outside a checkout.
   A repository's tools are installed once by hand with `mise install` in its checkout, after `mise trust` outside `~/workspace/backlogic`.
+
+### nuc
+
+`nuc` is a spare Intel NUC, headless (`desktop = false`), to be spike's worker box, its files under `modules/hosts/nuc` plain NixOS modules like spike's, not installed yet.
+`modules/hosts/nuc/README.md` is the install path: the stock NixOS minimal ISO, or `nix build .#nuc-installer-iso`, the same with sshd on and Aaron's keys on root, then `just nuc-install <ip> <disk>`, which runs nixos-anywhere with disko and writes the NUC's nixos-facter report to `modules/hosts/nuc/facter.json`, read by `hardware.nix` once it exists.
+`disko.nix` lays one disk, `nuc.disk`, default `/dev/nvme0n1`, out as a 1G ESP for systemd-boot, swap of `nuc.swapSize`, half of `nuc.memoryGiB` up to 8G, and ext4 on the rest, beside zram.
+It takes DHCP unless `nuc.lan.address` gives it a static one, accepts the same keys for `aaron` as spike and framer, and runs node_exporter on `wg0` alone.
+Its roles, each off until switched on, are `nuc.backlogicRunner.enable`, spike's runner unit claiming from spike's instance, `nuc.builder.enable`, Nix builds for spike, `nuc.watchdog.enable`, which tells Aaron in the journal and, once he writes a Discord webhook into `/var/lib/secrets/spike-watchdog-webhook`, there when spike has not answered over WireGuard for 10 minutes, since butler-notify lives on spike, and `nuc.backups.enable`, nightly pulls of butler's memory, the index and Home Assistant's state from spike, 14 days kept, through a login spike does not authorize yet.
+The flake check `nuc` evaluates its system and the installer without building them.
 
 ### framer
 

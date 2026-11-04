@@ -4,6 +4,11 @@ let
   # public half, from `sudo wg show wg0 public-key` there, goes here, and until then spike has no peer for it.
   jimboPublicKey = null;
 
+  # The NUC, spike's worker box (modules/hosts/nuc), generates its key on its first boot; its public half, from
+  # `sudo wg show wg0 public-key` there, goes here, and until then spike has no peer for it.
+  # Adding it is new access, so it waits for Aaron's plain yes; like pilot, it reaches spike alone.
+  nucPublicKey = null;
+
   # Aaron's iPad generates its key in the WireGuard app; its public half goes here, and until then spike has no peer for it.
   ipadPublicKey = null;
 
@@ -82,6 +87,11 @@ in
       name = "jimbo";
       publicKey = jimboPublicKey;
       allowedIPs = [ "10.100.0.12/32" ];
+    }
+    ++ lib.optional (nucPublicKey != null) {
+      name = "nuc";
+      publicKey = nucPublicKey;
+      allowedIPs = [ "10.100.0.14/32" ];
     }
     ++ lib.optional (ipadPublicKey != null) {
       name = "ipad";

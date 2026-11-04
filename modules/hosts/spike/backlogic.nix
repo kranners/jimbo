@@ -9,51 +9,9 @@ let
   checkout = "/srv/backlogic";
   dataDir = "${home}/backlogic-data/aaron";
   updatesDir = "${dataDir}/updates";
-  runnerHome = config.users.users.backlogic-runner.home;
-  runnerCheckout = "${runnerHome}/workspace/backlogic--service";
-  runnerConfigDir = "/var/lib/backlogic-runner-config";
-  aaronHome = config.home-manager.users.aaron;
-  runnerTokens = "${runnerHome}/.config/github-tokens";
+  runnerConfigDir = config.backlogicRunner.configDir;
   quietMinutes = 30;
 
-  # Each Claude account the runner launches on has its own config directory, named in
-  # runner.json's accounts, every one with aaron's settings. Its sessions load only the
-  # repository's instructions, so his CLAUDE.md and skills stay out.
-  runnerClaudeDirs = [
-    ".claude"
-    ".claude-work"
-  ];
-
-  # Runner sessions run at medium effort, aaron's own at the high his settings carry.
-  runnerClaudeSettings = pkgs.runCommand "runner-claude-settings.json" { } ''
-    ${pkgs.jq}/bin/jq '.effortLevel = "medium"' ${
-      aaronHome.home.file.".claude/settings.json".source
-    } > $out
-  '';
-
-  # Answers git over HTTPS with the fine-grained token of the repository's owner, one per
-  # owner, since a fine-grained token reaches the repositories of one owner alone.
-  github-token-credential = pkgs.writeShellApplication {
-    name = "github-token-credential";
-    text = ''
-      [ "$1" = get ] || exit 0
-      while IFS='=' read -r key value && [ -n "$key" ]; do
-        [ "$key" = path ] && owner=''${value%%/*}
-      done
-      token="${runnerTokens}/''${owner:?git sent no path}"
-      [ -r "$token" ] || exit 0
-      echo username=x-access-token
-      echo "password=$(cat "$token")"
-    '';
-  };
-
-  # Read after aaron's git config, so its gh helper is cleared for the runner's own.
-  runnerGitConfig = pkgs.writeText "backlogic-runner-gitconfig" ''
-    [credential "https://github.com"]
-    	helper =
-    	helper = ${lib.getExe github-token-credential}
-    	useHttpPath = true
-  '';
   aaronUidGid = "1000:100";
 
   # The runner reaches aaron for Bowerbird's bin/deploy alone, its key's forced command in bowerbird.nix.
@@ -61,16 +19,6 @@ let
   runnerKnownHosts = pkgs.writeText "backlogic-runner-known-hosts" ''
     localhost ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICx43TohNiz/wJmnsiv1PzwVeVRRp3PhBTMFs5Ho9cp9
   '';
-  runnerSshConfig = pkgs.writeText "backlogic-runner-ssh-config" ''
-    Host bowerbird-deploy
-      HostName localhost
-      User aaron
-      IdentityFile ~/.ssh/bowerbird-deploy
-      IdentitiesOnly yes
-      StrictHostKeyChecking yes
-      UserKnownHostsFile ${runnerKnownHosts}
-  '';
-
   lanInterfaces = [
     "wlp2s0"
     "wg0"
@@ -340,96 +288,25 @@ in
     };
   };
 
-  # A session run as aaron could be root through his passwordless sudo, so the runner has
-  # its own user, outside wheel, with its own clones under its home.
-  users.users.backlogic-runner = {
-    isSystemUser = true;
-    group = "backlogic-runner";
-    home = "/var/lib/backlogic-runner";
-    createHome = true;
-    shell = pkgs.bashInteractive;
-  };
-  users.groups.backlogic-runner = { };
-
-  # The instance writes runner.json through a rename as aaron, and the runner and its
-  # sessions' hooks read it, so it lives in a directory both reach, its group inherited.
-  # The runner's Claude Code and git take aaron's settings, so its sessions behave as his did.
-  # Every config directory takes those settings.
-  systemd.tmpfiles.rules = [
-    "d ${runnerConfigDir} 2750 aaron backlogic-runner -"
-  ]
-  ++ lib.concatMap (dir: [
-    "d ${runnerHome}/${dir} 0700 backlogic-runner backlogic-runner -"
-    "L+ ${runnerHome}/${dir}/settings.json - - - - ${runnerClaudeSettings}"
-  ]) runnerClaudeDirs
-  ++ [
-    "d ${runnerHome}/.config 0755 backlogic-runner backlogic-runner -"
-    "d ${runnerHome}/.config/git 0755 backlogic-runner backlogic-runner -"
-    "L+ ${runnerHome}/.config/git/config - - - - ${aaronHome.xdg.configFile."git/config".source}"
-    "L+ ${runnerHome}/.gitconfig - - - - ${runnerGitConfig}"
-    "d ${runnerTokens} 0700 backlogic-runner backlogic-runner -"
-    "d ${runnerHome}/.ssh 0700 backlogic-runner backlogic-runner -"
-    "L+ ${runnerHome}/.ssh/config - - - - ${runnerSshConfig}"
-  ];
-
-  # Its sessions run inside the unit, so a switch never restarts it.
-  # TMPDIR on tmpfs keeps the checks' fsyncs off the NVMe, and OOMPolicy=continue keeps the
-  # other sessions running when one is killed for memory (backlogic's docs/decisions/runner.md).
+  # The runner, shared with the NUC through modules/backlogic-runner, with spike's own caps.
   # Its weights and memory ceiling leave Bowerbird and the instance the box under pressure.
-  # Its own cgroup namespace shows the runner its own memory.max as /sys/fs/cgroup's, so its memory gate
-  # judges the room left under its cap, as in a container, rather than the whole box's MemAvailable, which
-  # let it launch sessions while its own cgroup sat throttled at MemoryHigh on 4 Nov.
-  # Past that, systemd-oomd kills the runner, and only the runner, once its own cgroup has stalled on memory
-  # for 30 seconds, and Restart brings it back, so a runaway swarm never drags the rest of spike down.
-  systemd.services.backlogic-runner-aaron = {
-    description = "backlogic runner launching sessions on Aaron's instance";
-    wantedBy = [ "multi-user.target" ];
-    wants = [ "network-online.target" ];
-    after = [
-      "network-online.target"
-      "backlogic-aaron.service"
-    ];
-    restartIfChanged = false;
-    unitConfig.ConditionPathExists = "${runnerCheckout}/bin/backlogic-runner";
-    path = [
-      "/run/wrappers"
-      "/run/current-system/sw"
-    ];
-    environment = {
-      TMPDIR = "/dev/shm";
-      BACKLOGIC_LAND_QUEUE = "${runnerHome}/land-queue";
-    };
-    serviceConfig = {
-      User = "backlogic-runner";
-      WorkingDirectory = runnerCheckout;
-      ExecStart = lib.escapeShellArgs [
-        "${runnerCheckout}/bin/backlogic-runner"
-        "--url"
-        "http://127.0.0.1:4200"
-        "--workspace"
-        "${runnerHome}/workspace"
-        "--state"
-        "${runnerHome}/state"
-        "--config"
-        "${runnerConfigDir}/runner.json"
-        "--token-file"
-        "${runnerHome}/runner.token"
-      ];
-      OOMPolicy = "continue";
-      Restart = "always";
-      RestartSec = 30;
-      Nice = 10;
-      CPUWeight = 20;
-      IOWeight = 20;
-      MemoryHigh = "6G";
-      MemoryMax = "8G";
-      MemorySwapMax = "2G";
-      TasksMax = 1024;
-      CPUQuota = "600%";
-      ProtectControlGroups = "private";
-      ManagedOOMMemoryPressure = "kill";
-      ManagedOOMMemoryPressureLimit = "60%";
-    };
+  backlogicRunner = {
+    enable = true;
+    after = [ "backlogic-aaron.service" ];
+    sshConfig = ''
+      Host bowerbird-deploy
+        HostName localhost
+        User aaron
+        IdentityFile ~/.ssh/bowerbird-deploy
+        IdentitiesOnly yes
+        StrictHostKeyChecking yes
+        UserKnownHostsFile ${runnerKnownHosts}
+    '';
+    memoryHigh = "6G";
+    memoryMax = "8G";
+    memorySwapMax = "2G";
+    tasksMax = 1024;
+    cpuQuota = "600%";
   };
 
   systemd.timers.backlogic-switch = {

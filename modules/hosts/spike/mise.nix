@@ -34,8 +34,6 @@ in
     };
   };
 
-  systemd.services = {
-    claude-remote-control.path = lib.mkAfter [ (miseShimsOf "/home/aaron") ];
-    backlogic-runner-aaron.path = lib.mkAfter [ (miseShimsOf runnerHome) ];
-  };
+  # The runner's shims are on its path in modules/backlogic-runner.
+  systemd.services.claude-remote-control.path = lib.mkAfter [ (miseShimsOf "/home/aaron") ];
 }
