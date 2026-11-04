@@ -8,6 +8,7 @@ them with fake machines.
 
 import base64
 import concurrent.futures
+import datetime
 import grp
 import json
 import os
@@ -56,6 +57,8 @@ echo "power=$(pmset -g batt | sed -n "s/.*'\(.*\)'.*/\1/p" | head -1)"
 echo "battery=$(pmset -g batt | grep -o '[0-9]*%' | head -1 | tr -d %)"
 echo "locked=$(ioreg -n Root -d1 | grep -q 'CGSSessionScreenIsLocked"=Yes' && echo yes || echo no)"
 echo "lockwhy=$(head -1 "$HOME/.local/state/butler-access/last-lock" 2> /dev/null)"
+f="$HOME/.config/chromium-claude-profiles/accounts.json"
+[ -r "$f" ] && [ "$(wc -c < "$f")" -lt 65536 ] && echo "claude_accounts=$(base64 < "$f" | tr -d '\n')"
 k=@keepawake@
 [ -x "$k" ] && echo "keepawake=$("$k" status 2> /dev/null | sed -n 's/^keep-awake: \([a-z]*\).*/\1/p' | head -1)"
 '''.replace('@keepawake@', KEEPAWAKE)
@@ -153,6 +156,27 @@ def num(value):
         return None
 
 
+def claude_signed_out(encoded, now=None):
+    """Labels of the Claude accounts the Mac's Chromium is signed out of, from ccp's accounts.json, which holds no secrets."""
+    try:
+        accounts = json.loads(base64.b64decode(encoded or '')).get('accounts') or []
+    except (ValueError, AttributeError):
+        return []
+    now = time.time() if now is None else now
+    out = []
+    for a in accounts if isinstance(accounts, list) else []:
+        if not isinstance(a, dict) or not isinstance(a.get('label'), str):
+            continue
+        expires = a.get('sessionExpiresAt')
+        try:
+            expired = isinstance(expires, str) and datetime.datetime.fromisoformat(expires.replace('Z', '+00:00')).timestamp() <= now
+        except ValueError:
+            expired = False
+        if a.get('state') == 'signed-out' or a.get('status') == 'revoked' or expired:
+            out.append(re.sub(r'[^A-Za-z0-9 ._@-]', '', a['label'])[:64])
+    return sorted(set(out))
+
+
 def normalise(os_name, raw):
     """A machine's reading in one shape, whatever system it came from."""
     m = {'up': True, 'os': os_name}
@@ -180,6 +204,8 @@ def normalise(os_name, raw):
         m['battery'] = num(raw.get('battery'))
     m['locked'] = raw.get('locked') if raw.get('locked') in ('yes', 'no', 'login') else None
     m['keepawake'] = raw.get('keepawake') if raw.get('keepawake') in ('on', 'off') else None
+    if raw.get('claude_accounts'):
+        m['claude_signed_out'] = claude_signed_out(raw['claude_accounts'])
     # butler-access's Hammerspoon watcher writes the lock's time and cause, tab-separated, and removes it on unlock.
     why = (raw.get('lockwhy') or '').split('\t')
     if m['locked'] == 'yes' and len(why) == 3:
@@ -634,6 +660,11 @@ def judge_machine(host, m, now=None, mode=None):
     if awake == 'off' and host in CONFIG['keepAwakeHosts']:
         out.append(finding('%s:keepawake' % host, host, 'act', "%s's keep-awake is off." % host,
                            advice='Ask me to turn it back on, or tell me it is meant to be off.'))
+    # ccp's Claude Profiles extension writes each saved Claude account's state; only a real sign-out is news.
+    for label in m.get('claude_signed_out') or []:
+        out.append(finding('%s:claude-account:%s' % (host, label), host, 'warn',
+                           "%s's Chromium is signed out of the Claude account %s." % (host, label),
+                           advice='Sign it back in once: Claude Profiles popup, Sign back in to signed-out accounts, or sign in and Save current.'))
     out += judge_units(host, m, now, mode)
     if m.get('docker_build_cache_bytes', 0) > th('dockerCacheGB') * GB:
         out.append(finding('spike:docker', host, 'info', "Docker's build cache on spike holds %s." % gb(m['docker_build_cache_bytes']),
