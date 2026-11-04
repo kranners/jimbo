@@ -23,7 +23,7 @@ let
 
   mailPassword = name: "email-${name}-password";
 
-  # Aaron's Work work Google account is read through the Gmail API, read-only, by butler-work-google.nix's reader.
+  # Aaron's work Google account is read through the Gmail API, read-only, by butler-work-google.nix's reader.
   workGoogle = config.butler.workGoogle.enable;
   workReader = lib.getExe' config.butler.workGoogle.package "work-google";
 
@@ -108,7 +108,7 @@ let
 
       if [ "$1" = accounts ]; then
         himalaya account list
-        ${lib.optionalString workGoogle ''echo "work (Work work Google account, read-only)"''}
+        ${lib.optionalString workGoogle ''echo "work (work Google account, read-only)"''}
         exit
       fi
 
@@ -268,7 +268,7 @@ in
         description = ''
             Read and archive Aaron's email; it cannot delete or move mail anywhere else, and sends only through mail-send.
           mail accounts | mail unread-counts | mail <account> mailboxes | mail <account> unread [count] | mail <account> list [count] | mail <account> search <query>... | mail <account> read <id> | mail <account> archive <id>...
-          ${lib.optionalString workGoogle "mail work unread [count] | mail work list [count] | mail work search <Gmail search words>... | mail work read <id>: Aaron's Work work Google mail, read-only, in a conversation alone; it cannot archive or send."}
+          ${lib.optionalString workGoogle "mail work unread [count] | mail work list [count] | mail work search <Gmail search words>... | mail work read <id>: Aaron's work Google mail, read-only, in a conversation alone; it cannot archive or send."}
         '';
         rules = [
           {

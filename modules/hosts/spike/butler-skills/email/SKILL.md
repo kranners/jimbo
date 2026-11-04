@@ -1,6 +1,6 @@
 ---
 name: email
-description: Read Aaron's email (Fastmail, Gmail, Outlook and his Work work Google account) to answer questions about it, summarise it, or archive messages he asks to archive.
+description: Read Aaron's email (Fastmail, Gmail, Outlook and his work Google account) to answer questions about it, summarise it, or archive messages he asks to archive.
 ---
 
 # Email
@@ -23,14 +23,14 @@ It can read and archive: it cannot delete, flag or move a message anywhere but i
 - `mail work unread [count]`, `mail work list [count]` and `mail work read <id>` work as for the other accounts, the id being a listing's first column.
 - `mail work search <words>...` takes Gmail's own search words, such as `from:sam`, `subject:standup`, `newer_than:2d` or plain words.
 - It runs only in a conversation; a scheduled run sees work mail only as its unread count in `mail unread-counts`.
-- If it says the account is not logged in yet, or the login was refused, tell Aaron the one command it names, run on spike, and stop; if it says Work's admin blocks the app, say so plainly.
+- If it says the account is not logged in yet, or the login was refused, tell Aaron the one command it names, run on spike, and stop; if it says the work admin blocks the app, say so plainly.
 - This is his employer's mail: answer what he asks, and never copy its text, senders or subjects into memory, the journal, a change brief or anything outside the thread.
 
 No arg may start with `-`.
 
 Archive only messages Aaron has asked to archive, such as "archive that" after reading one or "archive everything from the newsletter", listing first to find their ids, then say in one sentence how many were archived and from whom.
 
-When Aaron asks about his email without naming an account, check every account; check `work` too when he means work or Work.
+When Aaron asks about his email without naming an account, check every account; check `work` too when he means work.
 
 ## Writing about mail
 

@@ -2,3 +2,4 @@
 result
 .claude/worktrees/
 .builder-intent
+__pycache__/

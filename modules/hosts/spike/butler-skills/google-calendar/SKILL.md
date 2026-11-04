@@ -1,6 +1,6 @@
 ---
 name: google-calendar
-description: Read and add events on Aaron's Google calendars, and read his Work work calendar. Use for "what's on today", "what's my morning meeting", "am I free Thursday", "put dinner with Sam on Friday at 7".
+description: Read and add events on Aaron's Google calendars, and read his work calendar. Use for "what's on today", "what's my morning meeting", "am I free Thursday", "put dinner with Sam on Friday at 7".
 ---
 
 # Google Calendar
@@ -15,7 +15,7 @@ Home Assistant on spike holds the Google Calendar connection and the tool carrie
 
 ## Work calendar
 
-`calendar work ...` reads Aaron's work work calendar straight from Google, read-only: it cannot add, move or answer anything there.
+`calendar work ...` reads Aaron's work calendar straight from Google, read-only: it cannot add, move or answer anything there.
 - `calendar work agenda [days]` lists his work meetings from the start of today, one a line: start, end, title, his response (`accepted`, `tentative` or `invited` for one he has not answered; declined ones are left out), the number of attendees and the Meet link.
 - `calendar work events <start> <end>` lists them between two dates, at most 62 days apart.
 - `calendar work brief [days]` gives only start, end and title, the one view a scheduled run may read.

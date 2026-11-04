@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 WIDGET = "https://go.mindbodyonline.com/book/widgets/schedules/view/f25308655e3/schedule"
-STUDIO = "REVL Collingwood, 300 Wellington St"
+STUDIO = "REVL Collingwood"
 SITE_ID = 135084
 ZONE = ZoneInfo("Australia/Melbourne")
 TIMEOUT_SECONDS = 20

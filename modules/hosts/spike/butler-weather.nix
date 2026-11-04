@@ -24,7 +24,7 @@ in
   butler.commands.weather = {
     package = weather;
     description = ''
-      Weather from Open-Meteo, Collingwood by default: current conditions, the next 24 hours, the next 7 days, and whether to ride the e-bike to Work and back.
+      Weather from Open-Meteo, Collingwood by default: current conditions, the next 24 hours, the next 7 days, and whether to ride the e-bike to work and back.
       weather now [<place>] | weather hourly [<place>] | weather week [<place>] | weather ride [today|tomorrow|YYYY-MM-DD] [<there HH:MM> [<back HH:MM>]]
       A place is a town or suburb, optionally followed by a comma and its state or country, or lat,lng.
     '';

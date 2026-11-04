@@ -37,21 +37,24 @@
           bash ${./butler-self-fix}/test-cards.sh ${./butler-self-fix} > $out 2>&1 || { cat $out; exit 1; }
         '';
 
-    # jimbo is public, so no picture of butler's Work-branded Work notes scenes may be in its source, and so in its store paths, by name or by the outbox file it came from.
-    no-work-notes-pictures =
+    # jimbo is public, so no picture of butler's branded work scenes may be in its source, and so in its store paths, by scene name or by the outbox file it came from.
+    no-work-pictures =
       let
-        sources = map (scene: scene.source) (lib.attrValues (import ./butler-scenes-catalog.nix).work-notes);
+        scenes = (import ./butler-scenes-catalog.nix).work;
+        sources = map (scene: scene.source) (lib.attrValues scenes);
       in
-      pkgs.runCommand "no-work-notes-pictures" { } ''
-        found=$(find ${../../..} -type f \( -iname '*work-notes*' -o -iname '*work*' ${
+      pkgs.runCommand "no-work-pictures" { } ''
+        found=$(find ${../../..} -type f \( -false ${
           lib.concatMapStrings (source: "-o -name ${lib.escapeShellArg source} ") sources
+        }${
+          lib.concatMapStrings (name: "-o -iname ${lib.escapeShellArg "${name}.*"} ") (lib.attrNames scenes)
         }\) \( -iname '*.webp' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.gif' -o -iname '*.svg' -o -iname '*.avif' -o -iname '*.heic' \))
         if [ -n "$found" ]; then
-          echo "pictures of Work's Work notes scenes are in public jimbo:" >&2
+          echo "pictures of butler's work scenes are in public jimbo:" >&2
           echo "$found" >&2
           exit 1
         fi
-        [ ${toString (builtins.length sources)} -gt 0 ] || { echo "the Work notes scene list is empty, so this checks nothing" >&2; exit 1; }
+        [ ${toString (builtins.length sources)} -gt 0 ] || { echo "the work scene list is empty, so this checks nothing" >&2; exit 1; }
         echo ok > $out
       '';
 
@@ -234,11 +237,8 @@
         address = "aaronpierce@outlook.com.au";
       };
       butler.hevy.enable = true;
-      # Read-only; nothing is read until Aaron runs `sudo -u butler butler-work-google-login` on spike.
-      butler.workGoogle = {
-        enable = true;
-        address = "me@example.com";
-      };
+      # Read-only; nothing is read until Aaron runs `sudo -u butler butler-work-google-login <work address>` on spike.
+      butler.workGoogle.enable = true;
       butler.remarkable.enable = true;
       butler.index.captions.photosScript = ./butler-photos/photos.py;
       # Butler's mood pictures, for the Daily tab and the picture of it DMed each morning.

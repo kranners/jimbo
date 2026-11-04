@@ -2,15 +2,19 @@
 
 `butler-context generate`, run by root every few minutes, builds one plain
 text pack per area from Butler's memory (core, skills, the journal), the
-builders in flight digest, the kanban board's snapshot and, for Work
-work, read-only facts about the repositories on pilot: paths, branches,
-latest commit subjects, open pull requests, README titles and the work-notes
-index's file names. It writes them, and an index of them, to a directory
-butler reads but cannot write.
+builders in flight digest, the kanban board's snapshot and, for Aaron's
+work, read-only facts about the work repositories on pilot: paths,
+branches, latest commit subjects, open pull requests, README titles and
+the work knowledge base's file names. It writes them, and an index of
+them, to a directory butler reads but cannot write.
+
+Which repositories and knowledge base are work's, the work pack's title,
+pointers and routing words, come from context/work.json in Butler's
+memory, Aaron's file, validated before any value reaches the ssh call.
 
 Every line passes a filter that drops anything shaped like a secret,
 money, health, mail or a contact detail, so a pack holds pointers and one
-line summaries, never message bodies or private figures, and no Work
+line summaries, never message bodies or private figures, and no work
 code or document leaves pilot beyond its name.
 
 Butler reads them with `context list`, `context show <area>` and
@@ -21,6 +25,7 @@ the change launcher put in front of what they send.
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -33,12 +38,82 @@ KANBAN = os.environ.get('BUTLER_CONTEXT_KANBAN', '@kanban@')
 SSH = os.environ.get('BUTLER_CONTEXT_SSH', '@ssh@')
 PILOT = json.loads(os.environ.get('BUTLER_CONTEXT_PILOT') or '@pilot@')
 GROUP = os.environ.get('BUTLER_CONTEXT_GROUP', '@group@')
+WORK_FILE = os.environ.get('BUTLER_CONTEXT_WORK', '@work@')
 TZ = '@timeZone@'
 
 PACK_LIMIT = 6000
 PREFIX_LIMIT = 3500
 REFRESH_WAIT = 45
 JOURNAL_DAYS = 3
+
+SECRETS = re.compile(
+    r'(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}'
+    r'|xox[abposr]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_.-]+'
+    r'|(?i:bearer)\s+[A-Za-z0-9._~+/=-]{16,}|\b[0-9a-fA-F]{40,}\b|-----BEGIN [A-Z ]+-----)'
+)
+
+# A line carrying any of these is dropped whole: money, health, mail, contact details and credentials.
+PRIVATE = re.compile(
+    r'(\$\s?\d|\d\s?(?:aud|usd|dollars?)\b'
+    r'|\b(?:salary|debts?|loans?|bank(?:ing)?|balances?|payments?|payoff|runway|savings?|invoices?|charged?|refunds?|spend(?:ing)?'
+    r'|transactions?|transfers?|mastercard|visa|card ending|billing|budget|afford\w*|financ\w*|income|purchases?|\(up\)|up bank|up transfers?'
+    r'|westpac|citibank|hostplus|spaceship|cmc|up bank|super(?:annuation)?|help balance|tax(?:es)?|mortgage|rent|bond'
+    r'|health|sleep|hrv|heart|kg|lifts?|lifting|gym|reps|squats?|deadlifts?|leg extension|calories|diet|body battery|stress|weight|workouts?|training|injur\w*|doctor|gp|medic\w*|symptoms?|garmin|hevy'
+    r'|e-?mails?|mail|inbox|e-ticket|messenger|slack|dms?|text messages?|imessage|sms'
+    r'|passwords?|passcodes?|tokens?|secrets?|api keys?|credentials?|2fa|pin|keys? on spike)\b'
+    r'|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
+    r'|(?<![\w-])\+?\(?\d{2,4}\)?[ -]?\d{3,4}[ -]?\d{3,4}(?![\w-])'
+    r'|-?\d{1,3}\.\d{4,})',
+    re.IGNORECASE,
+)
+
+WORK_WORD = re.compile(r'[a-z0-9][a-z0-9 -]{0,39}')
+WORK_REPO = re.compile(r'[a-z0-9][a-z0-9-]{1,39}')
+WORK_KNOWLEDGE = re.compile(r'[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*')
+WORK_DEFAULTS = {
+    'title': "Aaron's work on pilot",
+    'pointers': [
+        "Work's code and documents stay on pilot; this pack holds only paths, names and one line summaries.",
+        "The work repositories and knowledge base are named in memory's context/work.json; while it is missing this pack has none.",
+    ],
+}
+
+
+def clean(text, limit):
+    text = SECRETS.sub('[redacted]', re.sub(r'\s+', ' ', str(text or '')).strip())
+    return text if len(text) <= limit else text[:limit - 1].rstrip() + '…'
+
+
+def load_work():
+    """The work area's private values from Butler's memory, each checked, or neutral defaults while it is missing."""
+    try:
+        with open(WORK_FILE) as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+
+    def strings(key, pattern):
+        values = data.get(key)
+        return [v for v in values if isinstance(v, str) and pattern.fullmatch(v)] if isinstance(values, list) else []
+
+    knowledge = data.get('knowledge')
+    if not (isinstance(knowledge, str) and WORK_KNOWLEDGE.fullmatch(knowledge) and '..' not in knowledge.split('/')):
+        knowledge = ''
+    pointers = data.get('pointers') if isinstance(data.get('pointers'), list) else []
+    pointers = [clean(p, 240) for p in pointers if isinstance(p, str) and p.strip()][:4]
+    title = clean(data.get('title'), 240) if isinstance(data.get('title'), str) else ''
+    return {
+        'title': title or WORK_DEFAULTS['title'],
+        'words': strings('words', WORK_WORD),
+        'repos': strings('repos', WORK_REPO),
+        'knowledge': knowledge,
+        'pointers': pointers or WORK_DEFAULTS['pointers'],
+    }
+
+
+WORK = load_work()
 
 AREAS = {
     'board': {
@@ -50,12 +125,9 @@ AREAS = {
         ],
     },
     'work': {
-        'title': 'Work work: work-notes and the Project A and tennis repositories on pilot',
-        'words': ['work', 'work-notes', 'project-a', 'tennis', 'project-b', 'project-c', 'project-d', 'odds', 'scores', 'racing', 'capture'],
-        'pointers': [
-            "Work is Aaron's employer; its code and documents stay on pilot, so this pack holds only paths, names and one line summaries.",
-            'Read the detail on pilot, read-only, with `mac pilot run`; work-notes, Work\'s knowledge base, is ~/repos/work-notes there (skill `work-notes`).',
-        ],
+        'title': WORK['title'],
+        'words': [re.escape(word) for word in WORK['words']],
+        'pointers': WORK['pointers'],
     },
     'home': {
         'title': "Aaron's home setup and framer, the kitchen panel",
@@ -94,38 +166,14 @@ REPO_AREAS = {
 # Butler's own memory files that are health plans or inferred from his payments and messages, never read for a pack.
 SKIPPED_CORE = {'training.md', 'workout-plan.md', 'inferred.md'}
 
-SECRETS = re.compile(
-    r'(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}'
-    r'|xox[abposr]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_.-]+'
-    r'|(?i:bearer)\s+[A-Za-z0-9._~+/=-]{16,}|\b[0-9a-fA-F]{40,}\b|-----BEGIN [A-Z ]+-----)'
-)
-
-# A line carrying any of these is dropped whole: money, health, mail, contact details and credentials.
-PRIVATE = re.compile(
-    r'(\$\s?\d|\d\s?(?:aud|usd|dollars?)\b'
-    r'|\b(?:salary|debts?|loans?|bank(?:ing)?|balances?|payments?|payoff|runway|savings?|invoices?|charged?|refunds?|spend(?:ing)?'
-    r'|transactions?|transfers?|mastercard|visa|card ending|billing|budget|afford\w*|financ\w*|income|purchases?|\(up\)|up bank|up transfers?'
-    r'|westpac|citibank|hostplus|spaceship|cmc|up bank|super(?:annuation)?|help balance|tax(?:es)?|mortgage|rent|bond'
-    r'|health|sleep|hrv|heart|kg|lifts?|lifting|gym|reps|squats?|deadlifts?|leg extension|calories|diet|body battery|stress|weight|workouts?|training|injur\w*|doctor|gp|medic\w*|symptoms?|garmin|hevy'
-    r'|e-?mails?|mail|inbox|e-ticket|messenger|slack|dms?|text messages?|imessage|sms'
-    r'|passwords?|passcodes?|tokens?|secrets?|api keys?|credentials?|2fa|pin|keys? on spike)\b'
-    r'|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
-    r'|(?<![\w-])\+?\(?\d{2,4}\)?[ -]?\d{3,4}[ -]?\d{3,4}(?![\w-])'
-    r'|-?\d{1,3}\.\d{4,})',
-    re.IGNORECASE,
-)
-
-
-def clean(text, limit):
-    text = SECRETS.sub('[redacted]', re.sub(r'\s+', ' ', str(text or '')).strip())
-    return text if len(text) <= limit else text[:limit - 1].rstrip() + '…'
-
 
 def safe(text):
     return not PRIVATE.search(text or '') and not SECRETS.search(text or '')
 
 
 def matcher(words):
+    if not words:
+        return re.compile(r'(?!)')
     return re.compile(r'\b(%s)\b' % '|'.join(words), re.IGNORECASE)
 
 
@@ -259,16 +307,17 @@ def board_snapshot():
     return {'sessions': sessions, 'regions': [r for r in regions if r]}, None
 
 
-# A fixed read-only script, run on pilot as Aaron: git reads, `gh pr list` and directory listings, nothing else.
+# A fixed read-only script, run on pilot as Aaron over the work repositories and knowledge base it is given: git reads, `gh pr list` and directory listings, nothing else.
 PILOT_SCRIPT = r'''
+kb=$1; shift
 export GH_PROMPT_DISABLED=1 GIT_OPTIONAL_LOCKS=0 PATH="/opt/homebrew/bin:/etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin:$PATH"
 for d in "$HOME"/* "$HOME"/workspace/* "$HOME"/repos/*; do
   [ -d "$d/.git" ] || [ -f "$d/.git" ] || continue
   name=$(basename "$d")
-  case "$(printf %s "$name" | tr A-Z a-z)" in
-    *work*|*project-a*|*tennis*|*work-notes*|*project-b*|*project-c*|*project-d*) ;;
-    *) continue ;;
-  esac
+  lname=$(printf %s "$name" | tr A-Z a-z)
+  hit=
+  for w in "$@"; do case "$lname" in *"$w"*) hit=1 ;; esac; done
+  [ -n "$hit" ] || continue
   path=${d/#$HOME/\~}
   printf 'repo\t%s\t%s\t%s\t%s\n' "$path" "$(git -C "$d" symbolic-ref --short -q HEAD || echo detached)" \
     "$(git -C "$d" log -1 --format=%cr 2>/dev/null)" "$(git -C "$d" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
@@ -282,27 +331,29 @@ for d in "$HOME"/* "$HOME"/workspace/* "$HOME"/repos/*; do
     pid=$!; ( sleep 8; kill $pid 2>/dev/null ) >/dev/null 2>&1 & wait $pid 2>/dev/null
   fi
 done
-s="$HOME/repos/work-notes"
-if [ -d "$s" ]; then
-  for f in "$s"/core/* "$s"/skills/*; do [ -e "$f" ] && printf 'work-notes\t%s\n' "${f#$s/}"; done
+if [ "$kb" != - ] && [ -d "$HOME/$kb" ]; then
+  for f in "$HOME/$kb"/core/* "$HOME/$kb"/skills/*; do [ -e "$f" ] && printf 'knowledge\t%s\n' "${f#$HOME/$kb/}"; done
 fi
 '''
 
 
 def pilot_facts():
+    if not WORK['repos'] and not WORK['knowledge']:
+        return {'repos': [], 'knowledge': []}, None
     key = os.path.join(os.environ.get('CREDENTIALS_DIRECTORY', ''), 'butler-mac-key')
     options = ['-i', key, '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new', '-o', 'ConnectTimeout=5']
     known = os.environ.get('KANBAN_KNOWN_HOSTS')
     if known:
         options += ['-o', 'UserKnownHostsFile=' + known]
     try:
-        result = subprocess.run([SSH, *options, '%s@%s' % (PILOT['user'], PILOT['address']), 'bash -s'],
+        result = subprocess.run([SSH, *options, '%s@%s' % (PILOT['user'], PILOT['address']),
+                                 'bash -s -- ' + ' '.join(shlex.quote(a) for a in [WORK['knowledge'] or '-', *WORK['repos']])],
                                 input=PILOT_SCRIPT, capture_output=True, text=True, timeout=90)
     except (subprocess.TimeoutExpired, OSError) as error:
         return None, 'pilot did not answer: %s' % error
     if result.returncode == 255:
         return None, 'pilot is unreachable over ssh'
-    repos, work-notes = {}, []
+    repos, knowledge = {}, []
     for line in result.stdout.splitlines():
         parts = line.split('\t')
         if parts[0] == 'repo' and len(parts) >= 5:
@@ -313,9 +364,9 @@ def pilot_facts():
             repos[parts[1]]['prs'].append(clean(parts[2], 110))
         elif parts[0] == 'readme' and len(parts) >= 4 and parts[1] in repos:
             repos[parts[1]]['readme'] = '%s "%s"' % (parts[2], clean(parts[3], 80))
-        elif parts[0] == 'work-notes' and len(parts) >= 2:
-            work-notes.append(clean(parts[1], 60))
-    return {'repos': list(repos.values())[:16], 'work-notes': work-notes[:60]}, None
+        elif parts[0] == 'knowledge' and len(parts) >= 2:
+            knowledge.append(clean(parts[1], 60))
+    return {'repos': list(repos.values())[:16], 'knowledge': knowledge[:60]}, None
 
 
 def cached(name, fetch):
@@ -338,7 +389,7 @@ def area_of_path(cwd):
     parts = [p for p in re.split(r'/\.claude/worktrees/|/', str(cwd or '')) if p]
     for part in reversed(parts):
         lower = part.lower()
-        if any(word in lower for word in ('work', 'project-a', 'tennis', 'work-notes', 'project-b', 'project-c', 'project-d')):
+        if any(word in lower for word in WORK['repos']):
             return 'work'
         base = lower.split('--')[0]
         if base in REPO_AREAS:
@@ -389,6 +440,8 @@ def build_pack(name, board, board_error, pilot, pilot_error, changes, now):
 
     if name == 'work':
         lines.append('## Repositories on pilot')
+        if not WORK['repos']:
+            lines.append("- (none named in memory's context/work.json)")
         if pilot_error:
             lines.append('- (%s)' % pilot_error)
         for repo in (pilot or {}).get('repos', []):
@@ -400,8 +453,8 @@ def build_pack(name, board, board_error, pilot, pilot_error, changes, now):
                 lines.append('  open PRs: ' + '; '.join(repo['prs']))
             if repo['readme']:
                 lines.append('  read first: ' + repo['readme'])
-        if pilot and pilot.get('work-notes'):
-            lines.append('- work-notes index (~/repos/work-notes): ' + ', '.join(pilot['work-notes']))
+        if pilot and pilot.get('knowledge'):
+            lines.append('- knowledge base index (~/%s): ' % WORK['knowledge'] + ', '.join(pilot['knowledge']))
         lines.append('')
 
     relevant = [c for c in changes if name == 'butler' or found.search(c['title'] + ' ' + c['brief'])]
@@ -469,6 +522,9 @@ def generate():
         write(os.path.join(PACKS, name + '.md'), text)
         sizes[name] = text.count('\n')
     write(os.path.join(PACKS, 'index.md'), index_text(now, sizes))
+    for file in os.listdir(PACKS):
+        if file.endswith('.md') and file[:-3] not in AREAS and file != 'index.md':
+            os.remove(os.path.join(PACKS, file))
     try:
         for request in os.listdir(REFRESH):
             os.remove(os.path.join(REFRESH, request))

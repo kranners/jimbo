@@ -23,6 +23,7 @@ let
     "@packs@" = packs;
     "@refresh@" = refresh;
     "@memory@" = "${home}/memory";
+    "@work@" = "${home}/memory/context/work.json";
     "@digest@" = config.butler.builders.digest;
     "@ssh@" = lib.getExe pkgs.openssh;
     "@pilot@" = builtins.toJSON pilot;
@@ -64,7 +65,7 @@ in
     butler.commands.context = {
       package = context;
       description = ''
-        Read spike's context packs, the same compact picture of each area of Aaron's life on every surface: the board and his sessions on pilot, Work work, his home and framer, your own systems, and his personal plans.
+        Read spike's context packs, the same compact picture of each area of Aaron's life on every surface: the board and his sessions on pilot, his work, his home and framer, your own systems, and his personal plans.
         context list (the areas and when they were refreshed) | context show <area> | context refresh <area> (rebuild it now, then show it). Areas: board, work, home, butler, personal.
       '';
       # The first rule that matches decides, so the kitchen's two come first and repeat the other lanes:

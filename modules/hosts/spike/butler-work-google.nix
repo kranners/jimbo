@@ -10,7 +10,7 @@ let
 
   directory = "${home}/.local/share/work-google";
   token = "${directory}/token.json";
-  login = "sudo -u butler butler-work-google-login";
+  login = "sudo -u butler butler-work-google-login <work address>";
 
   reader = pkgs.writers.writePython3 "work-google.py" {
     libraries = [ pkgs.python3Packages.tzdata ];
@@ -19,7 +19,6 @@ let
 
   environment = ''
     export WORK_GOOGLE_TOKEN=${token}
-    export WORK_GOOGLE_ADDRESS=${lib.escapeShellArg cfg.address}
     export WORK_GOOGLE_LOGIN=${lib.escapeShellArg login}
     export WORK_GOOGLE_TZ=${config.time.timeZone}
   '';
@@ -36,7 +35,7 @@ let
     fi
     umask 077
     ${environment}
-    exec ${reader} login
+    exec ${reader} login "$@"
   '';
 
   both = [
@@ -46,12 +45,7 @@ let
 in
 {
   options.butler.workGoogle = {
-    enable = lib.mkEnableOption "butler's read-only Work work Google mail and calendar, once Aaron's login has stored its token";
-    address = lib.mkOption {
-      type = lib.types.str;
-      default = "";
-      description = "The work Google account, which the login insists on.";
-    };
+    enable = lib.mkEnableOption "butler's read-only work Google mail and calendar, once Aaron's login has stored its token";
     package = lib.mkOption {
       type = lib.types.package;
       readOnly = true;

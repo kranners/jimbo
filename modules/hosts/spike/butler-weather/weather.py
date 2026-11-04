@@ -13,10 +13,9 @@ ZONE = ZoneInfo("Australia/Melbourne")
 TIMEOUT_SECONDS = 20
 EX_TEMPFAIL = 75
 
-# Suburb-level points: Aaron's home suburb, and work, Collingwood, a few
-# hundred metres away, so a commute's two ends share one forecast cell.
+# A suburb-level point: work is in the same suburb, so a commute's two ends share HOME's forecast.
 HOME = {"name": "Collingwood VIC", "latitude": -37.8031, "longitude": 144.9873}
-WORK = {"name": "work, Collingwood VIC", "latitude": -37.8050, "longitude": 144.9845}
+WORK = {"name": "Collingwood VIC"}
 RIDE_TIMES = ("08:30", "17:30")
 
 STATES = {
@@ -348,7 +347,7 @@ def ride(args):
         fail("ride looks up to 6 days ahead")
     data = forecast(HOME)
     table = hours(data)
-    print(f"ride: home ({HOME['name']}) to Work ({WORK['name']}) and back by e-bike")
+    print(f"ride: home ({HOME['name']}) to work ({WORK['name']}) and back by e-bike")
     print(f"now: {local_now(data).strftime('%a %-d %b %Y %H:%M %Z')}")
     print("source: Open-Meteo")
     labels = ["there", "back"] if len(times) == 2 else ["trip"]

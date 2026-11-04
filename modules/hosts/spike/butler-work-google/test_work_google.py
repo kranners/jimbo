@@ -33,7 +33,7 @@ EVENTS = [
     {"summary": "Morning standup", "start": {"dateTime": at(9)}, "end": {"dateTime": at(9, 15)},
      "hangoutLink": "https://meet.google.com/abc-defg-hij",
      "attendees": [{"email": "me@example.com", "self": True, "responseStatus": "accepted"},
-                   {"email": "me@example.com", "responseStatus": "accepted"},
+                   {"email": "sam@example.com", "responseStatus": "accepted"},
                    {"email": "room@resource.calendar.google.com", "resource": True}]},
     {"summary": "Maybe lunch talk", "start": {"dateTime": at(12)}, "end": {"dateTime": at(13)},
      "attendees": [{"email": "me@example.com", "self": True, "responseStatus": "tentative"}],
@@ -86,7 +86,7 @@ class Google(BaseHTTPRequestHandler):
             return self.answer(200, {"messages": ids})
         if path.startswith("/gmail/v1/users/me/messages/"):
             identifier = path.rsplit("/", 1)[1]
-            headers = [{"name": "From", "value": '"Sam Lee" <me@example.com>'},
+            headers = [{"name": "From", "value": '"Sam Lee" <sam@example.com>'},
                        {"name": "Subject", "value": f"Standup notes {identifier[-1]}"},
                        {"name": "To", "value": "me@example.com"}]
             message = {"id": identifier, "internalDate": "1793750400000", "labelIds": ["INBOX", "UNREAD"],
@@ -108,7 +108,6 @@ directory = tempfile.mkdtemp()
 token = os.path.join(directory, "token.json")
 os.environ.update({
     "WORK_GOOGLE_TOKEN": token,
-    "WORK_GOOGLE_ADDRESS": "me@example.com",
     "WORK_GOOGLE_TZ": "Australia/Melbourne",
     "WORK_GOOGLE_OAUTH_BASE": base,
     "WORK_GOOGLE_GMAIL_BASE": base,
@@ -138,6 +137,15 @@ def check(name, condition, detail=""):
 
 # Only read-only scopes are ever asked for.
 check("scopes are read-only", all(scope.endswith(".readonly") for scope in work.SCOPES), work.SCOPES)
+
+def no_input(prompt=""):
+    raise AssertionError("login prompted before it had a work address")
+
+
+work.input = no_input
+for arguments in (("login",), ("login", "not-an-address")):
+    code, _, err = run(*arguments)
+    check(f"{' '.join(arguments)} exits 2 without prompting", code == 2, err)
 
 code, out, err = run("mail", "unread")
 check("no token exits 78 naming the login", code == 78 and "butler-work-google-login" in err, err)
@@ -176,7 +184,7 @@ check("agenda keeps accepted, tentative and invited meetings", code == 0 and "Mo
 check("agenda drops declined and cancelled ones", "Declined thing" not in out and "Cancelled" not in out, out)
 check("agenda counts people, not rooms", "Morning standup\taccepted\t2\t" in out, out)
 check("agenda gives the Meet link", "https://meet.google.com/abc-defg-hij" in out and "https://meet.google.com/xyz" in out, out)
-check("agenda never prints an attendee's address", "me@example.com" not in out and "me@example.com" not in out, out)
+check("agenda never prints an attendee's address", "sam@example.com" not in out and "me@example.com" not in out, out)
 check("agenda shows all-day events", "Offsite" in out, out)
 
 code, out, _ = run("calendar", "brief")

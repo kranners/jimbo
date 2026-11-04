@@ -9,7 +9,7 @@ call alone, and nothing read is written anywhere.
     work-google mail unread-count
     work-google mail unread [count] | list [count] | search <words>... | read <id>
     work-google calendar agenda [days] | brief [days] | events <start> <end>
-    work-google login          (as butler, interactively, once)
+    work-google login <work address>   (as butler, interactively, once)
 """
 
 import base64
@@ -31,8 +31,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/calendar.readonly",
 ]
 TOKEN = os.environ.get("WORK_GOOGLE_TOKEN", "")
-ADDRESS = os.environ.get("WORK_GOOGLE_ADDRESS", "")
-LOGIN = os.environ.get("WORK_GOOGLE_LOGIN", "sudo -u butler butler-work-google-login")
+LOGIN = os.environ.get("WORK_GOOGLE_LOGIN", "sudo -u butler butler-work-google-login <work address>")
 TIMEZONE = zoneinfo.ZoneInfo(os.environ.get("WORK_GOOGLE_TZ", "Australia/Melbourne"))
 # Only the flake check points these elsewhere, at its mock server.
 OAUTH = os.environ.get("WORK_GOOGLE_OAUTH_BASE", "https://oauth2.googleapis.com")
@@ -114,7 +113,7 @@ def access_token():
         if error.detail.get("error") in ("invalid_grant", "unauthorized_client", "invalid_client"):
             raise Failure(f"work-google: Google refused the saved login ({reason}); Aaron runs `{LOGIN}` on spike again", 75) from None
         if "admin" in reason.lower() or error.detail.get("error") == "admin_policy_enforced":
-            raise Failure(f"work-google: Work's Google Workspace admin blocks this app ({reason}); the admin must trust its client ID", 77) from None
+            raise Failure(f"work-google: the work Google Workspace admin blocks this app ({reason}); the admin must trust its client ID", 77) from None
         raise Failure(f"work-google: Google refused the token refresh: {reason}", 1) from None
     return answer["access_token"]
 
@@ -127,7 +126,7 @@ def get(base, path, params=None, token=None):
         return request(url, token=token)
     except GoogleError as error:
         if error.status == 403 and "admin" in error.reason().lower():
-            raise Failure(f"work-google: Work's Google Workspace admin blocks this: {error.reason()}", 77) from None
+            raise Failure(f"work-google: the work Google Workspace admin blocks this: {error.reason()}", 77) from None
         raise Failure(f"work-google: Google answered {error.status}: {error.reason()}", 1) from None
 
 
@@ -358,10 +357,12 @@ def calendar(arguments):
 
 # Login, run by Aaron as butler on spike
 
-def login():
+def login(address):
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+", address):
+        raise Failure(f"work-google: {address!r} is not an email address; run `{LOGIN}`", 2)
     if not TOKEN:
         raise Failure("work-google: no token path is set", 2)
-    print("Logging butler in to the Work work Google account, read-only: Gmail and Calendar.")
+    print(f"Logging butler in to the work Google account {address}, read-only: Gmail and Calendar.")
     print("Use the desktop OAuth client of a Google Cloud project with the Gmail and Calendar APIs enabled.")
     client_id = input("OAuth desktop client ID: ").strip()
     import getpass
@@ -383,9 +384,8 @@ def login():
         "code_challenge": challenge,
         "code_challenge_method": "S256",
     }
-    if ADDRESS:
-        params["login_hint"] = ADDRESS
-        params["hd"] = ADDRESS.split("@", 1)[1]
+    params["login_hint"] = address
+    params["hd"] = address.split("@", 1)[1]
     print()
     print("Open this link in a browser, sign in as the work account and allow read-only Gmail and Calendar access:")
     print()
@@ -416,9 +416,9 @@ def login():
     if not answer.get("refresh_token"):
         raise Failure("work-google: Google sent no refresh token; run it again", 1)
     profile = get(GMAIL, "profile", token=answer["access_token"])
-    address = profile.get("emailAddress", "")
-    if ADDRESS and address.lower() != ADDRESS.lower():
-        raise Failure(f"work-google: that signed in as {address}, not {ADDRESS}; run it again with the work account", 1)
+    signed_in = profile.get("emailAddress", "")
+    if signed_in.lower() != address.lower():
+        raise Failure(f"work-google: that signed in as {signed_in}, not {address}; run it again with the work account", 1)
     directory = os.path.dirname(TOKEN)
     os.makedirs(directory, mode=0o700, exist_ok=True)
     temporary = os.path.join(directory, f".token.{secrets.token_hex(4)}")
@@ -442,8 +442,8 @@ def main(arguments):
             print(mail(arguments[1:]))
         elif arguments[0] == "calendar":
             print(calendar(arguments[1:]))
-        elif arguments[0] == "login" and len(arguments) == 1:
-            login()
+        elif arguments[0] == "login" and len(arguments) == 2:
+            login(arguments[1])
         else:
             usage()
     except Failure as failure:

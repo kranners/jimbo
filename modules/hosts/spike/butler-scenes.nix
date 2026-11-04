@@ -9,7 +9,7 @@ let
   inherit (config.butler.scenes) dir catalog;
 
   # Each picture made with `imagine` that Aaron kept, by the outbox file it came from, copied once into spike's state.
-  # None is committed here: jimbo is public, the Work notes ones are Work's branding, and a cloud session cannot read butler's outbox.
+  # None is committed here: jimbo is public, the work ones are branded, and a cloud session cannot read butler's outbox.
   sources = lib.concatMap (
     group: lib.mapAttrsToList (name: scene: scene // { inherit group name; }) catalog.${group}
   ) (lib.attrNames catalog);
