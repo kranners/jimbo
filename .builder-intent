@@ -1,0 +1,1 @@
+Change 20261104-194051-1333061: call grace period before leaving an emptied voice channel, fast rejoin within 15 min, DAVE decrypt recovery, in kranners/claude-discord-threads (src/ call/voice code + tests); butler-memory core/operating.md Calls and butler-internals skill wording. jimbo: possibly CLAUDE.md lines only.
