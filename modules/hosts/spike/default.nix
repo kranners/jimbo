@@ -183,6 +183,47 @@
       butler.index.captions.photosScript = ./butler-photos/photos.py;
       # The index holds Aaron's payments, messages and more, so a thread that searched it counts as having read private data.
       butler.commands.life.private = true;
+      # Every read-only verb runs in every lane, the board's and calls' included, with the options life.py takes; the private flake's own rules allowed no option, so every search with --from or --limit was refused.
+      # A spoken result that used it still asks before framer says it, since the command is private.
+      butler.commands.life.rules =
+        let
+          lanes = [
+            "interactive"
+            "voice"
+            "cron"
+            "call"
+          ];
+        in
+        lib.mkForce (
+          [
+            {
+              match = [ "sources" ];
+              inherit lanes;
+            }
+          ]
+          ++
+            map
+              (verb: {
+                match = [
+                  verb
+                  "**"
+                ];
+                inherit lanes;
+                flags = [
+                  "--from"
+                  "--to"
+                  "--source"
+                  "--kind"
+                  "--limit"
+                ];
+              })
+              [
+                "search"
+                "day"
+                "spending"
+                "photos"
+              ]
+        );
       butler.index.browserHistory.devices.pilot = {
         address = "10.100.0.11";
         keys = [
