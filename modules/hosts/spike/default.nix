@@ -126,6 +126,11 @@
         ${lib.getExe test} $out/work.json
       '';
 
+    # The Threads snapshot from a fixture threads.db, checking kinds, states and that no message text gets out.
+    butler-threads = pkgs.runCommand "butler-threads-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      python3 -I ${./butler-threads/test_threads.py} ${./butler-threads/threads.py} > $out 2>&1 || { cat $out; exit 1; }
+    '';
+
     # The context packs from fixture memory, a fake board and a fake pilot, checking nothing private reaches one.
     butler-context = pkgs.runCommand "butler-context-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 -I ${./butler-context/test_context.py} ${./butler-context/context.py} > $out 2>&1 || { cat $out; exit 1; }
@@ -153,6 +158,7 @@
         ./butler-builders.nix
         ./butler-context.nix
         ./butler-work.nix
+        ./butler-threads.nix
         ./butler-drive.nix
         ./butler-health.nix
         ./butler-imagine.nix
