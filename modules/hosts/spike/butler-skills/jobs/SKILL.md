@@ -14,6 +14,7 @@ Use the `jobs` tool, passing the words after `jobs` as `args`.
 
 The name is lowercase letters, digits and dashes, such as `morning-mail`, and is the thread's title; it must be new, so remove a job before adding one of the same name.
 Each run opens a new thread in `#general` and runs the prompt there with no memory of this conversation, then DMs Aaron the result with `notify`.
+A job that checks on something, machines, a service, a queue, says nothing when all is well: its prompt ends by DMing Aaron only if something is wrong that he needs to act on, and never "all good" or a routine summary, as Aaron asked on 4 Nov 2026; the machines themselves need no job, since the `monitor` watches them.
 So write the prompt for a stranger: say exactly what to read, check or draft, and what the result should say, with any names, lists or dates it needs.
 Say back when it next runs, with the day of the week, so a wrong time is caught.
 A job starts from its next time on: one added a minute or less before its time skips that first run.

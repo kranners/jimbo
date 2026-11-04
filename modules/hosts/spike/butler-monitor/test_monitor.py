@@ -1,4 +1,4 @@
-"""Fixture tests for butler-monitor: thresholds, holds, repeats, quiet hours and action choice, on fake machines."""
+"""Fixture tests for butler-monitor: thresholds, holds, suppression, expected-off marks, escalation, quiet hours and action choice, on fake machines."""
 
 import importlib.util
 import json
@@ -14,7 +14,8 @@ spec.loader.exec_module(monitor)
 with open(sys.argv[2]) as f:
     monitor.CONFIG.update(json.load(f))
 tmp = tempfile.mkdtemp()
-monitor.CONFIG.update(state=tmp, holdFile=os.path.join(tmp, 'hold'), group=None)
+monitor.CONFIG.update(state=tmp, holdFile=os.path.join(tmp, 'hold'), group=None, expected=os.path.join(tmp, 'expected'),
+                      hosts={'pilot': {}, 'piggys-MBP': {}, 'jimbo': {}})
 
 GB = monitor.GB
 DAY = 86400
@@ -39,13 +40,18 @@ def snap(machines, claude=None, work=None, turns=None):
     return {'machines': machines, 'claude': claude or {}, 'work': work, 'turns': turns}
 
 
-def judge(machines, state=None, now=1000 * DAY, **kw):
+def judge(machines, state=None, now=1000 * DAY, expected=None, **kw):
     state = {} if state is None else state
-    return monitor.settle(monitor.evaluate(snap(machines, **kw), state, now), state, now)
+    return monitor.settle(monitor.evaluate(snap(machines, **kw), state, now, expected), state, now)
 
 
 def levels(findings):
-    return {f['key']: f['level'] for f in findings}
+    """The findings Aaron could be told about; info ones are only logged."""
+    return {f['key']: f['level'] for f in findings if f['level'] != 'info'}
+
+
+def noted(findings):
+    return {f['key'] for f in findings if f['level'] == 'info'}
 
 
 local_day = time.struct_time((2026, 11, 4, 14, 0, 0, 2, 308, 1))
@@ -69,14 +75,23 @@ check('disk 7% of 1 TB acts', levels(judge({'a': healthy(disk_free_bytes=70 * GB
 
 # Memory: under 15% warns at once; under 8% acts only after 5 minutes.
 state = {}
-check('memory 6% warns at first', levels(judge({'a': healthy(mem_free_ratio=0.06)}, state, now=0)) == {'a:memory': 'warn'})
-check('memory 6% still warn after 4 min', levels(judge({'a': healthy(mem_free_ratio=0.06)}, state, now=240)) == {'a:memory': 'warn'})
-check('memory 6% acts after 5 min', levels(judge({'a': healthy(mem_free_ratio=0.06)}, state, now=300)) == {'a:memory': 'act'})
-check('memory hold resets once it recovers', levels(judge({'a': healthy()}, state, now=360)) == {} and
-      levels(judge({'a': healthy(mem_free_ratio=0.06)}, state, now=420)) == {'a:memory': 'warn'})
+lin = {'os': 'linux'}
+check('memory 6% warns at first', levels(judge({'a': healthy(mem_free_ratio=0.06, **lin)}, state, now=0)) == {'a:memory': 'warn'})
+check('memory 6% still warn after 4 min', levels(judge({'a': healthy(mem_free_ratio=0.06, **lin)}, state, now=240)) == {'a:memory': 'warn'})
+check('memory 6% acts after 5 min', levels(judge({'a': healthy(mem_free_ratio=0.06, **lin)}, state, now=300)) == {'a:memory': 'act'})
+check('memory hold resets once it recovers', levels(judge({'a': healthy(**lin)}, state, now=360)) == {} and
+      levels(judge({'a': healthy(mem_free_ratio=0.06, **lin)}, state, now=420)) == {'a:memory': 'warn'})
 
 check('critical pressure acts', levels(judge({'a': healthy(pressure='critical')})) == {'a:pressure': 'act'})
-check('load 2.5x cores warns', levels(judge({'a': healthy(load15=20, load_ratio=2.5)})) == {'a:load': 'warn'})
+check('load 2.5x cores is only noted', levels(judge({'a': healthy(load15=20, load_ratio=2.5)})) == {} and
+      noted(judge({'a': healthy(load15=20, load_ratio=2.5)})) == {'a:load'})
+# pilot at 11:27 on 4 Nov: 39.7 on 18 cores, from Aaron's own board sessions, is not news.
+check("pilot's 39.7 on 18 cores is only noted", levels(judge({'pilot': healthy(load15=39.7, load_ratio=39.7 / 18, cores=18)})) == {})
+state = {}
+check('load over 4x cores is quiet at first', levels(judge({'a': healthy(load15=40, load_ratio=5)}, state, now=0)) == {})
+check('load over 4x cores still quiet after 29 minutes', levels(judge({'a': healthy(load15=40, load_ratio=5)}, state, now=29 * 60)) == {})
+check('load over 4x cores warns after 30 minutes', levels(judge({'a': healthy(load15=40, load_ratio=5)}, state, now=30 * 60)) == {'a:load': 'warn'})
+check('a Mac with little free memory but no pressure is only noted', levels(judge({'a': healthy(mem_free_ratio=0.05)})) == {})
 
 # Battery counts only on battery with keep-awake on.
 check('battery 35% warns', levels(judge({'a': healthy(on_battery=True, battery=35)})) == {'a:battery': 'warn'})
@@ -90,28 +105,94 @@ check('a locked piggys-MBP alone gets keep-awake reasserted', [h for a, h in loc
 check('keep-awake off on piggys-MBP acts', levels(judge({'piggys-MBP': healthy(keepawake='off')})) == {'piggys-MBP:keepawake': 'act'})
 check('keep-awake off on pilot is its default', levels(judge({'pilot': healthy(keepawake='off')})) == {})
 
-# Down: 10 minutes, then once for a laptop, hourly and urgent for framer.
+# Down: framer urgent at 10 minutes, told once; a laptop or the PC down is only noted, however long.
 state = {}
 down = {'up': False, 'why': 'does not answer on ssh'}
-judge({'pilot': down, 'framer': down}, state, now=0)
-f = judge({'pilot': down, 'framer': down}, state, now=600)
-check('down for 10 minutes is noticed', levels(f) == {'pilot:down': 'warn', 'framer:down': 'act'})
-check('framer down is urgent, pilot not', {x['key']: x['urgent'] for x in f} == {'pilot:down': False, 'framer:down': True})
-lines, shout = monitor.notices(f, [], state, 600, local_day, {'pilot', 'framer'})
-check('both down notices go out once', len(lines) == 2 and shout and 'framer' in shout)
-f = judge({'pilot': down, 'framer': down}, state, now=1800)
-lines, shout = monitor.notices(f, [], state, 1800, local_day, {'pilot', 'framer'})
-check('no repeat within the hour', lines == [] and shout is None)
-f = judge({'pilot': down, 'framer': down}, state, now=4300)
-lines, shout = monitor.notices(f, [], state, 4300, local_day, {'pilot', 'framer'})
-check('framer repeats hourly, pilot never', len(lines) == 1 and 'framer' in lines[0])
+judge({'pilot': down, 'framer': down, 'jimbo': down}, state, now=0)
+f = judge({'pilot': down, 'framer': down, 'jimbo': down}, state, now=600)
+check('framer down for 10 minutes acts, the laptop and PC are only noted', levels(f) == {'framer:down': 'act'} and noted(f) == {'pilot:down', 'jimbo:down'})
+lines, shout, log = monitor.notices(f, [], state, 600, local_day, {'pilot', 'framer', 'jimbo'})
+check('framer down is told once and shouted', len(lines) == 1 and 'framer' in lines[0] and shout and 'framer' in shout)
+check('the laptop and PC being down is logged as not told', {e['key'] for e in log if e['route'] == 'kept'} == {'pilot:down', 'jimbo:down'})
+told_count = 0
+for hour in range(1, 24):
+    f = judge({'pilot': down, 'framer': down, 'jimbo': down}, state, now=600 + hour * 3600)
+    lines, shout, log = monitor.notices(f, [], state, 600 + hour * 3600, local_day, {'pilot', 'framer', 'jimbo'})
+    told_count += len(lines) + (1 if shout else 0)
+    if hour == 11:
+        check('jimbo unreachable 11 hours says nothing, nor logs again', lines == [] and log == [])
+check('nothing repeats within 24 hours, not even hourly', told_count == 0)
+f = judge({'pilot': down, 'framer': down, 'jimbo': down}, state, now=600 + 24 * 3600)
+lines, shout, log = monitor.notices(f, [], state, 600 + 24 * 3600, local_day, {'pilot', 'framer', 'jimbo'})
+check('after 24 hours framer is told once as still open', len(lines) == 1 and lines[0].startswith('Still open after') and 'framer' in lines[0])
+f = judge({'pilot': down, 'framer': down, 'jimbo': down}, state, now=600 + 60 * 3600)
+lines, shout, log = monitor.notices(f, [], state, 600 + 60 * 3600, local_day, {'pilot', 'framer', 'jimbo'})
+check('and never again after that', lines == [] and shout is None)
+
+# Expected off: a machine Butler or Aaron switched off on purpose says nothing about being down, locked or awake.
+monitor.CONFIG['quiet'] = {'start': '23:00', 'end': '07:00', 'summary': '07:30'}
+now = 1000 * DAY
+host, until, reason = monitor.parse_expect(['jimbo', 'down', 'until', '07:00', 'shut', 'down', 'for', 'the', 'night'], now, local_night)
+check('expect until 07:00 at 02:00 lasts five hours', (host, until - now, reason) == ('jimbo', 5 * 3600, 'shut down for the night'))
+check('expect for 3h', monitor.parse_expect(['framer', 'for', '3h'], now)[1] == now + 3 * 3600)
+try:
+    monitor.parse_expect(['../etc', 'down'], now)
+    check('an unknown machine is refused', False)
+except ValueError:
+    check('an unknown machine is refused', True)
+monitor.write_expect('framer', now + 3600, 'unplugged to move it', now)
+monitor.write_expect('jimbo', now - 1, 'old mark', now - 7200)
+expected = monitor.read_expected(now)
+check('a live mark is read and an expired one dropped', set(expected) == {'framer'} and not os.path.exists(monitor.expect_path('jimbo')))
+state = {}
+judge({'framer': down}, state, now=now, expected=expected)
+f = judge({'framer': down}, state, now=now + 900, expected=expected)
+lines, shout, log = monitor.notices(f, [], state, now + 900, local_day, {'framer'})
+check('expected-down framer is not told or shouted', levels(f) == {} and lines == [] and shout is None)
+check('and the log says why it was kept quiet', log and log[0]['why'] == 'expected: unplugged to move it')
+check('an expected Mac locked with keep-awake off gets no keep-awake action',
+      monitor.choose_actions(judge({'piggys-MBP': healthy(keepawake='off', locked='yes')}, expected={'piggys-MBP': {'reason': 'put to sleep by Butler'}}), snap({})) == [('release-work', 'spike')])
+check('a disk problem still counts while a machine is expected off',
+      levels(judge({'piggys-MBP': healthy(disk_free_bytes=5 * GB)}, expected={'piggys-MBP': {'reason': 'x'}})) == {'piggys-MBP:disk': 'act'})
+marks = {'framer': {'set': now, 'until': now + 3600, 'reason': 'x'}}
+check('a mark holds while the machine is back for under 10 minutes', monitor.settle_expected(marks, snap({'framer': healthy(os='linux')}), now + 300) == [])
+check('and ends once it is back and awake', monitor.settle_expected(marks, snap({'framer': healthy(os='linux')}), now + 700) == ['framer'] and marks == {})
+marks = {'piggys-MBP': {'set': now, 'until': now + DAY, 'reason': 'x'}}
+check('a slept Mac back with keep-awake still off stays expected', monitor.settle_expected(marks, snap({'piggys-MBP': healthy(keepawake='off')}), now + 3600) == [])
+
+# Escalation: a problem is told once, again only when it gets worse.
+state = {}
+f = judge({'spike': healthy(os='linux', disk_free_bytes=18 * GB, disk_total_bytes=150 * GB)}, state, now=now)
+lines, _, _ = monitor.notices(f, [], state, now, local_day)
+check('a new disk warning is told once with what to do', len(lines) == 1 and 'Free some space' in lines[0])
+f = judge({'spike': healthy(os='linux', disk_free_bytes=17 * GB, disk_total_bytes=150 * GB)}, state, now=now + 3 * 3600)
+lines, _, _ = monitor.notices(f, [], state, now + 3 * 3600, local_day)
+check('the same warning a little lower is not told again', lines == [])
+f = judge({'spike': healthy(os='linux', disk_free_bytes=8 * GB, disk_total_bytes=150 * GB)}, state, now=now + 4 * 3600)
+lines, shout, _ = monitor.notices(f, [], state, now + 4 * 3600, local_day)
+check('crossing into act is told as worse and shouted', len(lines) == 1 and lines[0].startswith('Worse: ⚠️') and shout)
+f = judge({'spike': healthy(os='linux')}, state, now=now + 5 * 3600)
+lines, _, log = monitor.notices(f, [], state, now + 5 * 3600, local_day)
+check('a resolution is never told, only logged later', lines == [] and log == [])
+f = judge({'spike': healthy(os='linux')}, state, now=now + 5 * 3600 + 31 * 60)
+lines, _, log = monitor.notices(f, [], state, now + 5 * 3600 + 31 * 60, local_day)
+check('after 30 minutes gone it is logged as cleared', lines == [] and [e['route'] for e in log] == ['cleared'] and 'spike:disk' not in state['sent'])
+flap = {}
+for i, free in enumerate([18, 25, 18, 25, 18]):
+    f = judge({'spike': healthy(os='linux', disk_free_bytes=free * GB, disk_total_bytes=150 * GB)}, flap, now=now + i * 600)
+    lines, _, _ = monitor.notices(f, [], flap, now + i * 600, local_day)
+    if i:
+        check('a disk flapping at the edge is not told again (%d)' % i, lines == [])
+
+# Silent findings: Claude accounts move on by themselves, busy turn slots are not stuck, Docker's cache is pruned daily.
+check('one Claude account at 96% is only noted', levels(judge({}, claude={'personal': 96, 'work': 85})) == {})
+check('every Claude account at 95% warns', levels(judge({}, claude={'personal': 96, 'work': 97})) == {'claude:all': 'warn'})
 
 # Claude accounts.
-check('weekly 85% warns, 96% acts', levels(judge({}, claude={'personal': 96, 'work': 85})) == {'claude:personal': 'act', 'claude:work': 'warn'})
 
 # Runaway work.
 work = {'running': 6, 'long': [{'id': 'x', 'title': 'Long one', 'started': 1000 * DAY - 4 * 3600}]}
-check('too many changes and a long one warn', levels(judge({}, work=work)) == {'work:running': 'warn', 'work:long:x': 'warn'})
+check('a long change warns, many at once is only noted', levels(judge({}, work=work)) == {'work:long:x': 'warn'} and 'work:running' in noted(judge({}, work=work)))
 
 # Action choice: only the table's safe actions, nothing on pilot.
 machines = {'spike': healthy(os='linux', disk_free_bytes=5 * GB, failed_units=['butler-memory-pull.service', 'butler.service', 'postgresql.service']),
@@ -148,15 +229,35 @@ check('on repeats nothing within the hour, the unit restart never while it stays
 monitor.act(actions, state, 'on', 3700, doer)
 check('after an hour the disk actions may run again, not the restart', ('restart:butler-memory-pull.service', 'spike') not in calls and ('docker-prune', 'spike') in calls)
 
-# Quiet hours: warnings wait for the morning, urgent and real actions do not.
+# Quiet hours: warnings and real actions wait for one short morning list; urgent items do not; dry-run plans never show.
 state = {}
 f = judge({'a': healthy(disk_free_bytes=18 * GB, disk_total_bytes=100 * GB), 'b': healthy(disk_free_bytes=5 * GB)}, state)
-lines, shout = monitor.notices(f, [], state, 1000 * DAY, local_night)
+did = [{'action': 'docker-prune', 'result': 'done', 'line': "Did: clear Docker's build cache, 5 GB free → 30 GB free."},
+       {'action': 'keepawake-on', 'result': 'dry-run', 'line': 'Would turn piggys-MBP keep-awake back on (acting is in dry-run).'},
+       {'action': 'hold-work', 'result': 'done', 'line': 'Did: hold new change sessions.'}]
+lines, shout, log = monitor.notices(f, did, state, 1000 * DAY, local_night)
 check('at night only the urgent item notifies', len(lines) == 1 and 'b' in lines[0] and shout)
-check('the warning waits overnight', len(state['overnight']) == 1)
+check('the warning and the real action wait overnight, the dry-run and hold do not', [i['key'] for i in state['overnight']] == ['a:disk', 'action'])
+check('the held one is logged as held', any(e['route'] == 'held for the morning' and e['key'] == 'a:disk' for e in log))
 summary = monitor.morning(state, local_morning, f)
-check('the morning summary lists it once', summary and 'a\'s disk' in summary and state.get('overnight') is None)
+check('the morning summary is one short list', summary and summary.startswith('Overnight, machines:') and summary.count('\n- ') == 2 and 'Still open' not in summary)
 check('and only once that morning', monitor.morning(state, local_morning, f) is None)
+state = {}
+lines, _, _ = monitor.notices([], [did[1]], state, 1000 * DAY, local_night)
+check('a quiet night sends no morning summary', lines == [] and monitor.morning(state, local_morning, []) is None)
+lines, _, _ = monitor.notices([], [did[1], did[2]], {}, 1000 * DAY, local_day)
+check('by day a dry-run plan or the hold flag is not told either', lines == [])
+
+# A Mac locked at night is a line in the morning list, not a notice, and is not told again by day.
+state = {}
+f = judge({'piggys-MBP': healthy(locked='yes')}, state)
+lines, shout, log = monitor.notices(f, [], state, 1000 * DAY, local_night)
+check('a night lock is no notice', lines == [] and shout is None and log[0]['route'] == 'noted for the morning')
+lines, _, _ = monitor.notices(judge({'piggys-MBP': healthy(locked='yes')}, state), [], state, 1000 * DAY + 6 * 3600, local_morning)
+summary = monitor.morning(state, local_morning, f)
+check('it is not told by day, only in the morning list', lines == [] and summary and "piggys-MBP's screen is locked" in summary)
+lines, _, _ = monitor.notices(judge({'piggys-MBP': healthy(locked='yes')}), [], {}, 1000 * DAY, local_day)
+check('a lock by day is told, with what to do', len(lines) == 1 and 'Unlock it' in lines[0])
 
 # A fake Mac's reading.
 raw = monitor.parse_pairs('cores=8\nload=4.10 5.20 6.90\nmemfree=46\npressure=1\ndisk_total=494384795648\n'
@@ -176,15 +277,16 @@ pool = {'cap': 4, 'reserved': 2, 'backoff': None, 'running': 4, 'interactive': 2
         'oldestQueuedAt': (now - 90) * 1000, 'runningStartedAt': [], 'fullSince': (now - 10 * 60) * 1000}
 check('a short wait and busy slots for 10 minutes raise nothing', not [f for f in judge({}, turns=pool, now=now) if f['host'] == 'spike'])
 pool.update(oldestQueuedAt=(now - 150) * 1000, fullSince=(now - 16 * 60) * 1000)
-found = levels(judge({}, turns=pool, now=now))
-check('a turn waiting over 2 minutes and slots busy over 15 warn', found == {'butler:queue': 'warn', 'butler:slots': 'warn'})
+f = judge({}, turns=pool, now=now)
+check('a turn waiting over 2 minutes and slots busy over 15 are only noted', levels(f) == {} and noted(f) == {'butler:queue', 'butler:slots'})
+pool.update(oldestQueuedAt=(now - 31 * 60) * 1000)
 state = {}
 f = judge({}, state, turns=pool, now=now)
-lines, _ = monitor.notices(f, [], state, now, local_day)
-again, _ = monitor.notices(judge({}, state, turns=pool, now=now + 4 * 3600), [], state, now + 4 * 3600, local_day)
-check('the turn warnings go once', len(lines) == 2 and again == [])
+lines, _, _ = monitor.notices(f, [], state, now, local_day)
+again, _, _ = monitor.notices(judge({}, state, turns=pool, now=now + 4 * 3600), [], state, now + 4 * 3600, local_day)
+check('a turn stuck for 30 minutes is told once', levels(f) == {'butler:queue': 'warn'} and len(lines) == 1 and again == [])
 metrics = monitor.prom_lines(snap({}, turns=pool), [], 'dry-run', now)
-check('the pool is charted', 'butler_turns_queued 1' in metrics and 'butler_turns_oldest_queued_seconds 150' in metrics and 'butler_turns_slots_busy_seconds 960' in metrics)
+check('the pool is charted', 'butler_turns_queued 1' in metrics and 'butler_turns_oldest_queued_seconds 1860' in metrics and 'butler_turns_slots_busy_seconds 960' in metrics)
 check('back off at 90% of a session or week', monitor.backoff({'personal': {'session': 91, 'weekly': 20}, 'work': {'weekly': 50}}) == 'the Claude personal session at 91%'
       and monitor.backoff({'personal': {'session': 89}, 'work': {'weekly': 66}}) is None)
 limits = os.path.join(tmp, 'limits')

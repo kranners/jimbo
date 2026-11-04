@@ -56,6 +56,8 @@ let
       holdFile
       ;
     control = "${control}/mode";
+    # Machines meant to be off, one JSON file each, written by butler's `monitor expect` and `mac`'s sleep and boot.
+    expected = cfg.expectedDir;
     textfile = "/var/lib/claude-limits/butler-monitor.prom";
     prometheus = "http://127.0.0.1:${toString config.services.prometheus.port}";
     prometheusHosts = [
@@ -110,12 +112,22 @@ let
     ];
     text = ''
       mode() { cat ${control}/mode 2> /dev/null || echo "${cfg.defaultMode} (the default)"; }
+      notices() {
+        [ -f ${state}/notices.jsonl ] || { echo "Nothing seen yet."; exit 0; }
+        jq -r "$1"' | "\(.at | strflocaltime("%a %d %b %H:%M")) [\(.route)\(if .why then ": " + .why else "" end)] \(.text)"' ${state}/notices.jsonl | tail -n 30
+      }
+      if [ "''${1:-}" = expect ]; then
+        shift
+        MONITOR_CONFIG=${configFile} exec ${lib.getExe monitor} expect "$@"
+      fi
       case "''${1:-status} ''${2:-}" in
         "status ")
           cat ${state}/status.txt 2> /dev/null || echo "The monitor has not run yet."
           [ ! -e ${cfg.holdFile} ] || echo "New change sessions and runner launches are held: $(cat ${cfg.holdFile})"
           ;;
-        "log ")
+        "log ") notices 'select(true)' ;;
+        "log quiet") notices 'select(.route != "told")' ;;
+        "log actions")
           [ -f ${state}/actions.jsonl ] || { echo "Nothing done or planned yet."; exit 0; }
           tail -n 20 ${state}/actions.jsonl | jq -r '"\(.at | strflocaltime("%a %d %b %H:%M")) [\(.result)] \(.line)"'
           ;;
@@ -126,7 +138,7 @@ let
           echo "Acting is now $2, from the monitor's next run within 2 minutes; warnings carry on either way."
           ;;
         *)
-          echo "usage: monitor [status] | monitor log | monitor act [on|off|dry-run]" >&2
+          echo "usage: monitor [status] | monitor log [quiet|actions] | monitor expect [<host> [clear | [down] [until HH:MM | for <N>h] [reason]]] | monitor act [on|off|dry-run]" >&2
           exit 2
           ;;
       esac
@@ -164,7 +176,7 @@ in
       };
     };
     alwaysOn = mkOption {
-      description = "Machines whose being down is urgent and repeats hourly; any other is told once per spell.";
+      description = "Machines whose being down is urgent, told once and again only as still open after a day; any other being down is only logged.";
       type = types.listOf types.str;
       default = [
         "spike"
@@ -209,6 +221,12 @@ in
       default = "${state}/concurrency.json";
       readOnly = true;
     };
+    expectedDir = mkOption {
+      description = "Machines meant to be off, one JSON file each, which butler's `monitor expect` and `mac`'s sleep, keep-awake off and boot write.";
+      type = types.str;
+      default = "${control}/expected";
+      readOnly = true;
+    };
     holdFile = mkOption {
       description = "Present while the monitor, acting, holds new change sessions and runner launches.";
       type = types.str;
@@ -221,8 +239,8 @@ in
     butler.commands.monitor = {
       package = command;
       description = ''
-        The machines monitor: what spike, framer, piggys-MBP, pilot and jimbo look like now and the problems open, from its last run within 2 minutes.
-        monitor [status] | monitor log (the last 20 things it did or would have done) | monitor act [on|off|dry-run] (on only when Aaron himself says so)
+        The machines monitor: what spike, framer, piggys-MBP, pilot and jimbo look like now and the problems open, from its last run within 2 minutes, and what it saw but did not tell Aaron.
+        monitor [status] | monitor log [quiet|actions] (the last 30 things it saw and what it did with each; quiet is only what it did not tell Aaron; actions the last 20 it did or would have done) | monitor expect [<host> [clear | [down] [until HH:MM | for <N>h] [reason]]] (mark a machine meant to be off, so nothing is said about it) | monitor act [on|off|dry-run] (on only when Aaron himself says so)
       '';
       rules = [
         {
@@ -236,6 +254,36 @@ in
         {
           match = [ "log" ];
           lanes = reads;
+        }
+        {
+          match = [
+            "log"
+            "quiet"
+          ];
+          lanes = reads;
+        }
+        {
+          match = [
+            "log"
+            "actions"
+          ];
+          lanes = reads;
+        }
+        {
+          match = [ "expect" ];
+          lanes = reads;
+        }
+        # A mark only keeps the monitor quieter about one machine for at most a week.
+        {
+          match = [
+            "expect"
+            "**"
+          ];
+          lanes = [
+            "interactive"
+            "cron"
+          ];
+          acts = true;
         }
         {
           match = [ "act" ];
@@ -274,6 +322,7 @@ in
     systemd.tmpfiles.rules = [
       "d ${state} 0750 root butler -"
       "d ${control} 2770 root butler -"
+      "d ${cfg.expectedDir} 2770 root butler -"
     ];
 
     systemd.services.butler = {

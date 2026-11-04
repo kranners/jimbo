@@ -30,6 +30,8 @@ WAYVNC = 'butler-wayvnc.sock'
 WINDOWS_STATE = r'C:\ProgramData\butler-access'
 OVERLAY = '/etc/profiles/per-user/$USER/bin/butler-overlay'
 MEMORY_AUDIT = '@memoryAudit@'
+# The machines monitor's expected-off marks: sleeping, booting or letting a machine idle tells it to say nothing about it.
+EXPECTED = '@expected@'
 # A control session ends after this many seconds without a mac command, as the overlay on the Mac does by itself.
 CONTROL_IDLE = @idle@
 CONTROL = os.path.join(STATE, 'control')
@@ -818,11 +820,31 @@ switch ($verb) {
 '''
 
 
+def expect_off(host, hours, reason):
+    """Marks host expected off for the machines monitor, or clears the mark with hours None; never fails the command."""
+    path = os.path.join(EXPECTED, host + '.json')
+    try:
+        if hours is None:
+            os.unlink(path)
+            return
+        now = int(time.time())
+        fd = os.open(path + '.tmp', os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o660)
+        with os.fdopen(fd, 'w') as f:
+            json.dump({'host': host, 'until': now + int(hours * 3600), 'reason': reason, 'set': now, 'by': 'mac'}, f)
+        os.replace(path + '.tmp', path)
+    except OSError:
+        pass
+
+
 def keepawake(host, verb):
     if verb not in ('status', 'on', 'off', 'sleep'):
         raise Refused('keepawake takes status, on or off')
     if verb != 'status':
         journal(host, 'sleep' if verb == 'sleep' else 'keepawake ' + verb)
+        if verb == 'on':
+            expect_off(host, None, '')
+        else:
+            expect_off(host, 24 if verb == 'sleep' else 7 * 24, 'put to sleep by Butler' if verb == 'sleep' else 'keep-awake turned off by Butler')
     if system_of(host) == 'windows':
         result = remote(host, WINDOWS_KEEPAWAKE % (verb, WINDOWS_STATE), timeout=30)
     else:
@@ -872,6 +894,7 @@ def boot(host, args):
         return
     if go:
         journal(host, 'boot %s' % wanted)
+        expect_off(host, 0.5, 'restarting into %s' % OS_NAMES[wanted])
     if current == 'windows':
         result = remote(host, WINDOWS_BOOT % ('$true' if go else '$false'), timeout=30)
     else:
