@@ -1,13 +1,6 @@
-# kanban.spike.cute.engineer: proposal, not landed
+# kanban.spike.cute.engineer
 
-Change 20261104-172059-233618 stopped here because every way to finish it changes pilot or adds an auth path, both of which the brief reserves for Aaron.
-
-## Where things stand on spike
-
-- `kanban-remote.nix` already serves `kanban.spike.cute.engineer` behind the device gate, proxying through `kanban-tunnel.service` to pilot's loopback `127.0.0.1:7420`, so there is one board, pilot's, and nothing to sync or lose.
-- The tunnel stays off because `kanban-remote-key.nix` is `null`: spike generated the key (`kanban-tunnel-key` ran on 3 Nov), but its public half has never been copied in.
-- `device-gate` is inactive, which means `/var/lib/secrets/device-gate-password` was never written, so every gated site answers 502.
-- Public DNS has no record for `kanban.spike.cute.engineer` or `desk.spike.cute.engineer` (NXDOMAIN), while `life`, `grafana` and `backlogic` resolve to `10.100.0.1`.
+Change 20261104-172059-233618 proposed this and change 20261104-173258-334843 landed it, with Aaron's yes to the pilot-side changes, the runner bearer route and the runners on piggys-MBP and jimbo.
 
 ## Design
 
@@ -15,17 +8,18 @@ Spike proxies pilot's board; it runs no board of its own. Cards stay on pilot, a
 Runners reach that same board through spike rather than through a WireGuard listener on pilot, so pilot opens no port and keeps `KANBAN_AUTH=off` on loopback.
 Each runner long-polls the hub, so the hub never connects out to a runner.
 
-## Steps, in order
+## Landed in jimbo
 
-1. Aaron, in Cloudflare: add DNS-only A records for `kanban.spike` and `desk.spike` pointing at `10.100.0.1`.
-2. Aaron, on spike: run `sudo device-gate-password`.
-3. Aaron, on spike: run `sudo cat /var/lib/kanban-tunnel/id_ed25519.pub` and put the output in `modules/hosts/spike/kanban-remote-key.nix`.
-   **This changes pilot**: its next `just` authorizes the key (`from="10.100.0.1",restrict,permitopen="127.0.0.1:7420"`).
-4. **New auth path, needs Aaron's yes:** a Caddy matcher in `kanban-remote.nix` that sends, from the `piggys-MBP` and `jimbo` peers only, requests that carry `Authorization: Bearer` and no `Origin`, for `/runner.js` and `/api/runners/(register|<id>/heartbeat|<id>/commands[/<cmd>])` alone, through to the board with the `Authorization` header kept and `Cf-Connecting-Ip` set.
-   The board's own `KANBAN_RUNNER_TOKEN` check then guards these requests, not the device gate.
-   Add `piggys-MBP` and `jimbo` to that file's `viewers` too.
-5. **Changes pilot:** write `KANBAN_RUNNER_TOKEN=$(openssl rand -hex 32)` to `~/.config/kanban/env` (mode 600) on pilot, add `KANBAN_RUNNERS = "piggys-mbp,jimbo"` to `launchd.agents.kanban` in `modules/hosts/pilot/kanban.nix`, then restart the board.
-6. Write the same token to `~/.config/kanban/env` on piggys-MBP and on jimbo.
-   `modules/kanban-runner` (on this branch) then runs the runner as a launchd agent or user unit, fetching `/runner.js` from the hub.
-   Jimbo also needs `jimboPublicKey` set in spike's `wireguard.nix` before it can reach spike at all.
-7. Test: open `https://kanban.spike.cute.engineer` from piggys-MBP, sign in, pick "piggys-mbp" under "where it runs", start a session, and watch its card.
+- `kanban-remote-key.nix` holds spike's tunnel key, so pilot's next switch authorizes it (`from="10.100.0.1",restrict,permitopen="127.0.0.1:7420"`) and spike opens the tunnel.
+- `kanban-remote.nix` lets piggys-MBP and jimbo in as viewers, and passes a runner's calls (bearer token, no `Origin`, `/runner.js` and `/api/runners/(register|<id>/heartbeat|<id>/commands[/<cmd>])` alone) through to the board with `Authorization` kept, so the board's own `KANBAN_RUNNER_TOKEN` check guards them, not the device gate.
+- `pilot/kanban.nix` sets `KANBAN_RUNNERS=piggys-mbp,jimbo`.
+- `modules/kanban-runner` runs the runner on piggys-MBP (launchd) and jimbo's NixOS (user unit).
+
+## Hand steps left
+
+1. Cloudflare: DNS-only A records for `kanban.spike` and `desk.spike` pointing at `10.100.0.1`.
+2. Spike: `sudo device-gate-password`.
+3. Pilot: `just`, write `KANBAN_RUNNER_TOKEN=$(openssl rand -hex 32)` to `~/.config/kanban/env` (mode 600), make sure `dist/runner.js` is built (`npm run build` in `~/workspace/kanban`), and restart the board.
+4. piggys-MBP: `just`, then write the same token to `~/.config/kanban/env` (mode 600).
+5. jimbo: boot NixOS, set `jimboPublicKey` in spike's `wireguard.nix` from `sudo wg show wg0 public-key`, then `just` and write the token there too.
+6. Test: open `https://kanban.spike.cute.engineer` from piggys-MBP, sign in, pick "piggys-mbp" under "where it runs", start a session, and watch its card.
