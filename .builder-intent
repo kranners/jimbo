@@ -1,0 +1,1 @@
+Change 20261104-162139-3610470: strip a leading mood tag, [mood: x] or bare [x], from typed replies before posting. claude-discord-threads src/engine/mood.ts (stripPostedMood), src/daemon.ts strippingMoodTags, test/mood.test.ts; jimbo CLAUDE.md one sentence.
