@@ -32,6 +32,7 @@ in
     ./butler-access
     ./browser-history
     ./kanban-runner
+    ./backlogic-runner
   ]
   ++ lib.optionals host.desktop [
     ./hyprland
@@ -116,6 +117,11 @@ in
     };
 
     nixosConfigurations = mkOption {
+      type = types.raw;
+      default = { };
+    };
+
+    packages = mkOption {
       type = types.raw;
       default = { };
     };

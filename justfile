@@ -31,3 +31,7 @@ quiet-Linux:
 
 fmt:
 	nix fmt
+
+# Install the NUC worker over ssh from its installer: just nuc-install <ip> <disk>
+nuc-install ip disk:
+	modules/hosts/nuc/install.sh {{ ip }} {{ disk }}

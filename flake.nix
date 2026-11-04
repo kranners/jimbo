@@ -21,6 +21,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     butler = {
       url = "git+ssh://git@github.com/kranners/butler";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -71,6 +76,14 @@
           username = "aaron";
           desktop = false;
           kiosk = true;
+        }
+
+        {
+          system = "x86_64-linux";
+          hostname = "nuc";
+          username = "aaron";
+          desktop = false;
+          kiosk = false;
         }
       ];
 
