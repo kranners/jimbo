@@ -165,6 +165,25 @@ let
         [ -e "$name" ] || [ -L "$name" ] || ln -s "$prompt" "$name"
       done
 
+      # Jobs made before every job was quiet keep leaving a thread on a NOTHING answer, so make each quiet in place.
+      for file in job-*.md job-*.md.pending; do
+        [ -f "$file" ] && [ ! -L "$file" ] || continue
+        [ -z "$(field quiet "$file")" ] || continue
+        awk '
+          /^---$/ && n < 2 { n++; if (n == 2) print "quiet: true" }
+          { print }
+          END {
+            print "If you found nothing new he needs to hear, such as something not arrived yet, send nothing with `notify` and make NOTHING the last line of your reply, so this run leaves no thread behind."
+          }
+        ' "$file" >"$file.tmp"
+        if grep -q '^quiet: true$' "$file.tmp"; then
+          mv "$file.tmp" "$file"
+          logger -t butler-jobs "made $file quiet"
+        else
+          rm -f "$file.tmp"
+        fi
+      done
+
       for file in job-*.md.pending; do
         due=$(field once "$file")
         if ! [[ $due =~ ^[0-9]+$ ]] || [ "$due" -lt "$now" ]; then

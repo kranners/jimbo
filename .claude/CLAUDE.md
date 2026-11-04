@@ -463,6 +463,7 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   The epoch keeps a reused name from counting as overdue, and `remove` takes the name alone and never touches the memory's links.
   The daemon matches only a time of day and weekdays, so a one-off, `once <date> <HH:MM>`, carries its time in `once` and waits as `.md.pending`, a name the daemon ignores, until it is a day away.
   `butler-jobs.timer`, as `butler` every minute, links each memory `cron/*.md` in, drops links whose prompt is gone, shows one-offs a day away to the daemon and deletes them 10 minutes after their time.
+  It also makes any job of butler's with no `quiet` line, one added before every job was quiet, `quiet: true` in place, adding the `NOTHING` rule to its prompt, so the checks already scheduled stop leaving threads too.
   The daemon never fires a prompt the first time it sees it, so a job added a minute or less before its time skips that run.
   `modules/hosts/spike/butler-notify.nix` gives it a notify spool, `/var/lib/butler-notify`, its `DISCORD_NOTIFY_DIR`, mode `2770` and group `butler-notify`, which holds `butler` and `aaron`, so whoever can write it can DM Aaron and no one else can.
   `butler-notify [file...]` writes its stdin as a notice there, copying the files beside it, and the daemon sends it to `allowFrom` within 5 seconds, then deletes it.
