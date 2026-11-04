@@ -82,6 +82,13 @@ let
       "butler-land.service"
       "butler-monitor.service"
     ];
+    # Units that retry on their own every minute or so: a failure is news only once runs of them fail in a row,
+    # counted in file by the unit itself, or once one run has been going stuckMinutes.
+    failStreaks."backlogic-switch.service" = {
+      file = "/var/lib/backlogic-switch/failed-runs";
+      runs = 3;
+      stuckMinutes = 10;
+    };
     ssh = lib.getExe pkgs.openssh;
     docker = "${config.virtualisation.docker.package}/bin/docker";
     nixEnv = "${config.nix.package}/bin/nix-env";
