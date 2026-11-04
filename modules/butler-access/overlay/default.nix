@@ -1,11 +1,14 @@
 # Butler's on-screen overlay for the Macs: Butler in a porthole at the top right, with his narration in speech bubbles
-# under him, while butler on spike drives the Mac. Spike's `mac` drives it over ssh with `butler-overlay`, which
-# writes an event and wakes the `butler-overlay` LaunchAgent; the agent draws them with ./overlay.js and exits once
-# butler is done, or after `idle` seconds with no event, so it never outlives a crashed or interrupted turn.
+# under him, while butler on spike drives the Mac or works on anything at all. Spike's `mac` drives it over ssh with
+# `butler-overlay`, and so does spike's overlay relay while any of butler's turns runs, with `work` every few seconds
+# and `rest` once none does; each writes an event and wakes the `butler-overlay` LaunchAgent, which draws them with
+# ./overlay.js and exits once butler is done, or after `idle` seconds with no event, so it never outlives a crashed
+# or interrupted turn.
 {
   pkgs,
   lib,
   idle,
+  busy,
   home,
 }:
 let
@@ -56,12 +59,25 @@ let
     dir=${state}
     events="$dir/events"
     active="$dir/active"
+    # Touched by `work` while butler's turns run: `mac`'s `hide` waits until it is BUSY seconds old, so finishing on
+    # a Mac mid-turn does not fade him out while he is still working, and only `rest` or the agent's idle ends it.
+    busy="$dir/busy"
     label=butler-overlay
 
     usage() {
-      echo "usage: butler-overlay show | say <text> | act <text> | hide | status" >&2
+      echo "usage: butler-overlay show | say <text> | act <text> | work [text] | rest | hide | status" >&2
       exit 2
     }
+
+    event() {
+      # A new session starts a fresh file, so the overlay never replays an old one.
+      [ -e "$active" ] || : > "$events"
+      printf '%s\t%s\t%s\n' "$(/bin/date +%s)" "$1" "$text" >> "$events"
+      /usr/bin/touch "$active"
+      /bin/launchctl kickstart "gui/$(/usr/bin/id -u)/$label" > /dev/null 2>&1 || true
+    }
+
+    age() { echo $(( $(/bin/date +%s) - $(/usr/bin/stat -f %m "$1") )); }
 
     [ $# -ge 1 ] || usage
     verb=$1
@@ -71,20 +87,25 @@ let
     text=$(printf '%s' "$*" | /usr/bin/tr '\t\r\n' '   ')
 
     case "$verb" in
-      show | say | act)
-        # A new session starts a fresh file, so the overlay never replays an old one.
-        [ -e "$active" ] || : > "$events"
-        printf '%s\t%s\t%s\n' "$(/bin/date +%s)" "$verb" "$text" >> "$events"
-        /usr/bin/touch "$active"
-        /bin/launchctl kickstart "gui/$(/usr/bin/id -u)/$label" > /dev/null 2>&1 || true
+      show | say | act) event "$verb" ;;
+      work)
+        /usr/bin/touch "$busy"
+        if [ -n "$text" ]; then event act; else event work; fi
         ;;
-      hide)
+      rest | hide)
+        if [ "$verb" = rest ]; then
+          /bin/rm -f "$busy"
+        elif [ -e "$busy" ] && [ "$(age "$busy")" -le ${toString busy} ]; then
+          echo "overlay: kept, butler is still working"
+          exit 0
+        fi
         /bin/rm -f "$active"
         printf '%s\thide\t\n' "$(/bin/date +%s)" >> "$events"
         ;;
       status)
         if [ -e "$active" ]; then
-          echo "overlay: showing, last event $(( $(/bin/date +%s) - $(/usr/bin/stat -f %m "$active") )) s ago"
+          echo "overlay: showing, last event $(age "$active") s ago"
+          [ -e "$busy" ] && echo "working: last heard $(age "$busy") s ago"
         else
           echo "overlay: hidden"
         fi

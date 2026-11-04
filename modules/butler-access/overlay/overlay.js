@@ -3,8 +3,13 @@
 //
 // launchd runs this, through the launcher in ./default.nix, while ~/.local/state/butler-overlay/active exists, and
 // `butler-overlay` writes the events it shows to ~/.local/state/butler-overlay/events, one line each:
-// `<epoch seconds>\t<show|say|act|hide>\t<text>`. It polls that file ten times a second while it runs, fades out and
-// exits on `hide` or after IDLE seconds without an event, so nothing runs while it is hidden.
+// `<epoch seconds>\t<show|say|act|work|hide>\t<text>`. It polls that file ten times a second while it runs, fades out
+// and exits on `hide` or after IDLE seconds without an event, so nothing runs while it is hidden. `work` and `act` keep
+// him in his working pose, hands tapping and gold ripples round the porthole, until WORKING seconds pass without one,
+// which spike's overlay relay sends every few seconds while any of butler's turns runs.
+//
+// The window's sharingType is none, so captures that honour it, Screen Sharing's among them where macOS still does,
+// leave him out of the screenshots butler's own `mac` takes; Aaron sees him on the screen itself all the same.
 //
 // The window is borderless, transparent, click-through and never key, on every Space and over full-screen apps, so
 // neither Aaron's mouse and keyboard nor butler's own clicks ever land on it. It draws only its own window, so it
@@ -19,7 +24,8 @@ const STATE = $.NSHomeDirectory().js + '/.local/state/butler-overlay';
 const EVENTS = STATE + '/events';
 const ACTIVE = STATE + '/active';
 
-const FADE = 0.2;
+const FADE = 0.35;
+const WORKING = 20;
 const BUBBLE_SECONDS = 9;
 const MAX_BUBBLES = 3;
 const MAX_CHARACTERS = 160;
@@ -47,6 +53,7 @@ const now = () => Date.now() / 1000;
 const number = value => $.NSNumber.numberWithDouble(value);
 const easeInOut = () => $.CAMediaTimingFunction.functionWithControlPoints(0.42, 0, 0.58, 1);
 const easeOut = () => $.CAMediaTimingFunction.functionWithControlPoints(0.2, 0.8, 0.3, 1);
+const linear = () => $.CAMediaTimingFunction.functionWithName('linear');
 const easeIn = () => $.CAMediaTimingFunction.functionWithControlPoints(0.5, 0, 0.9, 0.4);
 const color = (r, g, b, a) => $.NSColor.colorWithSRGBRedGreenBlueAlpha(r / 255, g / 255, b / 255, a).CGColor;
 
@@ -88,6 +95,8 @@ win.setCanHide(false);
 win.setLevel(1000);
 // canJoinAllSpaces | stationary | ignoresCycle | fullScreenAuxiliary
 win.setCollectionBehavior(1 | 16 | 64 | 256);
+// NSWindowSharingNone: left out of screen captures that honour it, so butler's screenshots do not show himself.
+win.setSharingType(0);
 
 const view = win.contentView;
 view.setWantsLayer(true);
@@ -137,9 +146,20 @@ const pupil = art('pupil', [564, 259]);
 const brows = art('brows');
 const bow = art('bow', [500, 522]);
 const rim = art('rim');
-const handLeft = art('hand-left', [336, 1046]);
-const handRight = art('hand-right', [664, 1046]);
+const handLeft = art('hand-left', [330, 1066]);
+const handRight = art('hand-right', [670, 1066]);
 
+// Gold ripples spreading from the porthole's rim while he works: a circle of radius 360 resting on the art's bottom
+// edge, centred at 500, 756 of its 1000 by 1150 units.
+const ripple = $.CALayer.layer;
+const RIM_R = 360 * FIGURE_W / 1000;
+ripple.setBounds($.NSMakeRect(0, 0, 2 * RIM_R, 2 * RIM_R));
+ripple.setPosition($.NSMakePoint(500 * FIGURE_W / 1000, FIGURE_H - 756 * FIGURE_H / 1150));
+ripple.setCornerRadius(RIM_R);
+ripple.setBorderWidth(2);
+ripple.setBorderColor(color(201, 162, 74, 1));
+ripple.setOpacity(0);
+figure.addSublayer(ripple);
 figure.addSublayer(back);
 figure.addSublayer(clipped);
 clipped.addSublayer(torso);
@@ -154,56 +174,81 @@ figure.addSublayer(rim);
 figure.addSublayer(handLeft);
 figure.addSublayer(handRight);
 
-function basic(layer, key, path, from, to, duration, options) {
-  const animation = $.CABasicAnimation.animationWithKeyPath(path);
-  animation.setFromValue(number(from));
-  animation.setToValue(number(to));
-  animation.setDuration(duration);
-  animation.setTimingFunction(easeInOut());
-  if (options && options.repeat) {
-    animation.setAutoreverses(true);
-    animation.setRepeatCount(1e9);
-  }
-  if (options && options.offset) animation.setTimeOffset(options.offset);
-  layer.addAnimationForKey(animation, key);
-}
-
-function keyframes(layer, key, path, values, duration, options) {
+// One animation of a layer's key path. `repeat` loops it for good, `autoreverse` swings it back each time, `additive`
+// adds it to whatever else animates that path, and `hold` keeps its last value once it ends.
+function animate(layer, key, path, values, duration, options) {
+  const o = options || {};
   const animation = $.CAKeyframeAnimation.animationWithKeyPath(path);
   animation.setValues($(values.map(number)));
-  if (options && options.times) animation.setKeyTimes($(options.times.map(number)));
+  if (o.times) animation.setKeyTimes($(o.times.map(number)));
   animation.setDuration(duration);
   animation.setCalculationMode('linear');
-  if (options && options.repeat) animation.setRepeatCount(1e9);
-  // One-off reactions add to the idle loops rather than replacing them.
-  if (!(options && (options.repeat || options.absolute))) animation.setAdditive(true);
+  animation.setTimingFunction(o.timing || easeInOut());
+  if (o.repeat) animation.setRepeatCount(1e9);
+  if (o.autoreverse) animation.setAutoreverses(true);
+  if (o.offset) animation.setTimeOffset(o.offset);
+  if (o.additive) animation.setAdditive(true);
+  if (o.hold) {
+    animation.setFillMode('forwards');
+    animation.setRemovedOnCompletion(false);
+  }
   layer.addAnimationForKey(animation, key);
 }
 
-// Idle: breathing, a slow sway of the head, a blink every few seconds, and the hands resting on the rim.
+const loop = (layer, key, path, from, to, duration, offset) =>
+  animate(layer, key, path, [from, to], duration, { repeat: true, autoreverse: true, offset });
+
+// Idle, always: he floats in the porthole and breathes, sways and bobs his head, fidgets with his bow tie, glances
+// about and blinks every few seconds, so he never looks like a still picture.
 function idle() {
-  basic(torso, 'breathe', 'transform.translation.y', 0, 1.6, 1.7, { repeat: true });
-  basic(head, 'sway', 'transform.rotation.z', -0.025, 0.025, 2.9, { repeat: true, offset: 1.1 });
-  const blink = { times: [0, 0.93, 0.955, 0.98, 1], repeat: true };
-  keyframes(eye, 'blink', 'transform.scale.y', [1, 1, 0.12, 1, 1], 4.6, blink);
-  keyframes(pupil, 'blink', 'transform.scale.y', [1, 1, 0.12, 1, 1], 4.6, blink);
-  basic(handLeft, 'rest', 'transform.translation.y', 0, 0.8, 1.7, { repeat: true });
-  basic(handRight, 'rest', 'transform.translation.y', 0, 0.8, 1.7, { repeat: true });
+  loop(figure, 'float', 'transform.translation.y', -1.5, 1.5, 2.6);
+  loop(torso, 'breathe', 'transform.translation.y', 0, 3, 1.8);
+  loop(torso, 'breathe-scale', 'transform.scale.x', 1, 1.015, 1.8);
+  loop(head, 'sway', 'transform.rotation.z', -0.06, 0.06, 3.4, 1.1);
+  loop(head, 'bob', 'transform.translation.y', 0, 1.8, 1.8, 0.4);
+  loop(bow, 'fidget', 'transform.rotation.z', -0.05, 0.05, 2.2, 0.7);
+  loop(handLeft, 'rest', 'transform.translation.y', 0, 1.6, 1.8);
+  loop(handRight, 'rest', 'transform.translation.y', 0, 1.6, 1.8, 0.3);
+  const blink = { times: [0, 0.9, 0.93, 0.96, 1], repeat: true, timing: linear() };
+  animate(eye, 'blink', 'transform.scale.y', [1, 1, 0.08, 1, 1], 4.2, blink);
+  animate(pupil, 'blink', 'transform.scale.y', [1, 1, 0.08, 1, 1], 4.2, blink);
+  const glance = { times: [0, 0.3, 0.36, 0.55, 0.61, 1], repeat: true, timing: linear() };
+  animate(pupil, 'glance', 'transform.translation.x', [0, 0, 3.5, 3.5, 0, 0], 7.3, glance);
+  animate(pupil, 'glance-y', 'transform.translation.y', [0, 0, 1.5, 1.5, 0, 0], 7.3, glance);
 }
 
-// Speaking: brows up, a tilt of the head and a wiggle of the bow tie.
+// Speaking: brows up, a tilt of the head and a wiggle of the bow tie, on top of whatever else he is doing.
 function speak() {
-  keyframes(brows, 'speak', 'transform.translation.y', [0, 3.5, 3.5, 2.5, 0], 1.1, { times: [0, 0.15, 0.55, 0.7, 1] });
-  keyframes(head, 'speak', 'transform.rotation.z', [0, 0.07, 0.05, 0], 0.9, { times: [0, 0.25, 0.6, 1] });
-  keyframes(bow, 'speak', 'transform.rotation.z', [0, 0.14, -0.1, 0.06, 0], 0.7);
+  animate(brows, 'speak', 'transform.translation.y', [0, 5, 5, 3, 0], 1.2, { times: [0, 0.15, 0.55, 0.7, 1], additive: true });
+  animate(head, 'speak', 'transform.rotation.z', [0, 0.1, 0.07, 0], 1, { times: [0, 0.25, 0.6, 1], additive: true });
+  animate(bow, 'speak', 'transform.rotation.z', [0, 0.22, -0.16, 0.1, 0], 0.8, { additive: true });
 }
 
-// Working: knitted brows, a nod towards the work, and both hands tapping on the rim as if typing.
+// Working, for as long as butler's turns keep sending `work` or `act`: knitted brows, a nod towards the work, both
+// hands tapping on the rim as if typing, and gold ripples spreading from the porthole.
+let working = false;
+let workingUntil = 0;
+
 function work() {
-  keyframes(brows, 'work', 'transform.translation.y', [0, -2, -2, 0], 0.9, { times: [0, 0.2, 0.8, 1] });
-  keyframes(head, 'work', 'transform.rotation.z', [0, -0.04, 0, -0.03, 0], 0.8);
-  keyframes(handLeft, 'work', 'transform.translation.y', [0, 3.5, 0, 3.5, 0, 0], 0.7);
-  keyframes(handRight, 'work', 'transform.translation.y', [0, 0, 3.5, 0, 3.5, 0], 0.7);
+  workingUntil = now() + WORKING;
+  if (working) return;
+  working = true;
+  animate(brows, 'knit', 'transform.translation.y', [0, -2.5], 0.3, { additive: true, hold: true });
+  animate(head, 'nod', 'transform.rotation.z', [0, -0.06, 0, -0.04, 0], 1.4, { repeat: true, additive: true });
+  animate(handLeft, 'tap', 'transform.translation.y', [0, 4, 0, 0, 3, 0], 0.6, { repeat: true, additive: true, timing: linear() });
+  animate(handRight, 'tap', 'transform.translation.y', [0, 0, 4, 0, 0, 3, 0], 0.6, { repeat: true, additive: true, timing: linear() });
+  animate(ripple, 'ripple', 'transform.scale', [1, 1.32], 1.8, { repeat: true, timing: easeOut() });
+  animate(ripple, 'ripple-fade', 'opacity', [0.8, 0], 1.8, { repeat: true, timing: easeOut() });
+}
+
+function rest() {
+  if (!working) return;
+  working = false;
+  ['nod', 'tap'].forEach(key => { head.removeAnimationForKey(key); handLeft.removeAnimationForKey(key); handRight.removeAnimationForKey(key); });
+  brows.removeAnimationForKey('knit');
+  animate(brows, 'unknit', 'transform.translation.y', [-2.5, 0], 0.4, { additive: true });
+  ripple.removeAnimationForKey('ripple');
+  ripple.removeAnimationForKey('ripple-fade');
 }
 
 let scale = place();
@@ -245,16 +290,19 @@ function bubble(text, kind) {
   tail.setBackgroundColor(layer.backgroundColor);
   layer.addSublayer(tail);
 
+  const ink = kind === 'act'
+    ? (isDark ? [190, 200, 205] : [90, 98, 104])
+    : (isDark ? [245, 239, 224] : [23, 34, 43]);
+  // The text is an attributed string carrying its font and colour, since CATextLayer's own `font` is a CFTypeRef
+  // the JXA bridge does not pass an NSFont to.
+  const styled = $.NSMutableDictionary.dictionary;
+  styled.setObjectForKey(font, 'NSFont');
+  styled.setObjectForKey($.NSColor.colorWithSRGBRedGreenBlueAlpha(ink[0] / 255, ink[1] / 255, ink[2] / 255, 1), 'NSColor');
   const label = $.CATextLayer.layer;
   label.setFrame($.NSMakeRect(BUBBLE_PAD_X, BUBBLE_PAD_Y, w - 2 * BUBBLE_PAD_X, textH));
-  label.setString($(words));
-  label.setFont(font);
-  label.setFontSize(font.pointSize);
+  label.setString($.NSAttributedString.alloc.initWithStringAttributes($(words), styled));
   label.setWrapped(true);
   label.setContentsScale(scale);
-  label.setForegroundColor(kind === 'act'
-    ? (isDark ? color(190, 200, 205, 1) : color(90, 98, 104, 1))
-    : (isDark ? color(245, 239, 224, 1) : color(23, 34, 43, 1)));
   layer.addSublayer(label);
   layer.setContentsScale(scale);
 
@@ -309,8 +357,8 @@ function say(text, kind) {
   item.layer.setPosition($.NSMakePoint(W - 10, H - BUBBLE_TOP));
   stage.addSublayer(item.layer);
   $.CATransaction.commit;
-  keyframes(item.layer, 'pop', 'transform.scale', [0.6, 1.06, 1], 0.28, { times: [0, 0.65, 1], absolute: true });
-  basic(item.layer, 'appear', 'opacity', 0, 1, 0.16);
+  animate(item.layer, 'pop', 'transform.scale', [0.6, 1.06, 1], 0.28, { times: [0, 0.65, 1] });
+  animate(item.layer, 'appear', 'opacity', [0, 1], 0.16);
   stack(true);
   if (kind === 'act') work();
   else speak();
@@ -328,18 +376,24 @@ function fade(visible) {
   $.CATransaction.commit;
 }
 
+// He rises into view from below the porthole's rim, with a little overshoot, and sinks back down as he fades out.
 function show() {
   hideAt = 0;
   if (shown) return;
   shown = true;
   scale = place();
   win.orderFrontRegardless;
+  figure.removeAnimationForKey('sink');
+  animate(figure, 'rise', 'transform.translation.y', [-40, 5, 0], 0.65, { times: [0, 0.7, 1], additive: true, timing: easeOut() });
+  animate(figure, 'rise-scale', 'transform.scale', [0.8, 1.03, 1], 0.65, { times: [0, 0.7, 1], timing: easeOut() });
   fade(true);
 }
 
 function hide() {
   if (!shown && hideAt) return;
   shown = false;
+  rest();
+  animate(figure, 'sink', 'transform.translation.y', [0, -40], FADE, { additive: true, hold: true, timing: easeIn() });
   fade(false);
   hideAt = now() + FADE + 0.1;
 }
@@ -350,10 +404,12 @@ function apply(event, replaying) {
     hide();
     return;
   }
-  if (!['show', 'say', 'act'].includes(event.verb)) return;
+  if (!['show', 'say', 'act', 'work'].includes(event.verb)) return;
   show();
+  const fresh = !(replaying && now() - event.at > BUBBLE_SECONDS);
+  if ((event.verb === 'work' || event.verb === 'act') && now() - event.at < WORKING) work();
   // A bubble from before this process started is shown only while it would still be up.
-  if (event.verb !== 'show' && !(replaying && now() - event.at > BUBBLE_SECONDS)) say(event.text, event.verb);
+  if ((event.verb === 'say' || event.verb === 'act') && fresh) say(event.text, event.verb);
 }
 
 function poll(replaying) {
@@ -367,6 +423,7 @@ function poll(replaying) {
 function tick() {
   poll(false);
   const time = now();
+  if (working && time > workingUntil) rest();
   bubbles.filter(item => time > item.until).forEach(item => {
     bubbles = bubbles.filter(other => other !== item);
     expire(item);
@@ -395,12 +452,25 @@ if (now() - lastEvent > IDLE || (startup.length && startup[startup.length - 1].v
   files.removeItemAtPathError(ACTIVE, null);
   $.exit(0);
 }
-poll(true);
+guarded(() => poll(true));
 if (!shown) show();
+
+// One event that fails to draw is logged and skipped, never the end of him: an exception escaping the loop would end
+// the agent, which launchd starts again while `active` exists, so he would only flash up and vanish, over and over.
+let lastError = '';
+function guarded(fn) {
+  try {
+    fn();
+  } catch (error) {
+    const text = String(error && error.message || error);
+    if (text !== lastError) console.log('butler-overlay: ' + text);
+    lastError = text;
+  }
+}
 
 const mode = $('kCFRunLoopDefaultMode');
 for (;;) {
   const event = app.nextEventMatchingMaskUntilDateInModeDequeue(0xFFFFFFFF, $.NSDate.dateWithTimeIntervalSinceNow(TICK), mode, true);
   if (!event.isNil()) app.sendEvent(event);
-  tick();
+  guarded(tick);
 }

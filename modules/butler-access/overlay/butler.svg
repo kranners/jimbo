@@ -3,7 +3,7 @@
     Butler sitting in a brass porthole, for the overlay. Each <g class="layer"> is rendered alone into its own PNG by
     ./default.nix, so the overlay can animate it: the figure's layers are clipped by `mask`, the porthole's inside
     and everything above its centre line, so his head and shoulders rise over the rim while below the waist the rim
-    cuts him off. `back` holds the porthole and its upper rim, behind him, and `rim` its lower rim, in front. Drawn after jimbo's butler-card.js.
+    cuts him off. The porthole is a circle of radius 360 resting on the art's bottom edge, rising behind his shoulders. `back` holds the porthole and its upper rim, behind him, and `rim` its lower rim, in front. Drawn after jimbo's butler-card.js.
   -->
   <defs>
     <radialGradient id="sphere" cx="36%" cy="28%" r="78%">
@@ -33,31 +33,31 @@
       <stop offset="0.6" stop-color="#f1e2b8"/>
       <stop offset="1" stop-color="#d8bf82"/>
     </radialGradient>
-    <clipPath id="inside"><circle cx="500" cy="820" r="296"/></clipPath>
+    <clipPath id="inside"><circle cx="500" cy="756" r="360"/></clipPath>
     <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur stdDeviation="14"/>
     </filter>
   </defs>
 
   <g id="back" class="layer">
-    <circle cx="500" cy="834" r="300" fill="#000" fill-opacity="0.32" filter="url(#soft)"/>
-    <circle cx="500" cy="820" r="296" fill="url(#room)"/>
+    <circle cx="500" cy="770" r="364" fill="#000" fill-opacity="0.32" filter="url(#soft)"/>
+    <circle cx="500" cy="756" r="360" fill="url(#room)"/>
     <g clip-path="url(#inside)" fill="#ffffff">
-      <path d="M300 520 L420 520 L330 1130 L190 1070 Z" fill-opacity="0.22"/>
-      <path d="M470 520 L540 520 L470 1130 L400 1130 Z" fill-opacity="0.14"/>
+      <path d="M270 396 L400 396 L320 1130 L150 1060 Z" fill-opacity="0.22"/>
+      <path d="M460 396 L540 396 L470 1130 L390 1130 Z" fill-opacity="0.14"/>
     </g>
-    <circle cx="500" cy="820" r="296" fill="none" stroke="url(#rim)" stroke-width="30"/>
-    <circle cx="500" cy="820" r="280" fill="none" stroke="#6e5418" stroke-opacity="0.45" stroke-width="4"/>
+    <circle cx="500" cy="756" r="360" fill="none" stroke="url(#rim)" stroke-width="30"/>
+    <circle cx="500" cy="756" r="344" fill="none" stroke="#6e5418" stroke-opacity="0.45" stroke-width="4"/>
     <g fill="#fff3c4" stroke="#8c6a22" stroke-width="4">
-      <circle cx="291" cy="611" r="7"/>
-      <circle cx="500" cy="524" r="7"/>
-      <circle cx="709" cy="611" r="7"/>
+      <circle cx="245" cy="501" r="7"/>
+      <circle cx="500" cy="396" r="7"/>
+      <circle cx="755" cy="501" r="7"/>
     </g>
   </g>
 
   <g id="mask" class="layer">
-    <rect x="0" y="0" width="1000" height="820" fill="#fff"/>
-    <circle cx="500" cy="820" r="288" fill="#fff"/>
+    <rect x="0" y="0" width="1000" height="756" fill="#fff"/>
+    <circle cx="500" cy="756" r="352" fill="#fff"/>
   </g>
 
   <g id="body" class="layer">
@@ -111,20 +111,20 @@
   </g>
 
   <g id="rim" class="layer">
-    <path d="M204 820 A296 296 0 0 0 796 820" fill="none" stroke="url(#rim)" stroke-width="30"/>
-    <path d="M220 820 A280 280 0 0 0 780 820" fill="none" stroke="#6e5418" stroke-opacity="0.45" stroke-width="4"/>
-    <path d="M189 820 A311 311 0 0 0 811 820" fill="none" stroke="#6e5418" stroke-opacity="0.35" stroke-width="3"/>
+    <path d="M140 756 A360 360 0 0 0 860 756" fill="none" stroke="url(#rim)" stroke-width="30"/>
+    <path d="M156 756 A344 344 0 0 0 844 756" fill="none" stroke="#6e5418" stroke-opacity="0.45" stroke-width="4"/>
+    <path d="M125 756 A375 375 0 0 0 875 756" fill="none" stroke="#6e5418" stroke-opacity="0.35" stroke-width="3"/>
     <g fill="#fff3c4" stroke="#8c6a22" stroke-width="4">
-      <circle cx="796" cy="820" r="7"/>
-      <circle cx="709" cy="1029" r="7"/>
+      <circle cx="860" cy="756" r="7"/>
+      <circle cx="755" cy="1011" r="7"/>
       <circle cx="500" cy="1116" r="7"/>
-      <circle cx="291" cy="1029" r="7"/>
-      <circle cx="204" cy="820" r="7"/>
+      <circle cx="245" cy="1011" r="7"/>
+      <circle cx="140" cy="756" r="7"/>
     </g>
   </g>
 
   <g id="hand-left" class="layer">
-    <g transform="translate(336 1046) rotate(-10) scale(0.85)">
+    <g transform="translate(330 1066) rotate(-10) scale(0.85)">
       <rect x="-56" y="-62" width="112" height="34" rx="14" fill="#f5efe0" stroke="#c9bfa8" stroke-width="5"/>
       <path d="M-50 -30 Q-58 30 -20 44 Q20 54 50 30 Q60 -6 50 -30 Z" fill="#fbf8f0" stroke="#c9bfa8" stroke-width="6" stroke-linejoin="round"/>
       <path d="M-24 -4 L-24 38 M0 -4 L0 46 M24 -4 L24 40" stroke="#d6ccb4" stroke-width="6" stroke-linecap="round"/>
@@ -132,7 +132,7 @@
   </g>
 
   <g id="hand-right" class="layer">
-    <g transform="translate(664 1046) rotate(10) scale(0.85)">
+    <g transform="translate(670 1066) rotate(10) scale(0.85)">
       <rect x="-56" y="-62" width="112" height="34" rx="14" fill="#f5efe0" stroke="#c9bfa8" stroke-width="5"/>
       <path d="M-50 -30 Q-60 -6 -50 30 Q-20 54 20 44 Q58 30 50 -30 Z" fill="#fbf8f0" stroke="#c9bfa8" stroke-width="6" stroke-linejoin="round"/>
       <path d="M-24 -4 L-24 40 M0 -4 L0 46 M24 -4 L24 38" stroke="#d6ccb4" stroke-width="6" stroke-linecap="round"/>
