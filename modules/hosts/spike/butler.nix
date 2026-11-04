@@ -924,9 +924,16 @@ in
         CLAUDE_CODE_EXECUTABLE = lib.getExe butler-claude;
         DISABLE_AUTOUPDATER = "1";
         DISCORD_WORKER_CWD = home;
-        # Four turns at once, two of them kept for short conversations, DMs, call hand-offs and board messages, so long work never holds every slot.
-        DISCORD_MAX_WORKERS = "4";
+        # Turns start while spike has room, by its load, memory pressure, free memory, swap and this unit's own memory, up to a ceiling of 32,
+        # two of them kept for short conversations, DMs, call hand-offs and board messages, so long work never holds every slot.
+        # Background work waits once the load passes 1.5 a core; a conversation may go twice as far. Nothing running is stopped to make room.
+        DISCORD_MAX_WORKERS = "32";
         DISCORD_INTERACTIVE_RESERVED = "2";
+        DISCORD_HOST_LOAD_PER_CPU = "1.5";
+        DISCORD_HOST_MEMORY_PRESSURE = "20";
+        DISCORD_HOST_MEMORY_FLOOR = "0.15";
+        DISCORD_HOST_SWAP_MAX = "0.8";
+        DISCORD_TURN_MEMORY_MB = "400";
         DISCORD_PERMISSION_MODE = "dontAsk";
         # Every approval waiting in a thread reaches Aaron's DM, and so his phone, as one batch.
         DISCORD_APPROVAL_BATCH_MS = "15000";
@@ -970,9 +977,9 @@ in
         RestartSec = 10;
         TimeoutStopSec = 20;
         OOMPolicy = "continue";
-        # Room for up to six turns, about 400 MB each, when long ones overflow the four slots.
-        MemoryHigh = "3G";
-        MemoryMax = "4G";
+        # Room for a dozen or so turns of about 400 MB each; the daemon starts no turn that would take it past MemoryHigh.
+        MemoryHigh = "6G";
+        MemoryMax = "7G";
         MemorySwapMax = "1G";
         ProtectHome = true;
         ProtectSystem = "strict";

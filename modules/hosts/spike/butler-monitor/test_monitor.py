@@ -456,6 +456,13 @@ again, _, _ = monitor.notices(judge({}, state, turns=pool, now=now + 4 * 3600), 
 check('a turn stuck for 30 minutes is told once', levels(f) == {'butler:queue': 'warn'} and len(lines) == 1 and again == [])
 metrics = monitor.prom_lines(snap({}, turns=pool), [], 'dry-run', now)
 check('the pool is charted', 'butler_turns_queued 1' in metrics and 'butler_turns_oldest_queued_seconds 1860' in metrics and 'butler_turns_slots_busy_seconds 960' in metrics)
+gated = dict(pool, cap=32, gated=True, oldestQueuedAt=(now - 150) * 1000,
+             blocked={'interactive': None, 'background': "spike's CPU is overloaded: load 14 on 8 cores, over the 12 I start background work under"})
+f = judge({}, turns=gated, now=now)
+check('a turn held by spike itself says which resource', any('for room on spike' in x['text'] and 'CPU is overloaded' in x['text'] for x in f))
+check('the status says the limit is spike\'s room and what holds it',
+      "as many as spike has room for, up to 32" in monitor.turns_line(gated) and 'background work would wait' in monitor.turns_line(gated))
+check('a host hold is charted', 'butler_turns_host_blocked{lane="background"} 1' in monitor.prom_lines(snap({}, turns=gated), [], 'dry-run', now))
 check('back off at 90% of a session or week', monitor.backoff({'personal': {'session': 91, 'weekly': 20}, 'work': {'weekly': 50}}) == 'the Claude personal session at 91%'
       and monitor.backoff({'personal': {'session': 89}, 'work': {'weekly': 66}}) is None)
 limits = os.path.join(tmp, 'limits')

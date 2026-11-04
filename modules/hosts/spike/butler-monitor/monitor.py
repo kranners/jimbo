@@ -736,10 +736,15 @@ def evaluate(snapshot, state, now, expected=None):
         if oldest and now - oldest / 1000 >= th('turnQueueWarnSeconds'):
             waited = now - oldest / 1000
             stuck = waited >= th('turnStuckMinutes') * 60
+            room = turn_wait_reason(turns)
             out.append(finding('butler:queue', 'spike', 'warn' if stuck else 'info',
-                               "A Butler turn has waited %s for a free slot (%d running, %d waiting)." % (
-                                   duration(waited), turns.get('running', 0), turns.get('queued', 0)),
-                               advice='Say /restart in my DM, or stop a long board turn.', why=None if stuck else 'queued, not stuck'))
+                               ("A Butler turn has waited %s for room on spike (%d running, %d waiting): %s." % (
+                                   duration(waited), turns.get('running', 0), turns.get('queued', 0), room)) if room else
+                               ("A Butler turn has waited %s for a free slot (%d running, %d waiting)." % (
+                                   duration(waited), turns.get('running', 0), turns.get('queued', 0))),
+                               advice=('Free some room on spike, or have Butler run it as a cloud change.' if room else
+                                       'Say /restart in my DM, or stop a long board turn.'),
+                               why=None if stuck else 'queued, not stuck'))
         full = turns.get('fullSince')
         if full and now - full / 1000 >= th('turnSlotsBusyMinutes') * 60:
             out.append(finding('butler:slots', 'spike', 'info',
@@ -755,6 +760,38 @@ def evaluate(snapshot, state, now, expected=None):
                                    'The change "%s" has been running for %s.' % (change['title'], duration(now - change['started'])),
                                    advice='Look at it on the Work tab, or archive it.'))
     return out
+
+
+def turn_wait_reason(turns):
+    """What spike's own resources hold Butler's next turn on, from the pool's `blocked`, or None when it is slots or nothing."""
+    blocked = turns.get('blocked') or {}
+    for lane in ('interactive', 'background'):
+        why = blocked.get(lane)
+        if why and why != 'every slot it may take is busy' and not why.startswith("I'm running fewer"):
+            return why
+    return None
+
+
+def turn_blocked_by_host(turns, lane):
+    why = (turns.get('blocked') or {}).get(lane)
+    return bool(why) and why != 'every slot it may take is busy' and not why.startswith("I'm running fewer")
+
+
+def turns_line(turns):
+    """Butler's turn pool in one line: its limit, what runs and what holds the next turn."""
+    if turns.get('gated'):
+        limit = 'as many as spike has room for, up to %d' % turns.get('cap', 0)
+    else:
+        limit = 'up to %d' % turns.get('cap', 0)
+    line = 'Butler turns: %d running (%s), %d waiting' % (turns.get('running', 0), limit, turns.get('queued', 0))
+    if turns.get('backoff'):
+        line += ', backing off while %s' % turns['backoff']
+    blocked = turns.get('blocked') or {}
+    if blocked.get('interactive'):
+        line += '; a new conversation would wait: %s' % blocked['interactive']
+    elif blocked.get('background'):
+        line += '; background work would wait: %s' % blocked['background']
+    return line
 
 
 def judge_machine(host, m, now=None, mode=None):
@@ -1626,9 +1663,7 @@ def status_text(snapshot, findings, mode, now, expected=None):
         lines.append('Claude %s: %.0f%% of the week' % (account, percent))
     turns = snapshot.get('turns')
     if turns:
-        lines.append('Butler turns: %d running of %d, %d waiting%s' % (
-            turns.get('running', 0), turns.get('cap', 0), turns.get('queued', 0),
-            ', backing off while %s' % turns['backoff'] if turns.get('backoff') else ''))
+        lines.append(turns_line(turns))
     problems = [f['text'] for f in findings if f['level'] != 'info']
     noted = [f['text'] + (' (%s)' % f['why'] if f.get('why') else '') for f in findings if f['level'] == 'info']
     lines.append('Open problems: ' + ('; '.join(problems) if problems else 'none'))
@@ -1668,6 +1703,8 @@ def prom_lines(snapshot, findings, mode, now):
             'butler_turns_lane{lane="background"} %d' % turns.get('background', 0),
             'butler_turns_cap %d' % turns.get('cap', 0),
             'butler_turns_backoff %d' % (1 if turns.get('backoff') else 0),
+            'butler_turns_host_blocked{lane="interactive"} %d' % (1 if turn_blocked_by_host(turns, 'interactive') else 0),
+            'butler_turns_host_blocked{lane="background"} %d' % (1 if turn_blocked_by_host(turns, 'background') else 0),
             'butler_turns_oldest_queued_seconds %d' % (max(0, now - oldest / 1000) if oldest else 0),
             'butler_turns_slots_busy_seconds %d' % (max(0, now - full / 1000) if full else 0),
         ]
