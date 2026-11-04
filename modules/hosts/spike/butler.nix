@@ -853,6 +853,8 @@ in
             "interactive"
             "cron"
           ];
+          # A write, so it asks in a thread a voice request or board message began.
+          acts = true;
         }
       ];
       credentials.memory-deploy-key = memoryDeployKey;
@@ -869,6 +871,7 @@ in
             "interactive"
             "cron"
           ];
+          acts = true;
         }
       ];
       credentials.memory-deploy-key = memoryDeployKey;
