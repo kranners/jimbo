@@ -1,0 +1,1 @@
+Change 20261105-001001-2724829: framer voice-lane refusals escalate to a Discord Accept/Deny via a spoken voice delegation instead of refusing; claude-discord-threads src/engine/commands.ts + voice.ts (+tests), spoken threads ask for memory Edit/Write; jimbo butler-voice.md persona, memory-note/save acts, CLAUDE.md.
