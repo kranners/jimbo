@@ -1283,16 +1283,18 @@ def guard_password(host):
 # refuses it until butler states the outcome with `mac <host> confirm "<what will happen>" <action...>`, which the
 # daemon always asks Aaron for, showing that statement. It reads only the front app and its window's title or URL, so
 # it misses a send it cannot see there, and an unreadable front window lets the action through.
-# Under a mission Aaron approved, the daemon names in BUTLER_MISSION_KINDS the outcome kinds it lists on this machine,
-# and a messaging or mail window lets the action through when it lists sends or publishing there, since Aaron asked on
-# 4 Nov 2026 for one approval per run. A payment, checkout or bank page still wants `confirm`, which asks him nothing
-# under such a mission but is how the daemon checks the payee and amount against the mission's cap.
+# Under a mission Aaron approved, the daemon names in BUTLER_MISSION_KINDS the critical permissions it lists on this
+# machine, auth, message, payment, publish and delete, and a messaging or mail window lets the action through when it
+# lists sends or publishing there, since Aaron asked on 5 Nov 2026 to approve a mission once and nothing after it.
+# Otherwise the action wants `confirm`, which under a mission is only an annotation for the audit trail: the daemon
+# asks nothing unless the statement names a critical permission the mission lacks, and checks a payment's payee and
+# amount against the mission's cap.
 MESSAGING_APPS = re.compile(r'(?i)^(?:messages|mail|slack|discord|whatsapp|messenger|signal|telegram|microsoft outlook|outlook|microsoft teams|teams|spark|airmail|mimestream|superhuman|thunderbird|facetime)\b')
 PAYING_APPS = re.compile(r'(?i)^(?:paypal|wallet)\b')
 BROWSERS = re.compile(r'(?i)chrom|safari|firefox|arc\b|brave|edge|orion|vivaldi|opera|cmux|webkit')
 SENDING_PAGES = re.compile(r'(?i)\b(?:gmail|inbox|outlook|mail|messenger|messages|whatsapp|slack|discord|facebook|instagram|linkedin|twitter|compose|reply|sign up)\b')
 PAYING_PAGES = re.compile(r'(?i)\b(?:checkout|check out|payment|pay|paypal|cart|basket|order|billing|purchase|subscribe|subscription|bank|banking|netbank|commbank|westpac|anz|nab|stripe|afterpay|transfer|booking|book now|reservation)\b')
-MISSION_SENDS = {'message', 'publish', 'confirm', 'signup'}
+MISSION_SENDS = {'message', 'publish'}
 LINUX_FRONT = LINUX_ENV + 'hyprctl activewindow -j 2> /dev/null'
 CONFIRMED = []
 
@@ -1352,6 +1354,9 @@ def guard_outcome(host, verb, args, stdin=''):
     if sending and not paying and mission_kinds() & MISSION_SENDS:
         return
     where = '%s%s' % (app, ', "%s"' % clip(title, 80) if title else '')
+    if os.environ.get('BUTLER_MISSION_ID'):
+        raise Refused('outcome check: the front window on %s is %s. Under this mission that asks Aaron nothing unless it sends, pays, signs in, publishes or deletes beyond what the mission lists; say what it does and run it again as: mac %s confirm "<what will happen, such as: click Sign in on the Claude tab>" %s' % (
+            host, where, host, ' '.join([verb] + [shlex.quote(arg) for arg in args])))
     raise Refused('outcome check: the front window on %s is %s, where this %s may send, post or pay something. Tell Aaron exactly what will happen, then run it again as: mac %s confirm "<what will happen, such as: send \'on my way\' to Rylee in Messages>" %s' % (
         host, where, verb, host, ' '.join([verb] + [shlex.quote(arg) for arg in args])))
 
@@ -1607,7 +1612,9 @@ def act_on(host, verb, rest):
     if verb == 'confirm':
         if len(rest) < 2 or rest[1] == 'confirm':
             raise Refused('confirm takes what will happen, in quotes, then the action, such as confirm "send \'on my way\' to Rylee in Messages" key enter')
-        audit([(host, 'confirmed outcome, approved by Aaron: %s | %s' % (clip(redact(rest[0]), 200), describe(rest[1], rest[2:], '')))])
+        mission = os.environ.get('BUTLER_MISSION_ID')
+        approval = 'under mission %s' % mission if mission else 'approved by Aaron'
+        audit([(host, 'confirmed outcome, %s: %s | %s' % (approval, clip(redact(rest[0]), 200), describe(rest[1], rest[2:], '')))])
         CONFIRMED.append(rest[0])
         return act_on(host, rest[1], rest[2:])
     if verb == 'say':

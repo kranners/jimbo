@@ -6,7 +6,7 @@ description: Send a short plain-text email as Aaron, from Fastmail, Gmail or Out
 # Sending mail
 
 Use the `mail-send` tool, with `args` of the account, one recipient address and the subject, such as `["fastmail", "sam@example.com", "Running late"]`, and the body as `stdin`.
-Outside a mission every send waits for Aaron to approve its exact account, recipient, subject and body through a Discord button; inside a mission that lists a `message` to that address, as `{"kind":"message","what":"reply to the plumber","to":["plumber@example.com"]}`, it sends without asking, and one to an address the mission does not name asks once to add it. It is refused in scheduled runs.
+Outside a mission every send waits for Aaron to approve its exact account, recipient, subject and body through a Discord button; inside a mission whose `critical` list has a `message` to that address, as `{"kind":"message","what":"reply to the plumber","to":["plumber@example.com"]}`, it sends without asking, and one to an address the mission does not name asks once to add it. It is refused in scheduled runs.
 
 - Send only when Aaron asked for this email to go out; a draft he has not asked to send stays a draft in your reply.
 - Write the body in Aaron's voice, plain text, short, with no signature unless he gives one; keep it under about 1000 characters, fewer when it has many short lines, and the subject under 200, so the approval shows all of it; `mail-send` refuses a longer one.

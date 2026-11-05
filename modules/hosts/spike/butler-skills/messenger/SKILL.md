@@ -27,7 +27,7 @@ A scheduled run may read chats but never send.
 ## Sending
 
 - Send only when Aaron asked you to reply in this thread, to the chat he meant.
-- Outside a mission he approves every send with a button, which shows the room id and the text; inside a mission listing a `message` to that room id it sends without asking, so list the room ids the run will message when you propose it.
+- Outside a mission he approves every send with a button, which shows the room id and the text; inside a mission whose `critical` list has a `message` to that room id it sends without asking, so list the room ids the run will message when you propose it.
 - Write as Aaron would type on his phone: short, plain, no greeting or sign-off unless he uses one, no emoji unless he does.
 - One message per send, and never more than he asked for; the wrapper refuses more than 10 sends an hour, because Meta flags an account that sends a lot.
 - A message may not start with `!`, which the bridge would read as a command.
