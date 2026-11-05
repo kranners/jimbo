@@ -211,6 +211,8 @@ let
           "Read(//var/lib/butler-inbox/**)"
           # The chat cache holds other people's messages, so it is read through `chat`, which taints the thread.
           "Read(//var/lib/butler-chat/**)"
+          # The live feeds' state holds their logins, so their snapshots are read through `feeds`, which taints the thread.
+          "Read(//var/lib/butler-feeds/**)"
           "Read(//proc/**)"
           "Read(//run/**)"
         ];

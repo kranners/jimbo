@@ -136,6 +136,11 @@
       python3 -I ${./butler-chat/test_chat.py} ${./butler-chat/chat.py} > $out 2>&1 || { cat $out; exit 1; }
     '';
 
+    # The live feeds against fixture RSS, Spotify, Steam, PayPal and mail answers, writing the index inbox's shapes offline.
+    butler-feeds = pkgs.runCommand "butler-feeds-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      python3 -I ${./butler-feeds/test_feeds.py} ${./butler-feeds/feeds.py} > $out 2>&1 || { cat $out; exit 1; }
+    '';
+
     # The work Google reader against a mock Google: refresh, mail listings, reading, the calendar's filters, and that it never asks for more than read-only scopes.
     butler-work-google =
       pkgs.runCommand "butler-work-google-test" { nativeBuildInputs = [ pkgs.python3 ]; }
@@ -185,6 +190,7 @@
         ./butler-work.nix
         ./butler-threads.nix
         ./butler-drive.nix
+        ./butler-feeds.nix
         ./butler-health.nix
         ./butler-assets.nix
         ./butler-imagine.nix

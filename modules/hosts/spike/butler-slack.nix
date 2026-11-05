@@ -1,6 +1,77 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
   token = "/var/lib/secrets/butler-slack-token";
+  # The index's 6-hourly Slack read has its own token, which Aaron may reuse for live reads when its scopes cover them.
+  indexToken = "/var/lib/secrets/butler-index-slack-token";
+  scopes = [
+    "channels:history"
+    "channels:read"
+    "groups:history"
+    "groups:read"
+    "im:history"
+    "im:read"
+    "mpim:history"
+    "mpim:read"
+    "search:read"
+    "users:read"
+  ];
+
+  # `sudo butler-slack-login` takes Aaron's xoxp- user token hidden on stdin, or `--from-index` reuses the index's,
+  # checks it with auth.test and its scopes, writes it mode 600 and asks butler for a restart at its next quiet moment.
+  butler-slack-login = pkgs.writeShellApplication {
+    name = "butler-slack-login";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.curl
+      pkgs.jq
+    ];
+    text = ''
+      if [ "$(id -u)" -ne 0 ]; then
+        echo "run it as root: sudo butler-slack-login [--from-index]" >&2
+        exit 1
+      fi
+      umask 077
+      if [ "''${1:-}" = --from-index ]; then
+        [ -s ${indexToken} ] || { echo "the index has no Slack token either; paste one instead" >&2; exit 1; }
+        value=$(< ${indexToken})
+      else
+        read -r -s -p "Slack user token (xoxp-..., hidden): " value
+        echo
+      fi
+      case "$value" in
+        xoxp-*) ;;
+        *) echo "that is not a Slack user token (xoxp-...); nothing changed" >&2; exit 1 ;;
+      esac
+      headers=$(mktemp)
+      trap 'rm -f "$headers"' EXIT
+      answer=$(curl --silent --show-error --dump-header "$headers" \
+        --header @<(printf 'Authorization: Bearer %s\n' "$value") https://slack.com/api/auth.test)
+      if [ "$(jq -r .ok <<<"$answer")" != true ]; then
+        echo "Slack refused the token: $(jq -r '.error // "unknown error"' <<<"$answer"); nothing changed" >&2
+        exit 1
+      fi
+      granted=$(tr -d '\r' < "$headers" | sed -n 's/^x-oauth-scopes: //Ip' | tr ',' '\n')
+      missing=""
+      for scope in ${lib.concatStringsSep " " scopes}; do
+        grep -qx "$scope" <<<"$granted" || missing="$missing $scope"
+      done
+      if [ -n "$missing" ]; then
+        echo "the token lacks:$missing; add them under User Token Scopes, reinstall the app and paste the new token; nothing changed" >&2
+        exit 1
+      fi
+      printf '%s' "$value" > ${token}.new
+      chmod 600 ${token}.new
+      mv ${token}.new ${token}
+      echo "Slack token for $(jq -r '.user + " in " + .team' <<<"$answer") written"
+      install -d -m 755 /run/butler-restart
+      if [ ! -f /run/butler-restart/wanted ]; then
+        jq -n --argjson at "$(date +%s%3N)" '{at: $at, trigger: "slack-token", changes: ["Slack token for live reads written"]}' > /run/butler-restart/wanted.tmp
+        chmod 644 /run/butler-restart/wanted.tmp
+        mv /run/butler-restart/wanted.tmp /run/butler-restart/wanted
+      fi
+      echo "butler restarts to load it at its next quiet moment"
+    '';
+  };
   credential = "/run/credentials/butler.service/slack-token";
 
   both = [
@@ -30,7 +101,7 @@ let
       }
 
       if [ ! -s ${credential} ]; then
-        echo "slack: no Slack token yet; Aaron has to write his xoxp- user token to ${token} on spike and restart butler" >&2
+        echo "slack: no Slack token yet; Aaron has to run sudo butler-slack-login on spike, pasting his xoxp- user token, or sudo butler-slack-login --from-index to reuse the index's" >&2
         exit 78
       fi
 
@@ -155,6 +226,8 @@ let
   };
 in
 {
+  environment.systemPackages = [ butler-slack-login ];
+
   # LoadCredential fails butler's start when its source is missing, so an empty placeholder
   # stands in until Aaron writes the token, and the command says it has none.
   systemd.services.butler-slack-token = {
