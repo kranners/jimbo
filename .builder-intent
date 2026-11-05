@@ -1,0 +1,1 @@
+Change 20261106-093849-1733000: fix the kanban board's unread favicon badge (kranners/kanban src/web/alerts.ts, alertState.ts); no jimbo changes.
