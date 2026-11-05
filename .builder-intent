@@ -1,0 +1,1 @@
+Per-machine control lease in butler's mac tool so two threads never drive the same machine at once, plus a read-only live ledger of active threads (daemon) shown to every thread. Touches modules/hosts/spike/butler-mac, mac skill, butler-internals/builders skills, claude-discord-threads thread digest.
