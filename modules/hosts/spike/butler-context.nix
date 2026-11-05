@@ -83,7 +83,10 @@ in
           lanes = allLanes;
         }
         {
-          match = [ "show" ];
+          match = [
+            "show"
+            "*"
+          ];
           lanes = [
             "interactive"
             "cron"
@@ -91,7 +94,10 @@ in
           ];
         }
         {
-          match = [ "refresh" ];
+          match = [
+            "refresh"
+            "*"
+          ];
           lanes = [
             "interactive"
             "cron"

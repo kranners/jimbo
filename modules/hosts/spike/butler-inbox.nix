@@ -237,6 +237,14 @@ in
             ];
             lanes = [ "interactive" ];
           }
+          {
+            match = [
+              "feedback"
+              "-"
+              "*"
+            ];
+            lanes = [ "interactive" ];
+          }
         ];
       skill = ./butler-skills/inbox;
     };

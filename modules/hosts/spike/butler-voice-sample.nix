@@ -58,6 +58,10 @@ in
       stdin = true;
       rules = [
         {
+          match = [ "--check" ];
+          lanes = [ "interactive" ];
+        }
+        {
           match = [ "**" ];
           lanes = [ "interactive" ];
         }
