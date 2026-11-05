@@ -1,0 +1,1 @@
+Change 20261106-100219-1971190: kanban card close falls back to local removal (dismiss + unpin) when the cloud API is unreachable or signed out; UI close and finish_session; kranners/kanban only.
