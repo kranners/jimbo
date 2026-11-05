@@ -96,8 +96,11 @@ def call_local(tool, args, timeout=60):
         raise Unreachable('the board answered with something other than JSON: %s' % body[:300])
 
 
-def call(tool, args, timeout=60):
-    """Posts one tool call to the board, on spike once cut over, else on pilot, and returns its reply."""
+def call(tool, args, timeout=60, grace=None):
+    """Posts one tool call to the board, on spike once cut over, else on pilot, and returns its reply.
+
+    grace is how long ssh may take past curl's own limit, by default up to half a minute.
+    """
     timeout = max(1, int(timeout))
     if os.path.exists(HUB_MARKER):
         return call_local(tool, args, timeout)
@@ -107,7 +110,7 @@ def call(tool, args, timeout=60):
         'http://127.0.0.1:%d/api/butler/tools/%s' % (timeout, PORT, tool)
     )
     # ssh's own connection gets up to half a minute past curl's limit, as a 60 s call always had.
-    waited = timeout + min(30, timeout // 2)
+    waited = timeout + (min(30, timeout // 2) if grace is None else grace)
     try:
         result = subprocess.run(
             ssh_args() + [remote], input=json.dumps(args),
@@ -389,7 +392,10 @@ BUSY = ('working', 'watching')
 # The daemon's whole command timeout is 60 s, so everything here ends well inside it.
 FORCE_BUDGET = 50
 FINISH_RESERVE = 15
-CONTROL = re.compile(r'[\x00-\x09\x0b-\x1f\x7f-\x9f]')
+# ssh's slack past curl's limit on each forced call, counted inside the budget.
+FORCE_GRACE = 3
+# Control characters, line and paragraph separators and bidirectional overrides.
+CONTROL = re.compile('[\x00-\x09\x0b-\x1f\x7f-\x9f\u2028\u2029\u200e\u200f\u202a-\u202e\u2066-\u2069]')
 WORD = re.compile(r"[a-z0-9]+(?:'[a-z]+)?")
 # Words too common in session names to say which session he meant.
 COMMON = frozenset("""
@@ -515,7 +521,7 @@ def force_finish(args):
     started = time.monotonic()
 
     def left(cap):
-        return min(cap, FORCE_BUDGET - FINISH_RESERVE - (time.monotonic() - started))
+        return min(cap, FORCE_BUDGET - FINISH_RESERVE - FORCE_GRACE - (time.monotonic() - started))
 
     message = os.environ.get('BUTLER_OWNER_MESSAGE_ID', '')
     words = os.environ.get('BUTLER_OWNER_WORDS', '')
@@ -523,7 +529,7 @@ def force_finish(args):
         print("kanban: finish_session with force needs Aaron's own message asking for it, which only the daemon passes; without it, finish the session without force", file=sys.stderr)
         return 2
     ref = args.get('session')
-    snapshot = parse_snapshot(call('board_snapshot', {}, 15))
+    snapshot = parse_snapshot(call('board_snapshot', {}, 15, FORCE_GRACE))
     if snapshot is None:
         print('kanban: could not read the board to find %s' % ref, file=sys.stderr)
         return 1
@@ -543,7 +549,7 @@ def force_finish(args):
     said = []
     if left(15) > 2:
         try:
-            transcript = call('read_transcript', {'session': session['id'], 'limit': 40}, left(15))
+            transcript = call('read_transcript', {'session': session['id'], 'limit': 40}, left(15), FORCE_GRACE)
             if transcript.get('ok'):
                 said = last_said(transcript.get('text', ''))
         except Unreachable:
@@ -552,7 +558,7 @@ def force_finish(args):
     box = (region or {}).get('drawn') or (region or {}).get('frame')
     if isinstance(box, dict) and left(8) > 2:
         try:
-            moved = call('arrange', {'cards': [{'id': session['id'], 'x': box['x'] + 24, 'y': box['y'] + 48}]}, left(8))
+            moved = call('arrange', {'cards': [{'id': session['id'], 'x': box['x'] + 24, 'y': box['y'] + 48}]}, left(8), FORCE_GRACE)
             print('Moved into Done: %s' % (moved.get('text') if moved.get('ok') else 'no, ' + str(moved.get('error'))))
         except (Unreachable, KeyError, TypeError):
             pass
@@ -560,17 +566,17 @@ def force_finish(args):
     print('Hand-off note: %s' % note)
     if left(8) > 2:
         try:
-            noted = call('note', {'target': session['id'], 'text': note}, left(8))
+            noted = call('note', {'target': session['id'], 'text': note}, left(8), FORCE_GRACE)
             if not noted.get('ok'):
                 print('The board refused the note: %s' % noted.get('error'))
         except Unreachable as error:
             print('The note did not reach the board: %s' % error)
-    remaining = FORCE_BUDGET - (time.monotonic() - started)
-    reply = call('finish_session', {'session': session['id'], 'force': True, 'ownerMessage': message}, max(5, remaining))
+    remaining = FORCE_BUDGET - FORCE_GRACE - (time.monotonic() - started)
+    reply = call('finish_session', {'session': session['id'], 'force': True, 'ownerMessage': message}, max(5, remaining), FORCE_GRACE)
     if reply.get('ok'):
         print('Board: %s' % reply.get('text', ''))
         return 0
-    print('kanban: %s' % reply.get('error', 'the board refused'), file=sys.stderr)
+    print('kanban: %s; the hand-off note stays on the card, but the session was not finished' % reply.get('error', 'the board refused'), file=sys.stderr)
     return 1
 
 
@@ -602,6 +608,10 @@ def main(argv):
         if not isinstance(args, dict):
             print('kanban: the arguments on stdin must be a JSON object', file=sys.stderr)
             return 2
+    # Only the forced path below sends ownerMessage, from the daemon's own environment, never from Butler's arguments.
+    if tool == 'finish_session' and 'ownerMessage' in args and args.get('force') is not True:
+        print("kanban: ownerMessage goes only with force, and kanban fills it in from Aaron's own message", file=sys.stderr)
+        return 2
     if tool == 'finish_session' and args.get('force') is True:
         try:
             return force_finish(args)
