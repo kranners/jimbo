@@ -58,6 +58,19 @@
         echo ok > $out
       '';
 
+    # Aaron dropped the head butler's name of 5 Nov 2026 on 6 Nov, so it may not come back into the bot's configuration or these docs; spelt in halves so this check does not find itself.
+    no-old-head-name =
+      let
+        old = "Wads" + "worth";
+      in
+      pkgs.runCommand "no-old-head-name" { nativeBuildInputs = [ pkgs.gnugrep ]; } ''
+        if grep -rIni ${lib.escapeShellArg old} ${../../..}/modules ${../../../.claude/CLAUDE.md} ${./CLAUDE.md}; then
+          echo "the dropped head butler name is back in jimbo" >&2
+          exit 1
+        fi
+        echo ok > $out
+      '';
+
     # The backlogic sweep's notices: silent seeding, the runner down and back once each, the daily waiting notice.
     backlogic-sweep =
       pkgs.runCommand "backlogic-sweep-notify" { nativeBuildInputs = [ pkgs.python3 ]; }

@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-11-06: The head butler is Butler again, as Aaron asked: the bot renames itself back in Discord, keeping its avatar, and the life explorer, the daemon and butler's memory say Butler everywhere.
 - 2026-11-05: butler checks itself 90 seconds after every start, a landing's restart above all: its commands, rules, mood pictures, call state, desk, landing queue, the life explorer's login and the voice endpoint's token, read-only, and DMs Aaron only when something fails; the daemon gained an offline test suite of the same controls.
 - 2026-11-05: The life explorer's tab and home-screen icon show Butler's own face, his teal disc in its gold ring, in place of the blue search glyph, with a full favicon set the browser picks up fresh.
 - 2026-11-05: butler's desk sessions no longer have names and are never called footmen: each thread is titled `Desk: <task>`, and the life explorer's Desk shows them as a board in Working, Waiting on Aaron, Done and Failed lanes over a banner that no longer zooms or pans, with buttons that open Discord. Butler's replies carry their mood picture again, which the daemon now attaches itself to any reply with no other picture.
