@@ -1022,7 +1022,9 @@ in
         # Where its sessions write files unasked, each write audited as audit/write; its memory's writable folders stay with the settings above, and a write anywhere else is refused.
         DISCORD_WRITE_PATHS = lib.concatStringsSep ":" writePaths;
         DISCORD_SCRATCH_DIR = scratch;
-        DISCORD_WRITE_KEEP_PATHS = lib.concatMapStringsSep ":" (directory: "${memory}/${directory}") writableMemory;
+        DISCORD_WRITE_KEEP_PATHS = lib.concatMapStringsSep ":" (
+          directory: "${memory}/${directory}"
+        ) writableMemory;
       };
 
       # A switch never restarts it, so a live call is never cut off: the activation below marks a restart as wanted instead.
@@ -1051,7 +1053,12 @@ in
         ProtectSystem = "strict";
         ProtectProc = "invisible";
         TemporaryFileSystem = [ "/var/lib" ];
-        BindPaths = [ home ] ++ map (directory: "-${directory}") (lib.filter (directory: !lib.hasPrefix "${home}/" directory) writePaths);
+        BindPaths = [
+          home
+        ]
+        ++ map (directory: "-${directory}") (
+          lib.filter (directory: !lib.hasPrefix "${home}/" directory) writePaths
+        );
         InaccessiblePaths = [ "/srv" ];
         PrivateTmp = true;
         NoNewPrivileges = true;

@@ -2,7 +2,6 @@
 
 # A fixture-driven test of butler-work's snapshot, appended after builders.py and work.py without their mains.
 # It runs offline, so GitHub answers nothing and only the records on disk count.
-import tempfile  # noqa: E402
 
 
 def write(path, text):

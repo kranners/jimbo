@@ -21,14 +21,16 @@ let
             store
             outbox
             # What butler made or mac fetched, what Aaron attached, and the store itself, so a source is never a file the daemon's Read is denied.
-            (lib.concatStringsSep ":" [
-              outbox
-              "${home}/.claude/channels/discord/inbox"
-              store
-              # Its threads' scratch folders and its working areas, where its sessions write their results.
-              "${home}/scratch"
-            ]
-            ++ lib.filter (directory: directory != outbox) config.butler.writePaths)
+            (lib.concatStringsSep ":" (
+              [
+                outbox
+                "${home}/.claude/channels/discord/inbox"
+                store
+                # Its threads' scratch folders and its working areas, where its sessions write their results.
+                "${home}/scratch"
+              ]
+              ++ lib.filter (directory: directory != outbox) config.butler.writePaths
+            ))
           ]
           (builtins.readFile ./butler-assets/asset.py)
       );
