@@ -188,7 +188,12 @@ in
           wlr-randr --output ${cfg.output} --scale ${toString cfg.scale} --transform ${cfg.transform}
           wayvnc 0.0.0.0 5900 &
           trap 'kill $!' EXIT
+          waiting=
           until curl -fsS --max-time 5 -o /dev/null ${cfg.versionUrl}; do
+            if [ -z "$waiting" ]; then
+              echo "waiting for ${cfg.versionUrl} to answer before opening the panel"
+              waiting=1
+            fi
             sleep 2
           done
           exec chromium \

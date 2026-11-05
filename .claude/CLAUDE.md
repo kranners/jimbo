@@ -76,6 +76,8 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
 `modules/hosts/spike/CLAUDE.md` is appended to the personal `CLAUDE.md` on spike alone, so every Claude Code session there knows it is on production and how the host is run.
 
 - SSH: `ssh aaron@spike.local` (key auth, resolved over mDNS).
+  Its avahi runs on IPv4 alone, because on 4 Nov 2026 its IPv6 announcements made it rename spike `spike-2.local`, and framer's kiosk, rebooted that night, waited for `spike.local` with a black screen until the next day.
+  `avahi-keep-name.timer` restarts `avahi-daemon` within a minute whenever avahi has renamed spike anyway, saying so under `journalctl -u avahi-keep-name`.
 - The repo is cloned at `~/workspace/jimbo` on `main`.
   To deploy, push to `main`; `jimbo-switch.timer` pulls and switches spike within 5 minutes, unless the landing queue holds a switch that would restart butler during a call, or run `git pull && just` there at once.
 - SSH accepts keys only, declared in `modules/hosts/spike`.
@@ -702,7 +704,7 @@ Its files under `modules/hosts/framer` are plain NixOS modules, imported through
 The script first scales `kiosk.output` by `kiosk.scale` and rotates it by `kiosk.transform` with `wlr-randr`, `eDP-1` by 2 and 90 degrees into portrait on framer, so Chromium takes its HiDPI scale and orientation from cage, because its own `--force-device-scale-factor` under cage drew into the top-left quarter of the screen.
 Its cage unit restarts always, so a Chromium crash brings the dashboard back, and restarts on a switch that changes it, because nixpkgs otherwise leaves it stopped.
 `getty@tty1` is masked, because cage conflicts with it and every switch started it, stopping the kiosk.
-The script waits until `kiosk.versionUrl` answers before it starts Chromium, because Chromium never retries a page that failed to load, and `network-online.target` was reached seconds before framer's Marvell wifi connected, with `nm-online -t 60` as much as with NixOS's `nm-online -s`, and never waits for spike, which a power cut restarts too.
+The script waits until `kiosk.versionUrl` answers before it starts Chromium, logging once under `journalctl -u cage-tty1` that it is waiting, because Chromium never retries a page that failed to load, and `network-online.target` was reached seconds before framer's Marvell wifi connected, with `nm-online -t 60` as much as with NixOS's `nm-online -s`, and never waits for spike, which a power cut restarts too.
 noVNC bridges wayvnc through websockify on `6080`; it and wayvnc's own `5900` are open on `kiosk.lanInterface`, which framer sets to `wlp1s0`, and `wg0` alone, with no VNC password, so the panel is a browser tab on the MacBook.
 Caddy on spike serves that noVNC bridge at `https://vnc.framer.cute.engineer` (`modules/hosts/spike/framer-vnc.nix`), proxying to framer's `10.100.0.5:6080`, whose DNS-only A record points at `10.100.0.1`, so it is reached over WireGuard alone, with no gate beyond that.
 `kiosk.schedule` drives `intel_backlight` through the `brightness` command: 60% from 07:30, 15% from 18:00, 0% from 23:30, back to 15% at 06:30.

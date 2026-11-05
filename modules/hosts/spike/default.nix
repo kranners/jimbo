@@ -347,9 +347,40 @@
       services.avahi = {
         enable = true;
         openFirewall = true;
+        # Over IPv6 avahi took its own announcement for a conflict and renamed
+        # spike `spike-2.local`, and framer's kiosk, waiting for `spike.local`,
+        # never opened its page again; https://github.com/avahi/avahi/issues/117
+        settings.server.use-ipv6 = false;
         settings.publish = {
           disable-publishing = false;
           publish-addresses = true;
+        };
+      };
+
+      # A rename that happens anyway lasts until avahi restarts, so take the name back.
+      systemd.services.avahi-keep-name = {
+        description = "Restart avahi when it has renamed spike after a name conflict";
+        after = [ "avahi-daemon.service" ];
+        serviceConfig.Type = "oneshot";
+        path = [
+          pkgs.systemd
+          pkgs.gnused
+        ];
+        script = ''
+          systemctl is-active --quiet avahi-daemon.service || exit 0
+          name=$(busctl --system call org.freedesktop.Avahi / org.freedesktop.Avahi.Server GetHostName | sed -n 's/^s "\(.*\)"$/\1/p')
+          if [ -n "$name" ] && [ "$name" != ${lib.escapeShellArg config.networking.hostName} ]; then
+            echo "avahi calls spike $name.local, restarting it to take ${config.networking.hostName}.local back"
+            systemctl restart avahi-daemon.service
+          fi
+        '';
+      };
+
+      systemd.timers.avahi-keep-name = {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnBootSec = "2min";
+          OnUnitActiveSec = "1min";
         };
       };
 
