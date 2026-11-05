@@ -231,6 +231,7 @@
         ./butler-scenes.nix
         ./butler-probe.nix
         ./butler-self-fix.nix
+        ./butler-selfcheck.nix
         ./butler-shell.nix
         ./butler-slack.nix
         ./butler-tools.nix
