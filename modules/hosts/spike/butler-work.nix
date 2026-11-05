@@ -38,7 +38,7 @@ let
 in
 {
   options.butler.work.snapshot = lib.mkOption {
-    description = "The Work in flight snapshot the life explorer's Work tab reads, readable by the group butler.";
+    description = "The Work in flight snapshot the life explorer's Changes in flight section reads, readable by the group butler.";
     type = lib.types.str;
     default = "${state}/work.json";
     readOnly = true;

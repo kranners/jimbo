@@ -1,4 +1,4 @@
-"""Butler's Discord threads, as names, kinds, times and states alone, for the life explorer's Threads tab.
+"""Butler's Discord threads, as names, kinds, times and states alone, for the life explorer's Threads section.
 
 Reads the daemon's threads.db read-only and writes a JSON snapshot. No message text, prompt, reply or error
 ever leaves the database: only each thread's title, which kind of turn started it, which scheduled job ran it,

@@ -20,7 +20,7 @@ The cache is denied to Butler's own `Read`, and `chat` is a private command, so 
 A conversation is waiting on him when its last message is someone else's, older than 24 hours and newer than 14 days, in a DM or in a group he has spoken in.
 Slack channels never count, nor does a stranger he has never answered, such as a code sent by text.
 Discord can never count: the only Discord data Butler holds is Aaron's own side.
-The morning brief and the nightly loose ends job read `chat waiting` through their skills in butler's memory, so the Life Explorer's Loose ends tab gains them with no new prompt.
+The morning brief and the nightly loose ends job read `chat waiting` through their skills in butler's memory, so the Life Explorer's Loose ends section gains them with no new prompt.
 
 ## People
 

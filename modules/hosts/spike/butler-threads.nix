@@ -14,7 +14,7 @@ let
 in
 {
   options.butler.threads.snapshot = lib.mkOption {
-    description = "The snapshot of butler's Discord threads the life explorer's Threads tab reads, readable by the group butler.";
+    description = "The snapshot of butler's Discord threads the life explorer's Threads section reads, readable by the group butler.";
     type = lib.types.str;
     default = "${state}/threads.json";
     readOnly = true;
