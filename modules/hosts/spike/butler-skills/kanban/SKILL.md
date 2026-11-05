@@ -108,7 +108,7 @@ The tidy pass, on Aaron's request or when you find the board drifted:
 4. Give each region of yours exactly one up-to-date region note, rewriting stale lines and deleting duplicates, and delete a region note left in a region that holds no card of yours.
 5. Arrange each region you changed, and the Done area, so nothing of yours overlaps.
 6. Delete a region of yours that is empty but for its note, with the note; leave Aaron's regions as they are.
-When a scheduled run, which cannot change the board, finds drift in `board_snapshot`, it notes "board needs a tidy" in `core/now.md`, and the next conversation that touches the board runs the pass first.
+A scheduled run that finds drift in `board_snapshot` may run the pass itself, under the same `kanban board` grant a conversation asks for, and when it is not granted it notes "board needs a tidy" in `core/now.md` for the next conversation that touches the board.
 
 ## Driving sessions
 

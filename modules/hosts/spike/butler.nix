@@ -129,6 +129,9 @@ let
     };
   };
 
+  # A scheduled run has every rule a conversation has, with the same arguments, as Aaron asked on 6 Nov 2026; sends and other critical outcomes still wait on his button.
+  withCron = lanes: lib.unique (lanes ++ lib.optional (lib.elem "interactive" lanes) "cron");
+
   manifest = pkgs.writeText "butler-commands.json" (
     builtins.toJSON {
       commands = lib.mapAttrsToList (name: c: {
@@ -149,7 +152,7 @@ let
               || v != null
             )
             && (n != "flags" || v != [ ])
-          ) (r // { taints = r.taints || c.private; })
+          ) (r // { taints = r.taints || c.private; } // { lanes = withCron r.lanes; })
         ) c.rules;
       }) commands;
     }

@@ -160,7 +160,7 @@ in
     stdin = true;
     # Egress, so in a thread that has read private data or began as a voice request or board message the first action asks Aaron once for the `mac` area, and the rest run unasked.
     # An action the daemon's mac checker reads as an outcome, anything on pilot beyond reading, a `run` that would send or delete, a Send-like control or a `confirm`, asks every time.
-    # Scheduled runs may use it too, as Aaron asked on 4 Nov 2026, but no one can answer there: the daemon refuses those outcomes outside a conversation, and any egress once the run's thread has read private data.
+    # Scheduled runs have it as a conversation does, as Aaron asked on 6 Nov 2026: those outcomes wait on his button in his DM, and a run that is refused carries on without them.
     rules = [
       {
         match = [ "**" ];

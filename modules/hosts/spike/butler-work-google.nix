@@ -60,7 +60,7 @@ in
     systemd.tmpfiles.rules = [ "d ${directory} 0700 butler butler -" ];
 
     # The work rules come first, since the first rule that matches decides:
-    # reading work mail is a conversation's alone, and a scheduled run sees only the meetings' times and titles.
+    # work mail is a conversation's and, through butler.nix's manifest, a scheduled run's, and a call sees the meetings but no mail.
     butler.commands.mail.rules = lib.mkBefore [
       {
         match = [

@@ -438,7 +438,7 @@ in
           mail accounts | mail unread-counts | mail <account> mailboxes | mail <account> [<folder>] unread [count] | mail <account> [<folder>] list [count] | mail <account> [<folder>] search <query>... | mail <account> [<folder>] read <id> | mail <account> [<folder>] attachments <id> | mail <account> [<folder>] save <id> <attachment name> [inbox folder] | mail <account> archive <id>...
           save puts the attachment into the index inbox's folder, exports by default or another such as didi, uber or amazon, for the ingest, never the outbox, leaving the message as it was.
           <folder> is a folder's name, matched loosely, such as junk (Outlook's Junk, Gmail's Spam), archive or clutter, or all-folders for unread, list and search, such as mail outlook junk list 5 or mail outlook all-folders search aliexpress; an id belongs to its folder, so read it with the same folder. The inbox is the default.
-          ${lib.optionalString workGoogle "mail work unread [count] | mail work list [count] | mail work search <Gmail search words>... | mail work read <id>: Aaron's work Google mail, read-only, in a conversation alone; it cannot archive or send."}
+          ${lib.optionalString workGoogle "mail work unread [count] | mail work list [count] | mail work search <Gmail search words>... | mail work read <id>: Aaron's work Google mail, read-only, in a conversation or a scheduled run; it cannot archive or send."}
         '';
         rules = [
           {

@@ -119,7 +119,7 @@ in
       It has the network, so ssh, ping, curl, dig, nc, nmap and wakeonlan reach WireGuard, the LAN and the internet, and it reads the system journal with journalctl and service state with systemctl status. Its home, ${home}, persists between runs.
     '';
     stdin = true;
-    # Interactive only: no scheduled run, voice request or call lane gets it.
+    # A conversation's and, through butler.nix's manifest, a scheduled run's alone: no voice request or call lane gets it.
     # Egress, so in a thread that has read private data or began as a voice request or board message the first script asks Aaron once for the `shell` area, and the rest run unasked.
     # A script the daemon's shell checker reads as sending, paying, deleting or changing security asks every time, showing what it matched.
     rules = [

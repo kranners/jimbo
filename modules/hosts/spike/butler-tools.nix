@@ -455,7 +455,7 @@ in
         calendar calendars | calendar agenda [days] | calendar events <calendar.entity> <start> <end> | calendar create <calendar.entity> <summary> <start> <end> (description on stdin)
         Dates are YYYY-MM-DD, or YYYY-MM-DDTHH:MM in local time.
         Home Assistant's calendar.create_event cannot set reminders, so an event gets its calendar's default notifications; add any other reminder with the reminders tool.
-        ${lib.optionalString workGoogle "calendar work agenda [days] | calendar work events <start> <end>: Aaron's work Google calendar, read-only, with each meeting's response, attendee count and Meet link; calendar work brief [days] gives only times and titles, the one view a scheduled run may read."}
+        ${lib.optionalString workGoogle "calendar work agenda [days] | calendar work events <start> <end>: Aaron's work Google calendar, read-only, with each meeting's response, attendee count and Meet link; calendar work brief [days] gives only times and titles."}
       '';
       stdin = true;
       rules = [
