@@ -9,6 +9,7 @@
 # anything shaped like a secret, and every field is clipped. The explorer escapes it all again.
 
 import calendar  # noqa: E402
+import tempfile  # noqa: E402
 
 WORK_DIR = os.environ.get('WORK_DIRECTORY', '/var/lib/butler-work')
 LIMITS_DIR = '@limits@'
@@ -270,17 +271,23 @@ def work_snapshot(github, now):
 
 def work_main(argv):
     global STATE
-    os.makedirs(os.path.join(WORK_DIR, 'cache'), mode=0o700, exist_ok=True)
-    os.chmod(os.path.join(WORK_DIR, 'cache'), 0o700)
+    # Butler may create files here too, so never follow a link it left: the cache must be root's own directory.
+    cache = os.path.join(WORK_DIR, 'cache')
+    if os.path.islink(cache):
+        os.unlink(cache)
+    os.makedirs(cache, mode=0o700, exist_ok=True)
+    os.chmod(cache, 0o700, follow_symlinks=False)
     STATE = os.path.join(WORK_DIR, 'cache')
     github = GitHub()
     snapshot = work_snapshot(github, time.time())
     github.save()
     target = os.path.join(WORK_DIR, 'work.json')
-    with open(target + '.tmp', 'w') as f:
+    # A fresh, exclusively created temporary file, so no name butler made can redirect the write.
+    fd, partial = tempfile.mkstemp(dir=WORK_DIR, prefix='.work.', suffix='.tmp')
+    with os.fdopen(fd, 'w') as f:
         json.dump(snapshot, f, ensure_ascii=False, separators=(',', ':'))
-    os.chmod(target + '.tmp', 0o640)
-    os.replace(target + '.tmp', target)
+        os.fchmod(f.fileno(), 0o640)
+    os.replace(partial, target)
     print('butler-work: %d changes, %d need Aaron' % (len(snapshot['changes']), len(snapshot['needs'])))
     return 0
 
