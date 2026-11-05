@@ -790,12 +790,14 @@ On `pilot` it waits, checking every 5 minutes, while pilot's own board, the laun
 Each fetches the board's own `/runner.js` from `https://kanban.spike.cute.engineer` with its token and runs it with Node against that hub, keeping the last copy it fetched for when the hub is away.
 The token is `KANBAN_RUNNER_TOKEN` in `~/.config/kanban/env`, mode 600, the same on `pilot` and each runner, written by hand and never in the repository, and the runner waits, retrying every 5 minutes, until it is there.
 `jimbo`'s runner reaches spike only once spike has its WireGuard peer, through `jimboPublicKey`, and runs only while it is booted into NixOS, since its Windows install runs none.
+Wherever `cswap` on the runner's `PATH`, which includes `~/.local/bin`, manages two or more Claude accounts, as on `pilot`, the runner starts each session on the one with the most headroom and resumes a session that ends on a usage limit on another, and the board does the same for its own sessions, as kranners/kanban's `docs/design.md` describes under Accounts and failover.
 
 ### cswap auto
 
 `modules/cswap-auto` runs `cswap auto --strategy best --threshold 90 --weekly-threshold 95` on `pilot` as the launchd agent `local.cswap-auto` in the gui domain, so cswap reaches the login keychain, logging to `~/.local/state/cswap-auto.log`.
 Its `cswapAuto` options set the strategy, both thresholds and cswap's path, by default `~/.local/bin/cswap`, where `modules/claude` has uv install it, and `cswapAuto.enable` is off on `piggys-MBP`.
 Its label is the one the plist first made by hand had, which home-manager unloads and overwrites on the first switch, so nothing needs removing by hand.
+`cswap auto` moves only the default login, so a session already running in an account's cswap profile stays on it; the kanban board and runners fail such a session over to another account themselves when it hits its limit.
 
 ### Speed reading
 
