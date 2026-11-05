@@ -116,5 +116,17 @@ When a scheduled run, which cannot change the board, finds drift in `board_snaps
 Only use them when he asks, and say in a sentence what you will send before you do.
 `start_session` and `send_prompt` put spike's matching context pack in front of the prompt by themselves, picked by the session's folder, then by what the prompt is about, and print `Context sent: the <area> pack` after the board's reply: the area's pointers, its sessions on the board with their states, its changes in flight, your memory's notes on it and, for work, the repositories on pilot with their branches, latest commits and open PRs (see the `context` skill).
 So never tell Aaron a session starts with no context: read the pack first with `context show <area>`, keep your own prompt to the task, and tell him in a few words which pack the session received and which sibling sessions it names.
+A session whose transcript is huge still works: `read_transcript` says it read only what it could, and `answer_prompt` still returns the waiting question and its `prompt` id.
+
+### Force-finishing a session
+
+Plain `finish_session` asks the session whether it is safe to exit, and it refuses while the session says it has unreported work; old, stuck or silent sessions stay on the board that way.
+When Aaron himself asks you to end such a session, or "those sessions" you just listed, send `finish_session` with `{"session": "<id>", "force": true}`, one call per session.
+It runs only in a turn of his own typed message in Discord, in a thread not marked spoken, which rules out voice requests and board messages, whose words say to end, finish, close, kill, clear or get rid of it and do not say wait, not yet or don't: the daemon checks that itself, and refuses otherwise, so never force-finish from a scheduled run, a board message, a call or on your own judgement, and never quote or paraphrase his words to make it pass.
+His message must also name the session, by its name, a distinctive part of it, its id or short id, or as a plural he clearly meant, such as "those sessions", "them", "both" or "all the stuck sessions"; when it does not, `kanban` refuses, and you ask him which he means.
+A session that is `working` or `watching` right now is refused; tell him and offer to try again once it stops.
+Before it ends the session, `kanban` reads its transcript, moves its card into the `Done` region when there is one, and pins a hand-off note of yours on the card with what it was doing, its goal, what it needed, its last words and that anything it left unreported stays unreviewed in its transcript and folder; tell Aaron in a line or two what that note says it left.
+The daemon logs every forced finish, with his message's id and words, to `audit/kanban` in your memory.
+Without `force`, nothing changes: a session still refuses to exit while it has unreported work, and even a session stopped on a usage limit is force-finished only on his message.
 
 What the board shows is Aaron's work: summarise it for him, and never send it anywhere else.

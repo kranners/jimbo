@@ -96,6 +96,11 @@ let
         type = types.nullOr (types.attrsOf (types.either types.str types.int));
         default = null;
       };
+      # A call whose stdin is a JSON object with "force": true runs only in a turn of Aaron's own message in a thread he did not speak, whose words say to end it, which the daemon checks itself and passes on as BUTLER_OWNER_MESSAGE_ID and BUTLER_OWNER_WORDS, as kanban's finish_session takes.
+      ownerForce = mkOption {
+        type = types.bool;
+        default = false;
+      };
       # Options, such as "--from", that may stand in the match's "*" or trailing "**", which otherwise refuse any argument starting with "-".
       flags = mkOption {
         type = types.listOf (types.strMatching "--?[a-z][a-z0-9-]*");
@@ -149,6 +154,7 @@ let
               || v != null
             )
             && (n != "flags" || v != [ ])
+            && (n != "ownerForce" || v)
           ) (r // { taints = r.taints || c.private; })
         ) c.rules;
       }) commands;

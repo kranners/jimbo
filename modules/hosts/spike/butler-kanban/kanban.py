@@ -77,14 +77,14 @@ def ssh_args():
     return [SSH, *options, '%s@%s' % (HOST['user'], HOST['address'])]
 
 
-def call_local(tool, args):
+def call_local(tool, args, timeout=60):
     """Posts one tool call to the board on spike's loopback and returns its reply."""
     request = urllib.request.Request(
         'http://127.0.0.1:%d/api/butler/tools/%s' % (PORT, tool),
         data=json.dumps(args).encode(), headers={'content-type': 'application/json'}, method='POST',
     )
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             body = response.read().decode('utf-8', 'replace')
     except urllib.error.HTTPError as error:
         body = error.read().decode('utf-8', 'replace')
@@ -96,22 +96,25 @@ def call_local(tool, args):
         raise Unreachable('the board answered with something other than JSON: %s' % body[:300])
 
 
-def call(tool, args):
+def call(tool, args, timeout=60):
     """Posts one tool call to the board, on spike once cut over, else on pilot, and returns its reply."""
+    timeout = max(1, int(timeout))
     if os.path.exists(HUB_MARKER):
-        return call_local(tool, args)
+        return call_local(tool, args, timeout)
     remote = (
-        'curl --silent --show-error --max-time 60 '
+        'curl --silent --show-error --max-time %d '
         '--header "content-type: application/json" --data-binary @- '
-        'http://127.0.0.1:%d/api/butler/tools/%s' % (PORT, tool)
+        'http://127.0.0.1:%d/api/butler/tools/%s' % (timeout, PORT, tool)
     )
+    # ssh's own connection gets up to half a minute past curl's limit, as a 60 s call always had.
+    waited = timeout + min(30, timeout // 2)
     try:
         result = subprocess.run(
             ssh_args() + [remote], input=json.dumps(args),
-            capture_output=True, text=True, timeout=90,
+            capture_output=True, text=True, timeout=waited,
         )
     except subprocess.TimeoutExpired:
-        raise Unreachable('the board on pilot did not answer in 90 s')
+        raise Unreachable('the board on pilot did not answer in %d s' % waited)
     if result.returncode == 255:
         raise Unreachable('pilot is unreachable over ssh: %s' % (result.stderr.strip() or 'no answer'))
     if result.returncode != 0:
@@ -378,6 +381,199 @@ def board_relay():
         time.sleep(RELAY_EVERY)
 
 
+# Force-finishing a session: the daemon runs a forced finish_session only on
+# Aaron's own message, which it names in these, and this checks his words
+# name the session before it writes a hand-off note and asks the board.
+OWNER_MESSAGE = re.compile(r'^[0-9]{15,22}$')
+BUSY = ('working', 'watching')
+# The daemon's whole command timeout is 60 s, so everything here ends well inside it.
+FORCE_BUDGET = 50
+FINISH_RESERVE = 15
+CONTROL = re.compile(r'[\x00-\x09\x0b-\x1f\x7f-\x9f]')
+WORD = re.compile(r"[a-z0-9]+(?:'[a-z]+)?")
+# Words too common in session names to say which session he meant.
+COMMON = frozenset("""
+    a an the and or of to for in on at by with from into via is it its this that these those
+    fix fixes add adds update updates make makes new old use run runs check session sessions
+    work task change changes bug test tests stuck one two up out off all
+""".split())
+PLURAL = re.compile(
+    r"\b(?:those|these|the|all|both|all\s+of\s+the|all\s+the)\s+(?:[\w-]+\s+){0,2}sessions\b"
+    r"|\b(?:all\s+of\s+)?them\b|\bboth(?:\s+of\s+them)?\b"
+    r"|\ball\s+(?:of\s+)?the\s+(?:stuck|old|stale|idle|dead|finished|done|failed|stopped)\b",
+    re.IGNORECASE,
+)
+
+
+def clean(text, limit=None):
+    """Text with control characters, newlines and tabs among them, turned to spaces, cut off at limit."""
+    text = CONTROL.sub(' ', str(text or '')).replace('\n', ' ')
+    if limit is not None and len(text) > limit:
+        text = text[:max(0, limit - 1)].rstrip() + '…'
+    return text
+
+
+def words_of(text):
+    return WORD.findall(str(text or '').lower())
+
+
+def parse_snapshot(reply):
+    """The board_snapshot JSON after its first line, or None."""
+    text = reply.get('text', '') if reply.get('ok') else ''
+    start = text.find('{')
+    if start < 0:
+        return None
+    try:
+        snapshot = json.JSONDecoder().raw_decode(text[start:])[0]
+    except ValueError:
+        return None
+    return snapshot if isinstance(snapshot, dict) else None
+
+
+def find_session(sessions, ref):
+    """The session a reference names, by id, short id or exact name, ignoring case, or an id's unique prefix."""
+    ref = str(ref or '').strip().lower()
+    if not ref:
+        return None
+    for key in ('id', 'short', 'name'):
+        found = [s for s in sessions if str(s.get(key) or '').lower() == ref]
+        if len(found) == 1:
+            return found[0]
+    found = [s for s in sessions if str(s.get('id') or '').lower().startswith(ref)]
+    return found[0] if len(found) == 1 and len(ref) >= 6 else None
+
+
+def distinctive(session, sessions):
+    """The words of a session's name that are not common and no other session's name shares."""
+    theirs = set()
+    for other in sessions:
+        if other is not session:
+            theirs.update(words_of(other.get('name')))
+    return [w for w in dict.fromkeys(words_of(session.get('name'))) if len(w) >= 3 and w not in COMMON and w not in theirs]
+
+
+def names_session(words, session, sessions):
+    """Whether Aaron's words name this session: its id, short id or name, or a plural reference to several."""
+    said = str(words or '').lower()
+    for key in ('id', 'short'):
+        value = str(session.get(key) or '').lower()
+        if len(value) >= 6 and value in said:
+            return True
+    spoken = words_of(said)
+    name = words_of(session.get('name'))
+    if name and ' %s ' % ' '.join(name) in ' %s ' % ' '.join(spoken):
+        return True
+    unique = distinctive(session, sessions)
+    heard = [w for w in unique if w in spoken]
+    if heard and len(heard) * 2 >= len(unique):
+        return True
+    return bool(PLURAL.search(said))
+
+
+def last_said(transcript_text, count=3, limit=300):
+    """The session's last few assistant messages, from read_transcript's lines."""
+    said = []
+    for line in (transcript_text or '').splitlines():
+        match = re.match(r'^\[[^\]]+\] assistant: (.*)$', line)
+        if match and match.group(1).strip():
+            said.append(clean(match.group(1), limit).strip())
+    return said[-count:]
+
+
+def unreported(session):
+    """What the session was holding when it was ended, from the board's own fields."""
+    parts = ['%s was %s' % (clean(session.get('name') or session.get('id'), 200), session.get('activity') or 'in an unknown state')]
+    for key, label in (('needs', 'it needed'), ('doing', 'it was doing'), ('goal', 'its goal was')):
+        value = session.get(key)
+        if value:
+            parts.append('%s: %s' % (label, clean(value, 300)))
+    return '; '.join(parts)
+
+
+def handoff_note(session, said, message):
+    """One paragraph Butler leaves on the card, so whoever picks the work up knows where it stood."""
+    text = "Force-finished on Aaron's message %s. %s; started %s, last active %s, in %s. " % (
+        message, unreported(session).rstrip('.'), session.get('startedAt') or 'at an unknown time',
+        session.get('updatedAt') or 'at an unknown time', session.get('cwd') or 'an unknown folder')
+    if said:
+        text += 'Its last words: %s. ' % ' / '.join('"%s"' % s for s in said)
+    else:
+        text += 'Its transcript could not be read, so its last words are not known. '
+    text += 'Anything it had not reported, committed or landed stays in its transcript and its folder, unreviewed.'
+    return clean(text, 4000)
+
+
+def done_region(snapshot):
+    for region in snapshot.get('regions') or []:
+        if isinstance(region, dict) and str(region.get('name') or '').strip().lower() == 'done':
+            return region
+    return None
+
+
+def force_finish(args):
+    """finish_session with force: refused unless the daemon passed Aaron's own message naming the session."""
+    started = time.monotonic()
+
+    def left(cap):
+        return min(cap, FORCE_BUDGET - FINISH_RESERVE - (time.monotonic() - started))
+
+    message = os.environ.get('BUTLER_OWNER_MESSAGE_ID', '')
+    words = os.environ.get('BUTLER_OWNER_WORDS', '')
+    if not OWNER_MESSAGE.match(message) or not words.strip():
+        print("kanban: finish_session with force needs Aaron's own message asking for it, which only the daemon passes; without it, finish the session without force", file=sys.stderr)
+        return 2
+    ref = args.get('session')
+    snapshot = parse_snapshot(call('board_snapshot', {}, 15))
+    if snapshot is None:
+        print('kanban: could not read the board to find %s' % ref, file=sys.stderr)
+        return 1
+    sessions = [s for s in snapshot.get('sessions') or [] if isinstance(s, dict)]
+    session = find_session(sessions, ref)
+    if session is None:
+        print('kanban: no session %s on the board; use board_snapshot for ids' % ref, file=sys.stderr)
+        return 1
+    name = clean(session.get('name') or session.get('id'), 200)
+    if session.get('activity') in BUSY:
+        print('kanban: %s is %s right now, so it cannot be force-finished; wait until it stops' % (name, session.get('activity')), file=sys.stderr)
+        return 1
+    if not names_session(words, session, sessions):
+        print('kanban: Aaron\'s message %s does not name %s, by its name, id or short id, or as "those sessions", so it is not force-finished; ask him which session he means' % (message, name), file=sys.stderr)
+        return 1
+    print('Unreported at the end: %s.' % unreported(session))
+    said = []
+    if left(15) > 2:
+        try:
+            transcript = call('read_transcript', {'session': session['id'], 'limit': 40}, left(15))
+            if transcript.get('ok'):
+                said = last_said(transcript.get('text', ''))
+        except Unreachable:
+            pass
+    region = done_region(snapshot)
+    box = (region or {}).get('drawn') or (region or {}).get('frame')
+    if isinstance(box, dict) and left(8) > 2:
+        try:
+            moved = call('arrange', {'cards': [{'id': session['id'], 'x': box['x'] + 24, 'y': box['y'] + 48}]}, left(8))
+            print('Moved into Done: %s' % (moved.get('text') if moved.get('ok') else 'no, ' + str(moved.get('error'))))
+        except (Unreachable, KeyError, TypeError):
+            pass
+    note = handoff_note(session, said, message)
+    print('Hand-off note: %s' % note)
+    if left(8) > 2:
+        try:
+            noted = call('note', {'target': session['id'], 'text': note}, left(8))
+            if not noted.get('ok'):
+                print('The board refused the note: %s' % noted.get('error'))
+        except Unreachable as error:
+            print('The note did not reach the board: %s' % error)
+    remaining = FORCE_BUDGET - (time.monotonic() - started)
+    reply = call('finish_session', {'session': session['id'], 'force': True, 'ownerMessage': message}, max(5, remaining))
+    if reply.get('ok'):
+        print('Board: %s' % reply.get('text', ''))
+        return 0
+    print('kanban: %s' % reply.get('error', 'the board refused'), file=sys.stderr)
+    return 1
+
+
 def main(argv):
     if len(argv) != 2 or not TOOL.match(argv[1].replace('-', '_')):
         print(USAGE, file=sys.stderr)
@@ -406,6 +602,12 @@ def main(argv):
         if not isinstance(args, dict):
             print('kanban: the arguments on stdin must be a JSON object', file=sys.stderr)
             return 2
+    if tool == 'finish_session' and args.get('force') is True:
+        try:
+            return force_finish(args)
+        except Unreachable as error:
+            print('kanban: %s' % error, file=sys.stderr)
+            return 75
     sent = None
     if tool in ('start_session', 'send_prompt'):
         args, sent = with_context(tool, args)
