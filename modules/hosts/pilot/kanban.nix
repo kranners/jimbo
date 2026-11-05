@@ -1,3 +1,6 @@
+# The kanban board itself runs on spike (modules/hosts/spike/kanban.nix); pilot only runs sessions for it, through
+# modules/kanban-runner. Its old local board and that board's `kanban-sync` updater are retired, and spike's
+# `kanban-hub cutover` copies the local board's state across once. What stays here is cmux's socket password.
 _: {
   darwinHomeModule =
     {
@@ -7,23 +10,9 @@ _: {
       ...
     }:
     let
-      home = config.home.homeDirectory;
       passwordFile = "${config.xdg.configHome}/kanban/cmux-socket-password";
       cmuxConfig = "${config.xdg.configHome}/cmux/cmux.json";
       cmuxSettings = pkgs.writeText "cmux.json" config.xdg.configFile.cmux.text;
-      checkout = "${home}/workspace/kanban";
-      logs = "${home}/Library/Logs/kanban";
-      path = lib.concatStringsSep ":" [
-        "${pkgs.nodejs_24}/bin"
-        "${home}/.local/bin"
-        "/opt/homebrew/bin"
-        "/etc/profiles/per-user/${config.home.username}/bin"
-        "/run/current-system/sw/bin"
-        "/usr/bin"
-        "/bin"
-        "/usr/sbin"
-        "/sbin"
-      ];
     in
     {
       xdg.configFile.cmux.enable = false;
@@ -37,48 +26,5 @@ _: {
         rm -f ${cmuxConfig}
         mv ${cmuxConfig}.new ${cmuxConfig}
       '';
-
-      launchd.agents.kanban = {
-        enable = true;
-
-        config = {
-          Label = "kanban";
-          ProgramArguments = [
-            "${pkgs.nodejs_24}/bin/node"
-            "--watch"
-            "src/server/main.ts"
-          ];
-          WorkingDirectory = checkout;
-          EnvironmentVariables = {
-            KANBAN_AUTH = "off";
-            # Runners (modules/kanban-runner) reach the board through spike; the board reads their shared
-            # KANBAN_RUNNER_TOKEN from ~/.config/kanban/env itself, so it never enters the plist.
-            KANBAN_RUNNERS = "piggys-mbp,jimbo";
-            PATH = path;
-          };
-          RunAtLoad = true;
-          KeepAlive = true;
-          StandardOutPath = "${logs}/server.log";
-          StandardErrorPath = "${logs}/server.log";
-        };
-      };
-
-      launchd.agents.kanban-sync = {
-        enable = true;
-
-        config = {
-          Label = "kanban-sync";
-          ProgramArguments = [
-            "${pkgs.nodejs_24}/bin/node"
-            "scripts/sync.ts"
-          ];
-          WorkingDirectory = checkout;
-          EnvironmentVariables.PATH = path;
-          RunAtLoad = true;
-          StartInterval = 60;
-          StandardOutPath = "${logs}/sync.log";
-          StandardErrorPath = "${logs}/sync.log";
-        };
-      };
     };
 }

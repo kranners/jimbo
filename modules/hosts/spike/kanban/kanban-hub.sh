@@ -195,7 +195,7 @@ case "${1:-}" in
     [ ! -e "$MARKER" ] || { echo "kanban-hub: the board already runs on spike" >&2; exit 0; }
     if pilot_board_loaded; then
       echo "kanban-hub: pilot's own board is still loaded; unload kanban-sync and kanban there first:" >&2
-      echo '  launchctl bootout "gui/$(id -u)/kanban-sync"; launchctl bootout "gui/$(id -u)/kanban"' >&2
+      echo '  launchctl bootout "gui/$(id -u)/kanban-sync" 2> /dev/null; launchctl bootout "gui/$(id -u)/kanban"' >&2
       exit 1
     fi
     before=$(cat "$HOME_DIR/backups/last-pilot-snapshot" 2> /dev/null || echo '')
@@ -227,8 +227,8 @@ case "${1:-}" in
         && echo "kanban-hub: spike's board state is copied to ~/.local/state/$name on pilot" >&2 \
         || echo "kanban-hub: could not copy spike's state to pilot; it stays in $LIVE_STATE" >&2
     fi
-    echo "kanban-hub: kanban.spike.cute.engineer goes to pilot again. Load pilot's board there:"
-    echo '  launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/kanban.plist; launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/kanban-sync.plist'
+    echo "kanban-hub: kanban.spike.cute.engineer goes to pilot again. pilot's board agents are retired, so start it there by hand;"
+    echo "  docs/kanban-on-spike.md in jimbo says how."
     ;;
   *) usage ;;
 esac

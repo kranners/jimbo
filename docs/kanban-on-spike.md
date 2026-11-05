@@ -1,7 +1,8 @@
 # Moving the kanban board onto spike
 
 Aaron asked on 5 Nov 2026 for spike to hold the one kanban board, with pilot, piggys-MBP and jimbo only running sessions for it.
-The code is in `modules/hosts/spike/kanban.nix` and `modules/hosts/spike/kanban/kanban-hub.sh`, and it does nothing until the cutover below, which waits for Aaron's plain yes.
+The code is in `modules/hosts/spike/kanban.nix` and `modules/hosts/spike/kanban/kanban-hub.sh`, and it does nothing until the cutover below.
+Aaron retired pilot's own board on 5 Nov 2026: spike's is the only instance once the cutover runs, and nothing syncs pilot's board to spike.
 
 ## What the board keeps, and how it moves
 
@@ -35,7 +36,10 @@ sudo kanban-hub scratch-stop
    `launchctl bootout "gui/$(id -u)/kanban-sync"; launchctl bootout "gui/$(id -u)/kanban"`
 3. On spike: `sudo kanban-hub cutover --yes`, which copies pilot's final state, imports it, builds kanban, copies the runners' token from pilot when spike has none, writes `/var/lib/kanban-hub/on-spike`, stops the tunnel, starts the board and the bridge, and compares.
 4. On pilot: once Aaron switches pilot with `just`, its `kanban-runner` agent starts within 5 minutes and pilot appears in the board's Runners list; check a session started there shows on the board.
-5. A follow-up jimbo change removes the `kanban` and `kanban-sync` agents from `modules/hosts/pilot/kanban.nix`, since the next `just` on pilot would load them again; `~/workspace/kanban` and every backup stay.
+5. `modules/hosts/pilot/kanban.nix` no longer declares the `kanban` and `kanban-sync` agents, and kranners/kanban no longer has `scripts/sync.ts`, so the next `just` on pilot removes their plists; `~/workspace/kanban`, `~/.local/state/kanban` and every backup stay.
+
+Run the steps in that order: a `just` on pilot before step 3 unloads pilot's board early, and `kanban.spike.cute.engineer` answers 502 until the cutover, which still copies pilot's state whole.
+The cutover is safe to run again: once the marker exists it says so and changes nothing.
 
 ## Rollback, one command
 
@@ -44,4 +48,4 @@ sudo kanban-hub rollback
 ```
 
 It removes the marker, stops the board and the bridge, starts the tunnel again and copies spike's state since the cutover to `~/.local/state/kanban.from-spike-<stamp>` on pilot, beside pilot's own state, which nothing changed.
-Then load pilot's board again there: `launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/kanban.plist; launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/kanban-sync.plist`.
+Then start pilot's board again: its agents are gone, so bring the `kanban` agent back in `modules/hosts/pilot/kanban.nix` and run `just` on pilot, or run `KANBAN_AUTH=off node src/server/main.ts` in `~/workspace/kanban` there by hand.
