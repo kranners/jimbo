@@ -25,7 +25,7 @@ let
       config.butler.land.package
     ];
     text = ''
-      # Reads and probes only: it sends, runs and writes nothing of butler's, and DMs Aaron only when a control fails.
+      # Reads and probes only: it sends and runs nothing, writes only a probe file it removes in each working area, and DMs Aaron only when a control fails.
       lines=$(cd ${checkout} && node src/selfcheck.ts 2>&1) || true
       lines=$(printf '%s\n' "$lines" | grep -E '^(PASS|FAIL) ' || true)
       [ -n "$lines" ] || lines="FAIL the daemon's self-check runs: npm run selfcheck printed nothing"
@@ -42,6 +42,12 @@ let
       # The life explorer, whose API is behind the device gate, refuses a device it never signed in.
       code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 10 --resolve life.spike.cute.engineer:443:10.100.0.1 https://life.spike.cute.engineer/api/desk || true)
       if [ "$code" != 200 ]; then check "the life explorer stays behind its login" ok; else check "the life explorer stays behind its login" "/api/desk answered 200 without a login"; fi
+
+      # Each of butler's working areas takes a file from butler, so a desk session's or scheduled run's Write there is not refused by the folder's owner or mode.
+      for area in ${lib.escapeShellArgs config.butler.writePaths}; do
+        probe="$area/.selfcheck-$$"
+        if (umask 077 && : > "$probe") 2>/dev/null && rm -f "$probe"; then check "butler can write in $area" ok; else check "butler can write in $area" "creating a file there as butler failed"; fi
+      done
 
       ${lib.optionalString voice ''
         # The kitchen panel's voice endpoint refuses a request without its token.

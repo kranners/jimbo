@@ -69,6 +69,17 @@ def test(out):
     assert snapshot['next']['id'] == working
     assert any(e['kind'] == 'builds on' and e['from'] == waiting and e['to'] == working for e in snapshot['edges'])
     assert snapshot['usage'][0]['account'] == 'personal' and snapshot['usage'][1]['weekly'] == 65 and snapshot['usage'][1]['session'] == 12
+    # The watcher's files are handed to butler, never through a link, and nothing happens without that user.
+    handed = os.path.join(root, 'handed')
+    write(os.path.join(handed, 'meta.json'), '{}')
+    os.symlink('/etc/hostname', os.path.join(handed, 'projects.json'))
+    assert hand_watcher_files(handed, owner='no-such-user-here') == []
+    try:
+        me = pwd.getpwuid(os.getuid()).pw_name
+    except KeyError:
+        me = None
+    if me is not None:
+        assert hand_watcher_files(handed, owner=me) == []
     with open(out, 'w') as f:
         json.dump(snapshot, f, indent=1, ensure_ascii=False)
     print('butler-work test: ok, %d changes' % len(snapshot['changes']))

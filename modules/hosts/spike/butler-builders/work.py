@@ -9,11 +9,15 @@
 # anything shaped like a secret, and every field is clipped. The explorer escapes it all again.
 
 import calendar  # noqa: E402
+import pwd  # noqa: E402
+import stat  # noqa: E402
 import tempfile  # noqa: E402
 
 WORK_DIR = os.environ.get('WORK_DIRECTORY', '/var/lib/butler-work')
 LIMITS_DIR = '@limits@'
 DAY = 24 * 3600
+# The Work page's files, which Butler's work watcher writes beside this snapshot.
+WATCHER_FILES = ('meta.json', 'projects.json', 'events.json', 'inbox.json', 'climate.json')
 REPORT_KEYS = ('Changed', 'Before', 'After', 'Ready', 'Go live', 'Aaron must', 'Commit')
 REPORT_LINE = re.compile(r'\b(%s):\s*' % '|'.join(re.escape(k) for k in REPORT_KEYS))
 NOTHING = re.compile(r'^(nothing|none|no(thing)? (needed|required)|n/?a)\b', re.I)
@@ -269,6 +273,31 @@ def work_snapshot(github, now):
     }
 
 
+def hand_watcher_files(directory, owner='butler'):
+    # A watcher file another user made, root by hand above all, would stop butler overwriting it in this sticky
+    # folder, so each regular file of those names, never a link, is made butler's own, mode 640.
+    try:
+        user = pwd.getpwnam(owner)
+    except KeyError:
+        return []
+    handed = []
+    for name in WATCHER_FILES:
+        path = os.path.join(directory, name)
+        try:
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        except OSError:
+            continue
+        try:
+            st = os.fstat(fd)
+            if stat.S_ISREG(st.st_mode) and st.st_uid != user.pw_uid:
+                os.fchown(fd, user.pw_uid, user.pw_gid)
+                os.fchmod(fd, 0o640)
+                handed.append(name)
+        finally:
+            os.close(fd)
+    return handed
+
+
 def work_main(argv):
     global STATE
     # Butler may create files here too, so never follow a link it left: the cache must be root's own directory.
@@ -288,6 +317,8 @@ def work_main(argv):
         json.dump(snapshot, f, ensure_ascii=False, separators=(',', ':'))
         os.fchmod(f.fileno(), 0o640)
     os.replace(partial, target)
+    for name in hand_watcher_files(WORK_DIR):
+        print('butler-work: handed %s to butler so the work watcher can rewrite it' % name)
     print('butler-work: %d changes, %d need Aaron' % (len(snapshot['changes']), len(snapshot['needs'])))
     return 0
 
