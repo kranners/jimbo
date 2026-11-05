@@ -118,6 +118,18 @@ Only use them when he asks, and say in a sentence what you will send before you 
 So never tell Aaron a session starts with no context: read the pack first with `context show <area>`, keep your own prompt to the task, and tell him in a few words which pack the session received and which sibling sessions it names.
 A session whose transcript is huge still works: `read_transcript` says it read only what it could, and `answer_prompt` still returns the waiting question and its `prompt` id.
 
+### Permission prompts
+
+A session waiting on a tool permission prompt shows as `needs-you`, and `answer_prompt` with `{"session"}` shows what it asks.
+Cloud sessions the board starts run in auto mode, so they ask far less, but a session started before that, or one whose auto mode still stops, keeps asking, and Aaron wants no piecemeal approvals.
+So never approve a job's prompts one by one: `answer_prompt` with `{"session": "<id>", "allow_safe": true}` approves every open prompt of that session the board's classifier calls safe, and lists each one left for Aaron with why, without answering it.
+`approve_safe_prompts` with `{}`, or `{"sessions": ["<id>", ...]}`, does that for every session waiting on him, or the ones named, and ends with `Approved N, left M for Aaron`.
+Approving a cloud session's safe prompt this way also grants it the whole safe set of tools for the rest of its life, so it stops asking for those.
+Spike runs `approve_safe_prompts` itself every 3 minutes, and every approval, yours or the sweep's, goes to the board's audit and to `audit/kanban` in your memory, so you seldom need to.
+Safe means reading and searching, its own notes, tasks and subagents, adding repositories, naming and messaging its own sessions, edits inside its own folder that touch no secret, git on a branch other than `main` without force, opening and commenting on pull requests, and the repository's own builds, tests, linters and work review tooling.
+Still asking Aaron, always: a push to `main` or `master`, any force push, deleting a branch or tag, `git clean`, merging a pull request, releases, deploys and anything naming production, infrastructure changes such as terraform apply or kubectl apply, `sudo`, ssh to other machines, reading or printing secrets, sending messages, mail or payments, any curl or API call that is not a plain read, `rm` outside the folder, environments, credentials, scheduled tasks and other sessions' lifecycle, and any tool or command the classifier does not know.
+For those, never answer them one by one either: put what the job needs into one mission and get Aaron's single approval for it, then answer what the mission covers, and leave the rest to him.
+
 ### Force-finishing a session
 
 Plain `finish_session` asks the session whether it is safe to exit, and it refuses while the session says it has unreported work; old, stuck or silent sessions stay on the board that way.

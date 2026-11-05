@@ -10,7 +10,11 @@ butler's changes from spike's own records and sends it, which is how
 back what Aaron did to those cards there: a card he closed asks spike to
 archive the change, one he marked done stops it being reported as needing
 him. Only those recorded board actions act; nothing in a card's text does.
+`kanban safe-sweep`, for `butler-kanban-safe-prompts`, has the board approve
+every open prompt its classifier calls safe and audits each approval to
+audit/kanban in butler's memory.
 """
+import fcntl
 import json
 import os
 import pwd
@@ -26,6 +30,12 @@ SSH = '@ssh@'
 SELF_FIX = '@selfFix@'
 BOARD = '@board@'
 SPOOL_USER = '@spoolUser@'
+# Commits the lines spooled for audit/kanban to butler's memory, as mac's and the reminders' trails are.
+MEMORY_AUDIT = '@memoryAudit@'
+# The sweep runs as root, so it drops to butler to write this spool in butler's home and run memory-audit on it.
+AUDIT_SPOOL = '@auditSpool@'
+# How long the root sweep waits for memory-audit, behind the memory's lock, before leaving the lines spooled.
+AUDIT_WAIT = 60
 # Prints the context pack a prompt to a session starts with, from `context prefix`.
 CONTEXT = '@context@'
 # Spike collects the board's messages this often; the board calls spike unreachable after 20 s without.
@@ -43,10 +53,10 @@ MAX_FIXES = 50
 STALE = 30 * 60
 ENDED = ('finished', 'archived', 'failed to start')
 
-USAGE = '''usage: kanban <tool> (its arguments as a JSON object on stdin, or nothing for none) | kanban changes | kanban board-relay
+USAGE = '''usage: kanban <tool> (its arguments as a JSON object on stdin, or nothing for none) | kanban changes | kanban board-relay | kanban safe-sweep
 tools: board_snapshot, read_transcript, board_history, put_card, close_card, note, watch, look, arrange,
 put_sticker, delete_annotations, find_stickers, create_region, update_region, delete_region,
-ask_session, send_prompt, announce, answer_prompt, start_session, finish_session'''
+ask_session, send_prompt, announce, answer_prompt, approve_safe_prompts, start_session, finish_session'''
 
 
 class Unreachable(Exception):
@@ -580,6 +590,136 @@ def force_finish(args):
     return 1
 
 
+# The safe sweep: approve_safe_prompts approves, on every session waiting on
+# Aaron, each open prompt the board's classifier calls safe, and leaves the
+# rest, the guardrails, for him. Each approval it reports becomes one line of
+# audit/kanban in butler's memory.
+SUMMARY = re.compile(r'^Approved (\d+), left (\d+) for Aaron\b')
+# The board reports each approval as `<session>: approved <title> (<tool>, request <id>)`.
+APPROVED = re.compile(r': approved ')
+BULLET = re.compile(r'^[\s\-*\u2022\u2713\u2714]+')
+
+
+def approvals_of(reply):
+    """One line per prompt the board approved: its structured list when it sends one, else its report's Approved lines."""
+    listed = reply.get('approved')
+    if isinstance(listed, list) and listed:
+        lines = []
+        for item in listed:
+            if isinstance(item, dict):
+                lines.append('session %s, tool %s, request %s%s' % (
+                    item.get('session') or '?', item.get('tool') or '?',
+                    item.get('requestId') or item.get('request') or item.get('prompt') or '?',
+                    ', "%s"' % item['title'] if item.get('title') else ''))
+            else:
+                lines.append(str(item))
+        return [clean(line, 400) for line in lines]
+    found, summary, heading = [], None, ''
+    for line in str(reply.get('text') or '').splitlines():
+        bare = BULLET.sub('', line).strip()
+        match = SUMMARY.match(bare)
+        if match:
+            summary = int(match.group(1))
+            continue
+        bullet = bare != line.strip()
+        if not bullet:
+            # A line of its own heads the bulleted prompts under it, as a session's name does.
+            heading = bare
+        if APPROVED.search(bare):
+            found.append(clean('%s: %s' % (heading, bare) if bullet and heading else bare, 400))
+    if summary and not found:
+        # The report named no prompt line by line, so the count alone is kept, never nothing.
+        found.append('%d prompt%s, the board listing none by name' % (summary, '' if summary == 1 else 's'))
+    return found
+
+
+def audit_lines(approvals, who='safe-sweep', now=None):
+    """The spool lines memory-audit takes, `YYYY-MM-DD<tab><line>`, one per approval."""
+    now = time.localtime() if now is None else now
+    day = time.strftime('%Y-%m-%d', now)
+    stamp = time.strftime('%H:%M:%S %z', now)
+    return ['%s\t%s %s approved, safe set: %s' % (day, stamp, who, line) for line in approvals]
+
+
+def append_audit(lines):
+    """Appends the lines to the spool, under its lock, as whoever runs it."""
+    os.makedirs(os.path.dirname(AUDIT_SPOOL), mode=0o700, exist_ok=True)
+    with open(AUDIT_SPOOL, 'a') as spool:
+        fcntl.flock(spool, fcntl.LOCK_EX)
+        spool.write(''.join(line + '\n' for line in lines))
+
+
+def audit_as(owner, lines):
+    """As root, spools the lines and commits them as butler, in a child that has dropped to butler first.
+
+    The spool lives in butler's home, so root never opens or chowns a path butler controls, which a symlink
+    there would turn into a write anywhere. memory-audit runs to the end here rather than in the background,
+    since a oneshot unit's leftover processes are killed once it exits; lines it has no time for stay spooled
+    for its next run.
+    """
+    pid = os.fork()
+    if pid == 0:
+        status = 1
+        try:
+            os.initgroups(owner.pw_name, owner.pw_gid)
+            os.setgid(owner.pw_gid)
+            os.setuid(owner.pw_uid)
+            os.environ['HOME'] = owner.pw_dir
+            os.chdir(owner.pw_dir)
+            append_audit(lines)
+            status = 0
+            subprocess.run([MEMORY_AUDIT, 'kanban', AUDIT_SPOOL], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL, timeout=AUDIT_WAIT)
+        except subprocess.TimeoutExpired:
+            pass
+        except (OSError, subprocess.SubprocessError) as error:
+            print('kanban: could not write the audit lines: %s' % error, file=sys.stderr)
+        finally:
+            sys.stderr.flush()
+            os._exit(status)
+    _, status = os.waitpid(pid, 0)
+    return os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0
+
+
+def audit(lines):
+    """Spools the lines for audit/kanban as butler's and has memory-audit commit them; never fails the sweep."""
+    if not lines:
+        return
+    try:
+        if os.getuid() == 0:
+            audit_as(pwd.getpwnam(SPOOL_USER), lines)
+            return
+        append_audit(lines)
+        subprocess.Popen([MEMORY_AUDIT, 'kanban', AUDIT_SPOOL], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+    except (OSError, KeyError) as error:
+        print('kanban: could not write the audit lines: %s' % error, file=sys.stderr)
+
+
+def thread_tag():
+    """The thread a call of Butler's came from, as the daemon names it, for the audit line."""
+    ident = re.sub(r'[^0-9A-Za-z_-]', '', os.environ.get('BUTLER_THREAD_ID', ''))[:32]
+    if not ident:
+        return ''
+    title = clean(' '.join(os.environ.get('BUTLER_THREAD_TITLE', '').split()), 60).replace('"', "'")
+    return ' [thread %s%s]' % (ident, ' "%s"' % title if title else '')
+
+
+def safe_sweep():
+    """Approves every safe prompt on the board, prints the board's report and audits each approval."""
+    try:
+        reply = call('approve_safe_prompts', {})
+    except Unreachable as error:
+        print('kanban: %s' % error, file=sys.stderr)
+        return 75
+    if not reply.get('ok'):
+        print('kanban: %s' % reply.get('error', 'the board refused'), file=sys.stderr)
+        return 1
+    print(reply.get('text', ''))
+    audit(audit_lines(approvals_of(reply)))
+    return 0
+
+
 def main(argv):
     if len(argv) != 2 or not TOOL.match(argv[1].replace('-', '_')):
         print(USAGE, file=sys.stderr)
@@ -595,6 +735,8 @@ def main(argv):
     if tool == 'board_relay':
         board_relay()
         return 0
+    if tool == 'safe_sweep':
+        return safe_sweep()
     if tool == 'self_fixes':
         args = {'fixes': self_fixes()}
         known = {fix['id'] for fix in args['fixes']}
@@ -631,6 +773,8 @@ def main(argv):
         if tool == 'self_fixes':
             text = apply_board_actions(text, known)
         print(text)
+        if tool == 'approve_safe_prompts' or (tool == 'answer_prompt' and args.get('allow_safe') is True):
+            audit(audit_lines(approvals_of(reply), 'butler%s' % thread_tag()))
         if sent:
             print(sent)
         return 0

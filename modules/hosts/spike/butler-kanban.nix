@@ -27,6 +27,8 @@ let
     "@spoolUser@" = "butler";
     "@context@" = lib.getExe config.butler.context.package;
     "@hubMarker@" = config.spike.kanban.hubMarker;
+    "@memoryAudit@" = lib.getExe config.butler.memoryAudit;
+    "@auditSpool@" = "${config.users.users.butler.home}/.local/state/kanban/audit-spool";
   };
 
   kanban = pkgs.writers.writePython3Bin "kanban" { flakeIgnore = [ "E501" ]; } (
@@ -63,6 +65,7 @@ let
     "send_prompt"
     "announce"
     "answer_prompt"
+    "approve_safe_prompts"
     "start_session"
     "finish_session"
   ];
@@ -84,6 +87,7 @@ in
           Reading: ${lib.concatStringsSep ", " reading}. Butler's cards, notes and presence, and tidying: ${lib.concatStringsSep ", " tidying}. Through a session, asking Aaron first: ${lib.concatStringsSep ", " driving}.
           finish_session takes force only in a turn of Aaron's own message naming the session, its name or id or "those sessions", and asking to end it: it ends any session not working right now without asking it, after leaving a hand-off note on its card.
           Aaron's messages from the board's / popup arrive as turns of their own, and the reply goes back to the board.
+          answer_prompt with allow_safe true and a session approves every open prompt of that session the board calls safe and lists the rest, left for Aaron with why; approve_safe_prompts, {} or {"sessions": [...]}, does that for every session waiting on him, and spike's sweep runs it every 3 minutes.
         '';
         stdin = true;
         rules =
@@ -145,6 +149,33 @@ in
         timerConfig = {
           OnActiveSec = "3min";
           OnUnitInactiveSec = "2min";
+        };
+      };
+
+      # Approves the prompts the board calls safe on every session waiting on Aaron, so no job waits on a click for them,
+      # and leaves the guardrails for him; each approval goes to audit/kanban in butler's memory.
+      systemd.services.butler-kanban-safe-prompts = {
+        description = "Approve the safe permission prompts of sessions on Aaron's kanban board";
+        wants = [ "network-online.target" ];
+        after = [ "network-online.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          StateDirectory = "butler-kanban";
+          Environment = "KANBAN_KNOWN_HOSTS=/var/lib/butler-kanban/known_hosts";
+          LoadCredential = "butler-mac-key:/var/lib/secrets/butler-mac-key";
+          # A Mac asleep or a board stopped is no failure, so it waits for the next run.
+          ExecStart = "${lib.getExe kanban} safe-sweep";
+          SuccessExitStatus = [ 75 ];
+          # The board's call may take 90 s and memory-audit, behind the memory's lock, another 60.
+          TimeoutStartSec = "4min";
+        };
+      };
+
+      systemd.timers.butler-kanban-safe-prompts = {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnActiveSec = "2min";
+          OnUnitInactiveSec = "3min";
         };
       };
     }
