@@ -2,6 +2,7 @@ import base64
 import contextlib
 import os
 import secrets
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -14,6 +15,7 @@ QUALITY = "medium"
 FORMAT = "jpeg"
 AVATAR = "@avatar@"
 CHARACTER = "@character@"
+ASSET = "@asset@"
 OUTBOX = "/var/lib/butler/outbox"
 OUTBOX_DAYS = 2
 TIMEOUT_SECONDS = 55
@@ -129,13 +131,25 @@ def save(image):
     return path
 
 
+def register(path, description):
+    """Saves what was made in butler's asset store, so another thread can find it; never fails the picture."""
+    if os.environ.get("BUTLER_ASSETS_AUTO") == "0":
+        return
+    try:
+        subprocess.run([ASSET, "auto", path, description], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 def main():
     in_character, size = parse(sys.argv[1:])
     prompt = sys.stdin.read().strip()
     if not prompt:
         fail("the prompt goes on stdin, and it was empty", 2)
     image = generate(api_key(), prompt, size, in_character)
-    print(save(image))
+    path = save(image)
+    register(path, "made by imagine: " + " ".join(prompt.split())[:300])
+    print(path)
 
 
 if __name__ == "__main__":

@@ -256,7 +256,7 @@ let
   render = lib.getExe config.butler.commands.render.package;
   # Draws a card's HTML as butler, which render's outbox belongs to, printing the PNG's path.
   renderAsButler = pkgs.writeShellScript "butler-self-fix-render" ''
-    exec ${pkgs.util-linux}/bin/runuser -u butler -- env HOME=${home} ${render} html 760
+    exec ${pkgs.util-linux}/bin/runuser -u butler -- env HOME=${home} BUTLER_ASSETS_AUTO=0 ${render} html 760
   '';
   # The start card, from the same style and renderer as the landed report.
   startNotice = pkgs.writeShellScript "butler-self-fix-start-notice" ''
@@ -460,7 +460,7 @@ let
                 --rawfile css ${./butler-self-fix/card.css} -f ${./butler-self-fix/report.jq} > "$work/report.json" && [ -s "$work/report.json" ]; then
               # It landed, so it shows `fixed`: inside the card, or on its own when the card cannot be drawn.
               mood=fixed
-              card=$(jq -r .html "$work/report.json" | runuser -u butler -- env HOME=${home} ${render} html 760) ||
+              card=$(jq -r .html "$work/report.json" | runuser -u butler -- env HOME=${home} BUTLER_ASSETS_AUTO=0 ${render} html 760) ||
                 { echo "Could not render change $id's report card; sending the fixed picture alone" >&2; card=""; }
               summary=$(jq -r .prose "$work/report.json")
               todo=$(jq -r .todo "$work/report.json")

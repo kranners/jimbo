@@ -1,0 +1,101 @@
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+let
+  home = config.users.users.butler.home;
+  store = "${home}/assets";
+  outbox = "${home}/outbox";
+
+  asset =
+    pkgs.writers.writePython3Bin "asset"
+      {
+        flakeIgnore = [ "E501" ];
+      }
+      (
+        builtins.replaceStrings
+          [ "@store@" "@outbox@" "@sources@" ]
+          [
+            store
+            outbox
+            # What butler made or mac fetched, what Aaron attached, and the store itself, so a source is never a file the daemon's Read is denied.
+            (lib.concatStringsSep ":" [
+              outbox
+              "${home}/.claude/channels/discord/inbox"
+              store
+            ])
+          ]
+          (builtins.readFile ./butler-assets/asset.py)
+      );
+
+  reads = [
+    "interactive"
+    "cron"
+    "call"
+  ];
+  writes = [
+    "interactive"
+    "cron"
+  ];
+in
+{
+  options.butler.assets.package = lib.mkOption {
+    description = "The asset command, which imagine and render call to save what they make in butler's asset store.";
+    type = lib.types.package;
+    readOnly = true;
+    default = asset;
+  };
+
+  config = {
+    systemd.tmpfiles.rules = [ "d ${store} 0700 butler butler -" ];
+
+    butler.commands.asset = {
+      package = asset;
+      description = ''
+        Butler's shared asset store on spike: every picture, logo, deck and export made for Aaron, kept for good and found from any thread, call or scheduled run.
+        asset add <path> <name> [description...] [--tags a,b] [--task words] [--kind kind] | asset list [words...] [--tag tag] | asset show <name> (prints its path and an outbox copy to attach) | asset remove <name>
+      '';
+      rules = [
+        {
+          match = [
+            "add"
+            "**"
+          ];
+          lanes = writes;
+          acts = true;
+          flags = [
+            "--tags"
+            "--task"
+            "--kind"
+          ];
+        }
+        {
+          match = [
+            "list"
+            "**"
+          ];
+          lanes = reads;
+          flags = [ "--tag" ];
+        }
+        {
+          match = [
+            "show"
+            "*"
+          ];
+          lanes = reads;
+        }
+        {
+          match = [
+            "remove"
+            "*"
+          ];
+          lanes = [ "interactive" ];
+          acts = true;
+        }
+      ];
+      skill = ./butler-skills/assets;
+    };
+  };
+}

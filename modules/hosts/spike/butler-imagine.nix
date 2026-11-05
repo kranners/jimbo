@@ -15,9 +15,10 @@ let
         flakeIgnore = [ "E501" ];
       }
       (
-        builtins.replaceStrings [ "@avatar@" "@character@" ] [ "${avatar}" "${character}" ] (
-          builtins.readFile ./butler-imagine/imagine.py
-        )
+        builtins.replaceStrings
+          [ "@avatar@" "@character@" "@asset@" ]
+          [ "${avatar}" "${character}" (lib.getExe config.butler.assets.package) ]
+          (builtins.readFile ./butler-imagine/imagine.py)
       );
 
   both = [

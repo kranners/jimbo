@@ -39,6 +39,8 @@ let
   substitutions = libraries // {
     "@browsers@" = browsers;
     "@outbox@" = "${config.users.users.butler.home}/outbox";
+    # What it draws for butler is saved in the asset store too, but for the cards spike draws with it, which set BUTLER_ASSETS_AUTO=0.
+    "@asset@" = lib.getExe config.butler.assets.package;
   };
 
   render =

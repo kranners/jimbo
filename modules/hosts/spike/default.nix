@@ -186,6 +186,7 @@
         ./butler-threads.nix
         ./butler-drive.nix
         ./butler-health.nix
+        ./butler-assets.nix
         ./butler-imagine.nix
         ./butler-inbox.nix
         ./butler-voice-sample.nix

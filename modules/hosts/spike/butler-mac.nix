@@ -147,7 +147,7 @@ in
       menu lists an app's menus or chooses an item by name, dialog numbers the front window's buttons and fields for press and focus, displays and display see and click every screen, not just the main one look shows, and window snaps or moves the front window with Rectangle; the only stop is a password or Touch ID prompt, which goes to Aaron.
       keepawake on holds the machine awake and unlocked, keepawake off lets it idle-sleep and lock as usual, and sleep turns it off and sleeps it now.
       While you drive pilot or piggys-MBP you appear on its screen, top right, with up to three speech bubbles: say puts your own short narration in one, and done hands control back and fades you out, as does a minute and a half without a mac command. Every action and bubble is kept in an audit log in your memory, audit/mac.
-      fetch copies one file, at most 500 MB, from piggys-MBP's or jimbo's ~/Downloads or ~/butler-drop into spike's index inbox folder, such as exports or messages, for the ingest; never from pilot. A bare file name is in ~/Downloads, and name renames it.
+      fetch copies one file, at most 500 MB, from piggys-MBP's or jimbo's ~/Downloads or ~/butler-drop into spike's index inbox folder, such as exports or messages, for the ingest; never from pilot. The folder outbox copies it into butler's outbox instead and prints its path, for `asset add`. A bare file name is in ~/Downloads, and name renames it.
       Every action but say, done, fetch, windows, run, record, keepawake, sleep and boot prints the outbox path of a fresh screenshot to read or attach with attach_file; x and y are pixels of that picture.
     '';
     stdin = true;

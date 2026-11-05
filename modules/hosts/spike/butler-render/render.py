@@ -2,6 +2,7 @@ import json
 import os
 import re
 import secrets
+import subprocess
 import sys
 import threading
 import time
@@ -12,6 +13,7 @@ os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "@browsers@"
 from playwright.sync_api import Error, sync_playwright
 
 OUTBOX = "@outbox@"
+ASSET = "@asset@"
 LIBRARIES = ["@vega@", "@vegaLite@", "@vegaEmbed@", "@mermaid@"]
 MODES = ["html", "svg", "mermaid", "vega-lite"]
 DEFAULT_WIDTH = 1000
@@ -212,6 +214,16 @@ def watchdog():
     os._exit(1)
 
 
+def register(path, description):
+    """Saves what was made in butler's asset store, so another thread can find it; never fails the picture."""
+    if os.environ.get("BUTLER_ASSETS_AUTO") == "0":
+        return
+    try:
+        subprocess.run([ASSET, "auto", path, description], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 def main():
     mode, width = parse_args(sys.argv[1:])
     source = read_source(mode)
@@ -232,6 +244,7 @@ def main():
     path = outbox_path()
     with open(path, "wb") as file:
         file.write(image)
+    register(path, f"made by render {mode}")
     print(path)
 
 

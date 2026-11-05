@@ -43,7 +43,7 @@ let
 in
 {
   options.nuc.backups = {
-    enable = lib.mkEnableOption "nightly pulls of Butler's memory, the index and Home Assistant's config from spike";
+    enable = lib.mkEnableOption "nightly pulls of Butler's memory, its asset store, the index and Home Assistant's config from spike";
 
     source = lib.mkOption {
       description = "The ssh login on spike the backups read through, which spike must authorize, read-only, before this works.";
@@ -93,6 +93,10 @@ in
           path = "/var/lib/butler-index";
         }
         {
+          name = "butler-assets";
+          path = "/var/lib/butler/assets";
+        }
+        {
           name = "home-assistant";
           path = "/var/lib/hass";
         }
@@ -104,7 +108,7 @@ in
     systemd.tmpfiles.rules = [ "d ${cfg.directory} 0700 root root -" ];
 
     systemd.services.nuc-backup = {
-      description = "Pull Butler's memory, the index and Home Assistant's config from spike";
+      description = "Pull Butler's memory, its asset store, the index and Home Assistant's config from spike";
       after = [ "wireguard-wg0.service" ];
       unitConfig.ConditionPathExists = cfg.keyFile;
       serviceConfig = {

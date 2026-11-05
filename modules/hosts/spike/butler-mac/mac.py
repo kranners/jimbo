@@ -781,6 +781,8 @@ def fetch(host, args):
         name = re.sub(r'[^A-Za-z0-9._ ()+,-]', '_', name).lstrip('._ -')[:200] or 'file'
         if len(args) == 3:
             raise Refused('the name may hold letters, digits, spaces and . _ ( ) + , - only; try %s' % name)
+    if folder == 'outbox':
+        return fetch_to_outbox(host, source, size, name)
     partials, spool, results = (os.path.join(DROP, part) for part in ('partial', 'spool', 'results'))
     for folder_path in (partials, spool, results):
         os.makedirs(folder_path, mode=0o700, exist_ok=True)
@@ -824,6 +826,29 @@ def fetch(host, args):
     if not verdict.startswith('ok'):
         raise Refused('the index inbox refused %s: %s' % (name, verdict.partition(' ')[2] or verdict))
     print('copied %s (%d bytes, %.0f s) into the index inbox as %s/%s; the ingest picks it up from there' % (source, size, time.time() - started, folder, name))
+
+
+def fetch_to_outbox(host, source, size, name):
+    """Copies a fetched file into butler's outbox instead of the index, so `asset add` can keep it in the asset store."""
+    os.makedirs(OUTBOX, exist_ok=True)
+    target = os.path.join(OUTBOX, 'fetched-%s' % name)
+    partial = target + '.partial'
+    try:
+        with open(partial, 'wb') as out:
+            copied = subprocess.run(ssh_args(host) + ['cat -- %s' % shlex.quote(source)], stdin=subprocess.DEVNULL,
+                                    stdout=out, stderr=subprocess.PIPE, timeout=900)
+        if copied.returncode != 0:
+            raise Refused('copying %s failed: %s' % (source, copied.stderr.decode(errors='replace').strip() or 'exit %d' % copied.returncode))
+        if os.path.getsize(partial) != size:
+            raise Refused('%s changed while it was copied; try again once it has finished saving' % source)
+        os.rename(partial, target)
+    except subprocess.TimeoutExpired:
+        raise Refused('gave up copying %s after 15 minutes' % source)
+    finally:
+        if os.path.exists(partial):
+            os.unlink(partial)
+    audit([(host, 'fetched %s (%d bytes) into the outbox as %s' % (clip(redact(source), 200), size, os.path.basename(target)))])
+    print(target)
 
 
 WINDOWS = r'''
