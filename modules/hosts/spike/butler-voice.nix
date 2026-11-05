@@ -139,10 +139,8 @@ in
               voiceList
               "**"
             ];
-            lanes = [
-              "interactive"
-              "voice"
-            ];
+            # The first rule that matches decides, so this one keeps a scheduled run's adds open, as reminders' own rule does.
+            lanes = withVoice;
             acts = true;
             grant = "reminders";
           }

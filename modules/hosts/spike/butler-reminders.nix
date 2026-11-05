@@ -1,16 +1,27 @@
-{ pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 let
   python = pkgs.python3Packages;
 
   script =
     name: file:
-    pkgs.writers.writePython3Bin name {
-      libraries = [ python.pyicloud ];
-      flakeIgnore = [
-        "E402"
-        "E501"
-      ];
-    } (builtins.readFile file);
+    pkgs.writers.writePython3Bin name
+      {
+        libraries = [ python.pyicloud ];
+        flakeIgnore = [
+          "E402"
+          "E501"
+        ];
+      }
+      (
+        builtins.replaceStrings [ "@memoryAudit@" ] [ (lib.getExe config.butler.memoryAudit) ] (
+          builtins.readFile file
+        )
+      );
 
   reminders = script "reminders" ./butler-reminders/reminders.py;
   butler-icloud-login = script "butler-icloud-login" ./butler-reminders/icloud_login.py;
@@ -60,7 +71,8 @@ in
           "add"
           "**"
         ];
-        lanes = [ "interactive" ];
+        # A scheduled run may add reminders too, such as confirmation-sweep's for a booking it put in the calendar, each logged to audit/reminders.
+        lanes = both;
         acts = true;
         grant = "reminders";
       }

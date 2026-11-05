@@ -1,6 +1,8 @@
+import fcntl
 import json
 import os
 import re
+import subprocess
 import sys
 from datetime import date, datetime, time, timedelta, timezone
 
@@ -23,6 +25,9 @@ from tzlocal import get_localzone
 COOKIE_DIRECTORY = "/var/lib/butler/.local/share/pyicloud"
 APPLE_ID_FILE = os.path.join(COOKIE_DIRECTORY, "apple-id")
 EX_TEMPFAIL = 75
+# Every reminder added, from a conversation or a scheduled run, goes to audit/reminders in butler's memory.
+MEMORY_AUDIT = "@memoryAudit@"
+AUDIT_SPOOL = os.path.expanduser("~/.local/state/reminders/audit-spool")
 LOCAL = get_localzone()
 
 USAGE = """usage: reminders lists
@@ -178,6 +183,27 @@ def open_command(service, args):
     print_json([describe(r, titles) for r in sorted(open_reminders(service, chosen), key=by_due)])
 
 
+def thread_tag():
+    ident = re.sub(r"[^0-9A-Za-z_-]", "", os.environ.get("BUTLER_THREAD_ID", ""))[:32]
+    if not ident:
+        return ""
+    title = " ".join(os.environ.get("BUTLER_THREAD_TITLE", "").split()).replace('"', "'")[:60]
+    return "[thread %s%s] " % (ident, ' "%s"' % title if title else "")
+
+
+def audit(text):
+    """Spools one line for audit/reminders, then has memory-audit commit it in the background; never fails the command."""
+    try:
+        os.makedirs(os.path.dirname(AUDIT_SPOOL), exist_ok=True)
+        with open(AUDIT_SPOOL, "a") as spool:
+            fcntl.flock(spool, fcntl.LOCK_EX)
+            spool.write("%s\t%s %s%s\n" % (date.today().isoformat(), datetime.now().astimezone().strftime("%H:%M:%S %z"), thread_tag(), " ".join(text.split())))
+        subprocess.Popen([MEMORY_AUDIT, "reminders", AUDIT_SPOOL], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError as error:
+        print(f"reminders: could not write the audit line: {error}", file=sys.stderr)
+
+
 def add_command(service, args):
     if len(args) not in (2, 3) or not args[1].strip():
         usage()
@@ -191,6 +217,7 @@ def add_command(service, args):
         all_day=all_day,
         time_zone=None if all_day or due_date is None else str(LOCAL),
     )
+    audit('added "%s" to %s, due %s' % (args[1], target.title, args[2] if len(args) == 3 else "none"))
     print_json(describe(reminder, {lst.id: lst.title for lst in lists}))
 
 

@@ -27,6 +27,7 @@ let
       pkgs.coreutils
       pkgs.curl
       pkgs.jq
+      pkgs.util-linux
     ];
 
     text = ''
@@ -45,6 +46,27 @@ let
           --header @<(printf 'Authorization: Bearer %s\n' "$(< ${credential "home-assistant-token"})") \
           --header "Content-Type: application/json" \
           "$@"
+      }
+
+      # Every event created, from a conversation or a scheduled run, goes to audit/calendar in butler's memory.
+      # It never fails the command, which has already created the event.
+      audit() {
+        local spool="$HOME/.local/state/calendar/audit-spool" thread title tag="" line
+        thread=''${BUTLER_THREAD_ID:-}
+        thread=''${thread//[^0-9A-Za-z_-]/}
+        thread=''${thread:0:32}
+        if [ -n "$thread" ]; then
+          title=''${BUTLER_THREAD_TITLE:-}
+          title=''${title//[$'\t\n\r']/ }
+          title=''${title//\"/\'}
+          tag="[thread $thread''${title:+ \"''${title:0:60}\"}] "
+        fi
+        line="$(date +%F)"$'\t'"$(date '+%H:%M:%S %z') $tag''${1//[$'\t\n\r']/ }"
+        if mkdir -p "''${spool%/*}" && ( flock 9 && printf '%s\n' "$line" >&9 ) 9>>"$spool"; then
+          setsid ${lib.getExe config.butler.memoryAudit} calendar "$spool" </dev/null >/dev/null 2>&1 &
+        else
+          echo "calendar: could not write the audit line" >&2
+        fi
       }
 
       entity() {
@@ -120,6 +142,7 @@ let
             '{entity_id: $entity, summary: $summary, description: $description, "start_\($span)": $start, "end_\($span)": $end}' \
             | home_assistant --data @- "${homeAssistant}/api/services/calendar/create_event" >/dev/null
           echo "Created \"$3\" on $2 from $start to $end"
+          audit "created \"$3\" on $2 from $start to $end"
           ;;
         *) usage ;;
       esac
@@ -459,7 +482,8 @@ in
             "create"
             "**"
           ];
-          lanes = interactive;
+          # A scheduled run may add events too, such as confirmation-sweep's for a booking it found in mail, each logged to audit/calendar.
+          lanes = both;
           acts = true;
           grant = "calendar";
         }
