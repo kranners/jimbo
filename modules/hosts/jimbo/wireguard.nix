@@ -1,4 +1,7 @@
 {
+  # spike's WireGuard-only names, which public DNS does not serve, resolved here without a lookup.
+  networking.hosts."10.100.0.1" = import ../../spike-dns/names.nix;
+
   # The NixOS install of the jimbo PC; its Windows install is spike's peer `windows`, 10.100.0.8, in the WireGuard app.
   networking.wireguard.interfaces.wg0 = {
     ips = [ "10.100.0.12/24" ];

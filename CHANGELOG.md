@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-11-05: WireGuard peers find spike's own sites, such as `kanban.spike.cute.engineer`, from any network: spike answers them over the tunnel, and the Macs ask it for those names alone.
 - 2026-11-05: pilot runs `cswap auto` as a declared launchd agent, so switching Claude accounts near their limits survives a rebuild, with its strategy and thresholds as options and the same agent available, off, on piggys-MBP.
 - 2026-11-05: pilot's own kanban board is retired: pilot no longer runs it or its `kanban-sync` updater, kranners/kanban drops the updater, and spike's `kanban-hub cutover` copies the board across once, so `kanban.spike.cute.engineer` serves spike's board alone.
 - 2026-11-05: butler reads Aaron's conversations across Slack, Messenger, Instagram, Discord, Google Chat, iMessage, SMS and LinkedIn in one read-only `chat` call, both sides where the source holds them, and says who is waiting on him.

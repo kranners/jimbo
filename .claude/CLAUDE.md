@@ -259,6 +259,9 @@ Its files under `modules/hosts/spike` are plain NixOS modules, imported through 
   Aaron's iPad is `ipad` at `10.100.0.13`, whose key the WireGuard app generates, and spike adds that peer only once `ipadPublicKey` in `modules/hosts/spike/wireguard.nix` holds the public half; like `pilot` it reaches spike alone.
   The NUC is `nuc` at `10.100.0.14` (`modules/hosts/nuc/wireguard.nix`), whose key it generates on its first boot in `/var/lib/secrets/wireguard-private`, and spike adds that peer, and scrapes its node_exporter, only once `nucPublicKey` in `modules/hosts/spike/wireguard.nix` holds the public half, new access that waits for Aaron's plain yes; like `pilot` it reaches spike alone.
   Spike resolves `ideas.noodlebra.in`, Rylee's backlogic instance, to `rylee-2` at `10.100.0.10`.
+  Spike runs dnsmasq for WireGuard peers alone (`modules/hosts/spike/dns.nix`), bound to `wg0` and with UDP and TCP `53` open there and nowhere else, so a peer on a foreign network finds spike's own names, which public DNS does not serve and the home network's DNS hides.
+  It answers every name in `modules/spike-dns/names.nix`, the WireGuard-only sites Caddy serves, with `10.100.0.1`, forwards everything else to the upstreams in spike's own `resolv.conf`, which it leaves alone, and an assertion fails the build when a Caddy site under `cute.engineer` is missing from that list.
+  `spike.cute.engineer` itself stays out of it, since it is spike's public WireGuard endpoint and must resolve without the tunnel.
   It declares `ip_forward` itself, which it otherwise had only because Docker set it.
   There is no NAT for `10.100.0.0/24`, so a peer reaches nothing on the LAN through spike.
   Caddy's `vnc.framer.cute.engineer` is spike's own `443`, open to every peer, so it still reaches framer's noVNC from `rylee` and `github-actions`.
@@ -804,6 +807,8 @@ Adding that directory under Raycast's Script Commands and giving the command a h
 
 `modules/wireguard` installs the WireGuard app from the App Store on the Macs.
 On `pilot` its tunnel `Home network` is spike's peer `pilot`, imported by hand from `~/.config/wireguard/Home network.conf`, which holds its private key and never enters the repo.
+`modules/spike-dns` gives each Mac split DNS for spike's WireGuard-only names, one `/etc/resolver/<name>` per name in its `names.nix` pointing at spike's resolver on `10.100.0.1`, so only those names go through the tunnel, its configs keep no `DNS =` line, and a dead spike or a tunnel that is off breaks nothing else.
+`jimbo`'s NixOS puts the same names in its `/etc/hosts`, since it has no split resolver, and the iPad and phones, whose tunnels are made by hand, would need `DNS = 10.100.0.1`, which sends all their lookups through spike while the tunnel is up.
 
 ### Butler's access
 

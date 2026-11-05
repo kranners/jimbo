@@ -33,6 +33,7 @@ in
     ./browser-history
     ./kanban-runner
     ./cswap-auto
+    ./spike-dns
     ./backlogic-runner
   ]
   ++ lib.optionals host.desktop [
