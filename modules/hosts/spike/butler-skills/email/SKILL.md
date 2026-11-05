@@ -1,6 +1,6 @@
 ---
 name: email
-description: Read Aaron's email in any folder, Junk and Spam included (Fastmail, Gmail, Outlook and his work Google account), to answer questions about it, find codes and receipts, summarise it, or archive messages he asks to archive.
+description: Read Aaron's email in any folder, Junk and Spam included (Fastmail, Gmail, Outlook and his work Google account), to answer questions about it, find codes and receipts, summarise it, save an attachment such as a data export into his personal data index, or archive messages he asks to archive.
 ---
 
 # Email
@@ -16,6 +16,14 @@ It can read and archive: it cannot delete, flag or move a message anywhere but i
 - `mail <account> mailboxes` lists the folders.
 - `mail <account> read <id>` prints one inbox message's headers and full text, the id being the first column of a listing.
 - `mail <account> archive <id>...` moves inbox messages into the account's archive, the same as archiving them in its own app.
+
+### Attachments
+
+- `mail <account> attachments <id>` lists a message's attachments with their type and size, without changing the message.
+- `mail <account> save <id> <attachment name> [inbox folder]` saves one attachment into the personal data index's inbox folder, the same folders `mac <host> fetch` fills, such as `exports` (the default, for statements and service exports), `didi`, `uber` or `amazon`, where the ingest picks it up, such as `["gmail", "save", "12500", "user_info.zip", "didi"]`. It prints where it landed, and each save is logged.
+- Both work in another folder the same way as reading, such as `["outlook", "junk", "attachments", "42"]`.
+- Saving never changes the message, never goes to the outbox and is not a way to show Aaron a file; it runs only in a conversation, when he asks for an export or statement to go into his data.
+- A password-protected zip, such as DiDi's, sits in the inbox unread until it is unlocked on spike: the password goes alone into `/var/lib/secrets/butler-index-zip-password` (root-only, deleted after use) and then `sudo butler-index-unlock <inbox folder> <zip name>` runs, both by Aaron or a session on spike, never by you. Never put the password in a thread, memory, the journal or a command.
 
 ### Other folders
 
@@ -36,7 +44,7 @@ Every reading action works in any folder: put the folder's name between the acco
 - If it says the account is not logged in yet, or the login was refused, tell Aaron the one command it names, run on spike, and stop; if it says the work admin blocks the app, say so plainly.
 - This is his employer's mail: answer what he asks, and never copy its text, senders or subjects into memory, the journal, a change brief or anything outside the thread.
 
-No arg may start with `-`, but for `--folder` and `--all-folders` after a reading action.
+No arg may start with `-`, but for `--folder` and `--all-folders` after a reading action, `attachments` or `save`.
 
 Archive only messages Aaron has asked to archive, such as "archive that" after reading one or "archive everything from the newsletter", listing first to find their ids, then say in one sentence how many were archived and from whom.
 

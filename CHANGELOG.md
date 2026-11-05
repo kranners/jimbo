@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-11-05: butler's `mail` lists a message's attachments and saves one into Aaron's data index inbox, such as `mail gmail save <id> user_info.zip didi`, leaving the message untouched; the index reads DiDi's data download as source `didi`, its rides beside Uber's in the life explorer, and `sudo butler-index-unlock` opens a password-protected export zip with a password file it deletes after use.
 - 2026-11-05: spike's Home Assistant runs ZHA for Aaron's ConBee II Zigbee stick, which is always `/dev/zigbee`, so Zigbee devices can be paired to it.
 - 2026-11-05: The life explorer's Explore page has a reMarkable section: every notebook with its pages, last edit and how much is transcribed, a search over every page, each page's text beside its picture, and what butler derived from the pages, whose open goals and ideas also show on the Goals page.
 - 2026-11-05: The life explorer is six pages, Butler, Goals, Reports, Explore, Health and Money, each with a bar of its sections, every old link still opening the right one, and the Butler page shows what each of butler's threads is doing live from its thread ledger, beside the machines and the landing queue.

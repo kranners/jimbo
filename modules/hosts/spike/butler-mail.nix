@@ -67,6 +67,23 @@ let
 
   himalaya = "${pkgs.himalaya}/bin/himalaya --config ${himalayaConfig} --log-level off";
 
+  # `mail <account> save` drops an attachment into the same spool `mac <host> fetch` uses, under the ~/.cache butler's
+  # Read is denied, and butler-mac.nix's butler-index-drop, as butler outside the daemon's sandbox, moves it into the
+  # index inbox the daemon cannot write, answering in the results folder beside it.
+  home = config.users.users.butler.home;
+  attachments = pkgs.writers.writePython3Bin "mail-attachments" { flakeIgnore = [ "E501" ]; } (
+    builtins.replaceStrings
+      [ "@himalaya@" "@config@" "@drop@" "@log@" "@dropMax@" ]
+      [
+        "${pkgs.himalaya}/bin/himalaya"
+        "${himalayaConfig}"
+        "${home}/.cache/index-drop"
+        "${home}/.local/state/mail/saves.jsonl"
+        (toString (500 * 1024 * 1024))
+      ]
+      (builtins.readFile ./butler-mail/attachments.py)
+  );
+
   mail = pkgs.writeShellApplication {
     name = "mail";
 
@@ -81,6 +98,8 @@ let
         echo "       mail <account> [<folder>] list [count]" >&2
         echo "       mail <account> [<folder>] search <query>..." >&2
         echo "       mail <account> [<folder>] read <id>" >&2
+        echo "       mail <account> [<folder>] attachments <id>" >&2
+        echo "       mail <account> [<folder>] save <id> <attachment name> [inbox folder]  (into the index inbox, exports by default)" >&2
         echo "       mail <account> archive <id>...  (from the inbox)" >&2
         echo "  <folder> is a folder's name, such as junk, spam, archive or clutter, or all-folders for unread, list and search;" >&2
         echo "  --folder <name> and --all-folders after the action do the same" >&2
@@ -212,10 +231,10 @@ let
       # A folder may come before a reading action, such as `mail outlook junk list 5`, since the daemon's rules refuse most arguments starting with -.
       folder=""
       case "$1" in
-        mailboxes | unread | list | search | read) ;;
+        mailboxes | unread | list | search | read | attachments | save) ;;
         *)
           case "''${2:-}" in
-            unread | list | search | read)
+            unread | list | search | read | attachments | save)
               folder="$1"
               shift
               ;;
@@ -227,7 +246,7 @@ let
 
       arguments=()
       case "$action" in
-        unread | list | search | read)
+        unread | list | search | read | attachments | save)
           while [ $# -gt 0 ]; do
             case "$1" in
               --folder)
@@ -262,7 +281,7 @@ let
       case "$folder" in
         "") ;;
         all-folders | all)
-          [ "$action" != read ] || usage
+          case "$action" in read | attachments | save) usage ;; esac
           everywhere=true
           ;;
         *)
@@ -303,6 +322,14 @@ let
             [ -n "$folder" ] || echo "mail: an id belongs to its folder; read a message from another folder as: mail $account <folder> read $1" >&2
             exit 1
           fi
+          ;;
+        attachments)
+          [ $# -eq 1 ] || usage
+          exec ${lib.getExe attachments} attachments "$account" "$folder" "$1"
+          ;;
+        save)
+          [ $# -eq 2 ] || [ $# -eq 3 ] || usage
+          exec ${lib.getExe attachments} save "$account" "$folder" "$@"
           ;;
         archive) [ $# -ge 1 ] || usage; himalaya --account "$account" message move --to archive "$@" ;;
         *) usage ;;
@@ -407,8 +434,9 @@ in
         package = mail;
         private = true;
         description = ''
-            Read every folder of Aaron's email, Junk and Spam included, and archive from his inbox; it cannot delete or move mail anywhere else, and sends only through mail-send.
-          mail accounts | mail unread-counts | mail <account> mailboxes | mail <account> [<folder>] unread [count] | mail <account> [<folder>] list [count] | mail <account> [<folder>] search <query>... | mail <account> [<folder>] read <id> | mail <account> archive <id>...
+            Read every folder of Aaron's email, Junk and Spam included, list a message's attachments and save one into his personal data index's inbox, and archive from his inbox; it cannot delete or move mail anywhere else, and sends only through mail-send.
+          mail accounts | mail unread-counts | mail <account> mailboxes | mail <account> [<folder>] unread [count] | mail <account> [<folder>] list [count] | mail <account> [<folder>] search <query>... | mail <account> [<folder>] read <id> | mail <account> [<folder>] attachments <id> | mail <account> [<folder>] save <id> <attachment name> [inbox folder] | mail <account> archive <id>...
+          save puts the attachment into the index inbox's folder, exports by default or another such as didi, uber or amazon, for the ingest, never the outbox, leaving the message as it was.
           <folder> is a folder's name, matched loosely, such as junk (Outlook's Junk, Gmail's Spam), archive or clutter, or all-folders for unread, list and search, such as mail outlook junk list 5 or mail outlook all-folders search aliexpress; an id belongs to its folder, so read it with the same folder. The inbox is the default.
           ${lib.optionalString workGoogle "mail work unread [count] | mail work list [count] | mail work search <Gmail search words>... | mail work read <id>: Aaron's work Google mail, read-only, in a conversation alone; it cannot archive or send."}
         '';
@@ -458,6 +486,30 @@ in
               "list"
               "search"
               "read"
+              "attachments"
+            ]
+        ++
+          lib.concatMap
+            (match: [
+              {
+                inherit match;
+                lanes = interactive;
+                acts = true;
+                flags = folderFlags;
+              }
+            ])
+            [
+              [
+                "*"
+                "save"
+                "**"
+              ]
+              [
+                "*"
+                "*"
+                "save"
+                "**"
+              ]
             ]
         ++ [
           {
