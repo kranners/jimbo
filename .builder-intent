@@ -1,0 +1,1 @@
+Change 20261106-105045-2532413: widen the board's safe set to claude-code-remote housekeeping (triggers, PR subscriptions), match prompts by tool name and label, sweep every minute, grant running sessions; kranners/kanban safePrompts + jimbo butler-kanban.
