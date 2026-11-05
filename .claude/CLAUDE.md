@@ -788,6 +788,12 @@ Each fetches the board's own `/runner.js` from `https://kanban.spike.cute.engine
 The token is `KANBAN_RUNNER_TOKEN` in `~/.config/kanban/env`, mode 600, the same on `pilot` and each runner, written by hand and never in the repository, and the runner waits, retrying every 5 minutes, until it is there.
 `jimbo`'s runner reaches spike only once spike has its WireGuard peer, through `jimboPublicKey`, and runs only while it is booted into NixOS, since its Windows install runs none.
 
+### cswap auto
+
+`modules/cswap-auto` runs `cswap auto --strategy best --threshold 90 --weekly-threshold 95` on `pilot` as the launchd agent `local.cswap-auto` in the gui domain, so cswap reaches the login keychain, logging to `~/.local/state/cswap-auto.log`.
+Its `cswapAuto` options set the strategy, both thresholds and cswap's path, by default `~/.local/bin/cswap`, where `modules/claude` has uv install it, and `cswapAuto.enable` is off on `piggys-MBP`.
+Its label is the one the plist first made by hand had, which home-manager unloads and overwrites on the first switch, so nothing needs removing by hand.
+
 ### Speed reading
 
 `modules/speed-read` puts the Raycast script command Speed Read Selection in `~/.config/raycast/scripts` on the Macs, which copies the selection and plays it one word at a time from 500 wpm with agent-rsvp, at twice the Terminal profile's text size, in a Terminal window centred on the screen under the mouse pointer, after waiting for the hotkey's modifiers to be released so its copy keystroke reaches the app as a plain ⌘C.

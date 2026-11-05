@@ -32,6 +32,7 @@ in
     ./butler-access
     ./browser-history
     ./kanban-runner
+    ./cswap-auto
     ./backlogic-runner
   ]
   ++ lib.optionals host.desktop [
