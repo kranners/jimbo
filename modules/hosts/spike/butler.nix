@@ -964,6 +964,8 @@ in
           ]
           ++ map (group: "${config.butler.scenes.dir}/${group}") (lib.attrNames config.butler.scenes.catalog)
         );
+        # The head butler's name: the bot's Discord username, which his DMs show, set by the daemon once it connects if it differs, and the name in its own headings.
+        DISCORD_BOT_NAME = "Wadsworth";
         # Footmen, the desk's background sessions, open their threads in #general and post their cards with these mood pictures.
         DISCORD_DESK_CHANNEL = "1565593836883935264";
         DISCORD_DESK_MOODS_DIR = "${moods}";
