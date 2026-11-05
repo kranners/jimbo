@@ -93,10 +93,10 @@ def fake_request(url, data=None, headers=None, method=None, timeout=60):
     raise AssertionError(f"unexpected request {url}")
 
 
-def mail_message(sender, subject, body, attachment=None):
+def mail_message(sender, subject, body, attachment=None, html=False):
     message = EmailMessage()
     message["From"], message["Subject"], message["Date"], message["Message-ID"] = sender, subject, "Tue, 03 Nov 2026 09:00:00 +0000", f"<{subject}@x>"
-    message.set_content(body)
+    message.set_content(body, subtype="html" if html else "plain")
     if attachment:
         message.add_attachment(attachment[1], maintype="application", subtype="pdf", filename=attachment[0])
     return message.as_bytes()
@@ -108,6 +108,7 @@ MAIL = {
     "uber.com": [
         mail_message("noreply@uber.com", "Your Tuesday morning trip with Uber", "UberX\nTotal A$23.45\n8:01 am | 1 Home St, Collingwood\n8:20 am | 2 Work Rd, Melbourne\n" + "x" * 200),
         mail_message("noreply@uber.com", "Your Uber Eats order with Taco Place", "Total A$31.00\n2 Tacos A$20.00\n1 Drink A$11.00\n" + "x" * 200),
+        mail_message("noreply@uber.com", "Your Friday night trip with Uber", "<html><body><table><tr><td>Total</td></tr><tr><td>A$<span>9</span>.50</td></tr></table>" + "<p>x</p>" * 60 + "</body></html>", html=True),
         mail_message("noreply@uber.com", "Promo for you", "No total here " + "x" * 200),
     ],
     "amazon": [
@@ -195,7 +196,7 @@ status = json.load(open(os.path.join(state, "out", "status.json")))
 check(status["mail"]["state"] == "connected", f"mail runs: {status['mail']['message']}")
 check(any(name.startswith("live-hostplus-2026-11-03-") and name.endswith("Statement FY26.pdf") for name in os.listdir(os.path.join(inbox, "exports"))), "a Hostplus statement attachment lands in exports, named for its reader")
 trips = rows(inbox_file("uber", "live-rider_lifetime_trips-0.csv"))
-check(len(trips) == 1 and trips[0]["original_fare_local"] == "23.45" and trips[0]["destination_string"] == "2 Work Rd, Melbourne", "an Uber trip receipt becomes a trip with its fare and stops")
+check(len(trips) == 1 and trips[0]["original_fare_local"] == "23.45" and trips[0]["destination_string"] == "2 Work Rd, Melbourne", "an Uber trip receipt becomes a trip with its fare and stops, the same minute's HTML copy not twice")
 eats = rows(inbox_file("uber", "live-eats_order_details-0.csv"))
 check({row["Item_Name"] for row in eats} == {"Tacos", "Drink"} and eats[0]["Restaurant_Name"] == "Taco Place", "an Uber Eats receipt becomes an order with its items")
 orders = rows(inbox_file("amazon", "live-Order History.csv"))

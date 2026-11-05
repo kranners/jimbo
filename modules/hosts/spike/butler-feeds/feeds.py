@@ -51,6 +51,8 @@ SPOTIFY_REDIRECT = "http://127.0.0.1:8888/callback"
 SPOTIFY_SCOPE = "user-read-recently-played"
 MAIL_LOOKBACK_DAYS = 730
 SEEN_CAP = 20000
+# Bumped when a receipt parser changes, so mail it could not read is read again; statements keep their own marks.
+RECEIPT_PARSER = 2
 # A first run's two years of mail outlast one run, so each run stops searching after this and the next carries on.
 MAIL_BUDGET_SECONDS = 20 * 60
 
@@ -182,6 +184,8 @@ def get_json(url, headers=None):
 def text_of(markup):
     markup = re.sub(r"(?is)<(script|style|head).*?</\1>", " ", markup or "")
     markup = re.sub(r"(?i)<br\s*/?>|</(p|div|tr|li|h\d|table)>", "\n", markup)
+    # Inline tags join their text, so an amount split across spans, such as A$<span>23</span>.45, stays one amount.
+    markup = re.sub(r"(?i)</?(span|b|strong|em|i|u|font|sup|small)\b[^>]*>", "", markup)
     text = html.unescape(re.sub(r"<[^>]+>", " ", markup))
     lines = [re.sub(r"[ \t ​‌͏]+", " ", line).strip() for line in text.splitlines()]
     return "\n".join(line for line in lines if line)
@@ -591,7 +595,7 @@ def safe_name(name):
 
 
 def uber_receipt(message, subject, text, moment):
-    total = re.search(r"(?im)^\s*Total\s*:?\s*" + MONEY, text) or re.search(r"(?i)\bTotal\b[^\n$]{0,20}" + MONEY, text)
+    total = re.search(r"(?im)^\s*Total\s*:?\s*" + MONEY, text) or re.search(r"(?i)\b(?:Total|You paid|Amount charged)\b[^$\d]{0,40}" + MONEY, text)
     if not total:
         return None
     amount = total.group(1).replace(",", "")
@@ -632,7 +636,7 @@ def amazon_receipt(subject, text, moment):
     if not order or not re.search(r"(?i)\border(ed)?\b", subject) or re.search(r"(?i)shipped|dispatched|delivered|out for delivery|arriving|refund|return|cancel", subject):
         return None
     product = re.search(r"(?i)ordered:\s*[\"“](.+?)[\"”]", subject) or re.search(r"(?i)order of\s+[\"“]?(.+?)[\"”]?\s*(?:\.\.\.|…)?$", subject)
-    total = re.search(r"(?i)(?:order total|grand total|total)\s*:?\s*" + MONEY, text)
+    total = re.search(r"(?i)(?:order total|grand total|total)[^$\d]{0,40}" + MONEY, text)
     return {
         "Order ID": order.group(1),
         "Order Date": moment.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -663,10 +667,15 @@ def mail():
     state_file = path("state", "mail.json")
     state = load(state_file, {"seen": [], "trips": [], "eats": [], "amazon": [], "files": []})
     seen = set(state["seen"])
+    if state.get("parser") != RECEIPT_PARSER:
+        # A changed parser searches the whole lookback again, for the receipts the old one could not read.
+        state.pop("through", None)
+        state["parser"] = RECEIPT_PARSER
     since = (datetime.fromisoformat(state["through"]) - timedelta(days=3)) if state.get("through") else now() - timedelta(days=MAIL_LOOKBACK_DAYS)
     since_text = since.astimezone(LOCAL).date().isoformat()
     counts = {rule: 0 for rule in MAIL_RULES}
     errors = []
+    unread = []
     deadline = time.monotonic() + MAIL_BUDGET_SECONDS
     unfinished = False
     for account, mailboxes in accounts.items():
@@ -684,13 +693,14 @@ def mail():
                 print(f"mail: {account} {mailbox} {rule}: {len(envelopes)} messages since {since_text}", flush=True)
                 for envelope in envelopes:
                     key = envelope.get("message-id") or f"{account}:{mailbox}:{envelope.get('id')}"
-                    if f"{rule}|{key}" in seen:
+                    mark = f"{rule}|{key}" if "attachments" in spec else f"{rule}@{RECEIPT_PARSER}|{key}"
+                    if mark in seen:
                         continue
                     if time.monotonic() > deadline:
                         unfinished = True
                         break
                     if "subject" in spec and not re.search(spec["subject"], envelope.get("subject") or ""):
-                        seen.add(f"{rule}|{key}")
+                        seen.add(mark)
                         continue
                     try:
                         raw = himalaya("--account", account, "message", "read", "--mailbox", mailbox, "--raw", str(envelope["id"]))
@@ -716,14 +726,22 @@ def mail():
                     elif rule == "uber":
                         receipt = uber_receipt(message, subject, text, moment)
                         if receipt:
-                            state["trips" if receipt[0] == "trip" else "eats"] += receipt[1]
+                            kind, rows = receipt
+                            table = state["trips" if kind == "trip" else "eats"]
+                            field = "request_timestamp_utc" if kind == "trip" else "Order_UUID"
+                            if rows[0][field] not in {row[field] for row in table}:
+                                table += rows
                             counts[rule] += 1
+                        else:
+                            unread.append(rule)
                     elif rule == "amazon":
                         receipt = amazon_receipt(subject, text, moment)
                         if receipt and receipt["Order ID"] not in {row["Order ID"] for row in state["amazon"]}:
                             state["amazon"].append(receipt)
                             counts[rule] += 1
-                    seen.add(f"{rule}|{key}")
+                        elif not receipt and re.search(r"(?i)\border\b", subject) and not re.search(r"(?i)shipped|dispatched|delivered|arriving|out for delivery", subject):
+                            unread.append(rule)
+                    seen.add(mark)
                 # Saved after each search, so a first run cut off by its timeout carries on where it stopped.
                 state["seen"] = sorted(seen)[-SEEN_CAP:]
                 save(state_file, state)
@@ -742,6 +760,8 @@ def mail():
             exported_orders |= {row.get("Order ID") for row in csv_rows(data)}
     deliver("amazon", "live-Order History.csv", csv_bytes(AMAZON, [row for row in state["amazon"] if row["Order ID"] not in exported_orders]))
     summary = ", ".join(f"{counts[rule]} new {rule}" for rule in MAIL_RULES if rule != "cmc-invest")
+    if unread:
+        summary += f"; {unread.count('uber')} Uber and {unread.count('amazon')} Amazon receipts it could not read"
     if unfinished:
         summary += "; still catching up on older mail, which the next run carries on with"
     if errors:
