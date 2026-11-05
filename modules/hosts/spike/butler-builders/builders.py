@@ -452,7 +452,12 @@ def publish(memory, body, stamp):
     git(memory, 'add', DIGEST_PATH)
     git(memory, '-c', 'user.name=%s' % AUTHOR[0], '-c', 'user.email=%s' % AUTHOR[1],
         'commit', '--quiet', '--message', 'Refresh the builders in flight digest')
-    pushed = git(memory, 'push', '--quiet', 'origin', 'HEAD:main', check=False)
+    try:
+        pushed = git(memory, 'push', '--quiet', 'origin', 'HEAD:main', check=False)
+    except subprocess.TimeoutExpired:
+        # A push GitHub left hanging, as one did for 120 seconds on 5 Nov 2026, is retried like a lost race.
+        publish.error = 'git push timed out after 120 seconds'
+        return 'raced'
     if pushed.returncode == 0:
         return 'pushed'
     publish.error = clean(pushed.stderr or 'git push exited %d' % pushed.returncode, 300)

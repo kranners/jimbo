@@ -423,8 +423,8 @@ let
     text = ''
       ${lockedMemory}
 
-      if ! (pull && { git push --quiet || { pull && git push --quiet; }; }); then
-        logger -t memory-push "could not push butler's memory; butler-memory-pull retries it" || true
+      if ! out=$( (pull && { git push --quiet || { pull && git push --quiet; }; }) 2>&1); then
+        logger -t memory-push "could not push butler's memory; butler-memory-pull retries it: $(printf %s "$out" | tail -n 3 | tr '\n' ' ' | cut -c1-300)" || true
         exit 1
       fi
     '';
@@ -573,9 +573,14 @@ let
       if [ -d ${memory}/.git ]; then
         # Fetched, with retries, before taking the lock, so a slow GitHub never holds up memory-note and memory-save.
         # A long run is the lock's wait behind mac's audit commits, which push every few seconds while butler drives a Mac.
-        ${githubRetry} git -C ${memory} fetch --quiet origin
+        # Into a ref of its own, --refmap= keeping it off origin/main, since memory-push's pull under the lock fetches
+        # origin/main too, and two fetches updating it at once failed one with "cannot lock ref".
+        ${githubRetry} git -C ${memory} fetch --quiet --refmap= origin +refs/heads/main:refs/prefetch/main
         exec 9>${memoryLock}
         flock 9
+        if git -C ${memory} merge-base --is-ancestor refs/remotes/origin/main refs/prefetch/main; then
+          git -C ${memory} update-ref refs/remotes/origin/main refs/prefetch/main
+        fi
         git -C ${memory} -c user.name=Butler -c user.email=butler@spike rebase --autostash --quiet || { git -C ${memory} rebase --abort 2>/dev/null; exit 1; }
         if [ -n "$(git -C ${memory} rev-list '@{upstream}..HEAD')" ]; then
           git -C ${memory} push --quiet
