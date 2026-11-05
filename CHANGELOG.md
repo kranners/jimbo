@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-11-05: The backlogic sweep stops DMing Aaron after every run: it now tells him only when backlogic's runner goes down or comes back, and once a day at most when 10 or more tickets have waited on him for over 3 days, naming the oldest three.
 - 2026-11-05: Board sessions no longer depend on one Claude account: kranners/kanban starts each on the cswap account with the most headroom and moves one that hits its limit to another, resuming it, and the kanban runners on the Macs and jimbo do the same wherever cswap manages two or more accounts, with nothing to change here.
 - 2026-11-05: WireGuard peers find spike's own sites, such as `kanban.spike.cute.engineer`, from any network: spike answers them over the tunnel, and the Macs ask it for those names alone.
 - 2026-11-05: pilot runs `cswap auto` as a declared launchd agent, so switching Claude accounts near their limits survives a rebuild, with its strategy and thresholds as options and the same agent available, off, on piggys-MBP.

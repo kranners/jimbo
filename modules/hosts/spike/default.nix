@@ -58,6 +58,13 @@
         echo ok > $out
       '';
 
+    # The backlogic sweep's notices: silent seeding, the runner down and back once each, the daily waiting notice.
+    backlogic-sweep =
+      pkgs.runCommand "backlogic-sweep-notify" { nativeBuildInputs = [ pkgs.python3 ]; }
+        ''
+          python3 -I ${./backlogic-sweep}/test_sweep.py > $out 2>&1 || { cat $out; exit 1; }
+        '';
+
     # The landing queue's holds, cues and releases, with a fake clock and call.
     land-queue = pkgs.runCommand "land-queue-dry-run" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 ${./butler-land}/test_land.py > $out 2>&1 || { cat $out; exit 1; }
