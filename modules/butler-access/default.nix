@@ -160,10 +160,12 @@ in
         "hammerspoon/init.lua".text = ''
           -- Written by jimbo's butler-access module.
           dofile(hs.configdir .. "/butler.lua")
+          dofile(hs.configdir .. "/butler-overlay.lua")
         '';
-        "hammerspoon/butler.lua".text =
-          builtins.replaceStrings [ "@port@" "@overlay@" ] [ (toString helperPort) "${overlay.launcher}" ]
-            (builtins.readFile ./butler.lua);
+        "hammerspoon/butler-overlay.lua".text = overlay.lua;
+        "hammerspoon/butler.lua".text = builtins.replaceStrings [ "@port@" ] [ (toString helperPort) ] (
+          builtins.readFile ./butler.lua
+        );
       };
 
       targets.darwin.defaults."org.hammerspoon.Hammerspoon" = {

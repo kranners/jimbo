@@ -1,11 +1,11 @@
 # Butler's on-screen overlay for the Macs: Butler in a porthole at the top right, with his narration in speech bubbles
 # under him, while butler on spike drives the Mac or works on anything at all. Spike's `mac` drives it over ssh with
 # `butler-overlay`, and so does spike's overlay relay while any of butler's turns runs, with `work` every few seconds
-# and `rest` once none does; each writes an event and touches `active`, and butler's Hammerspoon helper, which checks
-# for it every second, starts the launcher below, which draws them with ./overlay.js and exits once butler is done, or
-# after `idle` seconds with no event, so it never outlives a crashed or interrupted turn. Hammerspoon starts it, not a
-# LaunchAgent, because on pilot launchd's every run of it ended killed with SIGKILL before it drew anything, while the
-# same script run from a login shell stayed up.
+# and `rest` once none does; each writes an event and touches `active`, and ./overlay.lua, which Hammerspoon loads
+# beside butler's helper and which checks for it every second, draws them with hs.canvas until butler is done, or
+# `idle` seconds pass with no event, so it never outlives a crashed or interrupted turn. It draws inside Hammerspoon
+# because on pilot every osascript run of the JXA overlay it replaced, started by launchd or by Hammerspoon, ended
+# killed with SIGKILL before it drew anything, while Hammerspoon itself is never killed.
 {
   pkgs,
   lib,
@@ -36,24 +36,12 @@ let
     '') layers}
   '';
 
-  script = pkgs.writeText "butler-overlay.js" (
-    builtins.replaceStrings [ "@art@" "@idle@" ] [ "${art}" (toString idle) ] (
-      builtins.readFile ./overlay.js
-    )
+  # Loaded by Hammerspoon beside butler.lua, so it draws inside Hammerspoon and no process of its own runs.
+  lua = builtins.replaceStrings [ "@art@" "@idle@" ] [ "${art}" (toString idle) ] (
+    builtins.readFile ./overlay.lua
   );
 
   state = ''"$HOME/.local/state/butler-overlay"'';
-
-  # What Hammerspoon runs: it exits at once unless a session is live, and drops one that went quiet without a word.
-  launcher = pkgs.writeShellScript "butler-overlay-agent" ''
-    active=${state}/active
-    [ -e "$active" ] || exit 0
-    if [ $(( $(/bin/date +%s) - $(/usr/bin/stat -f %m "$active") )) -gt ${toString idle} ]; then
-      /bin/rm -f "$active"
-      exit 0
-    fi
-    exec /usr/bin/osascript -l JavaScript ${script}
-  '';
 
   command = pkgs.writeShellScriptBin "butler-overlay" ''
     set -u
@@ -61,7 +49,7 @@ let
     events="$dir/events"
     active="$dir/active"
     # Touched by `work` while butler's turns run: `mac`'s `hide` waits until it is BUSY seconds old, so finishing on
-    # a Mac mid-turn does not fade him out while he is still working, and only `rest` or the agent's idle ends it.
+    # a Mac mid-turn does not fade him out while he is still working, and only `rest` or the overlay's idle ends it.
     busy="$dir/busy"
 
     usage() {
@@ -108,7 +96,8 @@ let
         else
           echo "overlay: hidden"
         fi
-        if /usr/bin/pgrep -q -f '[b]utler-overlay[.]js'; then echo "drawing: running"; else echo "drawing: not running"; fi
+        # Hammerspoon touches `drawing` every second while he is on screen.
+        if [ -e "$dir/drawing" ] && [ "$(age "$dir/drawing")" -le 5 ]; then echo "drawing: yes"; else echo "drawing: no"; fi
         /usr/bin/tail -n 3 "$HOME/Library/Logs/butler-overlay.log" 2> /dev/null | /usr/bin/sed 's/^/log: /'
         ;;
       *) usage ;;
@@ -116,5 +105,5 @@ let
   '';
 in
 {
-  inherit art command launcher;
+  inherit art command lua;
 }
