@@ -1455,16 +1455,27 @@ def save(host, state):
     os.replace(control_file(host) + '.new', control_file(host))
 
 
+def thread_tag():
+    """The thread running this command, from the daemon's BUTLER_THREAD_ID and BUTLER_THREAD_TITLE, so two threads on one
+    machine can be told apart in the audit trail; empty outside a thread, such as for the idle watcher of an older daemon."""
+    ident = re.sub(r'[^0-9A-Za-z_-]', '', os.environ.get('BUTLER_THREAD_ID', ''))[:32]
+    if not ident:
+        return ''
+    title = clip(redact(os.environ.get('BUTLER_THREAD_TITLE', '')).replace('"', "'"), 60)
+    return '[thread %s%s] ' % (ident, ' "%s"' % title if title else '')
+
+
 def audit(lines):
     """Spools lines for audit/mac in butler's memory, then has memory-audit commit them in the background."""
     if not lines:
         return
     os.makedirs(STATE, exist_ok=True)
     day, clock = time.strftime('%Y-%m-%d'), time.strftime('%H:%M:%S %z')
+    tag = thread_tag()
     with open(AUDIT_SPOOL, 'a') as spool:
         fcntl.flock(spool, fcntl.LOCK_EX)
         for host, text in lines:
-            spool.write('%s\t%s %s %s\n' % (day, clock, host, ' '.join(text.split())))
+            spool.write('%s\t%s %s %s%s\n' % (day, clock, host, tag, ' '.join(text.split())))
     try:
         subprocess.Popen([MEMORY_AUDIT, 'mac', AUDIT_SPOOL], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL, start_new_session=True)
@@ -1568,9 +1579,14 @@ def say(host, words):
         print('logged; %s has no overlay yet, so nothing was shown' % host)
 
 
-def done(host):
+def done(host, words):
+    """Ends the control session; a note after done, or on stdin, is what was left open, kept in the audit trail, and the
+    daemon's thread ledger shows it to the next thread that drives this machine."""
+    note = clip(redact(' '.join(words) if words else ('' if sys.stdin.isatty() else sys.stdin.read())), 200)
+    if note:
+        audit([(host, 'left open: ' + note)])
     if end(host, 'done'):
-        print('handed %s back to Aaron; Butler has left its screen' % host)
+        print('handed %s back to Aaron; Butler has left its screen%s' % (host, '; left open: ' + note if note else ''))
         return
     try:
         overlay(host, 'hide')
@@ -1613,7 +1629,7 @@ def act_on(host, verb, rest):
     if verb == 'say':
         return say(host, rest)
     if verb == 'done':
-        return done(host)
+        return done(host, rest)
     if verb == 'run':
         stdin = '' if rest else sys.stdin.read()
         journal(host, describe('run', rest, stdin))

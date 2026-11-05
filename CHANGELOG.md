@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-11-05: butler's threads share one picture of what each is doing: every turn sees what its other threads active in the last 30 minutes are after, touching and last did, a `mac` or browser step on a machine another thread just used says so, `mac <host> done <note>` leaves a note for the next thread, and every `mac` audit line names its thread; nothing is locked.
 - 2026-11-05: butler reads every folder of Aaron's mail, not just the inbox, such as `mail outlook junk list` or `mail outlook all-folders search <words>`, so a sign-up code Outlook files as junk is found; it still only archives from the inbox and never deletes or moves anything else.
 - 2026-11-05: The backlogic sweep stops DMing Aaron after every run: it now tells him only when backlogic's runner goes down or comes back, and once a day at most when 10 or more tickets have waited on him for over 3 days, naming the oldest three.
 - 2026-11-05: Board sessions no longer depend on one Claude account: kranners/kanban starts each on the cswap account with the most headroom and moves one that hits its limit to another, resuming it, and the kanban runners on the Macs and jimbo do the same wherever cswap manages two or more accounts, with nothing to change here.
