@@ -1646,7 +1646,7 @@ def presence(host, verb, rest):
         if state:
             last_butler = max(last_butler, state.get('last', 0))
         entry = {
-            'footman': clip(os.environ.get('BUTLER_FOOTMAN', ''), 30),
+            'session': clip(redact(os.environ.get('BUTLER_DESK_SESSION', '')), 50),
             'title': clip(redact(os.environ.get('BUTLER_THREAD_TITLE', '')), 60),
             'app': clip(front[0], 40),
             'window': clip(redact(front[1]), 60),

@@ -10,13 +10,13 @@ spec.loader.exec_module(p)
 now = 1_000_000.0
 folder = tempfile.mkdtemp()
 
-# Theo looked at pilot a minute ago in Chromium, Drive tab; the DM looks now.
-p.presence_record(folder, 'pilot', 'thr-theo', {'footman': 'Theo', 'title': 'x', 'app': 'Chromium', 'window': 'Drive tab', 'action': 'mac pilot click'}, now - 60)
+# A desk session looked at pilot a minute ago in Chromium, Drive tab; the DM looks now.
+p.presence_record(folder, 'pilot', 'thr-theo', {'session': 'Drive upload', 'title': 'x', 'app': 'Chromium', 'window': 'Drive tab', 'action': 'mac pilot click'}, now - 60)
 data = p.presence_record(folder, 'pilot', 'dm', {'title': 'the DM', 'app': 'Finder'}, now)
 lines = p.presence_lines(data, 'dm', 'pilot', now)
-assert lines == ['Theo is in Chromium on pilot, Drive tab, 1 min ago (mac pilot click).'], lines
+assert lines == ['Desk session "Drive upload" is in Chromium on pilot, Drive tab, 1 min ago (mac pilot click).'], lines
 
-# The footman does not hear of himself, and an old sighting is dropped.
+# The session does not hear of itself, and an old sighting is dropped.
 assert p.presence_lines(data, 'thr-theo', 'pilot', now) == ['Thread "the DM" is in Finder on pilot, just now.']
 assert p.presence_lines(data, 'dm', 'pilot', now + p.PRESENCE_MS + 61) == []
 

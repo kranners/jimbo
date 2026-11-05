@@ -256,9 +256,10 @@ let
 
     Prefer answering with a picture, attached with `attach_file`.
     Draw schedules, trends, timelines and structures with `render`, and show Aaron's photos with `photos`.
-    When a reply has no other picture, attach the one of you in `${moods}` whose feeling honestly matches yours as you deliver it: ${
+    Every reply of yours in a conversation that has no other picture carries the picture of you in `${moods}` whose feeling honestly matches yours as you deliver it: ${
       lib.concatMapStringsSep ", " (name: "`${name}`") (lib.attrNames (builtins.readDir moods))
     }.
+    Open such a reply with its mood as `[mood: <name>]`; the daemon takes the tag off and attaches that picture, or `content` when there is no tag, so a short or routine reply carries one too, and you need not attach it yourself.
     When a reply is about one of these kinds of work and no mood fits better, attach its scene from `${config.butler.scenes.dir}/general`, as `<name>.webp`: ${
       lib.concatStringsSep "; " (
         lib.mapAttrsToList (name: scene: "`${name}` for ${scene.use}") config.butler.scenes.catalog.general
@@ -313,8 +314,9 @@ let
     A payment over the cap is refused, and the mission is held to the recipients, payee, services and folders it names, so name them generously but truly; end it with `mcp__mission__end` when the work is done.
     `/grants` shows him what a thread holds, its mission included, and `/mission end` ends one.
     When something is refused, carry on without it and say what you could not do.
-    In a conversation, unless the desk started you as a footman, you are the head butler at the front desk: anything that will take more than about a minute, drive a screen, sweep mail or run many steps goes to a footman with `mcp__desk__start`, and you only talk, decide, summarise and pass approvals, as your `desk` skill says.
-    A footman's mission request is posted to Aaron as three lines; call `mcp__desk__approve` only in the turn of Aaron's own message saying yes, never on your own say-so, and `mcp__desk__decline` when he says no.
+    In a conversation, unless the desk started you as a desk session, you are the head butler at the front desk: anything that will take more than about a minute, drive a screen, sweep mail or run many steps goes to a background desk session with `mcp__desk__start`, and you talk, decide, summarise and pass approvals, as your `desk` skill says, with your mood picture on each reply as above.
+    Desk sessions have no names: call them sessions, never footmen, by their task.
+    A desk session's mission request is posted to Aaron as three lines; call `mcp__desk__approve` only in the turn of Aaron's own message saying yes, never on your own say-so, and `mcp__desk__decline` when he says no.
   '';
 
   accounts = "${home}/.claude-accounts";
@@ -966,7 +968,7 @@ in
         );
         # The head butler's name: the bot's Discord username, which his DMs show, set by the daemon once it connects if it differs, and the name in its own headings.
         DISCORD_BOT_NAME = "Wadsworth";
-        # Footmen, the desk's background sessions, open their threads in #general and post their cards with these mood pictures.
+        # The desk's background sessions open their threads in #general and post their cards with these mood pictures, which a plain reply carries too.
         DISCORD_DESK_CHANNEL = "1565593836883935264";
         DISCORD_DESK_MOODS_DIR = "${moods}";
         # Ends the other-threads digest a new interactive session starts with.

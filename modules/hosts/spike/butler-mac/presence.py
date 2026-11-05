@@ -1,5 +1,5 @@
 # Presence notes for mac: who else touched a machine lately and what they were doing, and whether Aaron himself is at it.
-# Nothing here locks or refuses anything; it only adds lines to a result, so footmen and threads can share a Mac.
+# Nothing here locks or refuses anything; it only adds lines to a result, so desk sessions and threads can share a Mac.
 # mac.py takes this file in place of its @presence@ line, without the imports, which it already has; test_presence.py
 # imports it directly.
 import json
@@ -36,9 +36,9 @@ def presence_save(folder, host, data, now):
 
 
 def presence_who(entry):
-    """A footman by name, any other thread by its title, the DM as itself."""
-    if entry.get('footman'):
-        return entry['footman']
+    """A desk session by its task, any other thread by its title, the DM as itself."""
+    if entry.get('session'):
+        return 'Desk session "%s"' % entry['session']
     title = (entry.get('title') or '').strip()
     return 'Thread "%s"' % title if title else 'Another thread'
 
