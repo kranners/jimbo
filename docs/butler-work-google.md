@@ -32,9 +32,9 @@ To take it away, delete that token file on spike, or remove the app under the wo
 
 ## What butler may do with it
 
-- `mail work unread|list|search|read` runs only in a conversation with Aaron, and taints the thread like all mail.
-- `calendar work agenda|events` runs in a conversation and on a call, and gives each meeting's time, title, Aaron's response (accepted, tentative or not yet answered; declined ones are left out), attendee count and Meet link, never an attendee's address.
-- A scheduled run, such as the morning brief, sees only `calendar work brief`, times and titles, and the work inbox's unread count.
+- `mail work unread|list|search|read` runs in a conversation with Aaron or a scheduled run, and taints the thread like all mail.
+- `calendar work agenda|events` runs in a conversation, a scheduled run and on a call, and gives each meeting's time, title, Aaron's response (accepted, tentative or not yet answered; declined ones are left out), attendee count and Meet link, never an attendee's address.
+- `calendar work brief` is the times-and-titles view, and `mail unread-counts` gives the work inbox's unread count.
 - Its skills tell butler never to copy work mail or meetings into memory, the journal or a change brief, and the work repositories' content stays out of memory as before.
 
 ## Slack

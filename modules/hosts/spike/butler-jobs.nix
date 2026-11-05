@@ -230,6 +230,8 @@ in
         ];
         lanes = both;
         acts = true;
+        # A job's prompt later runs unattended in a fresh, untainted thread, so adding one from a thread that read outside content or began as a voice request asks Aaron, showing the prompt.
+        egress = true;
       }
       {
         match = [
