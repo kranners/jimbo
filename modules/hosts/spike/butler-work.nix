@@ -68,6 +68,14 @@ in
 
     # The daemon's desk lists the changes in flight beside its sessions, reading the snapshot, and its sessions write their own work files beside it; the snapshot stays mode 640 and the cache mode 700, both root's.
     butler.writePaths = [ state ];
+
+    # The private flake's work.nix declares this folder 0750 in nixos.conf's tmpfiles rules, which every boot and switch reapplied,
+    # leaving butler unable to write here until this unit next ran; tmpfiles takes a path's line from the file whose name sorts first.
+    systemd.tmpfiles.settings."00-butler-work".${state}.d = {
+      mode = "1770";
+      user = "root";
+      group = "butler";
+    };
     systemd.services.butler.environment.DISCORD_DESK_CHANGES_FILE = "${state}/work.json";
 
     systemd.timers.butler-work = {

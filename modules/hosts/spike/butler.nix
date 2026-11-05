@@ -953,7 +953,6 @@ in
       "d ${home}/.local 0700 butler butler -"
       "d ${outbox} 0700 butler butler -"
       "d ${scratch} 0700 butler butler -"
-      "d /var/lib/butler-audit 0750 butler butler -"
       "d ${home}/.local/share 0700 butler butler -"
       "d ${home}/.local/share/pyicloud 0700 butler butler -"
       "L+ ${home}/.claude/settings.json - - - - ${readOnlySettings}"
