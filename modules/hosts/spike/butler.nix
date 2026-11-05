@@ -117,6 +117,11 @@ let
         type = types.bool;
         default = false;
       };
+      # Its own stdin limit in bytes, at most 1 MB, where the daemon's 64 KB is too little.
+      stdinBytes = mkOption {
+        type = types.nullOr (types.ints.between 1 (1024 * 1024));
+        default = null;
+      };
       rules = mkOption { type = types.listOf rule; };
       credentials = mkOption {
         type = types.attrsOf types.str;
@@ -136,28 +141,32 @@ let
 
   manifest = pkgs.writeText "butler-commands.json" (
     builtins.toJSON {
-      commands = lib.mapAttrsToList (name: c: {
-        inherit name;
-        path = lib.getExe' c.package name;
-        description = lib.trim c.description;
-        inherit (c) stdin;
-        rules = map (
-          r:
-          lib.filterAttrs (
-            n: v:
-            (
-              !(lib.elem n [
-                "grant"
-                "outcomes"
-                "outcome"
-              ])
-              || v != null
-            )
-            && (n != "flags" || v != [ ])
-            && (n != "ownerForce" || v)
-          ) (r // { taints = r.taints || c.private; })
-        ) c.rules;
-      }) commands;
+      commands = lib.mapAttrsToList (
+        name: c:
+        {
+          inherit name;
+          path = lib.getExe' c.package name;
+          description = lib.trim c.description;
+          inherit (c) stdin;
+          rules = map (
+            r:
+            lib.filterAttrs (
+              n: v:
+              (
+                !(lib.elem n [
+                  "grant"
+                  "outcomes"
+                  "outcome"
+                ])
+                || v != null
+              )
+              && (n != "flags" || v != [ ])
+              && (n != "ownerForce" || v)
+            ) (r // { taints = r.taints || c.private; })
+          ) c.rules;
+        }
+        // lib.optionalAttrs (c.stdinBytes != null) { inherit (c) stdinBytes; }
+      ) commands;
     }
   );
 

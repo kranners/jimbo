@@ -15,3 +15,4 @@ The `asset` tool is the one place that keeps them, on spike alone, for every thr
 - Tags: the kind of thing (`logo`, `deck`, `chart`, `photo`), the project, and `work` for anything made for Aaron's work. Work assets stay on spike and in his private places: never in a public repository, issue, gist or page, and never named by brand in anything public.
 - **Search before you make.** Before generating or drawing something again, run `asset list <words>` (or `--tag <tag>`) and reuse what is there; `asset show <name>` prints where it lives and, for a picture or document, an `attach:` path in the outbox to send with `attach_file`.
 - `asset remove <name>` only when Aaron asks; it keeps the file in the store's trash.
+- **Draw with them.** A page or SVG for `render` shows a stored picture by reference, `<img src="asset://<name>">`, with no copying or base64, and `outbox://<file>`, `mood://<name>` and `scene://<group>/<name>` the same way; see the `render` skill.

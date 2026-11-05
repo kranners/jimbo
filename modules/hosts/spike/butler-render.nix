@@ -7,56 +7,23 @@
 let
   python = pkgs.python3Packages;
 
-  browsers = pkgs.playwright-driver.browsers.override {
-    withChromium = false;
-    withFirefox = false;
-    withWebkit = false;
-    withFfmpeg = false;
+  # What it draws for butler is saved in the asset store too, but for the cards spike draws with it, which set BUTLER_ASSETS_AUTO=0.
+  # The only files a page may load, by reference, are the asset store, the outbox, the mood pictures and the scene pictures, the same folders attach_file reads.
+  source = import ./butler-render/source.nix { inherit pkgs lib; } {
+    outbox = "${config.users.users.butler.home}/outbox";
+    asset = lib.getExe config.butler.assets.package;
+    store = "${config.users.users.butler.home}/assets";
+    scenes = config.butler.scenes.dir;
+    sceneGroups = lib.concatStringsSep ":" (lib.attrNames config.butler.scenes.catalog);
   };
 
-  bundle =
-    name: version: path: hash:
-    pkgs.fetchurl {
-      url = "https://cdn.jsdelivr.net/npm/${name}@${version}/${path}";
-      inherit hash;
-    };
-
-  libraries = {
-    "@vega@" =
-      bundle "vega" "6.4.0" "build/vega.min.js"
-        "sha256-j2o1h8+NT0LH4IEg4+sF0GfnRtVU450tz1KswL1boo8=";
-    "@vegaLite@" =
-      bundle "vega-lite" "6.5.0" "build/vega-lite.min.js"
-        "sha256-g+IV6E4wjuhoj6ZQO6Dxz4o8BcDWHfKEGguSv4aAngA=";
-    "@vegaEmbed@" =
-      bundle "vega-embed" "7.3.0" "build/vega-embed.min.js"
-        "sha256-sUVcq6L7GnL7RgJboLoTFuLbx/DdQKP2BAFyv5wIupE=";
-    "@mermaid@" =
-      bundle "mermaid" "12.2.0" "dist/mermaid.min.js"
-        "sha256-qKam+AWwdKgmGiglyG+ZyAVKyzs19Qu34kpPnyw8O58=";
-  };
-
-  substitutions = libraries // {
-    "@browsers@" = browsers;
-    "@outbox@" = "${config.users.users.butler.home}/outbox";
-    # What it draws for butler is saved in the asset store too, but for the cards spike draws with it, which set BUTLER_ASSETS_AUTO=0.
-    "@asset@" = lib.getExe config.butler.assets.package;
-  };
-
-  render =
-    pkgs.writers.writePython3Bin "render"
-      {
-        libraries = [ python.playwright ];
-        flakeIgnore = [
-          "E402"
-          "E501"
-        ];
-      }
-      (
-        builtins.replaceStrings (lib.attrNames substitutions) (map toString (
-          lib.attrValues substitutions
-        )) (builtins.readFile ./butler-render/render.py)
-      );
+  render = pkgs.writers.writePython3Bin "render" {
+    libraries = [ python.playwright ];
+    flakeIgnore = [
+      "E402"
+      "E501"
+    ];
+  } source;
 
   both = [
     "interactive"
@@ -75,9 +42,11 @@ in
     package = render;
     description = ''
       Render HTML, SVG, a Mermaid diagram or a Vega-Lite chart to a PNG in the outbox, and print its path to attach.
-      render html [width] | render svg [width] | render mermaid [width] | render vega-lite [width] (the source on stdin; width in CSS pixels, 1000 unless given)
+      render html [width] | render svg [width] | render mermaid [width] | render vega-lite [width] (the source on stdin, up to 512 KB; width in CSS pixels, 1000 unless given)
+      Butler's own pictures load by reference in img src, srcset, CSS url() and SVG href: asset://<name> from the asset store, outbox://<file>, mood://<name> for the mood pictures and scene://<group>/<name>; nothing else loads, no file://, no other path and no network, so inline anything else as a data: URI.
     '';
     stdin = true;
+    stdinBytes = 512 * 1024;
     rules = [
       {
         match = [ "*" ];

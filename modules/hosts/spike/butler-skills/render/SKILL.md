@@ -18,7 +18,17 @@ Prefer a picture over a long list whenever the answer is a schedule, a trend or 
 Gather the data first with the other tools, then draw it, then say the key point in a line beside the picture.
 
 The page has no network at all, so a web font, a remote image or a fetch fails.
-Inline everything: styles in `<style>`, data in the page, images as `data:` URIs.
+Inline styles in `<style>` and data in the page.
+Use your own pictures by reference, in `<img src>`, `srcset`, CSS `url()`, an SVG `<image href>` or a Vega-Lite image mark, rather than pasting them in:
+
+- `asset://<name>` is the asset store's picture of that name, as `asset list` shows it.
+- `outbox://<file>` is a picture in the outbox, such as one `imagine` or `mac <host> fetch` just made.
+- `mood://<name>` is your mood picture of that mood, such as `mood://content`.
+- `scene://<group>/<name>` is a scene picture, such as `scene://general/home`; the `work` ones only in threads about Aaron's work, as when attaching them.
+
+Paths on the page's own origin work too, such as `asset/<name>` or `/mood/content`.
+Only pictures load, PNG, JPEG, WebP, GIF, SVG, AVIF, BMP and ICO, at most 25 MB each; `file://`, any other path, `..`, a symlink and the network are refused, and each refusal is printed as a warning naming the address and why, so a broken picture is never silent.
+Anything else goes in as a `data:` URI; stdin takes up to 512 KB.
 The default look is dark text on white in the system font; set your own colours and sizes for anything more.
 In HTML, the globals `vega`, `vegaLite`, `vegaEmbed` and `mermaid` are already loaded.
 A `<pre class="mermaid">` element in HTML is drawn before the screenshot.

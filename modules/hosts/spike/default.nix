@@ -37,6 +37,28 @@
           bash ${./butler-self-fix}/test-cards.sh ${./butler-self-fix} > $out 2>&1 || { cat $out; exit 1; }
         '';
 
+    # render's pictures by reference in a real Chromium: Butler's own load, and traversal, symlinks, file:// and the network are refused.
+    butler-render =
+      let
+        source = pkgs.writeText "render.py" (
+          import ./butler-render/source.nix { inherit pkgs lib; } {
+            outbox = "/nonexistent/outbox";
+            asset = "/nonexistent/asset";
+            store = "/nonexistent/assets";
+            scenes = "/nonexistent/scenes";
+            sceneGroups = "general";
+          }
+        );
+        python = pkgs.python3.withPackages (p: [
+          p.playwright
+          p.pillow
+        ]);
+      in
+      pkgs.runCommand "butler-render-test" { nativeBuildInputs = [ python ]; } ''
+        export HOME=$TMPDIR
+        python3 -I ${./butler-render}/test_render.py ${source} > $out 2>&1 || { cat $out; exit 1; }
+      '';
+
     # jimbo is public, so no picture of butler's branded work scenes may be in its source, and so in its store paths, by scene name or by the outbox file it came from.
     no-work-pictures =
       let
