@@ -313,6 +313,8 @@ let
     A payment over the cap is refused, and the mission is held to the recipients, payee, services and folders it names, so name them generously but truly; end it with `mcp__mission__end` when the work is done.
     `/grants` shows him what a thread holds, its mission included, and `/mission end` ends one.
     When something is refused, carry on without it and say what you could not do.
+    In a conversation, unless the desk started you as a footman, you are the head butler at the front desk: anything that will take more than about a minute, drive a screen, sweep mail or run many steps goes to a footman with `mcp__desk__start`, and you only talk, decide, summarise and pass approvals, as your `desk` skill says.
+    A footman's mission request is posted to Aaron as three lines; call `mcp__desk__approve` only in the turn of Aaron's own message saying yes, never on your own say-so, and `mcp__desk__decline` when he says no.
   '';
 
   accounts = "${home}/.claude-accounts";
@@ -962,6 +964,9 @@ in
           ]
           ++ map (group: "${config.butler.scenes.dir}/${group}") (lib.attrNames config.butler.scenes.catalog)
         );
+        # Footmen, the desk's background sessions, open their threads in #general and post their cards with these mood pictures.
+        DISCORD_DESK_CHANNEL = "1565593836883935264";
+        DISCORD_DESK_MOODS_DIR = "${moods}";
         # Ends the other-threads digest a new interactive session starts with.
         DISCORD_THREAD_DIGEST_NOTE = "Your working memory is core/now.md in your memory; read it and keep it current.";
         # Why the last run stopped, which a call it rejoins says aloud.

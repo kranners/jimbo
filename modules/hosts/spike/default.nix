@@ -133,6 +133,13 @@
         ${lib.getExe test} $out/work.json
       '';
 
+    # mac's presence notes: who else used a machine lately, and whether Aaron's own keyboard or mouse is on it.
+    butler-mac-presence =
+      pkgs.runCommand "butler-mac-presence-test" { nativeBuildInputs = [ pkgs.python3 ]; }
+        ''
+          python3 -I ${./butler-mac/test_presence.py} ${./butler-mac/presence.py} > $out 2>&1 || { cat $out; exit 1; }
+        '';
+
     # The Threads snapshot from a fixture threads.db, checking kinds, states and that no message text gets out.
     butler-threads = pkgs.runCommand "butler-threads-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 -I ${./butler-threads/test_threads.py} ${./butler-threads/threads.py} > $out 2>&1 || { cat $out; exit 1; }

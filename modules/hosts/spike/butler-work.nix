@@ -65,6 +65,10 @@ in
       };
     };
 
+    # The daemon's desk lists the changes in flight beside its footmen, reading the snapshot; the cache stays mode 700.
+    systemd.services.butler.serviceConfig.BindReadOnlyPaths = [ "-${state}" ];
+    systemd.services.butler.environment.DISCORD_DESK_CHANGES_FILE = "${state}/work.json";
+
     systemd.timers.butler-work = {
       wantedBy = [ "timers.target" ];
       timerConfig = {

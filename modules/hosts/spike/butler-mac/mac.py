@@ -121,6 +121,9 @@ class Lost(Refused):
 _resolved = {}
 
 
+PRESENCE = os.path.join(STATE, 'presence')
+# @presence@
+
 def probe(system, found):
     try:
         socket.create_connection((system['address'], 22), timeout=3).close()
@@ -1613,10 +1616,48 @@ def main():
     if verb == 'record' and rest[:1] == ['loop']:
         return record(host, 'loop')
     try:
-        return act_on(host, verb, rest)
+        result = act_on(host, verb, rest)
+        if verb not in NO_PRESENCE:
+            presence(host, verb, rest)
+        return result
     except Lost as error:
         end(host, 'connection closed: %s' % clip(str(error), 120), hide=False)
         raise
+
+
+# Verbs that look at or act on no screen, so they add no presence note.
+NO_PRESENCE = {'say', 'done', 'fetch', 'keepawake', 'sleep', 'boot', 'record', 'serve', 'watch'}
+
+
+def presence(host, verb, rest):
+    """Records what this thread now sees in front on host, and prints who else used it lately and whether Aaron is at it.
+    Advice only: it never refuses, and a failure to read the machine says nothing."""
+    try:
+        now = time.time()
+        me = re.sub(r'[^0-9A-Za-z_-]', '', os.environ.get('BUTLER_THREAD_ID', ''))[:32]
+        front = front_context(host) or ('', '')
+        idle = None
+        if system_of(host) == 'macos':
+            out = remote(host, MACOS_IDLE, timeout=10).stdout.strip()
+            idle = int(out) if out.isdigit() else None
+        before = presence_load(PRESENCE, host)
+        last_butler = presence_last_butler(before, now)
+        state = load(host)
+        if state:
+            last_butler = max(last_butler, state.get('last', 0))
+        entry = {
+            'footman': clip(os.environ.get('BUTLER_FOOTMAN', ''), 30),
+            'title': clip(redact(os.environ.get('BUTLER_THREAD_TITLE', '')), 60),
+            'app': clip(front[0], 40),
+            'window': clip(redact(front[1]), 60),
+            'action': clip(describe(verb, rest, ''), 60),
+        }
+        data = presence_record(PRESENCE, host, me, entry, now)
+        note = presence_note(presence_lines(data, me, host, now), aaron_active(idle, last_butler, now), idle, host)
+        if note:
+            print(note)
+    except (Refused, Lost, subprocess.TimeoutExpired, OSError, ValueError):
+        pass
 
 
 def act_on(host, verb, rest):

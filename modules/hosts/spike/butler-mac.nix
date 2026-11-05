@@ -120,6 +120,13 @@ let
     "@dropMax@" = toString dropMax;
   };
 
+  # Presence notes, taken into mac.py without their imports, which mac.py already has.
+  presence = lib.concatStringsSep "\n" (
+    lib.filter (line: !(lib.hasPrefix "import " line)) (
+      lib.splitString "\n" (builtins.readFile ./butler-mac/presence.py)
+    )
+  );
+
   mac =
     pkgs.writers.writePython3Bin "mac"
       {
@@ -130,9 +137,9 @@ let
         flakeIgnore = [ "E501" ];
       }
       (
-        builtins.replaceStrings (lib.attrNames substitutions) (lib.attrValues substitutions) (
-          builtins.readFile ./butler-mac/mac.py
-        )
+        builtins.replaceStrings (lib.attrNames substitutions ++ [ "# @presence@" ]) (
+          lib.attrValues substitutions ++ [ presence ]
+        ) (builtins.readFile ./butler-mac/mac.py)
       );
 in
 {
