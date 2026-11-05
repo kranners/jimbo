@@ -15,6 +15,7 @@ It can only read: it cannot write, move, rename or delete anything on the tablet
 - `remarkable cat <document> [first page] [last page]` prints its pages: typed text, handwriting as transcribed, highlights, and the PDF's or EPUB's own text, cut off after 40,000 bytes, saying where to read on.
 - `remarkable page <document> <n>` saves page n as a PNG in the outbox and prints its path, for you to attach with `attach_file`; a handwritten page shows its strokes, over the PDF page when it annotates one.
 
+Aaron browses the same library, each page's text beside its picture, on the life explorer's reMarkable section, under Explore, https://life.spike.cute.engineer/#remarkable, which also shows what you derived from the pages; keep that with the `notebooks` skill in your memory, and link him to a page as `#remarkable?doc=<id>&page=<n>`.
 A document is its id from `ls` or `search`, its full path such as `Journals/Private journal`, or a name only one document has.
 
 Handwriting is transcribed by OpenAI and can misread words, so when a word matters, look at the page with `remarkable page`, and say a quote is transcribed.

@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-11-05: The life explorer's Explore page has a reMarkable section: every notebook with its pages, last edit and how much is transcribed, a search over every page, each page's text beside its picture, and what butler derived from the pages, whose open goals and ideas also show on the Goals page.
 - 2026-11-05: The life explorer is six pages, Butler, Goals, Reports, Explore, Health and Money, each with a bar of its sections, every old link still opening the right one, and the Butler page shows what each of butler's threads is doing live from its thread ledger, beside the machines and the landing queue.
 - 2026-11-05: butler's threads share one picture of what each is doing: every turn sees what its other threads active in the last 30 minutes are after, touching and last did, a `mac` or browser step on a machine another thread just used says so, `mac <host> done <note>` leaves a note for the next thread, and every `mac` audit line names its thread; nothing is locked.
 - 2026-11-05: butler reads every folder of Aaron's mail, not just the inbox, such as `mail outlook junk list` or `mail outlook all-folders search <words>`, so a sign-up code Outlook files as junk is found; it still only archives from the inbox and never deletes or moves anything else.
