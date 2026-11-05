@@ -258,6 +258,7 @@ in
       "google_translate"
       "google"
       "google_tasks"
+      "zha"
     ];
 
     customLovelaceModules = with pkgs.home-assistant-custom-lovelace-modules; [
@@ -774,6 +775,12 @@ in
       Persistent = true;
     };
   };
+
+  # The ConBee II Zigbee stick, a stable name for ZHA whichever ttyACM it gets.
+  # The module gives hass dialout and the ttyACM devices once zha is a component.
+  services.udev.extraRules = ''
+    SUBSYSTEM=="tty", ATTRS{idVendor}=="1cf1", ATTRS{idProduct}=="0030", SYMLINK+="zigbee", GROUP="dialout", MODE="0660"
+  '';
 
   networking.firewall.interfaces = lib.genAttrs lanInterfaces (_: {
     allowedTCPPorts = [ 8123 ];
