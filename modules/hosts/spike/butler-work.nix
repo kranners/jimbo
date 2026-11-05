@@ -55,7 +55,8 @@ in
         ExecStart = lib.getExe work;
         Group = "butler";
         StateDirectory = "butler-work";
-        StateDirectoryMode = "0750";
+        # Sticky and group-writable, so butler's sessions write their own files here while this snapshot and its cache stay root's.
+        StateDirectoryMode = "1770";
         Environment = [ "WORK_DIRECTORY=${state}" ];
         ProtectHome = true;
         ProtectSystem = "strict";
@@ -65,8 +66,8 @@ in
       };
     };
 
-    # The daemon's desk lists the changes in flight beside its sessions, reading the snapshot; the cache stays mode 700.
-    systemd.services.butler.serviceConfig.BindReadOnlyPaths = [ "-${state}" ];
+    # The daemon's desk lists the changes in flight beside its sessions, reading the snapshot, and its sessions write their own work files beside it; the snapshot stays mode 640 and the cache mode 700, both root's.
+    butler.writePaths = [ state ];
     systemd.services.butler.environment.DISCORD_DESK_CHANGES_FILE = "${state}/work.json";
 
     systemd.timers.butler-work = {

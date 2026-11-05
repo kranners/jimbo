@@ -25,7 +25,10 @@ let
               outbox
               "${home}/.claude/channels/discord/inbox"
               store
-            ])
+              # Its threads' scratch folders and its working areas, where its sessions write their results.
+              "${home}/scratch"
+            ]
+            ++ lib.filter (directory: directory != outbox) config.butler.writePaths)
           ]
           (builtins.readFile ./butler-assets/asset.py)
       );

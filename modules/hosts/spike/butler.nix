@@ -18,6 +18,10 @@ let
   memoryRepository = "git@github.com:kranners/butler-memory.git";
   memoryDeployKey = "/var/lib/secrets/butler-memory-deploy-key";
   outbox = "${home}/outbox";
+  # One scratch folder per thread, made by the daemon on its first write, for that thread alone.
+  scratch = "${home}/scratch";
+  # Butler's own working areas, where its sessions write files unasked, each write audited.
+  writePaths = config.butler.writePaths;
   writableMemory = [
     "core"
     "skills"
@@ -188,7 +192,9 @@ let
           "WebSearch"
           "WebFetch"
         ]
-        ++ map (directory: "Edit(~/memory/${directory}/**)") writableMemory;
+        ++ map (directory: "Edit(~/memory/${directory}/**)") writableMemory
+        # The daemon's gate allows these only outside the voice lanes and only a thread's own scratch, and refuses a write anywhere else.
+        ++ map (directory: "Edit(/${directory}/**)") (writePaths ++ [ scratch ]);
         deny = [
           "Bash"
           "NotebookEdit"
@@ -260,7 +266,10 @@ let
       lib.concatMapStringsSep ", " (name: "`${name}`") (lib.attrNames commands)
     }.
     Each tool's description gives its usage, and a skill of the same subject says how to use it well.
-    In a conversation, `shell` runs a bash script on spike as the separate unprivileged user `butler-shell`, which has the network and the system journal but none of your files or credentials; you have no other shell, and can write and edit files only in your memory.
+    In a conversation, `shell` runs a bash script on spike as the separate unprivileged user `butler-shell`, which has the network and the system journal but none of your files or credentials; you have no other shell.
+    You can write and edit files with Write and Edit in your memory's ${lib.concatStringsSep ", " writableMemory}, in your working areas ${
+      lib.concatMapStringsSep ", " (directory: "`${directory}`") writePaths
+    } and in this thread's own scratch folder, `${scratch}/<thread id>`, and nowhere else; keep anything worth keeping with `asset add`.
     Every message from Aaron arrives with the current local time beside it; when you need the time later in a turn, call `now`.
     Before anything that depends on the time, such as "in two hours", "tonight", "tomorrow morning" or "is it open now", check the time with `now` rather than guessing.
     You cannot ask questions with buttons or menus, so ask them in plain text and wait for Aaron's reply.
@@ -840,6 +849,12 @@ in
     default = { };
   };
 
+  options.butler.writePaths = mkOption {
+    type = types.listOf types.str;
+    default = [ ];
+    description = "Butler's own working areas, absolute directories its sessions write files in unasked outside the voice lanes, each write audited to `audit/write`; bound read-write into its unit, which must not include its memory or credentials.";
+  };
+
   options.butler.memoryAudit = mkOption {
     type = types.package;
     readOnly = true;
@@ -861,6 +876,12 @@ in
       assertion = builtins.match "[a-z][a-z0-9-]{0,30}" name != null;
       message = "butler.commands.${name}: a command name is lowercase letters, digits and dashes, at most 31 long";
     }) (lib.attrNames commands);
+
+    butler.writePaths = [
+      outbox
+      # A results folder of butler's own, for audits and other work it keeps on spike.
+      "/var/lib/butler-audit"
+    ];
 
     butler.commands.now = {
       package = now;
@@ -931,6 +952,8 @@ in
       "d ${home}/.claude/rules 0700 butler butler -"
       "d ${home}/.local 0700 butler butler -"
       "d ${outbox} 0700 butler butler -"
+      "d ${scratch} 0700 butler butler -"
+      "d /var/lib/butler-audit 0750 butler butler -"
       "d ${home}/.local/share 0700 butler butler -"
       "d ${home}/.local/share/pyicloud 0700 butler butler -"
       "L+ ${home}/.claude/settings.json - - - - ${readOnlySettings}"
@@ -996,6 +1019,10 @@ in
         # Every outcome Aaron says yes to, a send, a deletion or an action on pilot, goes to audit/<command> in the memory, beside mac's own trail.
         DISCORD_OUTCOME_AUDIT_DIR = "${home}/.local/state/outcomes";
         DISCORD_OUTCOME_AUDIT_COMMAND = lib.getExe memory-audit;
+        # Where its sessions write files unasked, each write audited as audit/write; its memory's writable folders stay with the settings above, and a write anywhere else is refused.
+        DISCORD_WRITE_PATHS = lib.concatStringsSep ":" writePaths;
+        DISCORD_SCRATCH_DIR = scratch;
+        DISCORD_WRITE_KEEP_PATHS = lib.concatMapStringsSep ":" (directory: "${memory}/${directory}") writableMemory;
       };
 
       # A switch never restarts it, so a live call is never cut off: the activation below marks a restart as wanted instead.
@@ -1024,7 +1051,7 @@ in
         ProtectSystem = "strict";
         ProtectProc = "invisible";
         TemporaryFileSystem = [ "/var/lib" ];
-        BindPaths = [ home ];
+        BindPaths = [ home ] ++ map (directory: "-${directory}") (lib.filter (directory: !lib.hasPrefix "${home}/" directory) writePaths);
         InaccessiblePaths = [ "/srv" ];
         PrivateTmp = true;
         NoNewPrivileges = true;
