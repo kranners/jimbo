@@ -1,0 +1,1 @@
+Butler command 'transcripts export' (jimbo modules/hosts/spike/butler-transcripts*), zipping every Claude Code session, thread label from threads.db and voice logs into the outbox for asset add; docs in spike CLAUDE.md.
