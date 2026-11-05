@@ -537,7 +537,8 @@ def paypal():
 
 MAIL_RULES = {
     "hostplus": {"query": ["from", "hostplus"], "attachments": (".pdf",)},
-    "cmc": {"query": ["(", "from", "cmcmarkets", "or", "from", "cmcinvest", ")"], "attachments": (".pdf", ".csv")},
+    "cmc": {"query": ["from", "cmcmarkets"], "attachments": (".pdf", ".csv")},
+    "cmc-invest": {"query": ["from", "cmcinvest"], "attachments": (".pdf", ".csv"), "as": "cmc"},
     "uber": {"query": ["from", "uber.com"], "subject": r"(?i)\btrip\b|\border\b|receipt"},
     "amazon": {"query": ["from", "amazon"], "subject": r"(?i)\border"},
 }
@@ -677,8 +678,10 @@ def mail():
                 try:
                     envelopes = mail_search(account, mailbox, spec["query"], since_text)
                 except (RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
-                    errors.append(f"{account} {mailbox} {rule}: {error}")
+                    errors.append(f"{account} {mailbox} {rule}: {str(error).splitlines()[0][:160]}")
+                    print(f"mail: {account} {mailbox} {rule}: search failed: {str(error).splitlines()[0][:160]}", flush=True)
                     continue
+                print(f"mail: {account} {mailbox} {rule}: {len(envelopes)} messages since {since_text}", flush=True)
                 for envelope in envelopes:
                     key = envelope.get("message-id") or f"{account}:{mailbox}:{envelope.get('id')}"
                     if f"{rule}|{key}" in seen:
@@ -706,10 +709,10 @@ def mail():
                         for name, data in attachments:
                             if name.lower().endswith(spec["attachments"]) and data:
                                 stamp = moment.astimezone(LOCAL).date().isoformat()
-                                target = f"live-{rule}-{stamp}-{hashlib.sha256(data).hexdigest()[:8]}-{safe_name(name)}"
+                                target = f"live-{spec.get('as', rule)}-{stamp}-{hashlib.sha256(data).hexdigest()[:8]}-{safe_name(name)}"
                                 if deliver("exports", target, data):
                                     state["files"].append(target)
-                                counts[rule] += 1
+                                counts[spec.get("as", rule)] += 1
                     elif rule == "uber":
                         receipt = uber_receipt(message, subject, text, moment)
                         if receipt:
@@ -738,11 +741,11 @@ def mail():
         for _, data in members(file_path):
             exported_orders |= {row.get("Order ID") for row in csv_rows(data)}
     deliver("amazon", "live-Order History.csv", csv_bytes(AMAZON, [row for row in state["amazon"] if row["Order ID"] not in exported_orders]))
-    summary = ", ".join(f"{counts[rule]} new {rule}" for rule in MAIL_RULES)
+    summary = ", ".join(f"{counts[rule]} new {rule}" for rule in MAIL_RULES if rule != "cmc-invest")
     if unfinished:
         summary += "; still catching up on older mail, which the next run carries on with"
     if errors:
-        raise RuntimeError(f"{summary}; some searches failed: " + "; ".join(errors[:3]))
+        raise RuntimeError(f"{summary}; {len(errors)} searches failed, first: {errors[0]}")
     return summary, True
 
 
