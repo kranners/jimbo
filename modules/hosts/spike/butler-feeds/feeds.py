@@ -51,6 +51,8 @@ SPOTIFY_REDIRECT = "http://127.0.0.1:8888/callback"
 SPOTIFY_SCOPE = "user-read-recently-played"
 MAIL_LOOKBACK_DAYS = 730
 SEEN_CAP = 20000
+# A first run's two years of mail outlast one run, so each run stops searching after this and the next carries on.
+MAIL_BUDGET_SECONDS = 20 * 60
 
 
 def now():
@@ -664,9 +666,14 @@ def mail():
     since_text = since.astimezone(LOCAL).date().isoformat()
     counts = {rule: 0 for rule in MAIL_RULES}
     errors = []
+    deadline = time.monotonic() + MAIL_BUDGET_SECONDS
+    unfinished = False
     for account, mailboxes in accounts.items():
         for mailbox in mailboxes:
             for rule, spec in MAIL_RULES.items():
+                if time.monotonic() > deadline:
+                    unfinished = True
+                    break
                 try:
                     envelopes = mail_search(account, mailbox, spec["query"], since_text)
                 except (RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
@@ -676,6 +683,9 @@ def mail():
                     key = envelope.get("message-id") or f"{account}:{mailbox}:{envelope.get('id')}"
                     if f"{rule}|{key}" in seen:
                         continue
+                    if time.monotonic() > deadline:
+                        unfinished = True
+                        break
                     if "subject" in spec and not re.search(spec["subject"], envelope.get("subject") or ""):
                         seen.add(f"{rule}|{key}")
                         continue
@@ -715,7 +725,7 @@ def mail():
                 state["seen"] = sorted(seen)[-SEEN_CAP:]
                 save(state_file, state)
     state["seen"] = sorted(seen)[-SEEN_CAP:]
-    if not errors:
+    if not errors and not unfinished:
         state["through"] = now().isoformat()
     save(state_file, state)
     uber_after = export_cutoff("uber", ["request_timestamp_utc", "Request_Time_Local"])
@@ -729,6 +739,8 @@ def mail():
             exported_orders |= {row.get("Order ID") for row in csv_rows(data)}
     deliver("amazon", "live-Order History.csv", csv_bytes(AMAZON, [row for row in state["amazon"] if row["Order ID"] not in exported_orders]))
     summary = ", ".join(f"{counts[rule]} new {rule}" for rule in MAIL_RULES)
+    if unfinished:
+        summary += "; still catching up on older mail, which the next run carries on with"
     if errors:
         raise RuntimeError(f"{summary}; some searches failed: " + "; ".join(errors[:3]))
     return summary, True
@@ -756,8 +768,8 @@ def run(names):
             entry.update(state="failing", message=re.sub(r"(key|token|secret)=[^&\s]+", r"\1=…", detail)[:300])
             failed = True
         status[name] = entry
-        print(f"{name}: {entry['state']}: {entry['message']}")
-    save(status_file, status, 0o640)
+        print(f"{name}: {entry['state']}: {entry['message']}", flush=True)
+        save(status_file, status, 0o640)
     return 1 if failed and len(names or FEEDS) == 1 else 0
 
 
