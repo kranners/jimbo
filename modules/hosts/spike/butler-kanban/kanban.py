@@ -1069,9 +1069,12 @@ def thread_cards(path=None, now=None, on_spike=None):
               % ((now - written) // 60))
         return None
     threads = [card for card in cards['threads'] if isinstance(card, dict)][:THREAD_CARDS_MAX]
+    edges = [edge for edge in cards.get('edges') or [] if isinstance(edge, dict)][:THREAD_CARDS_MAX]
     if not on_spike:
         threads = [dict(card, events=[], approvals=[]) for card in threads]
-    return {'threads': threads}
+        # What one thread said to another stays on spike too; the board still draws the link.
+        edges = [dict(edge, messages=[]) for edge in edges]
+    return {'threads': threads, 'edges': edges} if edges else {'threads': threads}
 
 
 def send_threads():
@@ -1081,6 +1084,9 @@ def send_threads():
         return 0
     try:
         reply = call('butler_threads', args)
+        if 'edges' in args and 'Unknown argument edges' in str(reply.get('error', '')):
+            # A board older than message edges still takes the cards.
+            reply = call('butler_threads', {'threads': args['threads']})
     except Unreachable as error:
         print('kanban: %s' % error, file=sys.stderr)
         return 75
@@ -1159,13 +1165,14 @@ def main(argv):
             print('kanban: %s' % error, file=sys.stderr)
             return 75
     sent = None
-    if tool == 'start_session':
+    if tool in ('start_session', 'send_prompt'):
+        # A prompt carries the thread it came from too, which the board draws as a message edge.
         args = with_parent(args)
     if tool in ('start_session', 'send_prompt'):
         args, sent = with_context(tool, args)
     try:
         reply = call(tool, args)
-        if tool == 'start_session' and 'parent' in args and 'Unknown argument parent' in str(reply.get('error', '')):
+        if tool in ('start_session', 'send_prompt') and 'parent' in args and 'Unknown argument parent' in str(reply.get('error', '')):
             # A board older than session parents, such as pilot's while it waits for the move to spike, still starts the session, unlinked.
             args = {key: value for key, value in args.items() if key != 'parent'}
             reply = call(tool, args)

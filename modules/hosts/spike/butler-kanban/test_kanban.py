@@ -94,6 +94,21 @@ check('symlink refused', linked, None)
 check('oversized refused', too_big, None)
 check('capped at 80', len(capped['threads']), 80)
 
+# Message edges between threads go along, their words only to the board on spike.
+edge = {'from': '1300000000000000001', 'to': '1300000000000000002', 'via': 'desk say', 'count': 2, 'lastAt': 5,
+        'messages': [{'at': 5, 'kind': 'user', 'text': 'private words'}]}
+with_edges = os.path.join(root, 'edges.json')
+with open(with_edges, 'w') as f:
+    json.dump({'updatedAt': int(now * 1000), 'threads': [card], 'edges': [edge, 'junk']}, f)
+sys.stdout = io.StringIO()
+edges_spike = kanban.thread_cards(with_edges, now, True)
+edges_pilot = kanban.thread_cards(with_edges, now, False)
+sys.stdout = sys.__stdout__
+check('edges kept on spike', edges_spike['edges'], [edge])
+check('edge words stay off pilot', (edges_pilot['edges'][0]['messages'], edges_pilot['edges'][0]['count']), ([], 2))
+check('no edges key without edges', 'edges' in on_spike, False)
+check('no prompt parent outside a thread', 'parent' in kanban.with_parent({'prompt': 'go'}), False)
+
 
 # A board too old for butler_threads is no failure, and the reply's two lines are printed.
 sent_tools = []
