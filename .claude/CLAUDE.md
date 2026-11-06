@@ -916,6 +916,17 @@ Its user unit `butler-keepawake` holds an `idle:sleep` inhibitor 30 seconds at a
 Its `butler-boot windows plan|go` sets the firmware's next boot to Windows Boot Manager once, or systemd-boot's `auto-windows` when the firmware has no such entry, then reboots, with the passwordless sudo every NixOS host gives `wheel`.
 The PC's Windows install is set up by hand with `docs/windows-remote.ps1`, run in an administrator PowerShell after OpenSSH Server and butler's key, which installs TightVNC 2.8.90, pinned by SHA-256, as a service on `127.0.0.1:5900` alone with a random password, which it writes into TightVNC's registry itself on every run, since the MSI's silent install left none, blocks inbound VNC in Windows Firewall and registers the `butler-desktop` task.
 
+### Butler's root
+
+`modules/butler-root` lets the login Butler uses on a machine run commands as root, as Aaron asked on 6 Nov 2026, off everywhere until he says go: a host joins its `on` list, or, for `pilot`, the employer's Mac, `butlerRoot.enable` in `modules/hosts/pilot/butler-root.nix` turns true, and one `just` there applies it, one Touch ID on a Mac.
+On the Macs it adds one sudoers entry, through `security.sudo.extraConfig`, letting `host.username` run butler-root's helper without a password, which runs its command as root only inside an ssh session from spike's `10.100.0.1`, logging it with `logger -t butler-root`, so Butler runs `butler-root <command>` and Aaron's own `sudo` keeps its Touch ID.
+Work-managed security tooling on `pilot` may object to that entry, even limited to the helper.
+On spike it gives `butler-shell` passwordless sudo and drops `NoNewPrivileges` from `butler-shell@`, whose sandbox still keeps root there off `/home`, `/etc` and the store.
+jimbo's NixOS needs nothing, since wheel's sudo there asks no password already, framer gives Butler no login at all, and jimbo's Windows install is not covered: an administrator's ssh login there may already run elevated, and no helper is built.
+Taking it away is the same edit back and one `just`, which removes the entry and the helper with the switch.
+Whatever the machines allow, the daemon's gate decides: `root` is a critical mission item naming its machines and why, `sudo`, `su`, `doas`, `butler-root`, root PowerShell, launchd's system domain and system extensions run only where a mission lists it for that machine or Aaron approves the call, editing sudoers, making users and switching security tooling off are refused as root whatever a mission lists, and `/revoke root`, writing `butler.root.offFile`, refuses every root call at once until `/root on`.
+Every root command is logged to `butler.root.logFile`, `~/.local/state/root/root.jsonl` in butler's home, and to `audit/root` in its memory, with its machine, thread, mission, command with secrets cut and exit, the desk snapshot carries today's count as `root`, and `butler-monitor` tells Aaron once when more than `rootPerHour`, 20, run in an hour, when one ran outside a mission, or when spike's sudoers changed.
+
 ### Claude Code
 
 `modules/claude` writes the personal `CLAUDE.md`, skills and `settings.json` on every host.

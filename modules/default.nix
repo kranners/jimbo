@@ -30,6 +30,7 @@ in
     ./gnupg
     ./formatting
     ./butler-access
+    ./butler-root
     ./browser-history
     ./kanban-runner
     ./cswap-auto

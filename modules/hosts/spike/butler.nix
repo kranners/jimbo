@@ -335,6 +335,8 @@ let
     Aaron wants one general permission per area rather than a button per action: the kanban board, reminders, the calendar, home control, issues and tickets, `mac`, `shell` and `change` each ask once in a thread, and once he allows it every later action of that area there runs without asking, until he runs `/revoke` or `/clear`, so when a task needs several, start it and let the first ask cover the rest rather than asking him in text first.
     His approval is for what happens, not for the tool that does it: outside a mission some outcomes ask him every time, whichever tool carries them, and those are sending a message or email to a person anywhere, posting or publishing, paying, buying, booking or signing up, deleting or irreversibly changing anything that is not your own scratch, changing an account, credential, permission or security setting, and anything on `pilot`, his employer's Mac, beyond reading and viewing.
     Aaron wants one approval per run and nothing after it, so for any task that will need any of those, or `shell`, `mac`, `change` or another area, first thing in the turn, before reading mail, pages or tickets, propose one mission with `mcp__mission__propose` listing everything the run is likely to need: the goal, every area and machine, and every outcome, sends with who they go to, payments with the payee and the most one may cost, sign-ups and accounts with the service, permission changes, deletes with their folders, and `pilot`. Put each critical one, sends and email with `to` and `from`, payments, publishing, logins and passwords, deletes, account, permission or security changes, `pilot` beyond reading, root and restarts, in its `critical` list, so Aaron sees it as its own point under Needs your approval.
+    Root is one of those critical items, as Aaron asked on 6 Nov 2026: `sudo`, `su`, `doas`, `butler-root` on the Macs, root PowerShell, launchd's system domain or a system extension runs only where the mission lists `{"kind":"root","hosts":[...],"what":"<why root is needed>"}` for that machine, or he approves the one call, and `/revoke root` refuses it everywhere at once.
+    Use root only when needed: try the unprivileged route first, never edit sudoers, never create users, never switch security tooling off, never use root to read other people's data, and say why in the reason, since every root command is logged to `audit/root`.
     Once he approves it, go ahead and never ask him again, in a button or in plain text, for anything it lists; on a Mac or the PC put a send or payment in `mac <host> confirm "<what will happen, naming who or the payee and the amount>" <action>`, which the mission then lets through without asking.
     If the run turns out to need something you did not list, stop before asking: plan the rest of the task, list every capability, machine, account, recipient, payment, login and folder it will still need, and propose again ONCE with all of it, critical items in `critical`, under Needs your approval, the rest under Also included, which extends the mission with one button; never send a second extension for something a plan could have foreseen, never ask action by action, and never ask in text for what the mission covers.
     A payment over the cap is refused, and the mission is held to the recipients, payee, services and folders it names, so name them generously but truly; end it with `mcp__mission__end` when the work is done.
@@ -857,6 +859,19 @@ in
     description = "Butler's own working areas, absolute directories its sessions write files in unasked outside the voice lanes, each write audited to `audit/write`; bound read-write into its unit, which must not include its memory or credentials.";
   };
 
+  options.butler.root = {
+    logFile = mkOption {
+      type = types.str;
+      default = "${home}/.local/state/root/root.jsonl";
+      description = "The daemon's root log, one JSON line per root command Butler ran, with its machine, thread, mission, command with secrets cut and exit, which the machines monitor reads for unusual root use.";
+    };
+    offFile = mkOption {
+      type = types.str;
+      default = "${home}/.local/state/root/off";
+      description = "Root's kill switch: while this file exists the daemon refuses every root command on every machine; `/revoke root` makes it and `/root on` removes it.";
+    };
+  };
+
   options.butler.memoryAudit = mkOption {
     type = types.package;
     readOnly = true;
@@ -1019,6 +1034,8 @@ in
         DISCORD_RESTART_DIR = restartDir;
         # Every outcome Aaron says yes to, a send, a deletion or an action on pilot, goes to audit/<command> in the memory, beside mac's own trail.
         DISCORD_OUTCOME_AUDIT_DIR = "${home}/.local/state/outcomes";
+        DISCORD_ROOT_LOG_FILE = config.butler.root.logFile;
+        DISCORD_ROOT_OFF_FILE = config.butler.root.offFile;
         DISCORD_OUTCOME_AUDIT_COMMAND = lib.getExe memory-audit;
         # Where its sessions write files unasked, each write audited as audit/write; its memory's writable folders stay with the settings above, and a write anywhere else is refused.
         DISCORD_WRITE_PATHS = lib.concatStringsSep ":" writePaths;

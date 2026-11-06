@@ -704,6 +704,20 @@ check('a key that works again is still open until it has gone githubAuthMinutes 
 check('and is cleared after that', not [x for x in monitor.evaluate(snapshot, gh_state, t0 + 27 * 60) if x['key'].startswith('github:')])
 check('the textfile charts each identity', 'butler_monitor_github_auth_ok{identity="butler-memory"} 1' in monitor.prom_lines(snapshot, [], 'dry-run', t0))
 
+# Unusual root use: too many root commands in an hour, one outside a mission, and a sudoers change, each told.
+root_state, t0 = {}, 1100 * DAY
+mission_entry = {'at': t0 * 1000, 'host': 'jimbo', 'thread': 't', 'mission': 'm1', 'command': 'mac jimbo run sudo true', 'exit': '0'}
+snapshot = snap({'spike': healthy(os='linux')})
+snapshot['root'] = {'entries': [mission_entry] * 3, 'sudoers': 'a'}
+check('a few root commands under a mission say nothing', not [x for x in monitor.evaluate(snapshot, root_state, t0) if x['key'].startswith('root:')])
+snapshot['root'] = {'entries': [mission_entry] * 25, 'sudoers': 'a'}
+check('over rootPerHour in an hour warns', [x for x in monitor.evaluate(snapshot, root_state, t0) if x['key'] == 'root:busy' and x['level'] == 'warn'])
+snapshot['root'] = {'entries': [dict(mission_entry, mission=None)], 'sudoers': 'a'}
+check('a root command outside a mission warns', [x for x in monitor.evaluate(snapshot, root_state, t0) if x['key'].startswith('root:outside:')])
+snapshot['root'] = {'entries': [], 'sudoers': 'b'}
+check('a sudoers change warns', [x for x in monitor.evaluate(snapshot, root_state, t0 + 120) if x['key'].startswith('root:sudoers:')])
+check('and stops after an hour', not [x for x in monitor.evaluate(snapshot, root_state, t0 + 4000) if x['key'].startswith('root:sudoers:')])
+
 if failures:
     print('%d failed' % len(failures))
     sys.exit(1)

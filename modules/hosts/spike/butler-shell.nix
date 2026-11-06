@@ -1,8 +1,15 @@
-{ config, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   user = "butler-shell";
   home = "/var/lib/${user}";
   socket = "/run/butler-shell.sock";
+  # Whether jimbo's butler-root module gave butler-shell sudo, once Aaron switched it on.
+  rooted = lib.any (rule: lib.elem user (rule.users or [ ])) config.security.sudo.extraRules;
 
   # The wrapper butler runs: it hands its stdin, the script, to the socket and
   # prints what comes back, so the script runs as butler-shell, never as butler.
@@ -115,7 +122,12 @@ in
   butler.commands.shell = {
     package = shell;
     description = ''
-      Run a bash script, given on stdin, on spike as the unprivileged user butler-shell, with no root, no sudo and none of your files or credentials, and print its output and any nonzero exit status; each run stops after 55 seconds. Takes no args.
+      Run a bash script, given on stdin, on spike as the unprivileged user butler-shell, ${
+        if rooted then
+          "with `sudo` only where your mission lists root on spike or Aaron approves the call, inside its sandbox,"
+        else
+          "with no root, no sudo"
+      } and none of your files or credentials, and print its output and any nonzero exit status; each run stops after 55 seconds. Takes no args.
       It has the network, so ssh, ping, curl, dig, nc, nmap and wakeonlan reach WireGuard, the LAN and the internet, and it reads the system journal with journalctl and service state with systemctl status. Its home, ${home}, persists between runs.
     '';
     stdin = true;

@@ -9,7 +9,9 @@ them with fake machines.
 import base64
 import concurrent.futures
 import datetime
+import glob
 import grp
+import hashlib
 import json
 import os
 import re
@@ -742,6 +744,61 @@ def judge_github(github, state, now):
     return out
 
 
+def read_root(now):
+    """Butler's root commands of the last day, from the daemon's root log, and a hash of spike's sudoers."""
+    entries = []
+    path = CONFIG.get('rootLog')
+    if path:
+        try:
+            with open(path) as f:
+                for line in f:
+                    try:
+                        e = json.loads(line)
+                    except ValueError:
+                        continue
+                    if isinstance(e, dict) and now - e.get('at', 0) / 1000 <= 86400:
+                        entries.append(e)
+        except OSError:
+            pass
+    digest = hashlib.sha256()
+    for name in ['/etc/sudoers'] + sorted(glob.glob('/etc/sudoers.d/*')):
+        try:
+            with open(name, 'rb') as f:
+                digest.update(name.encode() + b'\0' + f.read())
+        except OSError:
+            continue
+    return {'entries': entries, 'sudoers': digest.hexdigest()}
+
+
+def judge_root(root, state, now):
+    """Unusual root use, told once each: over rootPerHour root commands in an hour, one outside any mission, or spike's sudoers changed."""
+    out = []
+    seen = state.setdefault('root', {})
+    hour = [e for e in root.get('entries') or [] if now - e.get('at', 0) / 1000 <= 3600]
+    if len(hour) > th('rootPerHour'):
+        hosts = sorted({e.get('host', '?') for e in hour})
+        out.append(finding('root:busy', 'spike', 'warn', 'Butler ran %d root commands in the last hour, on %s.' % (len(hour), ', '.join(hosts)),
+                           advice='Read audit/root in its memory, or switch root off with /revoke root.'))
+    outside = [e for e in hour if not e.get('mission')]
+    if outside:
+        last = max(outside, key=lambda e: e.get('at', 0))
+        out.append(finding('root:outside:%d' % last.get('at', 0), last.get('host', 'spike'), 'warn',
+                           'Butler ran a root command outside any mission on %s at %s, with your yes for that call: %s.' % (
+                               last.get('host', '?'), hm(last.get('at', 0) / 1000), plain_line(last.get('command', ''))[:160]),
+                           advice='Nothing to do if you approved it; /revoke root stops all root at once.'))
+    sudoers = root.get('sudoers')
+    if sudoers:
+        before = seen.get('sudoers')
+        seen['sudoers'] = sudoers
+        if before and before != sudoers:
+            seen['sudoersChanged'] = now
+        changed = seen.get('sudoersChanged')
+        if changed and now - changed <= 3600:
+            out.append(finding('root:sudoers:%d' % changed, 'spike', 'warn', "spike's sudoers changed at %s." % hm(changed),
+                               advice='Expected after a switch that changed sudo rules; otherwise look at /etc/sudoers.d and audit/root.'))
+    return out
+
+
 def collect(state, now):
     machines = {}
     remotes = [n for n in CONFIG['hosts']]
@@ -765,7 +822,7 @@ def collect(state, now):
         print('butler-monitor: could not check GitHub: %s' % str(error)[:120], file=sys.stderr)
         github = None
     return {'machines': machines, 'claude': read_limits(), 'limits': read_limit_kinds(), 'work': read_work(),
-            'turns': read_turns(time.time()), 'github': github}
+            'turns': read_turns(time.time()), 'github': github, 'root': read_root(now)}
 
 
 # ---------------------------------------------------------------- judging
@@ -842,6 +899,8 @@ def evaluate(snapshot, state, now, expected=None):
                                why='busy is not stuck; a stuck turn is told'))
     if snapshot.get('github'):
         out += judge_github(snapshot['github'], state, now)
+    if snapshot.get('root'):
+        out += judge_root(snapshot['root'], state, now)
     work = snapshot.get('work')
     if work:
         if work['running'] > th('maxRunningChanges'):
