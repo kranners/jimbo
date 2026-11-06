@@ -110,6 +110,11 @@ let
         type = types.listOf (types.strMatching "--?[a-z][a-z0-9-]*");
         default = [ ];
       };
+      # The scheduled jobs, by name or a prefix ending in "*", that alone may use the rule in the cron lane.
+      jobs = mkOption {
+        type = types.listOf (types.strMatching "[a-z0-9][a-z0-9-]{0,39}[*]?");
+        default = [ ];
+      };
     };
   };
 
@@ -165,6 +170,7 @@ let
                 || v != null
               )
               && (n != "flags" || v != [ ])
+              && (n != "jobs" || v != [ ])
               && (n != "ownerForce" || v)
             ) (r // { taints = r.taints || c.private; })
           ) c.rules;
