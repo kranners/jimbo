@@ -1,0 +1,1 @@
+Change 20261106-125109-3839208: daemon includes the message Aaron replied to or forwarded (message_reference / message_snapshots) as quoted, untrusted context in the turn; kranners/claude-discord-threads (src/ discord message handling + tests), butler-internals skill line in butler-memory; jimbo CLAUDE.md line if needed.
