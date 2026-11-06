@@ -117,6 +117,9 @@ in
         # A plain refusal rather than an abort, so a device left off the list says so instead of a reset stream.
         respond @outsider "This device may not reach the board." 403
         abort @foreignOrigin
+        # Only the device gate names the device, which the board requires on a press of a Butler card's Approve:
+        # a client's own header is dropped before anything else sees the request.
+        request_header -X-Device-Gate-Device
         ${lib.optionalString (runnerAddresses != [ ]) ''
           reverse_proxy @runner unix/${board} {
             ${retry}
@@ -129,6 +132,7 @@ in
         reverse_proxy /.gate/* unix/${config.spike.deviceGate.socket}
         forward_auth unix/${config.spike.deviceGate.socket} {
           uri /.gate/verify
+          copy_headers X-Device-Gate-Device
         }
         reverse_proxy unix/${board} {
           ${retry}
