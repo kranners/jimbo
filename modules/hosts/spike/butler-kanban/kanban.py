@@ -34,6 +34,8 @@ SPOOL_USER = '@spoolUser@'
 MEMORY_AUDIT = '@memoryAudit@'
 # The sweep runs as root, so it drops to butler to write this spool in butler's home and run memory-audit on it.
 AUDIT_SPOOL = '@auditSpool@'
+# The sweep's last run and today's approvals, which the Desk view and Butler read.
+SWEEP_STATUS = os.environ.get('KANBAN_SWEEP_STATUS', '/var/lib/butler-kanban/safe-sweep.json')
 # How long the root sweep waits for memory-audit, behind the memory's lock, before leaving the lines spooled.
 AUDIT_WAIT = 60
 # Prints the context pack a prompt to a session starts with, from `context prefix`.
@@ -705,18 +707,73 @@ def thread_tag():
     return ' [thread %s%s]' % (ident, ' "%s"' % title if title else '')
 
 
+def approved_count(reply, approvals):
+    """How many prompts the board approved: its summary line's count, else one per approval line."""
+    for line in str(reply.get('text') or '').splitlines():
+        match = SUMMARY.match(BULLET.sub('', line).strip())
+        if match:
+            return int(match.group(1))
+    listed = reply.get('approved')
+    return len(listed) if isinstance(listed, list) else len(approvals)
+
+
+def sweep_status(result, approved=0, path=None, now=None):
+    """Records the sweep's last run and the prompts it approved today, for the Desk view and Butler.
+
+    The file is the sweep's own, in its state directory, replaced whole, and holds counts and times alone.
+    """
+    path = path or SWEEP_STATUS
+    now = time.time() if now is None else now
+    day = time.strftime('%Y-%m-%d', time.localtime(now))
+    try:
+        with open(path) as handle:
+            before = json.load(handle)
+    except (OSError, ValueError):
+        before = {}
+    today = before.get('approvedToday', 0) if before.get('day') == day else 0
+    status = {
+        'lastSweep': time.strftime('%Y-%m-%dT%H:%M:%S%z', time.localtime(now)),
+        'lastSweepEpoch': int(now),
+        'lastResult': result,
+        'lastApproved': approved,
+        'day': day,
+        'approvedToday': (today if isinstance(today, int) else 0) + approved,
+    }
+    try:
+        partial = path + '.partial'
+        with open(partial, 'w') as handle:
+            json.dump(status, handle)
+        os.chmod(partial, 0o644)
+        os.replace(partial, path)
+    except OSError as error:
+        print('kanban: could not record the sweep: %s' % error, file=sys.stderr)
+    return status
+
+
 def safe_sweep():
-    """Approves every safe prompt on the board, prints the board's report and audits each approval."""
+    """Approves every safe prompt on the board, prints the board's report, audits each approval and records the run."""
     try:
         reply = call('approve_safe_prompts', {})
     except Unreachable as error:
         print('kanban: %s' % error, file=sys.stderr)
+        sweep_status('unreachable')
         return 75
     if not reply.get('ok'):
-        print('kanban: %s' % reply.get('error', 'the board refused'), file=sys.stderr)
+        error = str(reply.get('error', 'the board refused'))
+        if 'Unknown tool' in error:
+            # A board older than approve_safe_prompts, such as pilot's while it waits for the move to spike, cannot
+            # sweep at all: said once a run and recorded, but no failure, so the failed-unit alert stays for real ones.
+            print('kanban: the board runs code older than approve_safe_prompts, so nothing was approved: %s' % error,
+                  file=sys.stderr)
+            sweep_status('board-too-old')
+            return 75
+        print('kanban: %s' % error, file=sys.stderr)
+        sweep_status('refused')
         return 1
     print(reply.get('text', ''))
-    audit(audit_lines(approvals_of(reply)))
+    approvals = approvals_of(reply)
+    audit(audit_lines(approvals))
+    sweep_status('ok', approved_count(reply, approvals) if approvals else 0)
     return 0
 
 

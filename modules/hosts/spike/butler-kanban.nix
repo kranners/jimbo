@@ -87,7 +87,7 @@ in
           Reading: ${lib.concatStringsSep ", " reading}. Butler's cards, notes and presence, and tidying: ${lib.concatStringsSep ", " tidying}. Through a session, asking Aaron first: ${lib.concatStringsSep ", " driving}.
           finish_session takes force only in a turn of Aaron's own message naming the session, its name or id or "those sessions", and asking to end it: it ends any session not working right now without asking it, after leaving a hand-off note on its card.
           Aaron's messages from the board's / popup arrive as turns of their own, and the reply goes back to the board.
-          answer_prompt with allow_safe true and a session approves every open prompt of that session the board calls safe and lists the rest, left for Aaron with why; approve_safe_prompts, {} or {"sessions": [...]}, does that for every session waiting on him, and spike's sweep runs it every 3 minutes.
+          answer_prompt with allow_safe true and a session approves every open prompt of that session the board calls safe and lists the rest, left for Aaron with why; approve_safe_prompts, {} or {"sessions": [...]}, does that for every session waiting on him, and spike's sweep runs it every minute.
         '';
         stdin = true;
         rules =
@@ -153,7 +153,8 @@ in
       };
 
       # Approves the prompts the board calls safe on every session waiting on Aaron, so no job waits on a click for them,
-      # and leaves the guardrails for him; each approval goes to audit/kanban in butler's memory.
+      # and leaves the guardrails for him; each approval goes to audit/kanban in butler's memory, and the run's time
+      # and today's approvals to /var/lib/butler-kanban/safe-sweep.json.
       systemd.services.butler-kanban-safe-prompts = {
         description = "Approve the safe permission prompts of sessions on Aaron's kanban board";
         wants = [ "network-online.target" ];
@@ -174,8 +175,8 @@ in
       systemd.timers.butler-kanban-safe-prompts = {
         wantedBy = [ "timers.target" ];
         timerConfig = {
-          OnActiveSec = "2min";
-          OnUnitInactiveSec = "3min";
+          OnActiveSec = "1min";
+          OnUnitInactiveSec = "1min";
         };
       };
     }
