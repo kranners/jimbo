@@ -36,7 +36,9 @@ let
     };
   };
 
+  # npm runs every package script with sh, which a systemd unit's PATH lacks, so every build under the timer failed.
   buildInputs = [
+    pkgs.bash
     pkgs.nodejs_24
     pkgs.git
     pkgs.gnutar
@@ -51,7 +53,7 @@ let
 
   # Fetches kranners/kanban's main and, when it moved, builds it into releases/<rev> and points `current` at it,
   # reusing the last release's node_modules while the lockfile is unchanged, so a run of landings stays cheap.
-  # A build that fails leaves `current` where it was, and the next commit on main is tried afresh.
+  # A build that fails leaves `current` where it was, and the next commit on main, or a changed updater, is tried afresh.
   update = pkgs.writeShellApplication {
     name = "kanban-update";
     runtimeInputs = buildInputs;
@@ -63,7 +65,9 @@ let
       rev=$(git --git-dir repo.git rev-parse main)
       running=$(basename "$(readlink -f current 2> /dev/null || echo none)")
       [ "$rev" != "$running" ] || exit 0
-      [ "$rev" != "$(cat failed 2> /dev/null || true)" ] || exit 0
+      # A failure is recorded with this script's own store path, so a fixed updater retries the same commit.
+      attempt="$rev $(readlink -f "$0")"
+      [ "$attempt" != "$(cat failed 2> /dev/null || true)" ] || exit 0
       release=releases/$rev
       rm -rf "$release.new"
       mkdir -p "$release.new"
@@ -73,7 +77,7 @@ let
       fi
       if ! (cd "$release.new" && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run build); then
         echo "kanban-update: $rev failed to build, staying on $running" >&2
-        echo "$rev" > failed
+        echo "$attempt" > failed
         rm -rf "$release.new"
         exit 1
       fi
