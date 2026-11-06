@@ -1,0 +1,1 @@
+Change 20261106-142733-507030: attach_file from an allowlist of Butler-readable roots (documents, assets, work, audit, memory, scratch) with a sensitive-document rule, asset add from the same roots, mac <host> push to a Mac's ~/butler-drop; claude-discord-threads src/engine attach + tests, jimbo butler.nix/butler-assets.nix/butler-mac.nix + CLAUDE.md.
