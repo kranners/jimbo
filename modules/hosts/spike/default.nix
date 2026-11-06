@@ -175,6 +175,13 @@
           python3 -I ${./butler-mac/test_presence.py} ${./butler-mac/presence.py} > $out 2>&1 || { cat $out; exit 1; }
         '';
 
+    # mac push: a file butler may attach lands in a fake Mac's ~/butler-drop, secrets and uncleared sensitive documents are refused, and a sensitive copy is deleted after its time.
+    butler-mac-push =
+      pkgs.runCommand "butler-mac-push-test" { nativeBuildInputs = [ pkgs.python3 ]; }
+        ''
+          python3 -I ${./butler-mac/test_push.py} ${./butler-mac/push.py} > $out 2>&1 || { cat $out; exit 1; }
+        '';
+
     # kanban's thread links: a change's thread, a started session's parent and the thread cards sent to the board, offline.
     butler-kanban = pkgs.runCommand "butler-kanban-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 -I ${./butler-kanban/test_kanban.py} ${./butler-kanban/kanban.py} > $out 2>&1 || { cat $out; exit 1; }

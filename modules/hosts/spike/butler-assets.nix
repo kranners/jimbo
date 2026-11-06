@@ -16,7 +16,7 @@ let
       }
       (
         builtins.replaceStrings
-          [ "@store@" "@outbox@" "@sources@" ]
+          [ "@store@" "@outbox@" "@sources@" "@sensitive@" ]
           [
             store
             outbox
@@ -30,7 +30,10 @@ let
                 "${home}/scratch"
               ]
               ++ lib.filter (directory: directory != outbox) config.butler.writePaths
+              # Butler's own files attach_file and mac push read, as Aaron asked on 6 Nov 2026, but for the sensitive ones below.
+              ++ lib.filter (directory: directory != store) config.butler.attach.readPaths
             ))
+            (lib.concatStringsSep ":" config.butler.attach.sensitivePaths)
           ]
           (builtins.readFile ./butler-assets/asset.py)
       );
@@ -61,6 +64,7 @@ in
       description = ''
         Butler's shared asset store on spike: every picture, logo, deck and export made for Aaron, kept for good and found from any thread, call or scheduled run.
         asset add <path> <name> [description...] [--tags a,b] [--task words] [--kind kind] | asset list [words...] [--tag tag] | asset show <name> (prints its path and an outbox copy to attach) | asset remove <name>
+        add copies from the outbox, Aaron's Discord attachments, the store, your documents, memory, working areas or scratch folders, never a hidden file, a secret or a sensitive document such as an identity document.
       '';
       rules = [
         {

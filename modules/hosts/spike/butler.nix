@@ -28,6 +28,12 @@ let
     "journal"
   ];
   moods = ../../../assets/butler/moods;
+  # The outbox, mood and scene pictures, which attach_file posts anywhere a reply goes.
+  attachPaths = [
+    outbox
+    moods
+  ]
+  ++ map (group: "${config.butler.scenes.dir}/${group}") (lib.attrNames config.butler.scenes.catalog);
 
   # The local date and time, weekday and UTC offset, for the `now` tool and
   # the hook that puts it into every turn, since a thread can last for hours.
@@ -287,6 +293,8 @@ let
     ## Pictures
 
     Prefer answering with a picture, attached with `attach_file`.
+    When Aaron asks for a file you can read, a document, an asset, something in your memory, working areas or this thread's scratch, attach it with `attach_file`, which posts a copy in his DM or a thread he started, never in a scheduled run, a call, a voice request or a board message's thread, and never a secret or credential.
+    Identity documents, everything in `${home}/documents/identity`, and any file naming a passport, licence, Medicare, tax or bank go only to Aaron, only when his own latest message asks for that document by name: attached with `attach_file`, or put on a Mac with `mac <host> push` under a mission listing it as a critical item; never read one into text, quote it, summarise its details or screenshot it, and never send one anywhere else.
     Draw schedules, trends, timelines and structures with `render`, and show Aaron's photos with `photos`.
     Every reply of yours in a conversation that has no other picture carries the picture of you in `${moods}` whose feeling honestly matches yours as you deliver it: ${
       lib.concatMapStringsSep ", " (name: "`${name}`") (lib.attrNames (builtins.readDir moods))
@@ -865,6 +873,26 @@ in
     description = "Butler's own working areas, absolute directories its sessions write files in unasked outside the voice lanes, each write audited to `audit/write`; bound read-write into its unit, which must not include its memory or credentials.";
   };
 
+  # What attach_file and `mac <host> push` may send, as Aaron asked on 6 Nov 2026: "you should be able to attach any picture or file or whatever."
+  options.butler.attach = {
+    readPaths = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      description = "Butler's own folders whose files attach_file posts only in Aaron's DM or a thread he started, copied into the outbox first, and `mac <host> push` copies to a Mac, beside the outbox, moods and scenes, which attach anywhere, and each thread's own scratch folder; secrets, keys, hidden files and credential stores never go.";
+    };
+    sensitivePaths = mkOption {
+      type = types.listOf types.str;
+      default = [ "${home}/documents/identity" ];
+      description = "Identity documents, attached or pushed only when Aaron's own latest message in the thread names them, a push also needing a mission item listing it, each audited to `audit/attach`; a path naming a passport, licence, Medicare, tax or bank counts too.";
+    };
+    pushRoots = mkOption {
+      type = types.listOf types.str;
+      readOnly = true;
+      internal = true;
+      default = attachPaths ++ config.butler.attach.readPaths;
+    };
+  };
+
   options.butler.root = {
     logFile = mkOption {
       type = types.str;
@@ -899,6 +927,14 @@ in
       assertion = builtins.match "[a-z][a-z0-9-]{0,30}" name != null;
       message = "butler.commands.${name}: a command name is lowercase letters, digits and dashes, at most 31 long";
     }) (lib.attrNames commands);
+
+    butler.attach.readPaths = [
+      "${home}/documents"
+      "${home}/assets"
+      memory
+      "/var/lib/butler-work"
+      "/var/lib/butler-audit"
+    ];
 
     butler.writePaths = [
       outbox
@@ -1019,13 +1055,11 @@ in
         DISCORD_COMMANDS_FILE = "${manifest}";
         DISCORD_CRON_DIR = "${home}/cron";
         DISCORD_CRON_CHANNEL = "1565593836883935264";
-        DISCORD_ATTACH_PATHS = lib.concatStringsSep ":" (
-          [
-            outbox
-            moods
-          ]
-          ++ map (group: "${config.butler.scenes.dir}/${group}") (lib.attrNames config.butler.scenes.catalog)
-        );
+        DISCORD_ATTACH_PATHS = lib.concatStringsSep ":" attachPaths;
+        # Butler's own files, posted as an outbox copy in Aaron's DM or his own thread alone, the identity documents only on his named request.
+        DISCORD_ATTACH_READ_PATHS = lib.concatStringsSep ":" config.butler.attach.readPaths;
+        DISCORD_ATTACH_SENSITIVE_PATHS = lib.concatStringsSep ":" config.butler.attach.sensitivePaths;
+        DISCORD_ATTACH_COPY_DIR = outbox;
         # The head butler's name: the bot's Discord username, which his DMs show, set by the daemon once it connects if it differs, and the name in its own headings.
         DISCORD_BOT_NAME = "Butler";
         # The desk's background sessions open their threads in #general and post their cards with these mood pictures, which a plain reply carries too.

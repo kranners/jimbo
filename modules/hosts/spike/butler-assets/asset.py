@@ -21,6 +21,9 @@ OUTBOX = "@outbox@"
 # Where an asset may be copied from: what butler made, what Aaron attached, what mac fetched into the outbox, and the
 # store itself, so a source can never be a credential or state file the daemon's Read is denied.
 SOURCES = [p for p in "@sources@".split(":") if p]
+SENSITIVE = [p for p in "@sensitive@".split(":") if p]
+SECRET_NAME = re.compile(r"token|secret|passw(?:or)?d|credential|cookie|private[-_ ]?key|^id_(?:rsa|ed25519|ecdsa|dsa)|\.(?:pem|key|p12|pfx|kdbx|keychain|gpg|asc)$|^\.env|^\.netrc$|^known_hosts$|^authorized_keys$", re.I)
+SENSITIVE_WORDS = re.compile(r"(?:^|[^a-z])(?:passports?|licen[cs]es?|medicare|tax|bank)", re.I)
 FILES = os.path.join(STORE, "files")
 TRASH = os.path.join(STORE, "trash")
 MANIFEST = os.path.join(STORE, "manifest.json")
@@ -97,9 +100,17 @@ def check_source(path):
     if not os.path.isfile(path) or os.path.islink(path):
         fail(f"{path} is not a regular file", 2)
     real = os.path.realpath(path)
-    if not any(real.startswith(root.rstrip("/") + "/") for root in SOURCES):
-        fail("an asset is copied from the outbox, Aaron's Discord attachments or the store itself; "
-             "fetch a file from a Mac into the outbox first with `mac <host> fetch <file> outbox`", 2)
+    root = next((r for r in SOURCES if real.startswith(r.rstrip("/") + "/")), None)
+    if root is None:
+        fail("an asset is copied from the outbox, Aaron's Discord attachments, the store, butler's documents, memory, "
+             "working areas or scratch folders; fetch a file from a Mac into the outbox first with `mac <host> fetch <file> outbox`", 2)
+    parts = [p for p in os.path.relpath(real, root).split("/") if p]
+    if any(p.startswith(".") for p in parts) or any(SECRET_NAME.search(p) for p in parts):
+        fail("hidden files and files named like a token, key, password or credential are never kept as assets", 2)
+    # Identity and other sensitive documents stay where they are: they go only to Aaron, by attach_file or mac push, on his named request.
+    if any(real.startswith(r.rstrip("/") + "/") for r in SENSITIVE) or SENSITIVE_WORDS.search(os.path.relpath(real, root)):
+        fail("a sensitive document, an identity document or one naming a passport, licence, Medicare, tax or bank, is never copied into the asset store; "
+             "attach it or push it on Aaron's named request instead", 2)
     if os.path.getsize(real) > MAX_BYTES:
         fail(f"{path} is over {MAX_BYTES >> 20} MB", 2)
     return real

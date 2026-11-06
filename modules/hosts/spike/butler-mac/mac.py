@@ -95,6 +95,7 @@ USAGE = '''usage: mac hosts
        mac <host> confirm "<what will happen>" <action...>   (an action the outcome check refused, once Aaron said yes)
        mac <host> keepawake [status|on|off]
        mac <host> fetch <file> <inbox folder> [name]   (copy a file from ~/Downloads or ~/butler-drop into spike's index inbox)
+       mac <host> push <spike path> [folder] [keep]   (copy a file butler may attach to ~/butler-drop, or ~/Downloads/<folder>)
        mac <host> sleep                (keep-awake off, then sleep now)
        mac jimbo boot <linux|windows> [confirm]   (restart into the other system)
 Macs only, through the Hammerspoon helper butler-access installs:
@@ -123,6 +124,16 @@ _resolved = {}
 
 PRESENCE = os.path.join(STATE, 'presence')
 # @presence@
+
+# @push@
+
+# What push may copy from spike, the daemon's attach roots and read roots, the identity documents among them, and
+# each thread's scratch folder; the daemon judges every push first, and this checks again.
+PUSH_ROOTS = json.loads('@pushRoots@')
+PUSH_SENSITIVE_ROOTS = json.loads('@pushSensitiveRoots@')
+PUSH_SCRATCH = '@scratch@'
+PUSHED = os.path.join(STATE, 'pushed.json')
+
 
 def probe(system, found):
     try:
@@ -852,6 +863,41 @@ def fetch_to_outbox(host, source, size, name):
             os.unlink(partial)
     audit([(host, 'fetched %s (%d bytes) into the outbox as %s' % (clip(redact(source), 200), size, os.path.basename(target)))])
     print(target)
+
+
+def push(host, args):
+    """Copies one file butler may attach from spike to host's ~/butler-drop, or a folder in ~/Downloads."""
+    if system_of(host) == 'windows':
+        raise Refused('push works on jimbo only while it runs Linux')
+    try:
+        plan = push_check(args[0] if args else '', args[1:], os.environ, PUSH_ROOTS, PUSH_SENSITIVE_ROOTS, PUSH_SCRATCH, DROP_MAX)
+    except PushRefused as error:
+        raise Refused(str(error))
+    name = os.path.basename(plan['path'])
+    # A sensitive document's name is all the overlay and audit show; nothing reads its contents.
+    take(host, 'push %s to %s' % (clip(redact(plan['path']), 200), host), 'Copying %s to this Mac' % clip(name, 60))
+
+    def run_there(script, stdin_path):
+        connect_ssh(host)
+        stdin = open(stdin_path, 'rb') if stdin_path else subprocess.DEVNULL
+        try:
+            done = subprocess.run(ssh_args(host) + ['sh -c %s' % shlex.quote(script)], stdin=stdin, capture_output=True, timeout=900)
+        finally:
+            if stdin_path:
+                stdin.close()
+        return done.returncode, done.stdout.decode(errors='replace'), done.stderr.decode(errors='replace')
+
+    try:
+        placed = push_run(plan, host, run_there, PUSHED)
+    except PushRefused as error:
+        raise Refused(str(error))
+    except subprocess.TimeoutExpired:
+        raise Refused('gave up copying %s after 15 minutes' % plan['path'])
+    lasts = ' It is deleted there in 30 minutes.' if plan['sensitive'] and not plan['keep'] else ''
+    audit([(host, 'pushed %s%s (%d bytes) from spike to %s%s' % (
+        'the sensitive document ' if plan['sensitive'] else '', clip(redact(plan['path']), 200), plan['size'], placed,
+        ', kept' if plan['keep'] else ', deleted after 30 minutes' if plan['sensitive'] else ''))])
+    print('copied %s (%d bytes) to %s on %s.%s' % (name, plan['size'], placed, host, lasts))
 
 
 WINDOWS = r'''
@@ -1626,7 +1672,7 @@ def main():
 
 
 # Verbs that look at or act on no screen, so they add no presence note.
-NO_PRESENCE = {'say', 'done', 'fetch', 'keepawake', 'sleep', 'boot', 'record', 'serve', 'watch'}
+NO_PRESENCE = {'say', 'done', 'fetch', 'push', 'keepawake', 'sleep', 'boot', 'record', 'serve', 'watch'}
 
 
 def presence(host, verb, rest):
@@ -1678,6 +1724,8 @@ def act_on(host, verb, rest):
         return run(host, rest, stdin)
     if verb == 'fetch':
         return fetch(host, rest)
+    if verb == 'push':
+        return push(host, rest)
     if verb == 'windows':
         take(host, 'windows', narrate('windows', rest, ''))
         return windows(host)

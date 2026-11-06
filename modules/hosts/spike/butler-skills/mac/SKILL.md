@@ -133,6 +133,14 @@ Record when Aaron asks for proof or a replay of something you did. Call `record 
 - Move anything from elsewhere on the Mac into `~/butler-drop` with `mac <host> run` first. Refusals say why: outside those folders, a symlink, over the cap, or a folder the inbox lacks.
 - Never `Read` the file on spike: the copy is the index's, and `life` is how you see what it holds.
 
+## Moving files to a Mac
+
+`mac <host> push <spike path> [folder] [keep]` copies one file from spike to the machine's `~/butler-drop`, or `~/Downloads/<folder>` when you name one, and prints where it landed; it never overwrites, and works on the Macs and on jimbo while it runs Linux.
+- It takes any file you could attach: your outbox, mood and scene pictures, documents, asset store (`asset show` prints the path), memory, working areas and this thread's own scratch folder. Secrets, keys, tokens, hidden files and credential stores are refused.
+- Identity documents, everything in `documents/identity`, and any file whose name says passport, licence, Medicare, tax or bank, are sensitive. They go only when Aaron's own latest message in this thread asks for that document by name and this thread's mission lists it as a critical item: propose it first with `critical` `{"kind":"upload","host":"piggys-MBP","what":"Copy your passport from spike to piggys-MBP: for the form he is filling in"}`. The copy on the Mac is deleted after 30 minutes unless that item says keep and you pass `keep`.
+- Never `Read` a sensitive document into text, quote what it says, screenshot it or open it on screen yourself; push it, tell Aaron where it is, and let him use it. Each push is audited.
+- Pushing to pilot, his employer's Mac, asks every time like anything else there; never push a personal document to it unless he asks for exactly that.
+
 ## Keep-awake
 
 Each Mac runs a keep-awake agent, so it never idle-sleeps, its display never sleeps and its screen saver, and the lock that follows it, never starts, so you can always drive it.
