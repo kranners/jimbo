@@ -1,8 +1,8 @@
 # Root for Butler, as Aaron asked on 6 Nov 2026: the login Butler uses on each machine may run commands as root, used
 # only when needed and only where the daemon's gate lets it, a mission listing `root` for that machine or Aaron's yes
 # for the one call, every root command logged to audit/root and `/revoke root` refusing it everywhere at once.
-# Off on every machine until Aaron says go: add a host to `on` below, or for pilot set its own line in
-# modules/hosts/pilot/butler-root.nix, then run `just` there once (one Touch ID on a Mac).
+# On for spike and pilot since Aaron said go at 13:41 that day, off elsewhere: add a host to `on` below, or for pilot
+# set its own line in modules/hosts/pilot/butler-root.nix, then run `just` there once (one Touch ID on a Mac).
 # To take it away again, remove the host from `on` (or set pilot's line false) and run `just`: the sudoers entry and
 # the helper go with the next switch, and nothing else is left behind.
 {
@@ -17,7 +17,7 @@ let
   spike = "10.100.0.1";
 
   # Machines whose Butler login gets root once switched on; pilot is decided in its own file.
-  on = [ ];
+  on = [ "spike" ];
 in
 {
   options.butlerRoot.enable = mkOption {
