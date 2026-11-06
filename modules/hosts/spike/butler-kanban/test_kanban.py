@@ -157,6 +157,69 @@ check('finished change times', kanban.times_of('20261106-120000-7', 'finished'),
 check('failed change outcome', kanban.times_of('20261106-120000-7', 'finished with an error').get('outcome'), 'failed')
 check('running change has no finish', kanban.times_of('20261106-120000-7', 'running'), {'startedAt': 1000000})
 
+# Board questions: a waiting AskUserQuestion is read once, spooled for the daemon, and Aaron's answer goes back with the session's own labels.
+shown = """fix the tests asks:
+1. [Approach] Which way should I go? (one of, or a free-text answer)
+   - "Narrow": Smallest change
+   - "Broad and a very long label that the daemon's buttons cut short somewhere past eighty characters wide"
+2. Which files? (any of, or a free-text answer)
+   - "a.ts"
+   - "b.ts": the other one
+Prompt id: 0123abcd4567"""
+parsed = kanban.parse_question(shown)
+check('question prompt id', parsed['prompt'], '0123abcd4567')
+check('question shape', [(q['header'], q['multiSelect'], [o['label'] for o in q['options']]) for q in parsed['questions']],
+      [('Approach', False, ['Narrow', "Broad and a very long label that the daemon's buttons cut short somewhere past eighty characters wide"]), ('', True, ['a.ts', 'b.ts'])])
+check('a permission prompt is no question', kanban.parse_question('s asks permission for Bash:\nrun it?\n- "Yes"\nPrompt id: abc'), None)
+
+board = os.path.join(root, 'board')
+os.makedirs(board)
+kanban.BOARD = board
+calls = []
+replies = {
+    'board_snapshot': {'ok': True, 'text': 'Board: 2 sessions\n' + json.dumps({'sessions': [
+        {'id': 'sess-1', 'name': 'fix the tests', 'activity': 'needs-you', 'needs': 'a question'},
+        {'id': 'sess-2', 'name': 'other', 'activity': 'working'},
+    ]})},
+}
+def fake_call(tool, args, timeout=60, grace=None):
+    calls.append((tool, args))
+    if tool == 'answer_prompt' and 'prompt' not in args:
+        return {'ok': True, 'text': shown}
+    if tool == 'note':
+        return {'ok': True, 'text': 'Noted (id butler-note-1)'}
+    return replies.get(tool, {'ok': True, 'text': ''})
+kanban.call = fake_call
+state = {'asked': {}, 'answered': set(), 'read': {}, 'notes': {}, 'at': 0}
+kanban.questions_once(None, state)
+kanban.questions_once(None, state)
+pending = os.listdir(os.path.join(board, 'questions', 'pending'))
+check('one question spooled once', pending, ['b-sess-1-0123abcd4567.json'])
+check('read once per waiting state', len([c for c in calls if c[0] == 'answer_prompt']), 1)
+with open(os.path.join(board, 'questions', 'pending', pending[0])) as f:
+    spooled = json.load(f)
+check('spooled labels clipped', len(spooled['questions'][0]['options'][1]['label']) <= 80, True)
+with open(os.path.join(board, 'questions', 'open.json')) as f:
+    check('open list', json.load(f), {'ids': ['b-sess-1-0123abcd4567']})
+with open(os.path.join(board, 'questions', 'posted', 'b-sess-1-0123abcd4567.json'), 'w') as f:
+    json.dump({'id': 'b-sess-1-0123abcd4567', 'session': 'sess-1', 'link': 'https://discord.com/channels/@me/123/456'}, f)
+with open(os.path.join(board, 'questions', 'answers', 'b-sess-1-0123abcd4567.json'), 'w') as f:
+    json.dump({'id': 'b-sess-1-0123abcd4567', 'answers': [{'selected': [spooled['questions'][0]['options'][1]['label']], 'other': None}, {'selected': [], 'other': 'both'}]}, f)
+calls.clear()
+kanban.questions_once(None, state)
+answered = [c[1] for c in calls if c[0] == 'answer_prompt' and 'prompt' in c[1]]
+check('answer sent with the original label', answered, [{'session': 'sess-1', 'prompt': '0123abcd4567', 'answers': [
+    {'selected': ["Broad and a very long label that the daemon's buttons cut short somewhere past eighty characters wide"]}, {'selected': [], 'other': 'both'}]}])
+check('answered question not asked again', os.listdir(os.path.join(board, 'questions', 'pending')), ['b-sess-1-0123abcd4567.json'])
+os.remove(os.path.join(board, 'questions', 'pending', 'b-sess-1-0123abcd4567.json'))
+kanban.questions_once(None, state)
+check('not spooled again while still showing', os.listdir(os.path.join(board, 'questions', 'pending')), [])
+with open(os.path.join(board, 'questions', 'answers', 'x.json'), 'w') as f:
+    json.dump({'id': 'b-forged', 'answers': [{'selected': ['Yes']}]}, f)
+calls.clear()
+kanban.questions_once(None, state)
+check('an answer to a question never asked is dropped', [c for c in calls if c[0] == 'answer_prompt' and 'prompt' in c[1]], [])
+
 if failures:
     print('\n'.join(failures))
     sys.exit(1)

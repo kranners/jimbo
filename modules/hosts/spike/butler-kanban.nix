@@ -235,7 +235,23 @@ in
           group = "butler";
           mode = "0700";
         };
-      };
+      }
+      # The board sessions' questions, which the relay finds and the daemon asks Aaron, and his answers.
+      //
+        lib.genAttrs
+          (map (sub: "${board}/questions${sub}") [
+            ""
+            "/pending"
+            "/answers"
+            "/posted"
+          ])
+          (_: {
+            d = {
+              user = "butler";
+              group = "butler";
+              mode = "0700";
+            };
+          });
 
       systemd.services.butler = {
         environment.DISCORD_BOARD_DIR = board;
@@ -245,7 +261,7 @@ in
       # Collects the board's messages every few seconds over one kept-open ssh
       # connection, and carries Butler's answers back.
       systemd.services.butler-board-relay = {
-        description = "Carry Aaron's messages from the kanban board on pilot to butler, and its answers back";
+        description = "Carry Aaron's messages and its sessions' questions from the kanban board to butler, and the answers back";
         wantedBy = [ "multi-user.target" ];
         wants = [ "network-online.target" ];
         after = [

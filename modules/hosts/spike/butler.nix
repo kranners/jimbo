@@ -286,7 +286,8 @@ let
     } and in this thread's own scratch folder, `${scratch}/<thread id>`, and nowhere else; keep anything worth keeping with `asset add`.
     Every message from Aaron arrives with the current local time beside it; when you need the time later in a turn, call `now`.
     Before anything that depends on the time, such as "in two hours", "tonight", "tomorrow morning" or "is it open now", check the time with `now` rather than guessing.
-    You cannot ask questions with buttons or menus, so ask them in plain text and wait for Aaron's reply.
+    When you need a decision or a fact only Aaron can give, ask with `mcp__discord__ask_question`, never in plain text: one to four questions with short options, the one you suggest marked `recommended`, all in one call, and every question offers him Other for his own words.
+    It returns his answer, or says it waits on him, and then you end the turn saying what you asked, since his answer arrives as your next message; only his own clicks and words answer it, and approvals still come from the tools that need them.
     When a request needs something you cannot do, say so plainly and suggest what Aaron could do instead.
     Cite links for facts you found on the web.
 

@@ -430,13 +430,194 @@ def relay_once(owner):
             os.rename(path, path + '.rejected')
 
 
+# Board questions: a session on the board waiting on an AskUserQuestion is
+# read once per waiting state with answer_prompt and no reply, which only shows
+# the prompt, and handed to the daemon's question spool, which asks Aaron with
+# buttons in his DM; his answer comes back in questions/answers and goes to the
+# session with answer_prompt and the prompt id the board gave. Only his own
+# clicks write an answer, and only the relay reads or answers board questions.
+QUESTIONS_EVERY = 15
+ASKS = re.compile(r' asks:$')
+QUESTION_LINE = re.compile(r'^(\d+)\. (?:\[([^\]]*)\] )?(.*) \((any of|one of), or a free-text answer\)$')
+OPTION_LINE = re.compile(r'^   - "(.*?)"(?:: (.*))?$')
+PROMPT_ID = re.compile(r'^Prompt id: ([A-Za-z0-9_-]{1,64})$')
+QUESTION_ID = re.compile(r'[^A-Za-z0-9_-]')
+
+
+def clip(text, limit):
+    text = re.sub(r'\s+', ' ', str(text or '')).strip()
+    return text if len(text) <= limit else text[:limit - 1] + '\u2026'
+
+
+def parse_question(text):
+    """The questions and prompt id answer_prompt shows for an AskUserQuestion, or None for a permission prompt or anything else."""
+    lines = str(text or '').splitlines()
+    start = next((i for i, line in enumerate(lines) if ASKS.search(line)), None)
+    if start is None:
+        return None
+    questions, prompt = [], None
+    for line in lines[start + 1:]:
+        found = PROMPT_ID.match(line)
+        if found:
+            prompt = found.group(1)
+            break
+        found = QUESTION_LINE.match(line)
+        if found:
+            questions.append({'question': found.group(3), 'header': found.group(2) or '', 'multiSelect': found.group(4) == 'any of', 'options': []})
+            continue
+        found = OPTION_LINE.match(line)
+        if found and questions:
+            questions[-1]['options'].append({'label': found.group(1), 'description': found.group(2) or ''})
+    questions = [q for q in questions if q['options']][:4]
+    if not prompt or not questions:
+        return None
+    return {'prompt': prompt, 'questions': questions}
+
+
+def shown_questions(parsed):
+    """The questions as the daemon's spool takes them, clipped to its limits."""
+    out = []
+    for q in parsed['questions']:
+        shown = {'question': clip(q['question'], 300), 'options': [], 'multiSelect': q['multiSelect']}
+        if q['header']:
+            shown['header'] = clip(q['header'], 40)
+        for option in q['options'][:24]:
+            item = {'label': clip(option['label'], 80)}
+            if option['description']:
+                item['description'] = clip(option['description'], 100)
+            shown['options'].append(item)
+        out.append(shown)
+    return out
+
+
+def question_dirs(owner):
+    base = os.path.join(BOARD, 'questions')
+    for sub in ('', 'pending', 'answers', 'posted'):
+        path = os.path.join(base, sub)
+        if not os.path.isdir(path):
+            os.makedirs(path, mode=0o700, exist_ok=True)
+            if owner is not None:
+                os.chown(path, owner.pw_uid, owner.pw_gid)
+    return base
+
+
+def original_answers(answers, parsed):
+    """Aaron's answers with each pick put back to the session's own label, which the board matches exactly."""
+    out = []
+    for at, answer in enumerate(answers):
+        options = parsed['questions'][at]['options'] if at < len(parsed['questions']) else []
+        by_shown = {clip(o['label'], 80): o['label'] for o in options}
+        reply = {'selected': [by_shown.get(label, label) for label in answer.get('selected') or []][:16]}
+        if answer.get('other'):
+            reply['other'] = str(answer['other'])[:4000]
+        out.append(reply)
+    return out
+
+
+def questions_once(owner, state):
+    """Hands back Aaron's answers, then finds the board questions waiting on him and spools the new ones."""
+    base = question_dirs(owner)
+    answers_dir = os.path.join(base, 'answers')
+    for name in sorted(n for n in os.listdir(answers_dir) if n.endswith('.json')):
+        path = os.path.join(answers_dir, name)
+        try:
+            with open(path) as f:
+                answer = json.load(f)
+        except (OSError, ValueError) as error:
+            print('kanban: set aside answer %s: %s' % (name, error), file=sys.stderr)
+            os.rename(path, path + '.rejected')
+            continue
+        qid = str(answer.get('id', ''))
+        known = state['asked'].get(qid)
+        if not known:
+            print('kanban: dropped an answer to a question this relay did not ask: %s' % qid, file=sys.stderr)
+            os.remove(path)
+            continue
+        sent = call('answer_prompt', {
+            'session': known['session'], 'prompt': known['prompt'],
+            'answers': original_answers(answer.get('answers') or [], known['parsed']),
+        })
+        if sent.get('ok'):
+            print('kanban: answered %s\'s question on the board' % known['name'])
+        else:
+            print('kanban: the board refused an answer to %s: %s' % (known['name'], sent.get('error')), file=sys.stderr)
+        os.remove(path)
+        state['answered'].add(qid)
+        note = state['notes'].pop(qid, None)
+        if note:
+            call('delete_annotations', {'ids': [note]})
+    snapshot = parse_snapshot(call('board_snapshot', {}))
+    if snapshot is None:
+        return
+    waiting = {}
+    current = set()
+    for session in snapshot.get('sessions') or []:
+        if not isinstance(session, dict) or session.get('activity') != 'needs-you' or not session.get('id'):
+            continue
+        key = (str(session['id']), str(session.get('needs') or ''))
+        current.add(key)
+        if key not in state['read']:
+            # One read per waiting state, so Butler's cursor visits the session once, not every pass.
+            shown = call('answer_prompt', {'session': key[0]})
+            state['read'][key] = parse_question(shown.get('text')) if shown.get('ok') else None
+        parsed = state['read'][key]
+        if parsed:
+            qid = QUESTION_ID.sub('-', 'b-%s-%s' % (key[0], parsed['prompt']))[:96]
+            waiting[qid] = {'session': key[0], 'name': clip(session.get('name') or key[0], 200), 'prompt': parsed['prompt'], 'parsed': parsed}
+    # Reads of states no session is in any more are forgotten, so a session waiting again is read again.
+    state['read'] = {k: v for k, v in state['read'].items() if k in current}
+    for qid, item in waiting.items():
+        if qid in state['asked'] or qid in state['answered']:
+            continue
+        write_spool(os.path.join(base, 'pending', qid + '.json'), {
+            'id': qid, 'session': item['session'], 'sessionName': item['name'],
+            'prompt': item['prompt'], 'questions': shown_questions(item['parsed']),
+        }, owner)
+        state['asked'][qid] = item
+        print('kanban: asked Aaron %s\'s question from the board' % item['name'])
+    write_spool(os.path.join(base, 'open.json'), {'ids': sorted(waiting)}, owner)
+    for qid in [q for q in state['asked'] if q not in waiting]:
+        state['asked'].pop(qid, None)
+        note = state['notes'].pop(qid, None)
+        if note:
+            call('delete_annotations', {'ids': [note]})
+    state['answered'] &= set(waiting)
+    posted_dir = os.path.join(base, 'posted')
+    for name in sorted(n for n in os.listdir(posted_dir) if n.endswith('.json')):
+        path = os.path.join(posted_dir, name)
+        try:
+            with open(path) as f:
+                posted = json.load(f)
+        except (OSError, ValueError):
+            posted = {}
+        os.remove(path)
+        qid = str(posted.get('id', ''))
+        link = str(posted.get('link', ''))
+        known = state['asked'].get(qid)
+        if not known or qid in state['notes'] or not re.match(r'^https://discord\.com/channels/[0-9@me/]+$', link):
+            continue
+        pinned = call('note', {'target': known['session'], 'text': 'Question for Aaron, waiting in Discord: %s' % link})
+        found = re.search(r'\(id ([^)]+)\)', str(pinned.get('text') or ''))
+        if found:
+            state['notes'][qid] = found.group(1)
+
+
 def board_relay():
     """Runs for good, relaying every few seconds, and waits out pilot sleeping or the board stopping."""
     owner = pwd.getpwnam(SPOOL_USER) if SPOOL_USER else None
     last = None
+    questions = {'asked': {}, 'answered': set(), 'read': {}, 'notes': {}, 'at': 0}
     while True:
         try:
             relay_once(owner)
+            if time.time() - questions['at'] >= QUESTIONS_EVERY:
+                questions['at'] = time.time()
+                try:
+                    questions_once(owner, questions)
+                except Unreachable:
+                    raise
+                except Exception as error:  # A bad question never stops the relay carrying messages.
+                    print('kanban: the board questions pass failed: %s' % error, file=sys.stderr)
             if last is not None:
                 print('kanban: the board is back')
             last = None

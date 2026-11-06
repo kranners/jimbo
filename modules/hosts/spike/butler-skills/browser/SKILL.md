@@ -13,7 +13,7 @@ Prefer `WebFetch` and `WebSearch` for public pages, and use the browser only for
 - `browser_click`, `browser_type`, `browser_fill_form`, `browser_select_option` and `browser_press_key` act on an element by its `ref` from the latest snapshot.
 
 Every browser tool runs without asking.
-Before you submit, send, buy, pay, book, post or message anything, ask Aaron in plain text and wait for his yes.
+Before you submit, send, buy, pay, book, post or message anything, ask Aaron with `mcp__discord__ask_question`, a Yes and a No naming exactly what will happen, and wait for his yes.
 His own request in the thread for exactly that action, such as booking one named class, is that yes, and so is a mission he approved that lists it; never pay without asking, whatever the request.
 
 ## Logins

@@ -36,6 +36,7 @@ When he asks without one, or about all his work, call `["list"]`, which prints e
 Once the session has started, it prints the link, then a live summary read from claude.ai within about half a minute: the state (running, waiting on input, finished, finished with an error, failed to start, archived or idle), the title, when it last did anything, its branch, its last dozen steps oldest first, and its final summary once it has one, a few plain sentences on what changed and when it goes live.
 Tell Aaron in a sentence or two what it is doing or did, not the raw list.
 "Waiting on input" means it asked a question only Aaron can answer at the link.
+When you need Aaron to decide something before you start a change, ask with `mcp__discord__ask_question` rather than in plain text, but never to ask what a change is: state your assumptions in the brief and start.
 
 When Aaron asks to stop, close or archive a change, call `["archive", "<id>"]`: spike archives its cloud session within a few minutes, or never starts it if it is still queued, and its card on the board follows, so never close the card as well.
 Aaron can do the same from the board, by closing a change's card or choosing Archive change, or choose Mark change done there, after which spike stops telling him it needs him; `status` and `list` then say so.
