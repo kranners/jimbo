@@ -87,7 +87,8 @@ let
       mv -T current.new current
       rm -f failed
       echo "kanban-update: built $rev"
-      touch updated
+      # Tells the restart which release to put back, and what to record, should the new one not answer.
+      printf '%s\n%s\n' "$running" "$attempt" > updated
       # Keeps the release running and the one before, for a quick step back.
       find releases -mindepth 1 -maxdepth 1 -type d ! -name "$rev" ! -name "$running" -exec rm -rf {} +
     '';
@@ -162,7 +163,10 @@ let
       CLAUDE_CONFIG_DIR = "${home}/.claude";
       CLAUDE_BIN = lib.getExe pkgs.claude-code;
     };
-    unitConfig.ConditionPathExists = "${home}/current/src/server/main.ts";
+    unitConfig = {
+      ConditionPathExists = "${home}/current/src/server/main.ts";
+      StartLimitIntervalSec = 0;
+    };
     serviceConfig = {
       User = "kanban";
       Group = "kanban";
@@ -178,13 +182,131 @@ let
         '';
       ExecStart = serve name;
       Restart = "always";
-      RestartSec = 5;
+      # Back at once after a crash, backing off to 30 seconds while a broken release keeps crashing.
+      RestartSec = 1;
+      RestartSteps = 5;
+      RestartMaxDelaySec = 30;
       ProtectSystem = "strict";
       ProtectHome = true;
       PrivateTmp = true;
       NoNewPrivileges = true;
       ReadWritePaths = [ home ];
     };
+  };
+
+  # Whether the board answers on its port, and through Caddy's socket, with any HTTP status at all.
+  probes = ''
+    direct() { curl --silent --output /dev/null --max-time 3 http://127.0.0.1:${toString instances.kanban.port}/; }
+    socket() { curl --silent --output /dev/null --max-time 3 --unix-socket ${board} http://127.0.0.1:${toString instances.kanban.port}/; }
+    wait_for() { for _ in $(seq 1 "$2"); do if "$1"; then return 0; fi; sleep 0.5; done; return 1; }
+  '';
+
+  restart = pkgs.writeShellApplication {
+    name = "kanban-update-restart";
+    # wait_for calls the probes by name, which shellcheck cannot see.
+    excludeShellChecks = [ "SC2329" ];
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.curl
+      pkgs.systemd
+    ];
+    text = probes + ''
+      [ -e ${home}/updated ] || exit 0
+      { read -r previous; read -r attempt; } < ${home}/updated || true
+      rm -f ${home}/updated
+      systemctl restart kanban.service
+      systemctl start kanban-bridge.socket
+      if wait_for direct 120; then
+        echo "kanban-update: the board answers on its new release"
+        wait_for socket 20 || echo "kanban-update: the board answers, but not yet through Caddy's socket" >&2
+        exit 0
+      fi
+      echo "kanban-update: the new release did not answer within 60 seconds" >&2
+      if [ -n "''${previous:-}" ] && [ -d "${home}/releases/$previous" ]; then
+        ln -sfn "releases/$previous" ${home}/current.new
+        chown -h kanban:kanban ${home}/current.new
+        mv -T ${home}/current.new ${home}/current
+        printf '%s\n' "$attempt" > ${home}/failed
+        chown kanban:kanban ${home}/failed
+        systemctl restart kanban.service
+        if wait_for direct 120; then echo "kanban-update: put $previous back" >&2; else echo "kanban-update: $previous does not answer either" >&2; fi
+      fi
+      exit 1
+    '';
+  };
+
+  health = pkgs.writeShellApplication {
+    name = "kanban-health";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.curl
+      pkgs.gawk
+      pkgs.systemd
+    ];
+    text = probes + ''
+      state=/var/lib/kanban-health
+      cd "$state"
+      # An update restarting the board waits for it itself.
+      [ "$(systemctl show -p ActiveState --value kanban-update.service)" != activating ] || exit 0
+      if direct && socket; then
+        rm -f fails
+        exit 0
+      fi
+      fails=$(( $(cat fails 2> /dev/null || echo 0) + 1 ))
+      echo "$fails" > fails
+      if [ "$fails" -lt 2 ]; then
+        echo "kanban-health: the board did not answer, trying again in 30 seconds"
+        exit 0
+      fi
+      if direct; then
+        what="kanban-bridge.socket kanban-bridge.service"
+      else
+        what="kanban.service"
+      fi
+      echo "kanban-health: the board failed twice in a row, restarting $what" >&2
+      # shellcheck disable=SC2086
+      systemctl restart $what
+      systemctl start kanban-bridge.socket
+      rm -f fails
+      now=$(date +%s)
+      echo "$now $what" >> actions
+      awk -v since=$((now - 86400)) '$1 >= since' actions > actions.new && mv actions.new actions
+      recent=$(awk -v since=$((now - 3600)) '$1 >= since' actions | wc -l)
+      if [ "$recent" -gt 1 ] && [ "$(cat told 2> /dev/null || echo 0)" -lt $((now - 3600)) ]; then
+        echo "$now" > told
+        /run/current-system/sw/bin/butler-notify <<EOF || true
+      The kanban board on spike stopped answering $recent times in the last hour, and spike restarted it each time ($what last). It is back, but something keeps knocking it over: journalctl -u kanban -u kanban-bridge -u kanban-health says what.
+      EOF
+      fi
+    '';
+  };
+
+  # Kills the board and the bridge, as a crash would, and checks the board answers through Caddy's socket again
+  # within 10 seconds, as root on spike: sudo kanban-recovery-check.
+  recovery = pkgs.writeShellApplication {
+    name = "kanban-recovery-check";
+    # wait_for calls the probes by name, which shellcheck cannot see.
+    excludeShellChecks = [ "SC2329" ];
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.curl
+      pkgs.gawk
+      pkgs.systemd
+    ];
+    text = probes + ''
+      [ "$(id -u)" = 0 ] || { echo "kanban-recovery-check: run it with sudo" >&2; exit 2; }
+      [ -e ${cfg.hubMarker} ] || { echo "kanban-recovery-check: the board does not run on spike" >&2; exit 2; }
+      socket || { echo "kanban-recovery-check: the board does not answer through the socket to begin with" >&2; exit 1; }
+      start=$(date +%s.%N)
+      systemctl kill --signal=SIGKILL kanban.service kanban-bridge.service
+      sleep 0.2
+      if wait_for socket 20; then
+        echo "kanban-recovery-check: the board answered through the socket again after $(awk -v a="$start" -v b="$(date +%s.%N)" 'BEGIN { printf "%.1f", b - a }') seconds"
+      else
+        echo "kanban-recovery-check: the board did not answer within 10 seconds" >&2
+        exit 1
+      fi
+    '';
   };
 
   # Only these users reach the boards' ports on loopback: the board trusts a loopback caller with no Origin as a
@@ -252,7 +374,10 @@ in
       };
     };
 
-    environment.systemPackages = [ hub ];
+    environment.systemPackages = [
+      hub
+      recovery
+    ];
 
     systemd.services = {
       kanban-scratch = service "kanban-scratch" instances.kanban-scratch;
@@ -264,30 +389,50 @@ in
             cfg.hubMarker
             "${home}/current/src/server/main.ts"
           ];
+          StartLimitIntervalSec = 0;
         };
       };
 
-      # Serves the socket Caddy proxies the board to from the local board, in kanban-tunnel's place.
+      # Carries Caddy's connections from the socket to the board, in kanban-tunnel's place. systemd itself holds the
+      # socket, kanban-bridge.socket, so it never vanishes while the proxy or the board restarts, and the proxy
+      # dials the board afresh for each connection, so it needs no tie to kanban.service: on 6 Nov 2026 its
+      # BindsTo= stopped it with the board's restart, socat's exit 143 marked it failed, and the board answered
+      # every request 502 for five minutes, runners' heartbeats included.
       kanban-bridge = {
         description = "Carry Caddy's connections to the kanban board on spike";
-        wantedBy = [ "multi-user.target" ];
-        bindsTo = [ "kanban.service" ];
-        after = [ "kanban.service" ];
-        # No Conflicts= with kanban-tunnel: a switch starting this one would stop the tunnel before this one's
-        # condition skipped it. The marker keeps the two apart, and kanban-hub stops one before starting the other.
+        requires = [ "kanban-bridge.socket" ];
+        after = [ "kanban-bridge.socket" ];
+        unitConfig = {
+          ConditionPathExists = cfg.hubMarker;
+          StartLimitIntervalSec = 0;
+        };
+        serviceConfig = {
+          # The loopback chain lets kanban reach the board's port.
+          User = "kanban";
+          Group = "kanban";
+          ExecStart = "${pkgs.systemd}/lib/systemd/systemd-socket-proxyd 127.0.0.1:${toString instances.kanban.port}";
+          Restart = "always";
+          RestartSec = 1;
+          SuccessExitStatus = [
+            143
+            "SIGTERM"
+          ];
+          PrivateTmp = true;
+          NoNewPrivileges = true;
+          ProtectSystem = "strict";
+          ProtectHome = true;
+        };
+      };
+
+      # Every 30 seconds, asks the board through Caddy's socket and directly, and after two failures in a row
+      # restarts what failed, telling Aaron only once it has had to act more than once in an hour.
+      kanban-health = {
+        description = "Check the kanban board answers through Caddy's socket, restarting what does not";
         unitConfig.ConditionPathExists = cfg.hubMarker;
         serviceConfig = {
-          User = "kanban";
-          Group = "kanban-tunnel";
-          RuntimeDirectory = "kanban-tunnel";
-          RuntimeDirectoryMode = "0750";
-          ExecStart = lib.escapeShellArgs [
-            "${pkgs.socat}/bin/socat"
-            "UNIX-LISTEN:${board},fork,unlink-early,mode=0660,group=kanban-tunnel"
-            "TCP:127.0.0.1:${toString instances.kanban.port}"
-          ];
-          Restart = "always";
-          RestartSec = 5;
+          Type = "oneshot";
+          StateDirectory = "kanban-health";
+          ExecStart = lib.getExe health;
         };
       };
 
@@ -302,15 +447,36 @@ in
           Group = "kanban";
           Nice = 10;
           ExecStart = lib.getExe update;
-          ExecStartPost =
-            "+"
-            + pkgs.writeShellScript "kanban-update-restart" ''
-              [ -e ${home}/updated ] || exit 0
-              rm -f ${home}/updated
-              ${pkgs.systemd}/bin/systemctl restart kanban.service kanban-bridge.service
-            '';
+          # Restarts the board on the new release, waits for it to answer, and puts the release before back
+          # when it does not, so an update never leaves the board down.
+          ExecStartPost = "+${lib.getExe restart}";
           TimeoutStartSec = "15min";
         };
+      };
+    };
+
+    # systemd holds the board's socket for Caddy, mode 0660 in the group kanban-tunnel, which alone holds Caddy.
+    systemd.sockets.kanban-bridge = {
+      description = "Caddy's socket to the kanban board on spike";
+      wantedBy = [ "sockets.target" ];
+      unitConfig.ConditionPathExists = cfg.hubMarker;
+      socketConfig = {
+        ListenStream = board;
+        SocketUser = "kanban";
+        SocketGroup = "kanban-tunnel";
+        SocketMode = "0660";
+        DirectoryMode = "0755";
+        # So kanban-hub rollback's kanban-tunnel can bind the same path.
+        RemoveOnStop = true;
+      };
+    };
+
+    systemd.timers.kanban-health = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnActiveSec = "1min";
+        OnUnitActiveSec = "30s";
+        AccuracySec = "1s";
       };
     };
 

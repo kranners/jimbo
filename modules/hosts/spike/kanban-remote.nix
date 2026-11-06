@@ -22,6 +22,16 @@ let
       ${pilot.user}@${pilot.address} exec /usr/bin/nc 127.0.0.1 7420
   '';
 
+  # A board restarting refuses connections for a few seconds, so Caddy holds each request and tries again for
+  # up to 30 seconds, rather than answering 502 at once.
+  retry = "lb_try_duration 30s\n    lb_try_interval 500ms";
+  restarting = ''
+    <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+    <meta http-equiv="refresh" content="5"><title>Kanban is restarting</title></head>
+    <body style="font-family:system-ui;background:#111;color:#ddd;display:grid;place-items:center;height:100vh;margin:0">
+    <p>The board is restarting, retrying in a few seconds…</p></body></html>
+  '';
+
   # Devices that may reach the board, by WireGuard peer name, each still signing in through the device gate.
   viewers = [
     "pilot"
@@ -108,6 +118,7 @@ in
         abort @foreignOrigin
         ${lib.optionalString (runnerAddresses != [ ]) ''
           reverse_proxy @runner unix/${board} {
+            ${retry}
             header_up Host 127.0.0.1:7420
             header_up Cf-Connecting-Ip {remote_host}
             header_up -Cookie
@@ -119,6 +130,7 @@ in
           uri /.gate/verify
         }
         reverse_proxy unix/${board} {
+          ${retry}
           header_up Host 127.0.0.1:7420
           # The board checks writes against its own origin, which Caddy has checked against the site's above.
           header_up Origin http://127.0.0.1:7420
@@ -126,6 +138,16 @@ in
           header_up Cf-Connecting-Ip {remote_host}
           header_up -Authorization
           header_up -Cookie
+        }
+      }
+      # While the board restarts and Caddy's retries above run out, a page that says so and reloads itself.
+      handle_errors {
+        @boardDown expression `{err.status_code} in [502, 503, 504]`
+        handle @boardDown {
+          header Retry-After 5
+          header Cache-Control no-store
+          header Content-Type "text/html; charset=utf-8"
+          respond `${restarting}` 503
         }
       }
     '';

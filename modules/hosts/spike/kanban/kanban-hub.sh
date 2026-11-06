@@ -157,7 +157,7 @@ pilot_board_loaded() {
 case "${1:-}" in
   status)
     if [ -e "$MARKER" ]; then echo "The board runs on spike (since $(stat -c %y "$MARKER"))."; else echo "The board runs on pilot, through kanban-tunnel."; fi
-    systemctl --no-pager --lines=0 status kanban kanban-bridge kanban-tunnel kanban-scratch kanban-update 2> /dev/null | grep -E '^(●|○|×)|Active:' || true
+    systemctl --no-pager --lines=0 status kanban kanban-bridge.socket kanban-bridge kanban-health.timer kanban-tunnel kanban-scratch kanban-update 2> /dev/null | grep -E '^(●|○|×)|Active:' || true
     echo "Build running: $(basename "$(readlink -f "$HOME_DIR/current" 2> /dev/null || echo none)")"
     for dir in "$LIVE_STATE" "$SCRATCH_STATE"; do
       [ -d "$dir" ] && echo "$dir: $(counts "$dir" | jq -c .)"
@@ -205,7 +205,7 @@ case "${1:-}" in
     [ -s /var/lib/secrets/kanban-runner-token ] || "$0" token || true
     touch "$MARKER"
     systemctl stop kanban-tunnel
-    systemctl start kanban kanban-bridge
+    systemctl start kanban kanban-bridge.socket kanban-bridge
     wait_up "$LIVE_PORT"
     after=$(snapshot_local "$LIVE_PORT")
     [ -z "$before" ] || compare_boards "$before" "$after" || true
@@ -217,7 +217,7 @@ case "${1:-}" in
     ;;
   rollback)
     rm -f "$MARKER"
-    systemctl stop kanban-bridge kanban 2> /dev/null || true
+    systemctl stop kanban-bridge.socket kanban-bridge kanban 2> /dev/null || true
     systemctl start kanban-tunnel
     if [ -d "$LIVE_STATE" ]; then
       name="kanban.from-spike-$stamp"
