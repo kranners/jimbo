@@ -1,0 +1,1 @@
+Change 20261106-174700-2550922: find why backlogic cloud launches end 'never started' (backlogic-cloud-payload wait), fix it, release dead batch holds, report limits; touches backlogic repo and possibly jimbo modules/backlogic-runner.
