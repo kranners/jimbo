@@ -102,12 +102,13 @@ in
       }
       ${lib.optionalString (runnerAddresses != [ ]) ''
         # A runner's own calls, from a runner machine, carrying a bearer token and no browser Origin, skip the
-        # device gate: the board checks its KANBAN_RUNNER_TOKEN on each, and these paths are all a runner needs.
+        # device gate: the board checks its KANBAN_RUNNER_TOKEN on each, and these paths are all a runner needs,
+        # its sessions' doc tools among them.
         @runner {
           remote_ip ${lib.concatStringsSep " " runnerAddresses}
           header Authorization "Bearer *"
           not header Origin *
-          path_regexp ^/(runner\.js|api/runners/(register|[a-z0-9-]+/(heartbeat|commands(/[A-Za-z0-9_-]+)?)))$
+          path_regexp ^/(runner\.js|api/runners/(register|docs/[a-z_]+|[a-z0-9-]+/(heartbeat|commands(/[A-Za-z0-9_-]+)?)))$
         }
       ''}
       # The board trusts loopback callers on these, and through the tunnel every request comes from loopback.
