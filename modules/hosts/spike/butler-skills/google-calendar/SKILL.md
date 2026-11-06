@@ -18,7 +18,7 @@ Home Assistant on spike holds the Google Calendar connection and the tool carrie
 `calendar work ...` reads Aaron's work calendar straight from Google, read-only: it cannot add, move or answer anything there.
 - `calendar work agenda [days]` lists his work meetings from the start of today, one a line: start, end, title, his response (`accepted`, `tentative` or `invited` for one he has not answered; declined ones are left out), the number of attendees and the Meet link.
 - `calendar work events <start> <end>` lists them between two dates, at most 62 days apart.
-- `calendar work brief [days]` gives only start, end and title.
+- `calendar work brief [days]` gives only start, end and title, the one view a scheduled run may read.
 - Personal `calendar agenda` does not include work meetings, so check both when Aaron asks what is on, and say which are work.
 - If it says the account is not logged in yet, or the login was refused, give Aaron the one command it names, run on spike.
 - This is his employer's calendar: give titles and times, and never copy meetings, titles or attendees into memory or the journal.

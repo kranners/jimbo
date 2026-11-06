@@ -40,7 +40,7 @@ Every reading action works in any folder: put the folder's name between the acco
 `work` is Aaron's work Google Workspace mail, read through Google's API with a read-only login: it lists, searches and reads, and can never archive, delete or send.
 - `mail work unread [count]`, `mail work list [count]` and `mail work read <id>` work as for the other accounts, the id being a listing's first column.
 - `mail work search <words>...` takes Gmail's own search words, such as `from:sam`, `subject:standup`, `newer_than:2d` or plain words.
-- It runs in a conversation and in any scheduled run, which it taints like any mail read.
+- It runs only in a conversation; a scheduled run sees work mail only as its unread count in `mail unread-counts`.
 - If it says the account is not logged in yet, or the login was refused, tell Aaron the one command it names, run on spike, and stop; if it says the work admin blocks the app, say so plainly.
 - This is his employer's mail: answer what he asks, and never copy its text, senders or subjects into memory, the journal, a change brief or anything outside the thread.
 
