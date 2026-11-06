@@ -21,6 +21,7 @@ import json
 import os
 import pwd
 import re
+import stat
 import subprocess
 import sys
 import time
@@ -62,6 +63,9 @@ THREAD = re.compile(r'^[0-9]{5,25}$')
 THREAD_CARDS = os.environ.get('KANBAN_THREAD_CARDS', '/var/lib/butler/.claude/channels/discord/thread-cards.json')
 # The daemon rewrites the file every minute at least, so one older than this is a daemon that stopped.
 THREAD_CARDS_STALE = 10 * 60
+# The daemon lists at most 60 threads, each with 30 events of at most 1200 characters, so a file past these is not its.
+THREAD_CARDS_BYTES = 8 * 1024 * 1024
+THREAD_CARDS_MAX = 80
 
 USAGE = '''usage: kanban <tool> (its arguments as a JSON object on stdin, or nothing for none) | kanban changes | kanban board-relay | kanban safe-sweep | kanban threads
 tools: board_snapshot, read_transcript, board_history, put_card, close_card, note, watch, look, arrange,
@@ -830,9 +834,17 @@ def thread_cards(path=None, now=None, on_spike=None):
     now = time.time() if now is None else now
     on_spike = os.path.exists(HUB_MARKER) if on_spike is None else on_spike
     try:
-        with open(path) as f:
-            cards = json.load(f)
-        written = os.stat(path).st_mtime
+        # Root reads it from butler's home, so a link there is refused rather than followed, and a runaway file is not read whole.
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, 'rb') as f:
+            info = os.fstat(f.fileno())
+            if not stat.S_ISREG(info.st_mode):
+                raise OSError('it is not a regular file')
+            raw = f.read(THREAD_CARDS_BYTES + 1)
+        if len(raw) > THREAD_CARDS_BYTES:
+            raise OSError('it is over %d bytes' % THREAD_CARDS_BYTES)
+        cards = json.loads(raw.decode('utf-8'))
+        written = info.st_mtime
     except FileNotFoundError:
         print('kanban: no thread cards at %s yet, so the board is left as it is' % path)
         return None
@@ -849,7 +861,7 @@ def thread_cards(path=None, now=None, on_spike=None):
         print('kanban: the thread cards are %d minutes old, so the daemon is not writing them and the board is left as it is'
               % ((now - written) // 60))
         return None
-    threads = [card for card in cards['threads'] if isinstance(card, dict)]
+    threads = [card for card in cards['threads'] if isinstance(card, dict)][:THREAD_CARDS_MAX]
     if not on_spike:
         threads = [dict(card, events=[], approvals=[]) for card in threads]
     return {'threads': threads}
@@ -931,6 +943,10 @@ def main(argv):
         args, sent = with_context(tool, args)
     try:
         reply = call(tool, args)
+        if tool == 'start_session' and 'parent' in args and 'Unknown argument parent' in str(reply.get('error', '')):
+            # A board older than session parents, such as pilot's while it waits for the move to spike, still starts the session, unlinked.
+            args = {key: value for key, value in args.items() if key != 'parent'}
+            reply = call(tool, args)
     except Unreachable as error:
         print('kanban: %s' % error, file=sys.stderr)
         return 75

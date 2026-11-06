@@ -327,6 +327,13 @@ let
       for request in "${queue}"/*.json; do
         [ -e "$request" ] || continue
         id=$(basename "$request" .json)
+        # The thread it was asked in outlives the queued request, for its card on the board, archived before it started or not.
+        # Written as butler, whose folder it is, so a link butler left there never turns root's write into one anywhere.
+        thread=$(jq -r '.thread // empty' "$request" 2>/dev/null || true)
+        if [[ "$thread" =~ ^[0-9]{5,25}$ ]]; then
+          runuser -u butler -- rm -f "${threads}/$id" || true
+          printf '%s\n' "$thread" | runuser -u butler -- tee "${threads}/$id" > /dev/null || true
+        fi
         # Archived before it started, from the board or by butler, so it never starts.
         if [ -e "${archive}/$id" ]; then
           echo "Archived before its cloud session started." > "${sessions}/$id"
@@ -336,12 +343,6 @@ let
           continue
         fi
         jq -r .request "$request" > "${briefs}/$id"
-        # The thread it was asked in outlives the queued request, for its card on the board.
-        thread=$(jq -r '.thread // empty' "$request")
-        if [[ "$thread" =~ ^[0-9]{5,25}$ ]]; then
-          rm -f "${threads}/$id"
-          (set -C; printf '%s\n' "$thread" > "${threads}/$id") && chown -h butler: "${threads}/$id" || true
-        fi
         # The digest, rebuilt now so it holds every other fix as this one starts.
         timeout 120 systemctl start butler-builders.service || true
         work=$(mktemp -d)

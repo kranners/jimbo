@@ -76,6 +76,24 @@ check('pilot gets no events', (on_pilot['threads'][0]['events'], on_pilot['threa
 check('stale skipped', stale, None)
 check('missing skipped', missing, None)
 
+# Root reads the file from butler's home, so a link planted there is refused, and so is a file past the cap.
+link = os.path.join(root, 'linked.json')
+os.symlink(cards_path, link)
+big = os.path.join(root, 'big.json')
+with open(big, 'w') as f:
+    f.write(' ' * (kanban.THREAD_CARDS_BYTES + 1))
+many = os.path.join(root, 'many.json')
+with open(many, 'w') as f:
+    json.dump({'updatedAt': int(now * 1000), 'threads': [dict(card, id=str(10000 + n)) for n in range(100)]}, f)
+sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
+linked = kanban.thread_cards(link, now, True)
+too_big = kanban.thread_cards(big, now, True)
+capped = kanban.thread_cards(many, now, True)
+sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
+check('symlink refused', linked, None)
+check('oversized refused', too_big, None)
+check('capped at 80', len(capped['threads']), 80)
+
 
 # A board too old for butler_threads is no failure, and the reply's two lines are printed.
 def fake(reply):
@@ -99,6 +117,26 @@ check('board too old', too_old, 75)
 check('sent', sent, 0)
 check('both lines printed', out.getvalue().count('\n') >= 2, True)
 check('butler_threads refused directly', direct, 2)
+
+# A board older than session parents refuses the argument, so the session is started again without it.
+calls = []
+
+
+def old_board(tool, args, timeout=60, grace=None):
+    calls.append(dict(args))
+    if 'parent' in args:
+        return {'ok': False, 'error': 'Unknown argument parent'}
+    return {'ok': True, 'text': 'Started session s1'}
+
+
+os.environ['BUTLER_THREAD_ID'] = '1300000000000000009'
+kanban.call = old_board
+kanban.with_context = lambda tool, args: (args, None)
+sys.stdin = io.StringIO(json.dumps({'cwd': '/w', 'prompt': 'go'}))
+sys.stdout = io.StringIO()
+started = kanban.main(['kanban', 'start_session'])
+sys.stdout, sys.stdin = sys.__stdout__, sys.__stdin__
+check('old board still starts the session', (started, len(calls), 'parent' in calls[0], 'parent' in calls[-1]), (0, 2, True, False))
 
 if failures:
     print('\n'.join(failures))

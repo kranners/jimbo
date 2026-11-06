@@ -219,6 +219,8 @@ let
           "Read(~/.claude/channels/discord/approved/**)"
           "Read(~/.claude/channels/discord/threads.db*)"
           "Read(~/.claude/channels/discord/daemon.lock)"
+          # Every thread's latest words, private threads' too, so reading it would skip the taint those threads carry.
+          "Read(~/.claude/channels/discord/thread-cards.json*)"
           "Read(~/.claude/.credentials.json)"
           "Read(~/.claude-accounts/**)"
           "Read(~/.ssh/**)"
