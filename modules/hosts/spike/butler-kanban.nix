@@ -56,6 +56,7 @@ let
     "watch"
     "look"
     "arrange"
+    "tidy"
     "put_sticker"
     "delete_annotations"
     "create_region"

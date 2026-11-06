@@ -68,7 +68,7 @@ THREAD_CARDS_BYTES = 8 * 1024 * 1024
 THREAD_CARDS_MAX = 80
 
 USAGE = '''usage: kanban <tool> (its arguments as a JSON object on stdin, or nothing for none) | kanban changes | kanban board-relay | kanban safe-sweep | kanban threads
-tools: board_snapshot, read_transcript, board_history, put_card, close_card, note, watch, look, arrange,
+tools: board_snapshot, read_transcript, board_history, put_card, close_card, note, watch, look, arrange, tidy,
 put_sticker, delete_annotations, find_stickers, create_region, update_region, delete_region,
 ask_session, send_prompt, announce, answer_prompt, approve_safe_prompts, start_session, finish_session'''
 
@@ -295,6 +295,31 @@ def thread_of(fix):
     return thread if THREAD.match(thread) else None
 
 
+def mtime_ms(path):
+    try:
+        return int(os.stat(path).st_mtime * 1000)
+    except OSError:
+        return None
+
+
+def times_of(fix, state):
+    """When a change started and, once it ended, when and how, for the board's archive."""
+    times = {}
+    started = mtime_ms(os.path.join(SELF_FIX, 'sessions', fix)) or mtime_ms(os.path.join(SELF_FIX, 'queue', fix + '.json'))
+    if started:
+        times['startedAt'] = started
+    lowered = state.lower()
+    if lowered.startswith(ENDED) or lowered.startswith(('archive', 'dismissed')):
+        finished = max(filter(None, [mtime_ms(os.path.join(SELF_FIX, d, fix)) for d in ('progress', 'archived', 'archive', 'dismissed')]), default=None)
+        if finished:
+            times['finishedAt'] = finished
+        if lowered.startswith(('finished with an error', 'failed')):
+            times['outcome'] = 'failed'
+        elif lowered.startswith('finished'):
+            times['outcome'] = 'done'
+    return times
+
+
 def self_fixes():
     """Every change of the last 7 days, as `change list` reads them."""
     sessions = os.path.join(SELF_FIX, 'sessions')
@@ -346,6 +371,7 @@ def self_fixes():
         thread = thread_of(fix)
         if thread:
             entry['thread'] = thread
+        entry.update(times_of(fix, entry['state']))
         fixes.append(entry)
     return fixes
 
@@ -886,6 +912,21 @@ def send_threads():
             return 75
         print('kanban: %s' % error, file=sys.stderr)
         return 1
+    print(reply.get('text', ''))
+    tidy()
+    return 0
+
+
+def tidy():
+    """Has the board archive finished cards and lay out the rest, as Butler's own `kanban tidy` does; a board without tidy is left as it is."""
+    try:
+        reply = call('tidy', {})
+    except Unreachable as error:
+        print('kanban: %s' % error, file=sys.stderr)
+        return 75
+    if not reply.get('ok'):
+        print('kanban: tidy: %s' % reply.get('error', 'the board refused'), file=sys.stderr)
+        return 75 if 'unknown tool' in str(reply.get('error', '')).lower() else 1
     print(reply.get('text', ''))
     return 0
 

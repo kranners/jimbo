@@ -96,8 +96,14 @@ check('capped at 80', len(capped['threads']), 80)
 
 
 # A board too old for butler_threads is no failure, and the reply's two lines are printed.
+sent_tools = []
+
+
 def fake(reply):
     def call(tool, args, timeout=60, grace=None):
+        sent_tools.append(tool)
+        if tool == 'tidy':
+            return {'ok': True, 'text': 'Tidied the board: 0 cards archived'}
         check('tool sent', tool, 'butler_threads')
         return reply
     return call
@@ -117,6 +123,7 @@ check('board too old', too_old, 75)
 check('sent', sent, 0)
 check('both lines printed', out.getvalue().count('\n') >= 2, True)
 check('butler_threads refused directly', direct, 2)
+check('a sync that reached the board tidies it after', sent_tools, ['butler_threads', 'butler_threads', 'tidy'])
 
 # A board older than session parents refuses the argument, so the session is started again without it.
 calls = []
@@ -137,6 +144,18 @@ sys.stdout = io.StringIO()
 started = kanban.main(['kanban', 'start_session'])
 sys.stdout, sys.stdin = sys.__stdout__, sys.__stdin__
 check('old board still starts the session', (started, len(calls), 'parent' in calls[0], 'parent' in calls[-1]), (0, 2, True, False))
+
+# A change's times and outcome, for the board's archive: started from its session record, finished once it ended.
+os.makedirs(os.path.join(self_fix, 'progress'), exist_ok=True)
+with open(os.path.join(self_fix, 'sessions', '20261106-120000-7'), 'w') as f:
+    f.write('Started https://claude.ai/code/session_t\n')
+with open(os.path.join(self_fix, 'progress', '20261106-120000-7'), 'w') as f:
+    f.write('State: finished\n')
+os.utime(os.path.join(self_fix, 'sessions', '20261106-120000-7'), (1000, 1000))
+os.utime(os.path.join(self_fix, 'progress', '20261106-120000-7'), (2000, 2000))
+check('finished change times', kanban.times_of('20261106-120000-7', 'finished'), {'startedAt': 1000000, 'finishedAt': 2000000, 'outcome': 'done'})
+check('failed change outcome', kanban.times_of('20261106-120000-7', 'finished with an error').get('outcome'), 'failed')
+check('running change has no finish', kanban.times_of('20261106-120000-7', 'running'), {'startedAt': 1000000})
 
 if failures:
     print('\n'.join(failures))
