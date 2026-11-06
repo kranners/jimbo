@@ -185,6 +185,11 @@
       python3 -I ${./butler-threads/test_threads.py} ${./butler-threads/threads.py} > $out 2>&1 || { cat $out; exit 1; }
     '';
 
+    # The Slack reader against a fake Slack: long messages, threads past a page, shared messages, unfurls and file text whole, the token kept to Slack's hosts.
+    butler-slack = pkgs.runCommand "butler-slack-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      python3 -I ${./butler-slack/test_slack.py} ${./butler-slack/slack.py} > $out 2>&1 || { cat $out; exit 1; }
+    '';
+
     # The chat cache from a fixture index and live feeds: normalisation, conversation kinds, contacts and who is waiting on Aaron.
     butler-chat = pkgs.runCommand "butler-chat-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 -I ${./butler-chat/test_chat.py} ${./butler-chat/chat.py} > $out 2>&1 || { cat $out; exit 1; }

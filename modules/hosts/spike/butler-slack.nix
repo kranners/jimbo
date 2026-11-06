@@ -15,6 +15,15 @@ let
     "search:read"
     "users:read"
   ];
+  # Read-only scopes that make the reader fuller without being needed: file, snippet and canvas text, pins, bookmarks and reactions.
+  optionalScopes = [
+    "files:read"
+    "canvases:read"
+    "pins:read"
+    "bookmarks:read"
+    "reactions:read"
+    "usergroups:read"
+  ];
 
   # `sudo butler-slack-login` takes Aaron's xoxp- user token hidden on stdin, or `--from-index` reuses the index's,
   # checks it with auth.test and its scopes, writes it mode 600 and asks butler for a restart at its next quiet moment.
@@ -63,6 +72,11 @@ let
       chmod 600 ${token}.new
       mv ${token}.new ${token}
       echo "Slack token for $(jq -r '.user + " in " + .team' <<<"$answer") written"
+      optional=""
+      for scope in ${lib.concatStringsSep " " optionalScopes}; do
+        grep -qx "$scope" <<<"$granted" || optional="$optional $scope"
+      done
+      [ -z "$optional" ] || echo "it works without these read-only scopes, but adding them shows more:$optional"
       install -d -m 755 /run/butler-restart
       if [ ! -f /run/butler-restart/wanted ]; then
         jq -n --argjson at "$(date +%s%3N)" '{at: $at, trigger: "slack-token", changes: ["Slack token for live reads written"]}' > /run/butler-restart/wanted.tmp
@@ -79,151 +93,12 @@ let
     "cron"
   ];
 
-  slack = pkgs.writeShellApplication {
-    name = "slack";
-
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.curl
-      pkgs.jq
-    ];
-
-    text = ''
-      usage() {
-        echo "usage: slack channels" >&2
-        echo "       slack history <channel> [count]" >&2
-        echo "       slack dms" >&2
-        echo "       slack search <query>..." >&2
-        echo "       slack thread <channel> <ts>" >&2
-        echo "       slack users" >&2
-        echo "a channel is its id, such as C0123ABCD, or its name, such as general" >&2
-        exit 2
-      }
-
-      if [ ! -s ${credential} ]; then
-        echo "slack: no Slack token yet; Aaron has to run sudo butler-slack-login on spike, pasting his xoxp- user token, or sudo butler-slack-login --from-index to reuse the index's" >&2
-        exit 78
-      fi
-
-      # Every call is a read: a GET of one of the conversations, users or search methods.
-      api() {
-        method=$1
-        shift
-        response=$(curl --silent --show-error --fail-with-body --globoff --get \
-          --header @<(printf 'Authorization: Bearer %s\n' "$(< ${credential})") \
-          "$@" "https://slack.com/api/$method")
-        if [ "$(jq --raw-output .ok <<<"$response")" != true ]; then
-          echo "slack: $method failed: $(jq --raw-output '.error // "unknown error"' <<<"$response")" >&2
-          exit 1
-        fi
-        printf '%s\n' "$response"
-      }
-
-      # Follows a list method's cursor, printing each page's array named by $2, at most 20 pages.
-      paged() {
-        method=$1
-        field=$2
-        shift 2
-        cursor=""
-        for _ in $(seq 20); do
-          page=$(api "$method" --data-urlencode "limit=200" --data-urlencode "cursor=$cursor" "$@")
-          jq --compact-output --arg field "$field" '.[$field][]' <<<"$page"
-          cursor=$(jq --raw-output '.response_metadata.next_cursor // ""' <<<"$page")
-          [ -n "$cursor" ] || break
-        done
-      }
-
-      users_json() {
-        paged users.list members | jq --slurp 'map({key: .id, value: ((.profile.display_name | select(. != "")) // .real_name // .name)}) | from_entries'
-      }
-
-      conversations() {
-        paged conversations.list channels --data-urlencode "types=$1" --data-urlencode "exclude_archived=true"
-      }
-
-      channel() {
-        if [[ $1 =~ ^[CGD][A-Z0-9]{6,}$ ]]; then
-          echo "$1"
-          return
-        fi
-        name=''${1#\#}
-        [[ $name =~ ^[a-z0-9._-]+$ ]] || usage
-        id=$(conversations public_channel,private_channel | jq --raw-output --arg name "$name" 'select(.name == $name) | .id' | head -n 1)
-        if [ -z "$id" ]; then
-          echo "slack: no channel named $name that Aaron is in or can see" >&2
-          exit 1
-        fi
-        echo "$id"
-      }
-
-      # Prints messages oldest first, mentions and links made readable.
-      messages() {
-        jq --raw-output --argjson users "$1" '
-          def name: $users[.] // .;
-          def readable: gsub("<@(?<id>[A-Z0-9]+)(\\|[^>]*)?>"; "@" + (.id | name))
-            | gsub("<#[A-Z0-9]+\\|(?<name>[^>]*)>"; "#" + .name)
-            | gsub("<!(?<what>[a-z]+)(\\|[^>]*)?>"; "@" + .what)
-            | gsub("<(?<url>[^|>]+)\\|(?<label>[^>]*)>"; .label + " (" + .url + ")")
-            | gsub("<(?<url>[^>]+)>"; .url)
-            | gsub("&lt;"; "<") | gsub("&gt;"; ">") | gsub("&amp;"; "&");
-          .messages | sort_by(.ts | tonumber) | .[]
-          | "[\(.ts | tonumber | floor | strflocaltime("%Y-%m-%d %H:%M"))] ts=\(.ts) \(if .user then .user | name else .username // .bot_profile.name // "unknown" end)"
-            + (if (.reply_count // 0) > 0 and .thread_ts == .ts then " (thread, \(.reply_count) replies)" else "" end)
-            + ":\n" + ((.text // "") | readable)
-            + (if .files then "\n[files: \(.files | map(.name // .title // "file") | join(", "))]" else "" end)
-            + "\n"
-        '
-      }
-
-      count() {
-        [[ $1 =~ ^[0-9]{1,3}$ ]] && [ "$1" -ge 1 ] && [ "$1" -le 200 ] || usage
-      }
-
-      [ $# -ge 1 ] || usage
-
-      case "$1" in
-        channels)
-          [ $# -eq 1 ] || usage
-          conversations public_channel,private_channel \
-            | jq --raw-output 'select(.is_member) | [.id, "#" + .name, (if .is_private then "private" else "public" end), (.num_members // 0 | tostring) + " members", (.topic.value // "")] | @tsv'
-          ;;
-        dms)
-          [ $# -eq 1 ] || usage
-          users=$(users_json)
-          conversations im,mpim \
-            | jq --raw-output --argjson users "$users" 'select(.is_user_deleted | not) | [.id, (if .is_im then "dm with " + ($users[.user] // .user) else "group dm " + (.purpose.value // .name) end)] | @tsv'
-          ;;
-        users)
-          [ $# -eq 1 ] || usage
-          paged users.list members \
-            | jq --raw-output 'select((.deleted | not) and (.is_bot | not) and .id != "USLACKBOT") | [.id, .name, (.real_name // ""), (.profile.title // "")] | @tsv'
-          ;;
-        history)
-          [ $# -ge 2 ] && [ $# -le 3 ] || usage
-          limit=''${3:-20}
-          count "$limit"
-          id=$(channel "$2")
-          users=$(users_json)
-          api conversations.history --data-urlencode "channel=$id" --data-urlencode "limit=$limit" | messages "$users"
-          ;;
-        thread)
-          [ $# -eq 3 ] || usage
-          [[ $3 =~ ^[0-9]+\.[0-9]+$ ]] || usage
-          id=$(channel "$2")
-          users=$(users_json)
-          api conversations.replies --data-urlencode "channel=$id" --data-urlencode "ts=$3" --data-urlencode "limit=200" | messages "$users"
-          ;;
-        search)
-          [ $# -ge 2 ] || usage
-          shift
-          api search.messages --data-urlencode "query=$*" --data-urlencode "count=20" --data-urlencode "sort=timestamp" \
-            | jq --raw-output '.messages.matches[]
-                | "[\(.ts | tonumber | floor | strflocaltime("%Y-%m-%d %H:%M"))] \(if .channel.is_im then "dm" else "#" + (.channel.name // "?") end) channel=\(.channel.id) ts=\(.ts) \(.username // .user // "unknown"):\n\(.text // "")\n"'
-          ;;
-        *) usage ;;
-      esac
-    '';
-  };
+  # The reader itself, read-only, rendering each message whole: see butler-slack/slack.py.
+  slack = pkgs.writers.writePython3Bin "slack" { flakeIgnore = [ "E501" ]; } (
+    builtins.replaceStrings [ "@credential@" ] [ credential ] (
+      builtins.readFile ./butler-slack/slack.py
+    )
+  );
 in
 {
   environment.systemPackages = [ butler-slack-login ];
@@ -252,7 +127,8 @@ in
     package = slack;
     description = ''
       Read Aaron's work Slack workspace, read-only: it cannot post, react or edit.
-      slack channels | slack history <channel> [count] | slack dms | slack search <query>... | slack thread <channel> <ts> | slack users
+      slack channels | slack history <channel> [count] | slack dms | slack search <query>... | slack thread <channel> <ts> [after-ts] | slack message <channel> <ts> | slack users | slack scopes
+      Every message prints whole, never cut at Slack's "see more": its rich text, any shared message or link preview and, with files:read, its snippets', text files' and canvases' text; thread pages through every reply, reading on after a reply's ts when the output limit stops it, message prints one message, and scopes lists the token's scopes and the read-only ones that would help, never the token.
       A channel is its id, such as C0123ABCD or a DM's D0123ABCD, or a channel's name; count is 1 to 200, 20 unless given.
     '';
     rules = [
@@ -289,6 +165,27 @@ in
           "*"
           "*"
         ];
+        lanes = both;
+      }
+      {
+        match = [
+          "thread"
+          "*"
+          "*"
+          "*"
+        ];
+        lanes = both;
+      }
+      {
+        match = [
+          "message"
+          "*"
+          "*"
+        ];
+        lanes = both;
+      }
+      {
+        match = [ "scopes" ];
         lanes = both;
       }
       {

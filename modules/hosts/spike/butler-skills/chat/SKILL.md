@@ -20,6 +20,7 @@ It is read-only: it never sends, replies, reacts or marks anything read.
 ## How fresh each source is
 
 - Slack: live, at most 15 minutes old; `slack history <D…id>` reads it to the second.
+- A message longer than `chat` shows carries `cut`, and every Slack message a `whole` line, such as `slack message D0123ABCD 1730000000.000100`: run that before quoting or summarising a long Slack message, since the index's copy of an older one can be shortened.
 - Messenger: live, at most 15 minutes old, once its bridge is on; until then only Meta's last export, so say how old, and `messenger-read` once the bridge is on.
 - iMessage and SMS: the Macs' daily snapshot, up to a day old.
 - Instagram, Google Chat and LinkedIn: only the last export or Takeout Aaron downloaded; Google's Chat API is for Workspace apps, so there is no live route for his personal account.

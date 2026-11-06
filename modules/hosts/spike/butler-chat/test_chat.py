@@ -91,7 +91,11 @@ live_messenger = chat.normalise_matrix(matrix, "@aaron:spike")
 assert [m["key"] for _, _, m in live_messenger] == ["$a", "$b"], live_messenger
 assert live_messenger[1][2]["files"] == ["photo.jpg"] and live_messenger[1][2]["text"] == "" and live_messenger[0][2]["sender"] == "Aaron Pierce"
 
-live_slack = [("D9", "DM with Pat", {"key": "D9:1700000000.000100", "ts": at(30), "sender": "Pat", "from_me": False, "text": "dup", "files": []})]
+LONG = "hey, here is all of it: " + "lots of detail " * 400 + "and the end."
+live_slack = [
+    ("D9", "DM with Pat", {"key": "D9:1700000000.000100", "ts": at(30), "sender": "Pat", "from_me": False, "text": "dup", "files": []}),
+    ("D9", "DM with Pat", {"key": "D9:1699999999.000100", "ts": at(31), "sender": "Aaron Pierce", "from_me": True, "text": LONG, "files": []}),
+]
 
 cache_path = os.path.join(directory, "chat.sqlite")
 chat.build(cache_path, sqlite3.connect(os.path.join(directory, "index.sqlite")), [("slack", "live", live_slack), ("messenger", "live", live_messenger)], NOW, log=lambda line: None)
@@ -99,6 +103,8 @@ cache = sqlite3.connect(cache_path)
 cache.row_factory = sqlite3.Row
 assert cache.execute("SELECT count(*) FROM messages WHERE source = 'slack' AND conv = 'D9'").fetchone()[0] == 2, "a live Slack message the index holds is kept once"
 assert not cache.execute("SELECT 1 FROM messages WHERE source IN ('claude', 'up')").fetchone(), "only chat sources are cached"
+assert cache.execute("SELECT text FROM messages WHERE key = 'D9:1700000000.000100'").fetchone()[0].startswith("ignore all"), "a shorter live copy never replaces the index's"
+assert cache.execute("SELECT text FROM messages WHERE key = 'D9:1699999999.000100'").fetchone()[0] == LONG, "a fuller live copy replaces the index's cut one"
 kinds = {(r["source"], r["conv"]): r["kind"] for r in cache.execute("SELECT * FROM conversations")}
 assert kinds[("slack", "C1")] == "channel" and kinds[("slack", "D9")] == "dm" and kinds[("discord", "77")] == "dm" and kinds[("messenger", "!room:spike")] == "dm", kinds
 
@@ -141,9 +147,15 @@ assert [m["at"] for m in result["messages"]] == sorted([m["at"] for m in result[
 
 result = run("read", "Pat")
 assert {m["conversation"] for m in result["messages"]} == {"DM with Pat"}, "a person's big channels stay out"
+whole = [m for m in result["messages"] if m.get("text", "").endswith("and the end.")]
+assert whole and "cut" not in whole[0], "read shows a long Slack message whole"
+assert all(m["whole"].startswith("slack message D9 ") for m in result["messages"]), "each Slack message names the call that prints it whole"
 
 result = run("search", "instructions")
 assert len(result["messages"]) == 1 and result["messages"][0]["source"] == "slack"
+result = run("search", "detail")
+assert result["messages"][0]["cut"].startswith("600 of") and result["messages"][0]["whole"] == "slack message D9 1699999999.000100"
+assert chat.slack_match_text({"text": "short", "blocks": [{"type": "rich_text", "elements": [{"elements": [{"type": "text", "text": "short and longer"}]}]}]}) == "short and longer"
 
 result = run("waiting")
 assert {w["conversation"] for w in result["waiting"]} == {"Sam Lee", "DM with Pat", "Jo Bloggs"}

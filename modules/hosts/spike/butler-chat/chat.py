@@ -33,8 +33,15 @@ SELF_NAMES = {"aaron pierce", "aaron"}
 WINDOW_DAYS = 365
 DEFAULT_LIMIT = 30
 MAX_LIMIT = 100
+# A listing or search shows the start of each message; `read` shows each one far longer, and a Slack message cut
+# either way names the `slack message` call that prints it whole.
 MAX_TEXT = 600
+READ_TEXT = 8000
 MAX_OUTPUT = 12000
+READ_OUTPUT = 40000
+# Slack allows 40,000 characters a message, and the cache keeps all of it.
+MAX_STORED = 40000
+SLACK_LIVE_DAYS = 14
 WAIT_HOURS = 24
 WAIT_DAYS = 14
 EX_TEMPFAIL = 75
@@ -195,6 +202,23 @@ def kind_of(source, conv, title, senders):
     return "dm" if len(others) <= 1 else "group"
 
 
+def slack_match_text(match):
+    """A search match's text, with the rich text of a longer copy in its blocks and any message it shares."""
+    text = match.get("text") or ""
+    from_blocks = "".join(
+        part.get("text") or part.get("url") or ""
+        for block in match.get("blocks") or [] if block.get("type") == "rich_text"
+        for element in block.get("elements") or []
+        for part in element.get("elements") or [] if isinstance(part, dict)
+    )
+    if len(from_blocks) > len(text):
+        text = from_blocks
+    for attachment in match.get("attachments") or []:
+        if attachment.get("text"):
+            text += f"\n[shared: {attachment.get('author_name') or attachment.get('title') or 'message'}] {attachment['text']}"
+    return text
+
+
 def slack_live(token, since):
     """Messages Slack's search finds since `since`, normalised, with the channel's label."""
     def call(method, **params):
@@ -227,7 +251,7 @@ def slack_live(token, since):
     me = call("auth.test")["user_id"]
     users[me] = SELF
     out = []
-    for page_number in range(1, 6):
+    for page_number in range(1, 11):
         page = call("search.messages", query=f"after:{since:%Y-%m-%d}", count=100, page=page_number, sort="timestamp", sort_dir="desc")
         matches = (page.get("messages") or {}).get("matches") or []
         for match in matches:
@@ -243,7 +267,7 @@ def slack_live(token, since):
             else:
                 title = f"#{channel.get('name') or cid}"
             sender = users.get(match.get("user"), match.get("username") or match.get("user") or "unknown")
-            text = re.sub(r"<@(\w+)>", lambda m: "@" + users.get(m.group(1), m.group(1)), match.get("text") or "")
+            text = re.sub(r"<@(\w+)>", lambda m: "@" + users.get(m.group(1), m.group(1)), slack_match_text(match))
             out.append((cid, title, {
                 "key": f"{cid}:{match['ts']}",
                 "ts": iso(datetime.fromtimestamp(float(match["ts"]), timezone.utc)),
@@ -329,8 +353,9 @@ def build(path, index, live, now, log=print):
         titles.setdefault((source, conv), title)
         cache.execute(
             "INSERT INTO messages (source, conv, key, ts, sender, from_me, text, files, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            " ON CONFLICT (source, key) DO NOTHING",
-            (source, conv, message["key"], message["ts"], message["sender"], int(message["from_me"]), message["text"][:4000], json.dumps(message["files"]), origin),
+            # A live read keeps the fuller text where the index's copy of the same message was cut.
+            " ON CONFLICT (source, key) DO UPDATE SET text = excluded.text, origin = excluded.origin WHERE length(excluded.text) > length(messages.text)",
+            (source, conv, message["key"], message["ts"], message["sender"], int(message["from_me"]), message["text"][:MAX_STORED], json.dumps(message["files"]), origin),
         )
 
     if index is not None:
@@ -391,7 +416,7 @@ def sync():
     token = secret(SLACK_TOKEN)
     if token:
         try:
-            live.append(("slack", "live", slack_live(token, now - timedelta(days=3))))
+            live.append(("slack", "live", slack_live(token, now - timedelta(days=SLACK_LIVE_DAYS))))
         except (OSError, RuntimeError, ValueError) as error:
             print(f"chat: live Slack failed, keeping the index's: {error}", file=sys.stderr)
     token = secret(MATRIX_TOKEN) if MATRIX_TOKEN and not MATRIX_TOKEN.startswith("@") else ""
@@ -507,7 +532,7 @@ def freshness(cache, source):
     }
 
 
-def message_entry(row):
+def message_entry(row, most=MAX_TEXT):
     entry = {
         "source": row["source"],
         "conversation": row["title"],
@@ -516,18 +541,23 @@ def message_entry(row):
     }
     text = row["text"] or ""
     if text:
-        entry["text"] = text[:MAX_TEXT] + ("…" if len(text) > MAX_TEXT else "")
+        entry["text"] = text[:most] + ("…" if len(text) > most else "")
+        if len(text) > most:
+            entry["cut"] = f"{most} of {len(text)} characters shown"
+        if row["source"] == "slack" and re.fullmatch(r"[CGD][A-Z0-9]+:[0-9]+\.[0-9]+", row["key"] or ""):
+            # The cache can hold a shorter copy than Slack, from an index record or a shared message, so the whole one is a call away.
+            entry["whole"] = "slack message " + row["key"].replace(":", " ")
     files = json.loads(row["files"] or "[]")
     if files:
         entry["attachments"] = files
     return entry
 
 
-def emit(payload, key, entries):
+def emit(payload, key, entries, budget=MAX_OUTPUT):
     out, used, truncated = [], 0, False
     for entry in entries:
         size = len(json.dumps(entry, ensure_ascii=False))
-        if used + size > MAX_OUTPUT:
+        if used + size > budget:
             truncated = True
             break
         out.append(entry)
@@ -641,7 +671,7 @@ def main(argv):
                 (source, conv, limit),
             ).fetchall()
         messages = sorted(messages, key=lambda row: row["ts"], reverse=True)[:limit]
-        emit(payload, "messages", [message_entry(row) for row in reversed(messages)])
+        emit(payload, "messages", [message_entry(row, READ_TEXT) for row in reversed(messages)], READ_OUTPUT)
         return
 
     if verb == "search":
