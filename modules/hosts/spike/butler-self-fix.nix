@@ -18,6 +18,8 @@ let
   archive = "${selfFix}/archive";
   archived = "${selfFix}/archived";
   dismissed = "${selfFix}/dismissed";
+  # The Discord thread each change was asked in, for its card's place on the board.
+  threads = "${selfFix}/threads";
   # Each brief as it was asked, for the builders in flight digest, since the queued request is deleted once its session starts.
   briefs = "${selfFix}/briefs";
   inherit (config.butler.builders) digest;
@@ -110,7 +112,10 @@ let
           request=$(cat)
           [ -n "''${request//[[:space:]]/}" ] || { echo "change start needs the request on stdin" >&2; exit 2; }
           id="$(date +%Y%m%d-%H%M%S)-$$"
-          jq -n --arg request "$request" '{request: $request}' > "${queue}/$id.json.tmp"
+          # The thread it was asked in, from the daemon's own environment, so its card on the board sits beside that thread's.
+          thread=''${BUTLER_THREAD_ID:-}
+          [[ "$thread" =~ ^[0-9]{5,25}$ ]] || thread=
+          jq -n --arg request "$request" --arg thread "$thread" '{request: $request} + (if $thread == "" then {} else {thread: $thread} end)' > "${queue}/$id.json.tmp"
           mv "${queue}/$id.json.tmp" "${queue}/$id.json"
           echo "Queued change $id. Its cloud session starts within a minute, and spike then DMs Aaron its start card with the link, so tell him in one line and leave the detail to the card; read its link with: change status $id"
           ;;
@@ -331,6 +336,12 @@ let
           continue
         fi
         jq -r .request "$request" > "${briefs}/$id"
+        # The thread it was asked in outlives the queued request, for its card on the board.
+        thread=$(jq -r '.thread // empty' "$request")
+        if [[ "$thread" =~ ^[0-9]{5,25}$ ]]; then
+          rm -f "${threads}/$id"
+          (set -C; printf '%s\n' "$thread" > "${threads}/$id") && chown -h butler: "${threads}/$id" || true
+        fi
         # The digest, rebuilt now so it holds every other fix as this one starts.
         timeout 120 systemctl start butler-builders.service || true
         work=$(mktemp -d)
@@ -679,6 +690,7 @@ in
     "d ${archive} 0700 butler butler -"
     "d ${archived} 0700 butler butler -"
     "d ${dismissed} 0700 butler butler -"
+    "d ${threads} 0700 butler butler -"
     "d ${briefs} 0700 root root 7d"
     # The skill's link from before it was renamed `change`, which nothing replaces.
     "r ${home}/.claude/skills/self-fix"

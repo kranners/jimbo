@@ -175,6 +175,11 @@
           python3 -I ${./butler-mac/test_presence.py} ${./butler-mac/presence.py} > $out 2>&1 || { cat $out; exit 1; }
         '';
 
+    # kanban's thread links: a change's thread, a started session's parent and the thread cards sent to the board, offline.
+    butler-kanban = pkgs.runCommand "butler-kanban-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      python3 -I ${./butler-kanban/test_kanban.py} ${./butler-kanban/kanban.py} > $out 2>&1 || { cat $out; exit 1; }
+    '';
+
     # The Threads snapshot from a fixture threads.db, checking kinds, states and that no message text gets out.
     butler-threads = pkgs.runCommand "butler-threads-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 -I ${./butler-threads/test_threads.py} ${./butler-threads/threads.py} > $out 2>&1 || { cat $out; exit 1; }

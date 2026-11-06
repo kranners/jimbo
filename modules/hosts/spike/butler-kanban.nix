@@ -18,6 +18,8 @@ let
   # each into inbox for the daemon, which answers into outbox.
   board = "/var/lib/butler-board";
   boardMessages = config.butler.kanban.boardMessages.enable;
+  # The daemon's thread cards, one per Discord thread of the last day, which `kanban threads` sends to the board.
+  threadCards = "${config.users.users.butler.home}/.claude/channels/discord/thread-cards.json";
 
   substitutions = {
     "@host@" = builtins.toJSON pilot;
@@ -141,6 +143,40 @@ in
           # A Mac asleep or a board stopped is no failure, so it waits for the next run.
           ExecStart = "${lib.getExe kanban} changes";
           SuccessExitStatus = [ 75 ];
+        };
+      };
+
+      # One card per Butler thread of the last day, sent whenever the daemon rewrites its thread cards file, and every minute.
+      systemd.services.butler.environment.DISCORD_THREAD_CARDS_FILE = threadCards;
+
+      systemd.services.butler-kanban-threads = {
+        description = "Mirror butler's Discord threads onto Aaron's kanban board as Butler cards";
+        wants = [ "network-online.target" ];
+        after = [ "network-online.target" ];
+        # The daemon rewrites the file every few seconds while threads are busy, so no start limit holds the path back.
+        startLimitIntervalSec = 0;
+        environment.KANBAN_THREAD_CARDS = threadCards;
+        serviceConfig = {
+          Type = "oneshot";
+          StateDirectory = "butler-kanban";
+          Environment = "KANBAN_KNOWN_HOSTS=/var/lib/butler-kanban/known_hosts";
+          LoadCredential = "butler-mac-key:/var/lib/secrets/butler-mac-key";
+          # A Mac asleep, a board stopped or a board too old for thread cards is no failure, so it waits for the next run.
+          ExecStart = "${lib.getExe kanban} threads";
+          SuccessExitStatus = [ 75 ];
+        };
+      };
+
+      systemd.paths.butler-kanban-threads = {
+        wantedBy = [ "paths.target" ];
+        pathConfig.PathChanged = threadCards;
+      };
+
+      systemd.timers.butler-kanban-threads = {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnActiveSec = "1min";
+          OnUnitInactiveSec = "1min";
         };
       };
 

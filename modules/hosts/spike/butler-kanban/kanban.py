@@ -12,7 +12,9 @@ archive the change, one he marked done stops it being reported as needing
 him. Only those recorded board actions act; nothing in a card's text does.
 `kanban safe-sweep`, for `butler-kanban-safe-prompts`, has the board approve
 every open prompt its classifier calls safe and audits each approval to
-audit/kanban in butler's memory.
+audit/kanban in butler's memory. `kanban threads`, for `butler-kanban-threads`,
+sends the daemon's thread cards file to the board, one Butler card per
+thread, its events and approvals only while the board runs on spike.
 """
 import fcntl
 import json
@@ -54,8 +56,14 @@ MAX_FIXES = 50
 # A fix still open whose progress is older than this is read again, so a card never sticks on a state its session has left.
 STALE = 30 * 60
 ENDED = ('finished', 'archived', 'failed to start')
+# A Discord thread id, as the daemon names threads in BUTLER_THREAD_ID and its thread cards file.
+THREAD = re.compile(r'^[0-9]{5,25}$')
+# The daemon's thread cards, which `kanban threads` sends to the board.
+THREAD_CARDS = os.environ.get('KANBAN_THREAD_CARDS', '/var/lib/butler/.claude/channels/discord/thread-cards.json')
+# The daemon rewrites the file every minute at least, so one older than this is a daemon that stopped.
+THREAD_CARDS_STALE = 10 * 60
 
-USAGE = '''usage: kanban <tool> (its arguments as a JSON object on stdin, or nothing for none) | kanban changes | kanban board-relay | kanban safe-sweep
+USAGE = '''usage: kanban <tool> (its arguments as a JSON object on stdin, or nothing for none) | kanban changes | kanban board-relay | kanban safe-sweep | kanban threads
 tools: board_snapshot, read_transcript, board_history, put_card, close_card, note, watch, look, arrange,
 put_sticker, delete_annotations, find_stickers, create_region, update_region, delete_region,
 ask_session, send_prompt, announce, answer_prompt, approve_safe_prompts, start_session, finish_session'''
@@ -270,6 +278,19 @@ def apply_board_actions(text, known):
     return '\n'.join(kept)
 
 
+def thread_of(fix):
+    """The Discord thread a change was asked in: the launcher's record once it started, else its queued request's."""
+    thread = (read(os.path.join(SELF_FIX, 'threads', fix)) or '').strip()
+    if not thread:
+        try:
+            with open(os.path.join(SELF_FIX, 'queue', fix + '.json')) as f:
+                queued = json.load(f)
+        except (OSError, ValueError):
+            queued = {}
+        thread = str(queued.get('thread') or '') if isinstance(queued, dict) else ''
+    return thread if THREAD.match(thread) else None
+
+
 def self_fixes():
     """Every change of the last 7 days, as `change list` reads them."""
     sessions = os.path.join(SELF_FIX, 'sessions')
@@ -318,6 +339,9 @@ def self_fixes():
             refresh_if_stale(fix, now)
         if not closed and os.path.exists(os.path.join(SELF_FIX, 'watch', fix)):
             entry['watching'] = True
+        thread = thread_of(fix)
+        if thread:
+            entry['thread'] = thread
         fixes.append(entry)
     return fixes
 
@@ -777,6 +801,83 @@ def safe_sweep():
     return 0
 
 
+def with_parent(args):
+    """Ties a session Butler starts to the thread it was started from, from the daemon's own environment.
+
+    The model's own parent, if it gave one, is replaced, so a card's link to a thread is always the daemon's word.
+    """
+    args = {key: value for key, value in args.items() if key != 'parent'}
+    thread = os.environ.get('BUTLER_THREAD_ID', '')
+    if not THREAD.match(thread):
+        return args
+    parent = {'thread': thread}
+    title = clean(' '.join(os.environ.get('BUTLER_THREAD_TITLE', '').split()), 100).strip()
+    if title:
+        parent['title'] = title
+    desk = clean(os.environ.get('BUTLER_DESK_SESSION', ''), 40).strip()
+    if desk:
+        parent['desk'] = desk
+    args['parent'] = parent
+    return args
+
+
+def thread_cards(path=None, now=None, on_spike=None):
+    """The daemon's thread cards as the board's butler_threads takes them, or None, saying why, when there are none to send.
+
+    The board on pilot, before the cutover, gets each card without its events and approvals, which stay on spike.
+    """
+    path = path or THREAD_CARDS
+    now = time.time() if now is None else now
+    on_spike = os.path.exists(HUB_MARKER) if on_spike is None else on_spike
+    try:
+        with open(path) as f:
+            cards = json.load(f)
+        written = os.stat(path).st_mtime
+    except FileNotFoundError:
+        print('kanban: no thread cards at %s yet, so the board is left as it is' % path)
+        return None
+    except (OSError, ValueError) as error:
+        print('kanban: could not read the thread cards at %s: %s' % (path, error), file=sys.stderr)
+        return None
+    if not isinstance(cards, dict) or not isinstance(cards.get('threads'), list):
+        print('kanban: the thread cards at %s hold no threads list' % path, file=sys.stderr)
+        return None
+    updated = cards.get('updatedAt')
+    if isinstance(updated, (int, float)) and not isinstance(updated, bool):
+        written = updated / 1000
+    if now - written > THREAD_CARDS_STALE:
+        print('kanban: the thread cards are %d minutes old, so the daemon is not writing them and the board is left as it is'
+              % ((now - written) // 60))
+        return None
+    threads = [card for card in cards['threads'] if isinstance(card, dict)]
+    if not on_spike:
+        threads = [dict(card, events=[], approvals=[]) for card in threads]
+    return {'threads': threads}
+
+
+def send_threads():
+    """Sends the daemon's thread cards to the board and prints its reply, the cards and the orphan report, for the journal."""
+    args = thread_cards()
+    if args is None:
+        return 0
+    try:
+        reply = call('butler_threads', args)
+    except Unreachable as error:
+        print('kanban: %s' % error, file=sys.stderr)
+        return 75
+    if not reply.get('ok'):
+        error = str(reply.get('error', 'the board refused'))
+        if 'unknown tool' in error.lower():
+            # A board older than butler_threads, such as pilot's while it waits for the move to spike: no failure.
+            print('kanban: the board runs code older than butler_threads, so it shows no thread cards: %s' % error,
+                  file=sys.stderr)
+            return 75
+        print('kanban: %s' % error, file=sys.stderr)
+        return 1
+    print(reply.get('text', ''))
+    return 0
+
+
 def main(argv):
     if len(argv) != 2 or not TOOL.match(argv[1].replace('-', '_')):
         print(USAGE, file=sys.stderr)
@@ -794,6 +895,12 @@ def main(argv):
         return 0
     if tool == 'safe_sweep':
         return safe_sweep()
+    # The thread cards come from the daemon's own file, sent by spike's root sync alone, never with Butler's arguments.
+    if tool == 'butler_threads':
+        print('kanban: butler_threads is sent by `kanban threads` alone, from the daemon\'s thread cards file', file=sys.stderr)
+        return 2
+    if tool == 'threads':
+        return send_threads()
     if tool == 'self_fixes':
         args = {'fixes': self_fixes()}
         known = {fix['id'] for fix in args['fixes']}
@@ -818,6 +925,8 @@ def main(argv):
             print('kanban: %s' % error, file=sys.stderr)
             return 75
     sent = None
+    if tool == 'start_session':
+        args = with_parent(args)
     if tool in ('start_session', 'send_prompt'):
         args, sent = with_context(tool, args)
     try:
