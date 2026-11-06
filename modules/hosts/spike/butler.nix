@@ -31,7 +31,7 @@ let
   # The outbox, mood and scene pictures, which attach_file posts anywhere a reply goes.
   attachPaths = [
     outbox
-    moods
+    "${moods}"
   ]
   ++ map (group: "${config.butler.scenes.dir}/${group}") (lib.attrNames config.butler.scenes.catalog);
 

@@ -105,7 +105,6 @@ assert os.path.exists(placed), 'ordinary pushes stay'
 
 # A Mac that slept through its timer is cleaned on the next push to it, from spike's record.
 late = p.push_run(plan, 'piggys-MBP', run, state, now=now, ttl=3600)
-subprocess.run(['pkill', '-f', 'sleep 3600'], capture_output=True)
 assert os.path.exists(late)
 p.push_run(check(receipt), 'piggys-MBP', run, state, now=now + 3601)
 assert not os.path.exists(late), 'swept on the next push'

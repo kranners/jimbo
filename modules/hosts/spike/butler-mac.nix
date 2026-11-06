@@ -147,9 +147,22 @@ let
         flakeIgnore = [ "E501" ];
       }
       (
-        builtins.replaceStrings (lib.attrNames substitutions ++ [ "# @presence@" "# @push@" ]) (
-          lib.attrValues substitutions ++ [ presence push ]
-        ) (builtins.readFile ./butler-mac/mac.py)
+        builtins.replaceStrings
+          (
+            lib.attrNames substitutions
+            ++ [
+              "# @presence@"
+              "# @push@"
+            ]
+          )
+          (
+            lib.attrValues substitutions
+            ++ [
+              presence
+              push
+            ]
+          )
+          (builtins.readFile ./butler-mac/mac.py)
       );
 in
 {
