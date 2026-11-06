@@ -54,6 +54,6 @@ A draft is:
 - A draft is refused when an exercise's heaviest set rises more than 7 kg over the routine in Hevy, a new exercise's over the heaviest of its muscle group there, or the routine's heaviest when the group is new, or a muscle group gains more working sets than one or a tenth, whichever is more, so progress comes in small steps; the first fill of an empty routine is not capped.
 
 Apply a draft without asking once Aaron has asked for the change or agreed to the plan, and show him the diff the tool printed, word for word.
-Never call `apply` in a scheduled run, which refuses it anyway.
+In a scheduled run, apply a routine only when the job's prompt, which Aaron approved, says to.
 
 When a call fails saying the Hevy session is missing or was refused, tell Aaron in one line that he needs to run `sudo -u butler hevy login` on spike with the `auth2.0-token` cookie from hevy.com, then carry on without Hevy.

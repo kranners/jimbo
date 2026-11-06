@@ -59,9 +59,9 @@ in
 
     systemd.tmpfiles.rules = [ "d ${directory} 0700 butler butler -" ];
 
-    # The work rules come first, since the first rule that matches decides:
-    # reading work mail is a conversation's, and of the scheduled runs only the work watch's, listing, searching and reading,
-    # while every other scheduled run sees only the meetings' times and titles.
+    # The work rules come first, since the first rule that matches decides.
+    # Reading work mail, and the meetings in full, is a conversation's and every scheduled run's,
+    # since the daemon opens every rule a conversation has to a scheduled run, as Aaron asked on 6 Nov 2026.
     butler.commands.mail.rules = lib.mkBefore (
       map
         (verb: {
@@ -71,7 +71,6 @@ in
             "**"
           ];
           lanes = both;
-          jobs = [ "work-watch-*" ];
         })
         [
           "list"
