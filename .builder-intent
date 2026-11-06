@@ -1,0 +1,1 @@
+Change 20261106-115545-3201794: kanban folder picker browses and checks paths on the selected machine's runner, not the hub's disk, with a clear offline/unauthenticated runner error; kranners/kanban (src/server runners + picker), docs in jimbo only if needed.
