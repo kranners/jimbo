@@ -314,6 +314,7 @@
         ./butler-render.nix
         ./butler-scenes.nix
         ./butler-probe.nix
+        ./pulse.nix
         ./butler-self-fix.nix
         ./butler-selfcheck.nix
         ./butler-shell.nix
