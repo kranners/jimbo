@@ -169,6 +169,22 @@
           python3 -I ${./pulse-reflex/test_act.py} ${./pulse-reflex/act.py} ${./pulse-reflex/mac-free-disk.sh} > $out 2>&1 || { cat $out; exit 1; }
         '';
 
+    # The usage governor against fixture Prometheus answers and sinks, offline: learning each account's burn, its
+    # mode, the start order, the runner's ceilings and which sinks the spare budget releases.
+    pulse-governor =
+      pkgs.runCommand "pulse-governor-test"
+        {
+          nativeBuildInputs = [
+            (pkgs.python3.withPackages (ps: [
+              ps.pyyaml
+              ps.tzdata
+            ]))
+          ];
+        }
+        ''
+          python3 -I ${./pulse-governor/test_governor.py} ${./pulse-governor/governor.py} > $out 2>&1 || { cat $out; exit 1; }
+        '';
+
     # The Work in flight snapshot from fixture change records, offline, checking nothing private or path-shaped gets out.
     butler-work =
       let
@@ -332,6 +348,7 @@
         ./butler-scenes.nix
         ./butler-probe.nix
         ./pulse.nix
+        ./pulse-governor.nix
         ./butler-self-fix.nix
         ./butler-selfcheck.nix
         ./butler-shell.nix
