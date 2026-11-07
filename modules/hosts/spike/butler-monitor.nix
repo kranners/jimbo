@@ -65,6 +65,8 @@ let
       "framer"
     ];
     work = config.butler.work.snapshot;
+    # butler-integration-check's results, for the one line `monitor status` gives them.
+    integrations = "/var/lib/butler-audit/integrations.json";
     # The daemon's root log, one JSON line per root command Butler ran, for unusual root use.
     rootLog = config.butler.root.logFile;
     # The daemon's call state file, which carries its turn pool, and the back-off file it reads.

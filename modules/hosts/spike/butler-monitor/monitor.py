@@ -1807,6 +1807,25 @@ def machine_line(host, m):
     return '%s: up, %s' % (host, ', '.join(parts) or 'no readings')
 
 
+def integrations_line(path, now):
+    """One line from butler-integration-check's status file, which the integration check tells Aaron about itself."""
+    if not path:
+        return None
+    try:
+        with open(path) as f:
+            doc = json.load(f)
+    except (OSError, ValueError):
+        return 'Integrations: not checked yet'
+    counts = doc.get('summary') or {}
+    failing = [c.get('id') for c in doc.get('checks', []) if c.get('status') == 'fail']
+    text = 'Integrations at %s: %d pass, %d warn, %d fail%s, %d not connected' % (
+        time.strftime('%H:%M', time.localtime(doc.get('generated', 0))), counts.get('pass', 0), counts.get('warn', 0),
+        counts.get('fail', 0), (' (%s)' % ', '.join(failing[:6])) if failing else '', counts.get('not connected', 0))
+    if now - doc.get('generated', 0) > 13 * 3600:
+        text += '; stale, last run %d hours ago' % ((now - doc.get('generated', 0)) // 3600)
+    return text
+
+
 def status_text(snapshot, findings, mode, now, expected=None):
     lines = ['Monitor checked at %s; acting is %s.' % (time.strftime('%H:%M', time.localtime(now)), mode)]
     lines += [machine_line(h, m) for h, m in sorted(snapshot['machines'].items())]
@@ -1818,6 +1837,9 @@ def status_text(snapshot, findings, mode, now, expected=None):
     refused = ((snapshot.get('github') or {}).get('refused') or {})
     if refused:
         lines.append('GitHub: ' + ', '.join('%s %s' % (name, 'refused' if why else 'ok') for name, why in sorted(refused.items())))
+    integrations = integrations_line(CONFIG.get('integrations'), now)
+    if integrations:
+        lines.append(integrations)
     problems = [f['text'] for f in findings if f['level'] != 'info']
     noted = [f['text'] + (' (%s)' % f['why'] if f.get('why') else '') for f in findings if f['level'] == 'info']
     lines.append('Open problems: ' + ('; '.join(problems) if problems else 'none'))

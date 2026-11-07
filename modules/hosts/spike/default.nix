@@ -202,6 +202,17 @@
       python3 -I ${./butler-kanban/test_kanban.py} ${./butler-kanban/kanban.py} > $out 2>&1 || { cat $out; exit 1; }
     '';
 
+    # The live integration check offline: coverage names real checks, secrets never reach a cause or an alert, alerts go out once and never for a source not connected, the writers' gates judged from a manifest, and checks against fake services.
+    butler-integrations =
+      let
+        coverage = pkgs.writeText "butler-integrations-coverage.json" (
+          builtins.toJSON (import ./butler-integrations/coverage.nix)
+        );
+      in
+      pkgs.runCommand "butler-integrations-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+        python3 -I ${./butler-integrations/test_check.py} ${./butler-integrations/check.py} ${coverage} > $out 2>&1 || { cat $out; exit 1; }
+      '';
+
     # The Threads snapshot from a fixture threads.db, checking kinds, states and that no message text gets out.
     butler-threads = pkgs.runCommand "butler-threads-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 -I ${./butler-threads/test_threads.py} ${./butler-threads/threads.py} > $out 2>&1 || { cat $out; exit 1; }
@@ -281,6 +292,7 @@
         ./butler-assets.nix
         ./butler-imagine.nix
         ./butler-inbox.nix
+        ./butler-integrations.nix
         ./butler-voice-sample.nix
         ./butler-jobs.nix
         ./butler-kanban.nix

@@ -718,6 +718,16 @@ snapshot['root'] = {'entries': [], 'sudoers': 'b'}
 check('a sudoers change warns', [x for x in monitor.evaluate(snapshot, root_state, t0 + 120) if x['key'].startswith('root:sudoers:')])
 check('and stops after an hour', not [x for x in monitor.evaluate(snapshot, root_state, t0 + 4000) if x['key'].startswith('root:sudoers:')])
 
+# The integration check's one line in `monitor status`.
+integrations_path = os.path.join(tmp, 'integrations.json')
+with open(integrations_path, 'w') as f:
+    json.dump({'generated': 1000, 'summary': {'pass': 30, 'warn': 2, 'fail': 1, 'not connected': 3},
+               'checks': [{'id': 'up', 'status': 'fail'}, {'id': 'slack-read', 'status': 'pass'}]}, f)
+line = monitor.integrations_line(integrations_path, 1000 + 3600)
+check('the integrations line counts and names the failing check', '30 pass' in line and '1 fail (up)' in line and 'stale' not in line)
+check('a stale integrations file says so', 'stale' in monitor.integrations_line(integrations_path, 1000 + 20 * 3600))
+check('no integrations file reads as not checked', monitor.integrations_line(os.path.join(tmp, 'none.json'), 0) == 'Integrations: not checked yet' and monitor.integrations_line(None, 0) is None)
+
 if failures:
     print('%d failed' % len(failures))
     sys.exit(1)
