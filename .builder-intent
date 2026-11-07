@@ -1,0 +1,1 @@
+Change 20261107-172434-4189459: Send now interrupts the running step (claude-discord-threads worker/force/commands, new src/engine/running.ts); jimbo only the force-send sentence in modules/hosts/spike/CLAUDE.md; butler-memory butler-internals skill note.
