@@ -43,13 +43,25 @@ let
     } </dev/null >/dev/null 2>&1 &
   '';
 
+  # Butler's voice endpoint answers a lone filler like these with silence
+  # unless its last reply asked a question, and Home Assistant then speaks
+  # nothing, so nothing would stop the tick: it is not started for them.
+  fillerWords = lib.concatStringsSep "|" [
+    "mm" "mmm" "hmm" "hm" "mhm" "uh" "um" "umm" "er" "erm" "ah" "oh" "eh" "huh"
+    "i" "a" "the" "and" "so" "well" "like" "you" "thank" "bye"
+    "yes" "yeah" "yep" "yup" "no" "nope" "nah" "okay" "ok" "sure" "right" "alright"
+  ];
+
   showHeardAndThink = pkgs.writeShellScript "show-heard-and-think" ''
     export XDG_RUNTIME_DIR=/run/user/$UID
     heard=$(cat)
     systemctl --user stop ${thinkingUnit} 2>/dev/null
+    words=$(printf %s "$heard" | tr '[:upper:]' '[:lower:]' | tr -c "a-z'\n" ' ')
+    if printf %s "$words" | ${pkgs.gnugrep}/bin/grep -qvxE " *((${fillerWords})( +|$))* *"; then
     systemd-run --user --collect --quiet --unit=${thinkingUnit} -p RuntimeMaxSec=60 -- \
       ${pkgs.runtimeShell} -c 'sleep 0.6; while :; do ${pkgs.pipewire}/bin/pw-play ${thinkingTick}; sleep 1.2; done' \
       >/dev/null 2>&1
+    fi
     {
       printf %s "$heard" | ${lib.getExe pkgs.jq} -Rs '{heard: .}' | ${postToWebhook "framer-voice"}
     } </dev/null >/dev/null 2>&1 &
