@@ -130,6 +130,13 @@ let
     )
   );
 
+  # The key combo parser, taken in the same way, at its @keys@ line.
+  keys = lib.concatStringsSep "\n" (
+    lib.filter (line: !(lib.hasPrefix "import " line)) (
+      lib.splitString "\n" (builtins.readFile ./butler-mac/keys.py)
+    )
+  );
+
   # Push's checks, taken in the same way, at its @push@ line.
   push = lib.concatStringsSep "\n" (
     lib.filter (line: !(lib.hasPrefix "import " line)) (
@@ -153,6 +160,7 @@ let
             ++ [
               "# @presence@"
               "# @push@"
+              "# @keys@"
             ]
           )
           (
@@ -160,6 +168,7 @@ let
             ++ [
               presence
               push
+              keys
             ]
           )
           (builtins.readFile ./butler-mac/mac.py)
@@ -170,8 +179,9 @@ in
     package = mac;
     description = ''
       See and drive Aaron's MacBooks, pilot and piggys-MBP, and his dual-boot PC jimbo, as he watches: his real screen, mouse and keyboard over VNC, and a shell over ssh.
-      mac hosts | mac log [count] | mac <host> look | mac <host> say [text] (or text on stdin) | mac <host> done [what you left open] | mac <host> click <x> <y> [left|right|middle|double] | mac <host> move <x> <y> | mac <host> drag <x1> <y1> <x2> <y2> | mac <host> scroll <x> <y> <up|down> [clicks] | mac <host> type [text] (or text on stdin) | mac <host> key <combo> [combo...] | mac <host> windows | mac <host> run [shell words] (or a script on stdin, for anything with a dash) | mac <host> record start | mac <host> record stop | mac <host> keepawake [status|on|off] | mac <host> sleep | mac <host> push <spike path> [folder] [keep] | mac jimbo boot <linux|windows> [confirm]
+      mac hosts | mac log [count] | mac <host> look | mac <host> say [text] (or text on stdin) | mac <host> done [what you left open] | mac <host> click <x> <y> [left|right|middle|double] | mac <host> move <x> <y> | mac <host> drag <x1> <y1> <x2> <y2> | mac <host> scroll <x> <y> <up|down> [clicks] | mac <host> type [text] (or text on stdin) | mac <host> paste [text] (or text on stdin) | mac <host> key <combo> [combo...] | mac <host> windows | mac <host> run [shell words] (or a script on stdin, for anything with a dash) | mac <host> record start | mac <host> record stop | mac <host> keepawake [status|on|off] | mac <host> sleep | mac <host> push <spike path> [folder] [keep] | mac jimbo boot <linux|windows> [confirm]
       jimbo runs NixOS with Hyprland or Windows, one at a time: mac hosts says which is up, run takes sh on Linux and PowerShell on Windows, it has no cmd key (use ctrl and super), and boot restarts it into the other only when Aaron asks, never past a login or disk-encryption screen.
+      key takes combos such as cmd+k, cmd+shift+4, ctrl+alt+t or enter, joined with + or -, and refuses function keys, system keys and chords that lock, log out or force quit, saying why; paste puts text on the clipboard and pastes it, for long text, emoji and chat boxes, never for a secret, and not on Windows.
       windows lists the front app, the running apps and every window front to back with its place and size, so you can open, focus, switch, resize, minimise, close and quit apps and windows; the mac skill has the recipes.
       On the Macs: mac <host> menu <app|front> [menu] [item...] | mac <host> dialog [app] | mac <host> press <number|name> [app] | mac <host> focus <number|name> [app] | mac <host> displays | mac <host> display <n> [look] | mac <host> display <n> click <x> <y> [left|right|double] | mac <host> window <rectangle action> | mac <host> window display <n>
       menu lists an app's menus or chooses an item by name, dialog numbers the front window's buttons and fields for press and focus, displays and display see and click every screen, not just the main one look shows, and window snaps or moves the front window with Rectangle; the only stop is a password or Touch ID prompt, which goes to Aaron.

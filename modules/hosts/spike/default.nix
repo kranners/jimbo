@@ -222,6 +222,14 @@
           python3 -I ${./butler-mac/test_presence.py} ${./butler-mac/presence.py} > $out 2>&1 || { cat $out; exit 1; }
         '';
 
+    # mac key: combos such as cmd+k parse with + or -, function keys and lock, log-out and force-quit chords are refused, and every keysym is one vncdotool knows.
+    butler-mac-keys =
+      pkgs.runCommand "butler-mac-keys-test"
+        { nativeBuildInputs = [ (pkgs.python3.withPackages (p: [ p.vncdotool ])) ]; }
+        ''
+          python3 -I ${./butler-mac/test_keys.py} ${./butler-mac/keys.py} --require-vncdotool > $out 2>&1 || { cat $out; exit 1; }
+        '';
+
     # mac push: a file butler may attach lands in a fake Mac's ~/butler-drop, secrets and uncleared sensitive documents are refused, and a sensitive copy is deleted after its time.
     butler-mac-push =
       pkgs.runCommand "butler-mac-push-test" { nativeBuildInputs = [ pkgs.python3 ]; }

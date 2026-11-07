@@ -47,8 +47,11 @@ A screen can show private things, mail, messages, notifications, passwords or wo
 
 Prefer the keyboard to the mouse, since it does not depend on reading pixels:
 - `key cmd-space`, then `type` an app's name, then `key enter` opens any app. On pilot, Cmd-Space opens Raycast.
-- `key cmd-tab`, `cmd-w`, `cmd-t`, `cmd-l`, `cmd-shift-t`, `cmd-c`, `cmd-v` work as they do for him. `cmd`, `option`, `ctrl` and `shift` combine with dashes.
-- `type` sends text as keystrokes on a US layout. Pass long or multi-line text on stdin, where a newline presses Enter. It refuses characters outside Latin-1, such as curly quotes, dashes and emoji: for those, and for a lot of text, `run` `pbcopy` with the text on stdin, then `key cmd-v`.
+- `key cmd+k`, `cmd+tab`, `cmd+w`, `cmd+t`, `cmd+l`, `cmd+shift+t`, `cmd+shift+4`, `cmd+c`, `cmd+v` work as they do for him. `cmd`, `option` (or `alt`), `ctrl` and `shift` combine with `+` or `-`, in any order and any case, then one key: a letter, digit or punctuation such as `,` `.` `/` `[` `]` `` ` `` `=` `-` (or `minus`, `plus`), or `enter`, `tab`, `esc`, `space`, `delete` (backspace on a Mac), `forwarddelete`, the arrows, `home`, `end`, `pgup`, `pgdn`. Several combos in one call press one after another, as `key cmd+k enter`.
+- `key` refuses, saying why and what to do instead, function keys, system and media keys, Force Quit (`cmd+option+esc`), the lock screen (`ctrl+cmd+q`) and logging out (`cmd+shift+q`) on the Macs, `super+shift+q` on Hyprland, and `win+l`, `ctrl+alt+del` and Task Manager on Windows.
+- `type` sends text as keystrokes on a US layout, paced so nothing is dropped. Pass long or multi-line text on stdin, where a newline presses Enter. It refuses characters outside Latin-1, such as curly quotes, dashes and emoji.
+- `paste`, with the text as words or on stdin, puts it on the clipboard over ssh and presses `cmd+v`, or `ctrl+v` on Linux, so long text, emoji and punctuation arrive whole and at once; prefer it to `type` for more than a sentence, and for chat boxes, whose `:` and `@` pickers can eat typed keys. It replaces the clipboard, so never for a password or anything secret, and Windows has no `paste`: `type` there, a few hundred characters at a time. A terminal on Linux pastes with `key ctrl+shift+v` instead, after a `paste` into another window.
+- After `type` or `paste`, read the screenshot it prints and check the text is all there before anything sends it.
 - An arg that starts with `-` is refused, so pass any shell command with flags on stdin to `mac <host> run`.
 
 Prefer `run` to the screen for anything a shell can do: reading files, git, builds, tests, `open -a <App>`, `open <url>`.
@@ -70,10 +73,18 @@ Recipes, each followed by a `look` to check it worked. A command with a flag goe
 - Tabs: `key cmd-t` for a new one, `cmd-1` to `cmd-9` to pick one, `cmd-shift-]` and `cmd-shift-[` or `ctrl-tab` to step, `cmd-l` to type a URL into the current one.
 - Resize or move: `window <action>` with a Rectangle action such as `left-half` or `maximize`, `window display <n>` to move it to another display, or drag the window's bottom-right corner or title bar using the place and size from `windows`. `key cmd-ctrl-f` toggles full screen in most apps.
 - Minimise the front window: `key cmd-m`. Hide the front app: `key cmd-h`. Bring either back with `open -a`.
-- Close the front window or tab: `key cmd-w`. Quit the front app: `key cmd-q`. So to close or quit something, `open -a` it first, check with `look` that it is in front, then press the key.
+- Close the front window or tab: `key cmd-w`. Quit the front app: `key cmd+q`, the only way to quit, never Force Quit. So to close or quit something, `open -a` it first, check with `look` that it is in front, then press the key.
 - Close only windows and tabs you opened, and quit only apps you launched, unless Aaron asks for one by name. If a dialog asks to save, cancel with `key esc` and ask him.
 - Never `kill`, `pkill` or `killall` an app.
-- Never send function keys, f1 to f12: they reach the front app, not the Mac.
+- Never send function keys, f1 to f12: they reach the front app, not the Mac, and `key` refuses them.
+
+## Sending in Discord through the app
+
+1. `open -a Discord` on stdin to `mac <host> run`, then `look` to check it is in front and signed in.
+2. `key cmd+k` (`ctrl+k` on jimbo) opens Find or start a conversation; `paste` or `type` the server, channel or person's name, check the screenshot's top match, then `key enter`.
+3. Check the channel's or DM's header names who Aaron meant before writing anything; if it does not, `key esc` and search again.
+4. `paste` the message into the message box, which has the focus once a conversation opens, and check the screenshot shows it whole.
+5. Send it once with `key enter`, which asks for `confirm` with what will be sent and to whom, then `look` to check it appears once in the conversation; never press Enter again because a look was slow.
 
 To show Aaron something, such as a screenshot of the board: open or focus it, `look`, check it shows what he asked for and nothing private, and attach that screenshot.
 
@@ -194,7 +205,7 @@ What differs from the Macs:
 - There is no `cmd` key, and `key` refuses one. Shortcuts use `ctrl`, so `ctrl-c`, `ctrl-v`, `ctrl-t`, `ctrl-l`, `ctrl-w`, and `super` is the Windows key, or Hyprland's modifier on Linux. `alt-tab` switches windows on Windows.
 - `run` takes a POSIX shell command on Linux, run by zsh as Aaron with Hyprland's environment, so `hyprctl`, `wl-copy` and GUI apps reach his screen, and a PowerShell script on Windows, run as Aaron with administrator rights.
 - On Windows, `run` runs in a background session that cannot see or open anything on his desktop. Open an app there with the keyboard instead: `key super`, `type` its name, `key enter`. A URL: `key super-r`, `type` it, `key enter`. Its clipboard is not his either, so type long text rather than pasting it.
-- On Linux, open an app with `run hyprctl dispatch exec <app>`, a URL with `run xdg-open "<url>"`, and paste text you cannot type with `wl-copy` on stdin to `run`, then `key ctrl-v`. Hyprland's own keys: `super-space` opens the launcher, `super-return` a terminal, `super-1` to `super-0` switch workspaces, `super-f` toggles full screen, and `super-shift-q` closes the front window.
+- On Linux, open an app with `run hyprctl dispatch exec <app>`, a URL with `run xdg-open "<url>"`, and paste text with `mac jimbo paste`. Hyprland's own keys: `super-space` opens the launcher, `super-return` a terminal, `super-1` to `super-0` switch workspaces, and `super-f` toggles full screen; `key` refuses `super-shift-q`, which closes the window and ends the session once none is left, so close a window from its own menu or with `ctrl-w`.
 - `windows` on Linux lists the front window, each screen and every window, most recently focused first, with its class, workspace, state, place and size, from `hyprctl`; to focus one, `run hyprctl dispatch focuswindow class:<class>`. On Windows it lists the front window, each screen and every window front to back, with its process, whether it is minimised or maximised, place and size in pixels, and title, as long as Aaron is signed in.
 - Screenshots are scaled to at most 1512 pixels wide, as on the Macs; Windows shows all its screens side by side in one picture, and Linux shows one screen.
 - On Windows each picture is taken on the PC itself, so a look or action takes a couple of seconds, the mouse pointer is not drawn, and `record` gets about one frame every two seconds. A locked PC, or one at its login screen, cannot be pictured, and `look` says so.

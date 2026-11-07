@@ -71,12 +71,12 @@ START_TIMEOUT = 90
 IDLE = 600
 DRAG_STEPS = 12
 BUTTONS = {'left': 1, 'middle': 2, 'right': 3}
-ALIASES = {
-    'cmd': 'super', 'command': 'super', 'opt': 'alt', 'option': 'alt',
-    'control': 'ctrl', 'return': 'enter', 'escape': 'esc', 'backspace': 'bsp',
-    'delete': 'bsp', 'forwarddelete': 'del',
-}
 TYPED = {'\n': 'enter', '\t': 'tab', ' ': 'space'}
+# type paces its keystrokes, since Apple's Screen Sharing and apps such as Discord dropped or reordered characters sent
+# back to back: a short gap after each, and a longer one after each chunk, so autocompletion keeps up.
+TYPE_GAP = 0.012
+TYPE_CHUNK = 24
+TYPE_CHUNK_GAP = 0.12
 
 USAGE = '''usage: mac hosts
        mac log [count]
@@ -88,7 +88,8 @@ USAGE = '''usage: mac hosts
        mac <host> drag <x1> <y1> <x2> <y2>
        mac <host> scroll <x> <y> <up|down> [clicks]
        mac <host> type [text]          (text on stdin when no arg)
-       mac <host> key <combo> [combo...]   (e.g. cmd-space, enter, cmd-shift-t)
+       mac <host> paste [text]         (puts text on the clipboard, then cmd+v, or ctrl+v on Linux; text on stdin when no arg)
+       mac <host> key <combo> [combo...]   (e.g. cmd+k, cmd-space, enter, cmd+shift+4; never function keys)
        mac <host> windows              (front app, running apps, windows front to back)
        mac <host> run [shell words]    (script on stdin when no arg)
        mac <host> record start | stop
@@ -126,6 +127,8 @@ PRESENCE = os.path.join(STATE, 'presence')
 # @presence@
 
 # @push@
+
+# @keys@
 
 # What push may copy from spike, the daemon's attach roots and read roots, the identity documents among them, and
 # each thread's scratch folder; the daemon judges every push first, and this checks again.
@@ -501,12 +504,14 @@ def keymap():
     return vnc.KEYMAP
 
 
-def keys(combo):
-    parts = combo[:-2].split('-') + ['minus'] if combo.endswith('--') else combo.split('-')
-    return '-'.join(ALIASES.get(part.lower(), part.lower() if len(part) > 1 else part) for part in parts)
+def keys(combo, system='macos'):
+    try:
+        return key_combo(combo, system)
+    except KeyRefused as error:
+        raise Refused(str(error))
 
 
-def act(client, verb, args, stdin=''):
+def act(client, verb, args, stdin='', system='macos'):
     if verb == 'click':
         x, y = point(client, args[0], args[1])
         how = args[2] if len(args) > 2 else 'left'
@@ -532,14 +537,16 @@ def act(client, verb, args, stdin=''):
             client.mousePress(button)
     elif verb == 'type':
         typed = ' '.join(args) if args else stdin
-        for character in typed:
+        for number, character in enumerate(typed, 1):
             client.keyPress(TYPED.get(character, character))
+            time.sleep(TYPE_CHUNK_GAP if number % TYPE_CHUNK == 0 else TYPE_GAP)
         # What was typed may be private, so the log says only how much.
         return 'type (%d characters)' % len(typed)
     elif verb == 'key':
         keymap()
         for combo in args:
-            client.keyPress(keys(combo))
+            client.keyPress(keys(combo, system))
+            time.sleep(TYPE_GAP)
     return '%s %s' % (verb, ' '.join(args)) if args else verb
 
 
@@ -556,12 +563,10 @@ def check(verb, args, system='macos'):
     if verb == 'scroll' and (len(args) < 3 or args[2] not in ('up', 'down') or (len(args) > 3 and not args[3].isdigit())):
         raise Refused('scroll takes <x> <y> <up|down> [clicks]')
     if verb == 'key':
+        if not args:
+            raise Refused('key takes one or more combos, such as key cmd+k or key cmd+shift+4 enter')
         for combo in args:
-            unknown = [part for part in keys(combo).split('-') if len(part) != 1 and part not in keymap()]
-            if not combo or unknown:
-                raise Refused('unknown key %s in %s' % (', '.join(unknown) or '(empty)', combo))
-            if system != 'macos' and {'cmd', 'command'} & set(combo.lower().split('-')):
-                raise Refused('%s has no cmd key: use ctrl for shortcuts such as ctrl-c, and super for the Windows or Hyprland key' % OS_NAMES[system])
+            keys(combo, system)
 
 
 def session(host):
@@ -580,7 +585,7 @@ def serve(host):
                 acted = None
                 if request['verb'] != 'look':
                     stage = 'input'
-                    done = act(client, request['verb'], request['args'], request['stdin'])
+                    done = act(client, request['verb'], request['args'], request['stdin'], system_of(host))
                     acted = time.time()
                     journal(host, done)
                     stage = 'screenshot'
@@ -747,6 +752,42 @@ def run(host, words, stdin=''):
     if result.stderr:
         print('[stderr]\n' + result.stderr, end='')
     print('[exit %d]' % result.returncode)
+
+
+PASTE_LIMIT = 20000
+PASTE_COMMANDS = {
+    'macos': 'LC_ALL=en_US.UTF-8 pbcopy',
+    # wl-copy stays behind to serve the clipboard, so its output must not hold the ssh channel open.
+    'linux': LINUX_ENV + 'wl-copy > /dev/null 2>&1',
+}
+
+
+def paste(host, args):
+    """Types text by the clipboard: any characters at once, none dropped, for long text and what type refuses.
+    It replaces the clipboard, so never for a secret; on a Mac it refuses while the focus is in a password field."""
+    # One trailing newline from stdin is the end of the text, not an Enter, which would send in a chat box.
+    text = ' '.join(args) if args else sys.stdin.read().removesuffix('\n')
+    system = system_of(host)
+    if not text:
+        raise Refused('paste takes text as words or on stdin')
+    if len(text) > PASTE_LIMIT:
+        raise Refused('paste takes at most %d characters, not %d' % (PASTE_LIMIT, len(text)))
+    if system not in PASTE_COMMANDS:
+        raise Refused('paste needs the desktop\'s clipboard, which an ssh login on Windows cannot reach; type the text instead, in parts of a few hundred characters, checking each screenshot')
+    if system == 'macos':
+        guard_password(host)
+    guard_outcome(host, 'paste', args, text)
+    take(host, describe('paste', args, text), narrate('paste', args, text), opening='Taking a look at the screen')
+    connect_ssh(host)
+    try:
+        result = subprocess.run(ssh_args(host) + [PASTE_COMMANDS[system]], input=text, capture_output=True, text=True, timeout=20)
+    except subprocess.TimeoutExpired:
+        raise Refused('setting the clipboard on %s gave up after 20 s; nothing was pasted' % host)
+    if result.returncode != 0:
+        raise Refused('setting the clipboard on %s failed (exit %d): %s; nothing was pasted' % (host, result.returncode, clip(result.stderr.strip(), 200)))
+    combo = 'cmd+v' if system == 'macos' else 'ctrl+v'
+    print(ask(host, {'verb': 'key', 'args': [combo], 'stdin': ''}))
+    print('pasted %d characters with %s; check the screenshot shows them where you meant, since the clipboard now holds them' % (len(text), combo))
 
 
 FETCH_RESOLVE = r"""
@@ -1370,6 +1411,14 @@ def front_context(host):
     return None
 
 
+def pressed(combo):
+    """The last key a combo presses, without a modifier, or '' when it is no combo."""
+    try:
+        return key_combo(combo, 'macos').split('-')[-1]
+    except KeyRefused:
+        return ''
+
+
 def committing(verb, args, stdin):
     """Whether an action could send, post or pay in the window it lands in."""
     if verb in ('click', 'press'):
@@ -1379,8 +1428,8 @@ def committing(verb, args, stdin):
     if verb == 'menu':
         return len(args) > 1
     if verb == 'key':
-        return any(keys(combo).split('-')[-1] == 'enter' for combo in args)
-    if verb == 'type':
+        return any(pressed(combo) == 'enter' for combo in args)
+    if verb in ('type', 'paste'):
         return '\n' in (' '.join(args) if args else stdin)
     return False
 
@@ -1442,8 +1491,8 @@ def command_name(words, stdin):
 
 def describe(verb, args, stdin):
     """What an action did, for the audit trail; never what was typed, and a shell command only with secrets cut."""
-    if verb == 'type':
-        return 'type (%d characters, not logged)' % len(' '.join(args) if args else stdin)
+    if verb in ('type', 'paste'):
+        return '%s (%d characters, not logged)' % (verb, len(' '.join(args) if args else stdin))
     if verb == 'run':
         command = ' '.join(args) if args else stdin
         return 'run: ' + clip(redact(command), 300)
@@ -1465,6 +1514,8 @@ def narrate(verb, args, stdin):
         return 'Scrolling %s' % args[2]
     if verb == 'type':
         return 'Typing…'
+    if verb == 'paste':
+        return 'Pasting…'
     if verb == 'key':
         return 'Pressing ' + ', '.join(args)
     if verb == 'windows':
@@ -1773,6 +1824,8 @@ def act_on(host, verb, rest):
     if verb == 'window':
         take(host, 'window ' + ' '.join(rest), 'Arranging the window')
         return window(host, rest)
+    if verb == 'paste':
+        return paste(host, rest)
     if verb not in ACTIONS:
         print(USAGE, file=sys.stderr)
         return 2
@@ -1780,7 +1833,7 @@ def act_on(host, verb, rest):
     stdin = sys.stdin.read() if verb == 'type' and not rest else ''
     wide = sorted({character for character in ' '.join(rest) + stdin if ord(character) > 0xFF})
     if wide:
-        raise Refused('type sends Latin-1 only, not %s; on a Mac run pbcopy with the text on stdin, then key cmd-v; on Linux run wl-copy with it, then key ctrl-v' % ' '.join(wide))
+        raise Refused('type sends Latin-1 only, not %s; use mac <host> paste with the same text, which puts it on the clipboard and pastes it' % ' '.join(wide))
     if verb == 'type' and system_of(host) == 'macos':
         guard_password(host)
     guard_outcome(host, verb, rest, stdin)
