@@ -16,6 +16,15 @@ let
     sessions = 64;
     peerCloudClaims = 0;
   };
+  third = gates "third" {
+    sessions = 64;
+    peerCloudClaims = 0;
+    accountCeilings = {
+      cloud-work-2.sevenDayLimit = 0.95;
+      cloud-work-9.sevenDayLimit = 0.95;
+      learned.sevenDayLimit = 0.95;
+    };
+  };
 in
 {
   # Options only, off by default: spike runs backlogic's runner with them, and the NUC can once its role is on.
@@ -40,6 +49,14 @@ in
         ${pkgs.lib.getExe second} | grep -q 'already the module'
         [ "$(jq .sessions $TMPDIR/config/runner.json)" = 3 ]
         [ -z "$(ls -A $STATE_DIRECTORY | grep -v '^applied.json$')" ]
+        # An account's ceilings merge into that account alone, its other settings kept.
+        # One with a learned reserve, which refuses them, and one missing are named and left alone.
+        echo '{"sessions":64,"accounts":[{"name":"personal","sevenDayLimit":1},{"name":"cloud-work-2","sevenDayPacing":1,"sevenDayLimit":0.8},{"name":"learned","reserve":"learned"}]}' > $TMPDIR/config/runner.json
+        ${pkgs.lib.getExe third} 2>$TMPDIR/skipped
+        [ "$(jq -c .accounts $TMPDIR/config/runner.json)" = '[{"name":"personal","sevenDayLimit":1},{"name":"cloud-work-2","sevenDayPacing":1,"sevenDayLimit":0.95},{"name":"learned","reserve":"learned"}]' ]
+        grep -q 'account cloud-work-9 is not' $TMPDIR/skipped
+        grep -q 'account learned is not' $TMPDIR/skipped
+        [ "$(jq 'has("accountCeilings")' $TMPDIR/config/runner.json)" = false ]
         touch $out
       '';
 }

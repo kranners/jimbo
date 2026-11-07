@@ -314,6 +314,11 @@ in
       loadPerCpu = 1.0;
       memoryAvailableFloor = 0.3;
       peerCloudClaims = 0;
+      # Aaron asked on 7 Nov 2026 for the work accounts' week to be spent before it resets, so
+      # their pacing ceiling, which reached 80% at most, now stops at 95%; the 5-hour ceiling and personal keep theirs.
+      accountCeilings = lib.genAttrs [ "cloud-work-2" "cloud-work-3" "cloud-work-4" ] (_: {
+        sevenDayLimit = 0.95;
+      });
     };
   };
 

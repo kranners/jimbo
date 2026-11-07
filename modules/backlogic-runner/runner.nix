@@ -69,6 +69,7 @@ let
         loadPerCpu
         memoryAvailableFloor
         peerCloudClaims
+        accountCeilings
         ;
     }
   );
@@ -174,6 +175,38 @@ in
         description = "runner.json's `peerCloudClaims`: the most cloud sessions at once on tickets copied from a peer instance, 0 to work none of them in the cloud.";
         type = types.ints.unsigned;
         default = 0;
+      };
+
+      # An account's own usage ceilings in runner.json, merged into its entry of `accounts`, so
+      # the module keeps them as it keeps the gates above, until Pulse's usage governor sets them itself.
+      accountCeilings = mkOption {
+        description = "Usage ceilings per account name, merged into that account's entry of runner.json's `accounts`; accounts not named keep their own.";
+        type = types.attrsOf (
+          types.submodule {
+            options = {
+              fiveHourCeiling = mkOption {
+                description = "The share of the 5-hour window the account may reach, or false to turn that gate off.";
+                type = types.nullOr (types.either (types.enum [ false ]) (types.numbers.between 0 1));
+                default = null;
+              };
+              sevenDayPacing = mkOption {
+                description = "The share of the week's headroom, above the share of the week gone, the account may use, or false to turn the weekly gate off.";
+                type = types.nullOr (types.either (types.enum [ false ]) (types.numbers.between 0 1));
+                default = null;
+              };
+              sevenDayLimit = mkOption {
+                description = "The weekly use the account's pacing ceiling never passes.";
+                type = types.nullOr (types.numbers.between 0 1);
+                default = null;
+              };
+            };
+          }
+        );
+        default = { };
+        example = {
+          cloud-work-2.sevenDayLimit = 0.95;
+        };
+        apply = lib.mapAttrs (_: lib.filterAttrs (_: v: v != null));
       };
     };
 
