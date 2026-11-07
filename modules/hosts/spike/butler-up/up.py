@@ -24,7 +24,8 @@ EX_CONFIG = 78
 USAGE = """usage: up accounts
        up transactions [from YYYY-MM-DD] [to YYYY-MM-DD] [account <name>] [match <text>] [category <id>] [limit N]
        up spending <from YYYY-MM-DD> <to YYYY-MM-DD> [account <name>]
-       up categories"""
+       up categories
+       up shared <group> [from YYYY-MM-DD] [to YYYY-MM-DD] [split N]"""
 
 
 def die(message, code=1):
@@ -258,6 +259,89 @@ def show_categories():
         print(f"{category['id']}\t{category['attributes']['name']}" + (f"\tin {parent}" if parent else ""))
 
 
+def mentions(text, group):
+    return bool(text) and group.lower() in text.lower()
+
+
+def note_text(attributes):
+    # Up's note is an object with its text on newer API versions; older answers have none.
+    note = attributes.get("note")
+    if isinstance(note, dict):
+        return note.get("text") or ""
+    return note if isinstance(note, str) else ""
+
+
+def tags(transaction):
+    data = ((transaction.get("relationships") or {}).get("tags") or {}).get("data") or []
+    return [t.get("id", "") for t in data]
+
+
+def shared_ledger(items, group, split):
+    """Split a group's transactions into Aaron's shared purchases and the settlements others paid him.
+
+    A purchase is shared when Aaron tagged it with the group's name in Up, or his note or message names it;
+    money in counts as a settlement when its sender's message or its description names the group, as Rylee's
+    'Sports team' payments do. Up's own slices are not in its public API, so this ledger only sees what tags
+    and messages say."""
+    purchases, settlements = [], []
+    for transaction in items:
+        attributes = transaction["attributes"]
+        if relation(transaction, "transferAccount"):
+            continue
+        amount = float(attributes["amount"]["value"])
+        texts = [attributes.get("message"), note_text(attributes)]
+        tagged = any(t.lower() == group.lower() for t in tags(transaction))
+        if amount < 0 and (tagged or any(mentions(t, group) for t in texts)):
+            purchases.append(transaction)
+        elif amount > 0 and (tagged or any(mentions(t, group) for t in texts + [attributes.get("description")])):
+            settlements.append(transaction)
+    total = sum(-float(t["attributes"]["amount"]["value"]) for t in purchases)
+    owed = total * (split - 1) / split
+    paid = defaultdict(float)
+    for t in settlements:
+        paid[t["attributes"].get("description") or "someone"] += float(t["attributes"]["amount"]["value"])
+    return purchases, settlements, total, owed, dict(paid)
+
+
+def show_shared(args):
+    if not args:
+        usage()
+    group, found = args[0], options(args[1:], {"from", "to", "split"})
+    if not re.fullmatch(r"[\w '&.-]{1,40}", group):
+        usage()
+    until = day(found["to"]) if "to" in found else datetime.now(ZONE).date()
+    since = day(found["from"]) if "from" in found else until - timedelta(days=180)
+    split = found.get("split", "2")
+    if not re.fullmatch(r"\d{1,2}", split) or not 2 <= int(split) <= 20:
+        usage()
+    split = int(split)
+    names = {a["id"]: a["attributes"]["displayName"] for a in accounts()}
+    purchases, settlements, total, owed, paid = shared_ledger(transactions(since, until), group, split)
+    print(f"{group}, {since} to {until}, split {split} ways (from Up tags and messages; Up's slices are not in its API)")
+    print("shared purchases:")
+    for t in purchases:
+        print("  " + describe(t, names))
+    if not purchases:
+        print(f"  none tagged {group!r} or naming it in a note")
+    print("settlements paid to Aaron:")
+    for t in settlements:
+        print("  " + describe(t, names))
+    if not settlements:
+        print("  none")
+    received = sum(paid.values())
+    print(f"shared total\t{money(total)}")
+    print(f"others' share\t{money(owed)}")
+    for person, value in sorted(paid.items()):
+        print(f"paid by {person}\t{money(value)}")
+    balance = owed - received
+    if balance > 0.005:
+        print(f"still owed to Aaron\t{money(balance)}")
+    elif balance < -0.005:
+        print(f"Aaron has been paid {money(-balance)} more than the tagged purchases' share; a purchase may be untagged")
+    else:
+        print("settled")
+
+
 def main():
     args = sys.argv[1:]
     if not args:
@@ -269,6 +353,8 @@ def main():
         show_transactions(rest)
     elif verb == "spending":
         show_spending(rest)
+    elif verb == "shared":
+        show_shared(rest)
     elif verb == "categories" and not rest:
         show_categories()
     else:

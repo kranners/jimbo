@@ -45,7 +45,8 @@ in
     package = up;
     description = ''
       Read Aaron's Up bank accounts live, read-only: it cannot transfer, pay or change anything.
-      up accounts | up transactions [from YYYY-MM-DD] [to YYYY-MM-DD] [account <name>] [match <text>] [category <id>] [limit N] | up spending <from YYYY-MM-DD> <to YYYY-MM-DD> [account <name>] | up categories
+      up accounts | up transactions [from YYYY-MM-DD] [to YYYY-MM-DD] [account <name>] [match <text>] [category <id>] [limit N] | up spending <from YYYY-MM-DD> <to YYYY-MM-DD> [account <name>] | up categories | up shared <group> [from YYYY-MM-DD] [to YYYY-MM-DD] [split N]
+      shared totals a split-the-bill group, such as "Sports team", from the purchases Aaron tagged with its name in Up or whose note names it and the payments in whose message names it, over 180 days unless given, split 2 ways unless given, and says what is still owed; Up's own slices are not in its API, so an untagged purchase is missed.
       Dates are Melbourne days, both ends included; limit is 1 to 500, 25 unless given; match searches the description and notes; an account is part of its name.
     '';
     rules = map verb [
@@ -58,6 +59,10 @@ in
       ]
       [
         "spending"
+        "**"
+      ]
+      [
+        "shared"
         "**"
       ]
     ];

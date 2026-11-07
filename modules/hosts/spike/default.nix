@@ -268,6 +268,11 @@
       python3 -I ${./butler-slack/test_send.py} ${./butler-slack/send.py} > $out 2>&1 || { cat $out; exit 1; }
     '';
 
+    # up shared: a split-the-bill group's tagged purchases against the settlements naming it, offline, and up only ever GETs.
+    butler-up = pkgs.runCommand "butler-up-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      python3 -I ${./butler-up/test_up.py} ${./butler-up/up.py} > $out 2>&1 || { cat $out; exit 1; }
+    '';
+
     # The chat cache from a fixture index and live feeds: normalisation, conversation kinds, contacts and who is waiting on Aaron.
     butler-chat = pkgs.runCommand "butler-chat-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 -I ${./butler-chat/test_chat.py} ${./butler-chat/chat.py} > $out 2>&1 || { cat $out; exit 1; }
