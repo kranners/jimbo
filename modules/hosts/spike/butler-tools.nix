@@ -20,6 +20,12 @@ let
   workGoogle = config.butler.workGoogle.enable;
   workReader = lib.getExe' config.butler.workGoogle.package "work-google";
 
+  # Updates and deletes go through Home Assistant's websocket API, the only one that deletes events.
+  calendar-edit = pkgs.writers.writePython3Bin "calendar-edit" {
+    libraries = [ pkgs.python3Packages.websockets ];
+    flakeIgnore = [ "E501" ];
+  } (builtins.readFile ./butler-calendar/edit.py);
+
   calendar = pkgs.writeShellApplication {
     name = "calendar";
 
@@ -28,6 +34,7 @@ let
       pkgs.curl
       pkgs.jq
       pkgs.util-linux
+      calendar-edit
     ];
 
     text = ''
@@ -35,7 +42,9 @@ let
         echo "usage: calendar calendars" >&2
         echo "       calendar agenda [days]" >&2
         echo "       calendar events <calendar.entity> <start> <end>" >&2
-        echo "       calendar create <calendar.entity> <summary> <start> <end>  (description on stdin)" >&2
+        echo "       calendar create <calendar.entity> <summary> <start> <end> [--named-by-aaron]  (description on stdin)" >&2
+        echo "       calendar update <calendar.entity> <uid> [<recurrence_id>] [--summary S] [--start T] [--end T] [--location L] [--named-by-aaron]  (new description on stdin)" >&2
+        echo "       calendar delete <calendar.entity> <uid> [<recurrence_id> [this|this-and-future] | series] [--named-by-aaron]" >&2
         ${lib.optionalString workGoogle ''echo "       calendar work agenda [days] | calendar work brief [days] | calendar work events <start> <end>  (read-only)" >&2''}
         echo "dates are YYYY-MM-DD, or YYYY-MM-DDTHH:MM[:SS] in local time unless an offset follows" >&2
         exit 2
@@ -84,11 +93,21 @@ let
 
       events() {
         home_assistant --get --data-urlencode "start=$2" --data-urlencode "end=$3" "${homeAssistant}/api/calendars/$1" \
-          | jq --arg calendar "$1" '.[] | {calendar: $calendar, start: (.start.dateTime // .start.date), end: (.end.dateTime // .end.date), summary, location}'
+          | jq --arg calendar "$1" --from-file ${./butler-calendar/events.jq}
       }
 
       tabulate() {
-        jq --slurp --raw-output 'sort_by(.start) | .[] | [.start, .end, .calendar, .summary, (.location // "")] | @tsv'
+        jq --slurp --raw-output --from-file ${./butler-calendar/tabulate.jq}
+      }
+
+      # update and delete print the event they changed in full and leave one audit line, which this spools.
+      edit() {
+        local log status=0
+        log=$(mktemp)
+        HOME_ASSISTANT_TOKEN_FILE=${credential "home-assistant-token"} CALENDAR_AUDIT_FILE=$log calendar-edit "$@" || status=$?
+        while IFS= read -r line; do audit "$line"; done < "$log"
+        rm -f "$log"
+        return "$status"
       }
 
       [ $# -ge 1 ] || usage
@@ -122,9 +141,18 @@ let
           end=$(instant "$4")
           events "$2" "$start" "$end" | tabulate
           ;;
+        update | delete)
+          edit "$@"
+          ;;
         create)
+          named=()
+          if [ $# -eq 6 ] && [ "$6" = "--named-by-aaron" ]; then
+            named=(--named-by-aaron)
+            set -- "''${@:1:5}"
+          fi
           [ $# -eq 5 ] || usage
           entity "$2"
+          HOME_ASSISTANT_TOKEN_FILE=${credential "home-assistant-token"} calendar-edit writable "$2" "''${named[@]}" || exit $?
           if day "$4" && day "$5"; then
             instant "$4" >/dev/null
             instant "$5" >/dev/null
@@ -451,8 +479,11 @@ in
     calendar = {
       package = calendar;
       description = ''
-        Read and add events on Aaron's Google calendars through Home Assistant.
-        calendar calendars | calendar agenda [days] | calendar events <calendar.entity> <start> <end> | calendar create <calendar.entity> <summary> <start> <end> (description on stdin)
+        Read, add, change and delete events on Aaron's Google calendars through Home Assistant.
+        calendar calendars | calendar agenda [days] | calendar events <calendar.entity> <start> <end> | calendar create <calendar.entity> <summary> <start> <end> [--named-by-aaron] (description on stdin)
+        calendar update <calendar.entity> <uid> [<recurrence_id>] [--summary S] [--start T] [--end T] [--location L] [--named-by-aaron] (new description on stdin) | calendar delete <calendar.entity> <uid> [<recurrence_id> [this|this-and-future] | series] [--named-by-aaron]
+        events and agenda print each event's uid and, for one occurrence of a recurring event, its recurrence_id; delete prints the deleted event in full so it can be made again, and a recurring event's whole series goes only with the word series.
+        The work calendar is read-only, and the muted karate, Seido, Swinburne, school and timetable calendars are written only with --named-by-aaron, when Aaron named that calendar himself.
         Dates are YYYY-MM-DD, or YYYY-MM-DDTHH:MM in local time.
         Home Assistant's calendar.create_event cannot set reminders, so an event gets its calendar's default notifications; add any other reminder with the reminders tool.
         ${lib.optionalString workGoogle "calendar work agenda [days] | calendar work events <start> <end>: Aaron's work Google calendar, read-only, with each meeting's response, attendee count and Meet link; calendar work brief [days] gives only times and titles, the one view a scheduled run may read."}
@@ -484,6 +515,37 @@ in
           ];
           # A scheduled run may add events too, such as confirmation-sweep's for a booking it found in mail, each logged to audit/calendar.
           lanes = both;
+          flags = [ "--named-by-aaron" ];
+          acts = true;
+          grant = "calendar";
+        }
+        {
+          match = [
+            "update"
+            "**"
+          ];
+          # Changing or deleting an event is an ordinary calendar write under the same grant as adding one, as Aaron asked on 7 Nov 2026, each logged to audit/calendar with what it was.
+          # As egress it asks once for the calendar grant in a thread that read private data, so text in mail or an invite cannot delete events unseen.
+          lanes = interactive;
+          egress = true;
+          flags = [
+            "--summary"
+            "--start"
+            "--end"
+            "--location"
+            "--named-by-aaron"
+          ];
+          acts = true;
+          grant = "calendar";
+        }
+        {
+          match = [
+            "delete"
+            "**"
+          ];
+          lanes = interactive;
+          flags = [ "--named-by-aaron" ];
+          egress = true;
           acts = true;
           grant = "calendar";
         }

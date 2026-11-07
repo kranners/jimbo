@@ -46,6 +46,7 @@ in
     description = ''
       Read and add Aaron's Apple Reminders through iCloud. Prints JSON.
       reminders lists | reminders due [days] | reminders open [list title] | reminders add <list title> <title> [YYYY-MM-DD[THH:MM]] | reminders complete <id>
+      reminders update <id> [--title T] [--due YYYY-MM-DD[THH:MM]|none] [--notes N] [--flagged yes|no] | reminders delete <id>, which prints the deleted reminder and the add that brings it back
     '';
     rules = [
       {
@@ -82,6 +83,33 @@ in
           "**"
         ];
         lanes = [ "interactive" ];
+        acts = true;
+        grant = "reminders";
+      }
+      {
+        match = [
+          "update"
+          "**"
+        ];
+        flags = [
+          "--title"
+          "--due"
+          "--notes"
+          "--flagged"
+        ];
+        lanes = [ "interactive" ];
+        egress = true;
+        acts = true;
+        grant = "reminders";
+      }
+      {
+        match = [
+          "delete"
+          "*"
+        ];
+        # Each update and delete is logged to audit/reminders with what it was, so it can be undone, and as egress asks once for the reminders grant in a thread that read private data.
+        lanes = [ "interactive" ];
+        egress = true;
         acts = true;
         grant = "reminders";
       }

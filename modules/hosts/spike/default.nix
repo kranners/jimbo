@@ -22,6 +22,21 @@
           bash ${./butler-probe}/dry-run.sh > $out
         '';
 
+    # The calendar's update and delete against a fake Home Assistant, its refusal of the work and muted calendars, the uid its reads print, and reminders' update and delete.
+    butler-calendar =
+      pkgs.runCommand "butler-calendar-test"
+        {
+          nativeBuildInputs = [
+            pkgs.jq
+            pkgs.tzdata
+            (pkgs.python3.withPackages (ps: [ ps.pyicloud ]))
+          ];
+        }
+        ''
+          export HOME=$TMPDIR TZDIR=${pkgs.tzdata}/share/zoneinfo
+          python3 ${./butler-calendar}/test_calendar.py ${./butler-calendar} ${./butler-reminders} > $out 2>&1 || { cat $out; exit 1; }
+        '';
+
     # A change's start card and landed report card, and the start notice's fall back to text and the mood picture, on fixture briefs.
     change-cards =
       pkgs.runCommand "change-cards-test"

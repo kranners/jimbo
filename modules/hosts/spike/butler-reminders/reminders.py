@@ -34,7 +34,9 @@ USAGE = """usage: reminders lists
        reminders due [days]
        reminders open [list title]
        reminders add <list title> <title> [YYYY-MM-DD[THH:MM]]
-       reminders complete <id>"""
+       reminders complete <id>
+       reminders update <id> [--title T] [--due YYYY-MM-DD[THH:MM]|none] [--notes N] [--flagged yes|no]
+       reminders delete <id>"""
 
 EXPIRED = (
     PyiCloud2FARequiredException,
@@ -232,12 +234,87 @@ def complete_command(service, args):
     print_json(describe(reminder, {lst.id: lst.title for lst in lists}))
 
 
+UPDATE_FLAGS = ("--title", "--due", "--notes", "--flagged")
+
+
+def parse_update(args):
+    """Returns the id and the fields to change, refusing an unknown flag, a repeated one or nothing to change."""
+    if not args or args[0].startswith("-"):
+        usage()
+    ident, rest, changes = args[0], args[1:], {}
+    if len(rest) % 2:
+        usage()
+    for flag, value in zip(rest[0::2], rest[1::2]):
+        if flag not in UPDATE_FLAGS or flag in changes:
+            usage()
+        changes[flag] = value
+    if not changes:
+        usage()
+    if "--title" in changes and not changes["--title"].strip():
+        usage()
+    if "--flagged" in changes and changes["--flagged"] not in ("yes", "no"):
+        usage()
+    if "--due" in changes and changes["--due"] != "none":
+        parse_due(changes["--due"])
+    return ident, changes
+
+
+def recreate_args(entry):
+    """The add command that would bring a deleted reminder back, its due date as add takes it."""
+    due = entry.get("due")
+    if due and "T" in due:
+        due = due[:16]
+    return ["add", entry["list"], entry["title"]] + ([due] if due else [])
+
+
+def update_command(service, args):
+    ident, changes = parse_update(args)
+    reminder = service.get(ident)
+    lists = usable_lists(service)
+    titles = {lst.id: lst.title for lst in lists}
+    before = describe(reminder, titles)
+    if "--title" in changes:
+        reminder.title = changes["--title"]
+    if "--notes" in changes:
+        reminder.desc = changes["--notes"]
+    if "--flagged" in changes:
+        reminder.flagged = changes["--flagged"] == "yes"
+    if "--due" in changes:
+        if changes["--due"] == "none":
+            reminder.due_date, reminder.all_day, reminder.time_zone = None, False, None
+        else:
+            reminder.due_date, reminder.all_day = parse_due(changes["--due"])
+            reminder.time_zone = None if reminder.all_day else str(LOCAL)
+    service.update(reminder)
+    after = describe(reminder, titles)
+    audit('updated "%s" in %s (id %s): was %s, now %s' % (
+        before["title"], before["list"], ident,
+        json.dumps({k: before.get(k) for k in ("title", "due", "flagged", "notes")}, ensure_ascii=False),
+        json.dumps({k: after.get(k) for k in ("title", "due", "flagged", "notes")}, ensure_ascii=False)))
+    print_json({"updated": after, "before": before})
+
+
+def delete_command(service, args):
+    if len(args) != 1 or args[0].startswith("-"):
+        usage()
+    reminder = service.get(args[0])
+    lists = usable_lists(service)
+    entry = describe(reminder, {lst.id: lst.title for lst in lists})
+    service.delete(reminder)
+    audit('deleted "%s" from %s (id %s), due %s, flagged %s, notes %s' % (
+        entry["title"], entry["list"], args[0], entry["due"] or "none", entry["flagged"],
+        json.dumps(entry.get("notes", ""), ensure_ascii=False)[:500]))
+    print_json({"deleted": entry, "recreate": recreate_args(entry)})
+
+
 COMMANDS = {
     "lists": lists_command,
     "due": due_command,
     "open": open_command,
     "add": add_command,
     "complete": complete_command,
+    "update": update_command,
+    "delete": delete_command,
 }
 
 
@@ -254,4 +331,5 @@ def main():
         sys.exit(1)
 
 
-main()
+if __name__ == "__main__":
+    main()
