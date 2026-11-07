@@ -239,7 +239,11 @@ in
         require = false;
       };
       backfill.enabled = true;
-      matrix.federate_rooms = false;
+      matrix = {
+        federate_rooms = false;
+        # butler's messenger-send waits for these to say whether Messenger took a message or refused it.
+        message_status_events = true;
+      };
       provisioning.shared_secret = "disable";
     };
   };

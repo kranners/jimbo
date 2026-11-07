@@ -212,6 +212,11 @@
       python3 -I ${./butler-slack/test_slack.py} ${./butler-slack/slack.py} > $out 2>&1 || { cat $out; exit 1; }
     '';
 
+    # slack-send against a fake Slack: each verb's one method and exact text, edits and deletes of Butler's own messages alone, the approval-size limit, the audit spool and the rate limit.
+    butler-slack-send = pkgs.runCommand "slack-send-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      python3 -I ${./butler-slack/test_send.py} ${./butler-slack/send.py} > $out 2>&1 || { cat $out; exit 1; }
+    '';
+
     # The chat cache from a fixture index and live feeds: normalisation, conversation kinds, contacts and who is waiting on Aaron.
     butler-chat = pkgs.runCommand "butler-chat-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python3 -I ${./butler-chat/test_chat.py} ${./butler-chat/chat.py} > $out 2>&1 || { cat $out; exit 1; }
@@ -339,6 +344,8 @@
         address = "aaronpierce@outlook.com.au";
       };
       butler.hevy.enable = true;
+      # The bridge's Facebook login lapsed on 5 Nov 2026; until `sudo messenger-setup` logs it in again, reads show the history it kept and every send says Messenger refused it.
+      butler.messenger.enable = true;
       # Read-only; nothing is read until Aaron runs `sudo -u butler butler-work-google-login <work address>` on spike.
       butler.workGoogle.enable = true;
       butler.remarkable.enable = true;

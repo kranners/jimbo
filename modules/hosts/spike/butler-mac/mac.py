@@ -1336,10 +1336,10 @@ def guard_password(host):
 # and a messaging or mail window lets the action through when it lists sends or publishing there, since Aaron asked on
 # 4 Nov 2026 for one approval per run. A payment, checkout or bank page still wants `confirm`, which asks him nothing
 # under such a mission but is how the daemon checks the payee and amount against the mission's cap.
-MESSAGING_APPS = re.compile(r'(?i)^(?:messages|mail|slack|discord|whatsapp|messenger|signal|telegram|microsoft outlook|outlook|microsoft teams|teams|spark|airmail|mimestream|superhuman|thunderbird|facetime)\b')
+MESSAGING_APPS = re.compile(r'(?i)^(?:messages|mail|slack|discord|google chat|whatsapp|messenger|signal|telegram|microsoft outlook|outlook|microsoft teams|teams|spark|airmail|mimestream|superhuman|thunderbird|facetime)\b')
 PAYING_APPS = re.compile(r'(?i)^(?:paypal|wallet)\b')
 BROWSERS = re.compile(r'(?i)chrom|safari|firefox|arc\b|brave|edge|orion|vivaldi|opera|cmux|webkit')
-SENDING_PAGES = re.compile(r'(?i)\b(?:gmail|inbox|outlook|mail|messenger|messages|whatsapp|slack|discord|facebook|instagram|linkedin|twitter|compose|reply|sign up)\b')
+SENDING_PAGES = re.compile(r'(?i)\b(?:gmail|inbox|outlook|mail|messenger|messages|whatsapp|slack|discord|facebook|instagram|linkedin|twitter|compose|reply|sign up|chat)\b')
 PAYING_PAGES = re.compile(r'(?i)\b(?:checkout|check out|payment|pay|paypal|cart|basket|order|billing|purchase|subscribe|subscription|bank|banking|netbank|commbank|westpac|anz|nab|stripe|afterpay|transfer|booking|book now|reservation)\b')
 MISSION_SENDS = {'message', 'publish', 'confirm', 'signup'}
 LINUX_FRONT = LINUX_ENV + 'hyprctl activewindow -j 2> /dev/null'

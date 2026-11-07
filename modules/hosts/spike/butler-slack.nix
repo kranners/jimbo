@@ -1,6 +1,14 @@
-{ pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 let
   token = "/var/lib/secrets/butler-slack-token";
+  # slack-send's own token, from a second Slack app with the write scopes, loaded by slack-send alone, so the reader
+  # and the chat sync, which run unasked, never hold a token that can write.
+  writeToken = "/var/lib/secrets/butler-slack-write-token";
   # The index's 6-hourly Slack read has its own token, which Aaron may reuse for live reads when its scopes cover them.
   indexToken = "/var/lib/secrets/butler-index-slack-token";
   scopes = [
@@ -24,6 +32,22 @@ let
     "reactions:read"
     "usergroups:read"
   ];
+  # What slack-send's token needs: posting and replying, reacting, opening a DM or group DM with a person and private
+  # channels, then finding a channel Aaron is in and a person by handle.
+  writeScopes = [
+    "chat:write"
+    "reactions:write"
+    "im:write"
+    "mpim:write"
+    "groups:write"
+  ];
+  writeLookupScopes = [
+    "channels:read"
+    "groups:read"
+    "im:read"
+    "mpim:read"
+    "users:read"
+  ];
 
   # `sudo butler-slack-login` takes Aaron's xoxp- user token hidden on stdin, or `--from-index` reuses the index's,
   # checks it with auth.test and its scopes, writes it mode 600 and asks butler for a restart at its next quiet moment.
@@ -40,7 +64,14 @@ let
         exit 1
       fi
       umask 077
-      if [ "''${1:-}" = --from-index ]; then
+      target=${token}
+      needed="${lib.concatStringsSep " " scopes}"
+      if [ "''${1:-}" = --write ]; then
+        target=${writeToken}
+        needed="${lib.concatStringsSep " " (writeScopes ++ writeLookupScopes)}"
+        read -r -s -p "slack-send's Slack user token, from the writing app (xoxp-..., hidden): " value
+        echo
+      elif [ "''${1:-}" = --from-index ]; then
         [ -s ${indexToken} ] || { echo "the index has no Slack token either; paste one instead" >&2; exit 1; }
         value=$(< ${indexToken})
       else
@@ -61,22 +92,30 @@ let
       fi
       granted=$(tr -d '\r' < "$headers" | sed -n 's/^x-oauth-scopes: //Ip' | tr ',' '\n')
       missing=""
-      for scope in ${lib.concatStringsSep " " scopes}; do
+      for scope in $needed; do
         grep -qx "$scope" <<<"$granted" || missing="$missing $scope"
       done
       if [ -n "$missing" ]; then
         echo "the token lacks:$missing; add them under User Token Scopes, reinstall the app and paste the new token; nothing changed" >&2
         exit 1
       fi
-      printf '%s' "$value" > ${token}.new
-      chmod 600 ${token}.new
-      mv ${token}.new ${token}
-      echo "Slack token for $(jq -r '.user + " in " + .team' <<<"$answer") written"
+      if [ "$target" = ${token} ]; then
+        for scope in ${lib.concatStringsSep " " writeScopes}; do
+          if grep -qx "$scope" <<<"$granted"; then
+            echo "the reader's token must not write, and this one has $scope; make the reading app's token read-only and give slack-send its own with --write; nothing changed" >&2
+            exit 1
+          fi
+        done
+      fi
+      printf '%s' "$value" > "$target.new"
+      chmod 600 "$target.new"
+      mv "$target.new" "$target"
+      echo "Slack token for $(jq -r '.user + " in " + .team' <<<"$answer") written to $target"
       optional=""
       for scope in ${lib.concatStringsSep " " optionalScopes}; do
         grep -qx "$scope" <<<"$granted" || optional="$optional $scope"
       done
-      [ -z "$optional" ] || echo "it works without these read-only scopes, but adding them shows more:$optional"
+      [ "$target" != ${token} ] || [ -z "$optional" ] || echo "it works without these read-only scopes, but adding them shows more:$optional"
       install -d -m 755 /run/butler-restart
       if [ ! -f /run/butler-restart/wanted ]; then
         jq -n --argjson at "$(date +%s%3N)" '{at: $at, trigger: "slack-token", changes: ["Slack token for live reads written"]}' > /run/butler-restart/wanted.tmp
@@ -87,6 +126,7 @@ let
     '';
   };
   credential = "/run/credentials/butler.service/slack-token";
+  writeCredential = "/run/credentials/butler.service/slack-write-token";
 
   both = [
     "interactive"
@@ -99,6 +139,26 @@ let
       builtins.readFile ./butler-slack/slack.py
     )
   );
+
+  # The one writer, every verb gated by Aaron's approval like mail-send: see butler-slack/send.py.
+  slack-send = pkgs.writers.writePython3Bin "slack-send" { flakeIgnore = [ "E501" ]; } (
+    builtins.replaceStrings
+      [ "@credential@" "@memoryAudit@" ]
+      [ writeCredential (lib.getExe config.butler.memoryAudit) ]
+      (builtins.readFile ./butler-slack/send.py)
+  );
+  # Every verb is one rule: it taints and goes out, and is the outcome `message` to the channel it names, so outside
+  # a mission naming that channel Aaron approves each write, its exact channel and text, with a button.
+  sendRule = match: {
+    inherit match;
+    lanes = [ "interactive" ];
+    taints = true;
+    egress = true;
+    outcome = {
+      kind = "message";
+      to = 1;
+    };
+  };
 in
 {
   environment.systemPackages = [ butler-slack-login ];
@@ -106,14 +166,18 @@ in
   # LoadCredential fails butler's start when its source is missing, so an empty placeholder
   # stands in until Aaron writes the token, and the command says it has none.
   systemd.services.butler-slack-token = {
-    description = "Create an empty placeholder for butler's Slack token until one is written";
-    unitConfig.ConditionPathExists = "!${token}";
+    description = "Create empty placeholders for butler's Slack tokens until they are written";
+    unitConfig.ConditionPathExists = [
+      "|!${token}"
+      "|!${writeToken}"
+    ];
     serviceConfig = {
       Type = "oneshot";
       UMask = "0077";
     };
     script = ''
-      touch ${token}
+      [ -e ${token} ] || touch ${token}
+      [ -e ${writeToken} ] || touch ${writeToken}
     '';
   };
 
@@ -198,5 +262,44 @@ in
     ];
     credentials.slack-token = token;
     skill = ./butler-skills/slack;
+  };
+
+  butler.commands.slack-send = {
+    package = slack-send;
+    description = ''
+      Write to Aaron's work Slack workspace as Aaron, after he approves the exact channel and text with a button: post, reply in a thread, react, and edit or delete only a message slack-send posted.
+      slack-send post <to> | slack-send reply <to> <thread ts> | slack-send react <to> <ts> <emoji> | slack-send edit <to> <ts> | slack-send delete <to> <ts>; post, reply and edit take the text on stdin, about 500 characters at most.
+      <to> is #channel-name for a channel Aaron is in, @handle for a DM with one person or @a,@b for a group DM, handles as slack users shows them, so the approval names who it goes to; ids are refused.
+    '';
+    stdin = true;
+    rules = map sendRule [
+      [
+        "post"
+        "*"
+      ]
+      [
+        "reply"
+        "*"
+        "*"
+      ]
+      [
+        "react"
+        "*"
+        "*"
+        "*"
+      ]
+      [
+        "edit"
+        "*"
+        "*"
+      ]
+      [
+        "delete"
+        "*"
+        "*"
+      ]
+    ];
+    credentials.slack-write-token = writeToken;
+    skill = ./butler-skills/slack-send;
   };
 }

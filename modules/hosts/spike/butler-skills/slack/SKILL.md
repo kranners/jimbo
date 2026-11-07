@@ -1,12 +1,12 @@
 ---
 name: slack
-description: Read Aaron's work Slack workspace, read-only, to answer questions about it or summarise channels, DMs and threads. Use for "what's happening in #eng", "did anyone message me on Slack", "find the Slack thread about the release".
+description: Read Aaron's work Slack workspace to answer questions about it or summarise channels, DMs and threads; writing is the slack-send skill's. Use for "what's happening in #eng", "did anyone message me on Slack", "find the Slack thread about the release".
 ---
 
 # Slack
 
 Use the `slack` tool, passing the words after `slack` as `args`, such as `["history", "general", "30"]`.
-It can only read: it cannot post, reply, react, edit or mark anything read, so never offer to.
+It only reads; to post, reply, react, or edit or delete your own message, use `slack-send`, whose every write Aaron approves, and nothing marks anything read.
 
 - `slack channels` lists the channels Aaron is in, one line each of id, name, public or private, member count and topic.
 - `slack dms` lists his direct and group messages, one line each of id and who they are with.
@@ -19,7 +19,7 @@ It can only read: it cannot post, reply, react, edit or mark anything read, so n
 
 Every message prints whole: its full rich text, never cut at Slack's "see more", any message shared into it in full, link previews, and each file's name with, when the token has `files:read`, the text of snippets, text files and canvases, otherwise Slack's preview of them.
 Before quoting or summarising a long message, especially one `chat` or `life` showed shortened, read it with `slack message`.
-If `slack scopes` lists ones that would help, tell Aaron once which, and that they are read-only; never suggest a write scope.
+If `slack scopes` lists ones that would help, tell Aaron once which, and that they are read-only; the write scopes are `slack-send`'s, named in its skill.
 
 A channel is its id, such as `C0123ABCD`, or its name without `#`; a DM is only ever its `D…` id from `slack dms`.
 A search query takes Slack's own modifiers as words, such as `in:#general`, `from:@name`, `after:2026-10-01` and `has:link`.

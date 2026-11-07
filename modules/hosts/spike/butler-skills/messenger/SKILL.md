@@ -31,7 +31,9 @@ A scheduled run may read chats, and its sends wait on Aaron's button as a conver
 - Write as Aaron would type on his phone: short, plain, no greeting or sign-off unless he uses one, no emoji unless he does.
 - One message per send, and never more than he asked for; the wrapper refuses more than 10 sends an hour, because Meta flags an account that sends a lot.
 - A message may not start with `!`, which the bridge would read as a command.
+- `messenger-send` waits up to 15 seconds for the bridge to say Messenger took the message: `Sent and delivered` means it went, a failure means Messenger refused it, usually because the bridge's Facebook login lapsed, which Aaron fixes with `sudo messenger-setup` on spike, and `Handed to the bridge` means it is unconfirmed, so check with `messenger-read` before saying it went.
 - When a send fails, say so and quote the error; never retry on your own.
+- If the newest messages `messenger-read` shows are days old while Aaron expects newer, the bridge is probably logged out: say so in one line rather than summarising stale chats as current.
 
 ## Marketplace
 

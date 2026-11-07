@@ -13,6 +13,7 @@ let
   sendsPerHour = 10;
   maxLength = 1000;
   maxShown = 1400;
+  statusWaitSeconds = 15;
 
   both = [
     "interactive"
@@ -38,6 +39,28 @@ let
     }
   '';
 
+  # Every send goes to audit/messenger-send in butler's memory, with its thread, room and text; it never fails the send.
+  audit = ''
+    audit() {
+      local spool="$HOME/.local/state/messenger-send/audit-spool" thread title tag="" line
+      thread=''${BUTLER_THREAD_ID:-}
+      thread=''${thread//[^0-9A-Za-z_-]/}
+      thread=''${thread:0:32}
+      if [ -n "$thread" ]; then
+        title=''${BUTLER_THREAD_TITLE:-}
+        title=''${title//[$'\t\n\r']/ }
+        title=''${title//\"/\'}
+        tag="[thread $thread''${title:+ \"''${title:0:60}\"}] "
+      fi
+      line="$(date +%F)"$'\t'"$(date '+%H:%M:%S %z') $tag''${1//[$'\t\n\r']/ }"
+      if mkdir -p "''${spool%/*}" && ( flock 9 && printf '%s\n' "$line" >&9 ) 9>>"$spool"; then
+        setsid ${lib.getExe config.butler.memoryAudit} messenger-send "$spool" </dev/null >/dev/null 2>&1 &
+      else
+        echo "messenger-send: could not write the audit line" >&2
+      fi
+    }
+  '';
+
   wrapper =
     name: text:
     pkgs.writeShellApplication {
@@ -49,7 +72,7 @@ let
         pkgs.jq
         pkgs.util-linux
       ];
-      text = matrix + text;
+      text = matrix + audit + text;
     };
 
   messenger-chats = wrapper "messenger-chats" ''
@@ -155,16 +178,62 @@ let
       fail "${toString sendsPerHour} messages were sent in the last hour, the most allowed; try again later" 75
     fi
 
-    jq --null-input --arg body "$body" '{msgtype: "m.text", body: $body}' \
+    event=$(jq --null-input --arg body "$body" '{msgtype: "m.text", body: $body}' \
       | matrix --request PUT --data @- "${client}/rooms/$path/send/m.room.message/butler-$(date +%s%N)" \
-      | jq --raw-output '"Sent \(.event_id)"'
+      | jq --raw-output .event_id)
     echo "$now" >>"$sent"
+    audit "send to $1: $body"
+
+    # The homeserver taking the message is not Messenger delivering it: the bridge answers each message with a
+    # com.beeper.message_send_status event, failing it when its Facebook login has lapsed, so wait for that.
+    status=""
+    for _ in $(seq ${toString statusWaitSeconds}); do
+      status=$(matrix --get --data-urlencode dir=b --data-urlencode limit=30 \
+          --data-urlencode 'filter={"types":["com.beeper.message_send_status"]}' "${client}/rooms/$path/messages" \
+        | jq --compact-output --arg event "$event" \
+          'first(.chunk[] | select(.content."m.relates_to".event_id == $event) | .content | {status, reason, message}) // empty') || status=""
+      case $(jq --raw-output '.status // ""' <<<"$status") in
+        SUCCESS) echo "Sent and delivered to Messenger ($event)"; exit 0 ;;
+        FAIL_PERMANENT)
+          audit "send to $1 failed: $(jq --raw-output '.message // .reason // "no reason"' <<<"$status")"
+          fail "Messenger did not take it: $(jq --raw-output '[.reason, .message] | map(select(. != null)) | join(": ")' <<<"$status"); the bridge's Facebook login has probably lapsed, which Aaron fixes with sudo messenger-setup on spike" ;;
+        FAIL_RETRIABLE)
+          audit "send to $1 may have failed: $(jq --raw-output '.message // .reason // "no reason"' <<<"$status")"
+          fail "the bridge had trouble sending it and may retry: $(jq --raw-output '[.reason, .message] | map(select(. != null)) | join(": ")' <<<"$status"); check with messenger-read before sending it again" ;;
+      esac
+      sleep 1
+    done
+    echo "Handed to the bridge ($event), but Messenger has not confirmed it after ${toString statusWaitSeconds} seconds; check with messenger-read before saying it went"
   '';
 
   credentials.matrix-token = "/var/lib/secrets/butler-matrix-token";
 in
 {
   options.butler.messenger.enable = lib.mkEnableOption "the Messenger tools, once `messenger-setup` has written /var/lib/secrets/butler-matrix-token and logged the bridge in";
+
+  # LoadCredential fails butler's start when its source is missing, so an empty placeholder stands in until
+  # `messenger-setup` writes the token, which it treats as missing, and the wrappers then fail with Matrix's 401.
+  config.systemd.services = lib.mkIf config.butler.messenger.enable {
+    butler-matrix-token = {
+      description = "Create an empty placeholder for butler's Matrix token until messenger-setup writes one";
+      unitConfig.ConditionPathExists = "!${credentials.matrix-token}";
+      serviceConfig = {
+        Type = "oneshot";
+        UMask = "0077";
+      };
+      script = ''
+        touch ${credentials.matrix-token}
+      '';
+    };
+    butler = {
+      requires = [ "butler-matrix-token.service" ];
+      after = [ "butler-matrix-token.service" ];
+    };
+    butler-chat-sync = {
+      requires = [ "butler-matrix-token.service" ];
+      after = [ "butler-matrix-token.service" ];
+    };
+  };
 
   config.butler.commands = lib.mkIf config.butler.messenger.enable {
     messenger-chats = {
