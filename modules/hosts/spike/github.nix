@@ -139,6 +139,7 @@ in
       user = "aaron";
       reaches = "every repository Aaron's account reaches, backlogic/backlogic and kranners/butler among them";
       usedBy = [
+        "backlogic-lane-sweep-aaron"
         "backlogic-switch"
         "jimbo-switch"
       ];

@@ -10,6 +10,7 @@ let
   dataDir = "${home}/backlogic-data/aaron";
   updatesDir = "${dataDir}/updates";
   runnerConfigDir = config.backlogicRunner.configDir;
+  runnerHome = config.users.users.backlogic-runner.home;
   quietMinutes = 30;
 
   aaronUidGid = "1000:100";
@@ -327,6 +328,42 @@ in
     timerConfig = {
       OnBootSec = "2min";
       OnUnitInactiveSec = "1min";
+    };
+  };
+
+  # Clears the finished lanes of aaron's own ~/workspace as aaron, since only his account sees the
+  # processes and sessions that keep a lane there, and the runner stays a user without his sudo or home
+  # (backlogic's docs/decisions/lane-sweep.md). It runs the instance's checkout, so the sweep is the code
+  # the instance runs, and fetches each project with aaron's own key, as backlogic-switch does.
+  # It reads tickets with the runner's token, which systemd hands it, so aaron needs no token of his own.
+  systemd.services.backlogic-lane-sweep-aaron = {
+    description = "Clear the finished lanes of Aaron's own workspace";
+    after = [ "backlogic-aaron.service" ];
+    unitConfig.ConditionPathExists = [
+      "${checkout}/bin/backlogic-lane-sweep"
+      "${runnerHome}/runner.token"
+    ];
+    path = [
+      pkgs.deno
+      "/run/current-system/sw"
+    ];
+    environment.BACKLOGIC_URL = "http://127.0.0.1:4200";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "aaron";
+      Nice = 15;
+      IOSchedulingClass = "idle";
+      LoadCredential = "runner.token:${runnerHome}/runner.token";
+      Environment = "BACKLOGIC_TOKEN_FILE=%d/runner.token";
+      ExecStart = "${checkout}/bin/backlogic-lane-sweep --workspace ${home}/workspace";
+    };
+  };
+
+  systemd.timers.backlogic-lane-sweep-aaron = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "15min";
+      OnUnitInactiveSec = "1h";
     };
   };
 
