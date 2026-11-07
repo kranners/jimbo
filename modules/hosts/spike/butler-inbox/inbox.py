@@ -454,11 +454,12 @@ def notice_line(e):
     return f"**{shown(e['subject'], 120).replace('*', '') or '(no subject)'}**, from {who} ({e['account']})"
 
 
-def send_notice(config, text):
+def send_notice(config, text, picture=None):
     spool = Path(config["notifyDir"])
     name = f"{time.strftime('%Y%m%d-%H%M%S')}-inbox-{uuid.uuid4().hex[:6]}"
     tmp = spool / f"{name}.json.tmp"
-    tmp.write_text(json.dumps({"text": text[:6000], "files": []}))
+    # The evening digest asks the daemon for a digest picture; single pings go without one.
+    tmp.write_text(json.dumps({"text": text[:6000], "files": [], **({"picture": picture} if picture else {})}))
     os.chmod(tmp, 0o640)
     tmp.rename(spool / f"{name}.json")
 
@@ -547,7 +548,7 @@ def maybe_digest(db, config, when):
     if len(rows) > 40:
         lines.append(f"…and {len(rows) - 40} more; ask me for the rest.")
     lines.append("Reply to this about any of them.")
-    send_notice(config, "\n".join(lines))
+    send_notice(config, "\n".join(lines), picture="digest")
     for e in rows:
         db.execute("UPDATE events SET status = 'digested' WHERE ref = ?", (e["ref"],))
     audit(db, "digest", None, count=len(rows), refs=[e["ref"] for e in rows])

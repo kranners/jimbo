@@ -282,7 +282,7 @@ let
       health=$(curl -sS --max-time 5 ${pulseHealth} 2>/dev/null || true)
       answered=0
       if jq -e 'type == "object" and has("sensors")' >/dev/null 2>&1 <<<"$health"; then answered=1; fi
-      notify() { if command -v butler-notify >/dev/null; then butler-notify <<<"$1" || true; fi; }
+      notify() { if command -v butler-notify >/dev/null; then butler-notify --picture pulse-notice <<<"$1" || true; fi; }
       down=() up=()
       for source in ${archive}/*.md; do
         name=$(basename "$source" .md)

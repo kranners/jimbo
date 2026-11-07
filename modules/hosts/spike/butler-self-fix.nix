@@ -377,7 +377,7 @@ let
         else
           echo "Could not start a cloud session: $(sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' "$work/log" | tr -s '\r\n ' ' ' | tail -c 400)" > "${sessions}/$id"
           printf 'Change couldn'"'"'t start (%s): %s\n' "$id" "$(tail -c 300 "${sessions}/$id")" |
-            butler-notify ${moods}/concerned.webp > /dev/null || true
+            butler-notify --picture change-couldnt-start > /dev/null || true
         fi
         chown butler: "${sessions}/$id"
         rm -rf "$work" "$request"
@@ -446,7 +446,7 @@ let
       }
 
       tell_aaron_when_ended_or_waiting() {
-        local id=$1 work=$2 state title link card="" mood
+        local id=$1 work=$2 state title link card="" picture
         # Aaron closed or marked it done himself, so nothing more is reported.
         if [ -e "${archived}/$id" ] || [ -e "${dismissed}/$id" ]; then
           rm -f "${watch}/$id"
@@ -459,10 +459,10 @@ let
           finished* | archived | "failed to start"*)
             # A few plain lines for his phone: what happened, the session's own short summary, clipped, and the link.
             case "$state" in
-              "finished with an error") headline="Change hit a problem: $title" mood=apologetic ;;
-              finished) headline="Change done: $title" mood=content ;;
-              archived) headline="Change closed: $title" mood=content ;;
-              *) headline="Change couldn't start: $title" mood=concerned ;;
+              "finished with an error") headline="Change hit a problem: $title" picture=change-failed ;;
+              finished) headline="Change done: $title" picture=change-closed ;;
+              archived) headline="Change closed: $title" picture=change-closed ;;
+              *) headline="Change couldn't start: $title" picture=change-couldnt-start ;;
             esac
             summary=$(sed -n 's/^Final summary[^:]*: //p' "${progress}/$id")
             [ -n "$summary" ] || [ "$state" = "''${state#failed to start: }" ] || summary=''${state#failed to start: }
@@ -470,8 +470,8 @@ let
             if [ "$state" = finished ] &&
               jq -n --slurpfile events "$work/events" --rawfile mood ${fixedMood} --arg title "$title" \
                 --rawfile css ${./butler-self-fix/card.css} -f ${./butler-self-fix/report.jq} > "$work/report.json" && [ -s "$work/report.json" ]; then
-              # It landed, so it shows `fixed`: inside the card, or on its own when the card cannot be drawn.
-              mood=fixed
+              # It landed, so it shows `fixed` inside the card, or the daemon's change-landed picture when the card cannot be drawn.
+              picture=change-landed
               card=$(jq -r .html "$work/report.json" | runuser -u butler -- env HOME=${home} BUTLER_ASSETS_AUTO=0 ${render} html 760) ||
                 { echo "Could not render change $id's report card; sending the fixed picture alone" >&2; card=""; }
               summary=$(jq -r .prose "$work/report.json")
@@ -479,14 +479,16 @@ let
               [ -z "$todo" ] || summary="$summary"$'\n'"You need to: $todo"
             fi
             if [ "''${#summary}" -gt 600 ]; then summary="''${summary:0:600}…"; fi
-            { echo "$headline"; [ -z "$summary" ] || echo "$summary"; echo "$link"; } | butler-notify "''${card:-${moods}/$mood.webp}" > /dev/null
+            # The rendered card, or else the daemon's picture for the situation, varied so the same never comes round twice running.
+            if [ -n "$card" ]; then set -- "$card"; else set -- --picture "$picture"; fi
+            { echo "$headline"; [ -z "$summary" ] || echo "$summary"; echo "$link"; } | butler-notify "$@" > /dev/null
             # A heads-up in his live call too, if he is on one; the DM above stays the record.
             printf '%s\n' "''${headline:0:180}" | butler-call-say --call-only > /dev/null || true
             rm -f "${watch}/$id"
             ;;
           "waiting on input"*)
             if [ "$(cat "${watch}/$id")" != "$state" ]; then
-              printf 'Change needs you: %s\nIt is waiting on you to answer or approve something.\n%s\n' "$title" "$link" | butler-notify ${moods}/curious.webp > /dev/null
+              printf 'Change needs you: %s\nIt is waiting on you to answer or approve something.\n%s\n' "$title" "$link" | butler-notify --picture change-waiting > /dev/null
               printf 'A change is waiting on you: %s\n' "''${title:0:150}" | butler-call-say --urgent --call-only > /dev/null || true
               echo "$state" > "${watch}/$id"
             fi

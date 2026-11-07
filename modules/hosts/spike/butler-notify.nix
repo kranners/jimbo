@@ -11,9 +11,16 @@ let
     ];
     text = ''
       usage() {
-        echo "usage: butler-notify [file...] <<'EOF' the message EOF  (sends Aaron a Discord DM from butler)" >&2
+        echo "usage: butler-notify [--picture <situation>] [file...] <<'EOF' the message EOF  (sends Aaron a Discord DM from butler; --picture asks for the daemon's picture for a situation, such as change-landed, when no file is given)" >&2
         exit 2
       }
+
+      picture=""
+      if [ "''${1:-}" = --picture ]; then
+        [[ "''${2:-}" =~ ^[a-z][a-z-]{0,40}$ ]] || usage
+        picture=$2
+        shift 2
+      fi
 
       text=$(cat)
       [ -n "''${text//[[:space:]]/}" ] || [ "$#" -gt 0 ] || usage
@@ -29,7 +36,7 @@ let
         names+=("$name")
       done
 
-      jq -n --arg text "$text" '{text: $text, files: $ARGS.positional}' --args "''${names[@]}" > "${spool}/$id.json.tmp"
+      jq -n --arg text "$text" --arg picture "$picture" '{text: $text, files: $ARGS.positional} + (if $picture == "" then {} else {picture: $picture} end)' --args "''${names[@]}" > "${spool}/$id.json.tmp"
       chmod 0640 "${spool}/$id.json.tmp"
       mv "${spool}/$id.json.tmp" "${spool}/$id.json"
       echo "Queued notice $id; butler sends it within 5 seconds."
@@ -41,7 +48,8 @@ let
     name = "notify";
     text = ''
       [ $# -eq 0 ] || { echo "usage: notify <<'EOF' the message EOF  (DMs Aaron; takes no args)" >&2; exit 2; }
-      exec ${butler-notify}/bin/butler-notify
+      # A job's result carries the daemon's picture for one, varied so the same never comes round twice running.
+      exec ${butler-notify}/bin/butler-notify --picture job-result
     '';
   };
 

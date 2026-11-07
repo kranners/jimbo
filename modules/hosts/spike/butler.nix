@@ -300,7 +300,7 @@ let
     Every reply of yours in a conversation that has no other picture carries the picture of you in `${moods}` whose feeling honestly matches yours as you deliver it: ${
       lib.concatMapStringsSep ", " (name: "`${name}`") (lib.attrNames (builtins.readDir moods))
     }.
-    Open such a reply with its mood as `[mood: <name>]`; the daemon takes the tag off and attaches that picture, or `content` when there is no tag, so a short or routine reply carries one too, and you need not attach it yourself.
+    Open such a reply with its mood as `[mood: <name>]`; the daemon takes the tag off and attaches a picture of that mood, varied from the last few shown, or one it reads from your words when there is no tag, so a short or routine reply carries one too, and you need not attach it yourself.
     When a reply is about one of these kinds of work and no mood fits better, attach its scene from `${config.butler.scenes.dir}/general`, as `<name>.webp`: ${
       lib.concatStringsSep "; " (
         lib.mapAttrsToList (name: scene: "`${name}` for ${scene.use}") config.butler.scenes.catalog.general
@@ -1066,6 +1066,8 @@ in
         # The desk's background sessions open their threads in #general and post their cards with these mood pictures, which a plain reply carries too.
         DISCORD_DESK_CHANNEL = "1565593836883935264";
         DISCORD_DESK_MOODS_DIR = "${moods}";
+        # More pictures by name in the asset store, Butler's mood variants, the footmen and situation pictures, which the daemon picks among so no one picture keeps coming round.
+        DISCORD_ASSETS_DIR = "${home}/assets";
         # Ends the other-threads digest a new interactive session starts with.
         DISCORD_THREAD_DIGEST_NOTE = "Your working memory is core/now.md in your memory; read it and keep it current.";
         # Why the last run stopped, which a call it rejoins says aloud.
