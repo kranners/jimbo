@@ -313,6 +313,7 @@ in
       sessions = 64;
       loadPerCpu = 1.0;
       memoryAvailableFloor = 0.3;
+      peerCloudClaims = 0;
     };
   };
 

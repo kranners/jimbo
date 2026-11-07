@@ -64,7 +64,12 @@ let
   # The gates the module owns in runner.json, the rest of which the instance writes.
   gatesFile = pkgs.writeText "backlogic-runner-gates.json" (
     builtins.toJSON {
-      inherit (cfg.gates) sessions loadPerCpu memoryAvailableFloor;
+      inherit (cfg.gates)
+        sessions
+        loadPerCpu
+        memoryAvailableFloor
+        peerCloudClaims
+        ;
     }
   );
 
@@ -89,7 +94,7 @@ let
       trap 'rm -f "$tmp"' EXIT
       jq --slurpfile gates ${gatesFile} '. * $gates[0]' "$config" >"$tmp"
       chmod --reference="$config" "$tmp"
-      before=$(jq -c '{sessions, loadPerCpu, memoryAvailableFloor}' "$config")
+      before=$(jq -c '{sessions, loadPerCpu, memoryAvailableFloor, peerCloudClaims, sharedProjects}' "$config")
       mv "$tmp" "$config"
       cp ${gatesFile} "$stamp"
       echo "runner.json's gates were $before, now $(cat ${gatesFile})"
@@ -181,6 +186,16 @@ in
         description = "runner.json's `memoryAvailableFloor`: the share of the runner's own memoryMax that must be free for a launch, which its cgroup namespace shows it as the container's cap.";
         type = types.numbers.between 0 1;
         default = 0.3;
+      };
+
+      # A peer's tickets are its owner's, and her own runner works them, so by default
+      # no cloud session claims one or fences one into its batch, and none holds a cloud slot.
+      # Its host sessions still need a checkout of the ticket's project, so they pass over
+      # every peer project but the shared ones.
+      peerCloudClaims = mkOption {
+        description = "runner.json's `peerCloudClaims`: the most cloud sessions at once on tickets copied from a peer instance, 0 to work none of them in the cloud.";
+        type = types.ints.unsigned;
+        default = 0;
       };
     };
 
