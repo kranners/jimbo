@@ -13,6 +13,29 @@ let
   memorySource = "${config.users.users.butler.home}/memory/pulse";
   memory = "/run/pulse/memory";
 
+  # The snapshots other services write for the group butler, which the infrastructure sensors read. pulse never joins
+  # that group, since it also opens butler's shell socket, so pulse-snapshots copies each into a folder of the group
+  # pulse, bound read-only over the original folder inside pulse alone, so the sensors read the same paths. The copy
+  # runs as a dynamic user with the group butler and no sockets at all, never root, so a link butler leaves in its
+  # writable butler-work folder reaches nothing the group butler cannot already read.
+  snapshots = "/run/pulse-snapshots";
+  snapshotFiles = [
+    config.butler.monitor.snapshot
+    config.butler.work.snapshot
+    config.butler.threads.snapshot
+  ];
+  snapshotDirs = lib.unique (map dirOf snapshotFiles);
+  copyOf = dir: "${snapshots}/${baseNameOf dir}";
+  copySnapshots = pkgs.writeShellScript "pulse-snapshots" ''
+    set -u
+    ${lib.concatMapStringsSep "\n" (file: ''
+      if [ -f ${lib.escapeShellArg file} ]; then
+        install -m 0640 ${lib.escapeShellArg file} ${lib.escapeShellArg "${copyOf (dirOf file)}/.${baseNameOf file}.tmp"} \
+          && mv -f ${lib.escapeShellArg "${copyOf (dirOf file)}/.${baseNameOf file}.tmp"} ${lib.escapeShellArg "${copyOf (dirOf file)}/${baseNameOf file}"}
+      fi
+    '') snapshotFiles}
+  '';
+
   environment = {
     PULSE_DB = "${state}/pulse.db";
     PULSE_MEMORY = memory;
@@ -67,6 +90,54 @@ in
 
     environment.systemPackages = [ cli ];
 
+    systemd.tmpfiles.settings."10-pulse-snapshots" = lib.listToAttrs (
+      map (
+        path:
+        lib.nameValuePair path {
+          d = {
+            # The copy, of the group pulse, writes in each folder, while pulse sees them only read-only.
+            mode = if path == snapshots then "0750" else "0770";
+            user = "root";
+            group = "pulse";
+          };
+        }
+      ) ([ snapshots ] ++ map copyOf snapshotDirs)
+    );
+
+    systemd.services.pulse-snapshots = {
+      description = "Copy butler's monitor, work and threads snapshots where pulse reads them";
+      path = [ pkgs.coreutils ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = copySnapshots;
+        DynamicUser = true;
+        Group = "pulse";
+        SupplementaryGroups = [ "butler" ];
+        UMask = "0027";
+        ReadWritePaths = [ snapshots ];
+        ProtectHome = true;
+        PrivateNetwork = true;
+        RestrictAddressFamilies = "none";
+        CapabilityBoundingSet = "";
+        NoNewPrivileges = true;
+        SystemCallFilter = [ "@system-service" ];
+      };
+    };
+
+    # Each snapshot is replaced by a rename every couple of minutes, which a path unit sees; the timer catches up on
+    # anything it missed.
+    systemd.paths.pulse-snapshots = {
+      wantedBy = [ "paths.target" ];
+      pathConfig.PathChanged = snapshotFiles;
+    };
+    systemd.timers.pulse-snapshots = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "1min";
+        OnUnitActiveSec = "5min";
+      };
+    };
+
     systemd.paths.pulse = {
       wantedBy = [ "paths.target" ];
       pathConfig = {
@@ -78,9 +149,17 @@ in
     systemd.services.pulse = {
       description = "Pulse, butler's event-driven background service";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      after = [
+        "network-online.target"
+        "pulse-snapshots.service"
+      ];
+      wants = [
+        "network-online.target"
+        "pulse-snapshots.service"
+      ];
       inherit environment;
+      # The infrastructure sensors ask systemd for its units and read the journal of the units they watch.
+      path = [ config.systemd.package ];
       # The bind below needs the memory's pulse folder, so pulse waits for butler-memory-pull to bring it, and
       # pulse.path starts it once it is there.
       unitConfig.ConditionPathIsDirectory = memorySource;
@@ -88,11 +167,16 @@ in
         ExecStart = "${lib.getExe cfg.package} run";
         User = "pulse";
         Group = "pulse";
+        # The journal, for the units the infrastructure sensors watch, and nothing of the group butler.
+        SupplementaryGroups = [ "systemd-journal" ];
         UMask = "0027";
         StateDirectory = "pulse";
         StateDirectoryMode = "0750";
         RuntimeDirectory = "pulse";
-        BindReadOnlyPaths = [ "${memorySource}:${memory}" ];
+        BindReadOnlyPaths = [
+          "${memorySource}:${memory}"
+        ]
+        ++ map (dir: "-${copyOf dir}:${dir}") snapshotDirs;
         Restart = "always";
         RestartSec = "10s";
 
