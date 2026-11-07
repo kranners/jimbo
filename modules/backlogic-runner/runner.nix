@@ -73,32 +73,10 @@ let
     }
   );
 
-  # Merges the gates into runner.json as the instance does, a read, a change and a rename,
-  # and only when they differ from those it last wrote, so an owner's edit in Control Panel
-  # holds until the module's own values change.
-  backlogic-runner-gates = pkgs.writeShellApplication {
-    name = "backlogic-runner-gates";
-    runtimeInputs = [
-      pkgs.jq
-      pkgs.coreutils
-      pkgs.diffutils
-    ];
-    text = ''
-      config=${cfg.configDir}/runner.json
-      stamp="$STATE_DIRECTORY/applied.json"
-      if cmp -s ${gatesFile} "$stamp"; then
-        echo "the gates in runner.json are already the module's: $(cat ${gatesFile})"
-        exit 0
-      fi
-      tmp=$(mktemp "${cfg.configDir}/.runner.json.gates.XXXXXX")
-      trap 'rm -f "$tmp"' EXIT
-      jq --slurpfile gates ${gatesFile} '. * $gates[0]' "$config" >"$tmp"
-      chmod --reference="$config" "$tmp"
-      before=$(jq -c '{sessions, loadPerCpu, memoryAvailableFloor, peerCloudClaims, sharedProjects}' "$config")
-      mv "$tmp" "$config"
-      cp ${gatesFile} "$stamp"
-      echo "runner.json's gates were $before, now $(cat ${gatesFile})"
-    '';
+  # The gates' oneshot, merging them into runner.json, in ./gates.nix so the flake check can run it.
+  backlogic-runner-gates = import ./gates.nix {
+    inherit pkgs gatesFile;
+    inherit (cfg) configDir;
   };
 in
 {
