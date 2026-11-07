@@ -81,6 +81,8 @@ in
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       inherit environment;
+      # The infrastructure sensors ask systemd for its units and read the journal of the units they watch.
+      path = [ config.systemd.package ];
       # The bind below needs the memory's pulse folder, so pulse waits for butler-memory-pull to bring it, and
       # pulse.path starts it once it is there.
       unitConfig.ConditionPathIsDirectory = memorySource;
@@ -88,6 +90,13 @@ in
         ExecStart = "${lib.getExe cfg.package} run";
         User = "pulse";
         Group = "pulse";
+        # The journal, and the group-butler snapshots other services already write for butler to read: the machines
+        # monitor's machines.json, butler-work's work.json and butler-threads' threads.json. ProtectSystem=strict keeps
+        # every one of them read-only to pulse, and butler's own home stays 0700, out of reach.
+        SupplementaryGroups = [
+          "systemd-journal"
+          "butler"
+        ];
         UMask = "0027";
         StateDirectory = "pulse";
         StateDirectoryMode = "0750";
