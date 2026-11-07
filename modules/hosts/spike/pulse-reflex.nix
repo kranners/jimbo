@@ -145,6 +145,13 @@ in
       "d ${spool}/requests 2770 root ${cfg.group} -"
       "d ${spool}/results 2750 root ${cfg.group} -"
       "d ${state} 0700 root root -"
+    ]
+    # pulse's own side of `monitor act off`: its user may pass through the monitor's control folder and read the
+    # files made there, the mode among them, which `monitor act` replaces by a rename, so the default entry carries
+    # over; the mode file there now gets the same read at once, and a missing one is skipped.
+    ++ lib.optionals config.spike.pulse.enable [
+      "a+ ${dirOf actConfig.monitorMode} - - - - u:pulse:--x,d:u:pulse:r--"
+      "a+ ${actConfig.monitorMode} - - - - u:pulse:r--"
     ];
 
     # pulse writes requests and reads results as a member of the group, through a hole in its read-only filesystem.
