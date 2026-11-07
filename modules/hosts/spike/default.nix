@@ -155,9 +155,19 @@
 
     # pulse's root channel over a scratch spool, a fake systemctl and a fake Mac: only allowlisted actions on allowlisted,
     # unprotected targets, both kill switches, its own hourly ceiling, a stamp unblocked and never deleted, caches alone.
-    pulse-reflex-act = pkgs.runCommand "pulse-reflex-act-test" { nativeBuildInputs = [ pkgs.python3 pkgs.bash pkgs.findutils pkgs.gawk ]; } ''
-      python3 -I ${./pulse-reflex/test_act.py} ${./pulse-reflex/act.py} ${./pulse-reflex/mac-free-disk.sh} > $out 2>&1 || { cat $out; exit 1; }
-    '';
+    pulse-reflex-act =
+      pkgs.runCommand "pulse-reflex-act-test"
+        {
+          nativeBuildInputs = [
+            pkgs.python3
+            pkgs.bash
+            pkgs.findutils
+            pkgs.gawk
+          ];
+        }
+        ''
+          python3 -I ${./pulse-reflex/test_act.py} ${./pulse-reflex/act.py} ${./pulse-reflex/mac-free-disk.sh} > $out 2>&1 || { cat $out; exit 1; }
+        '';
 
     # The Work in flight snapshot from fixture change records, offline, checking nothing private or path-shaped gets out.
     butler-work =

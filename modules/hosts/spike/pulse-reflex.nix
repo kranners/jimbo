@@ -164,7 +164,9 @@ in
     systemd.services.pulse-reflex-act = {
       description = "Carry out pulse's allowlisted reflex actions as root";
       unitConfig.StartLimitIntervalSec = 0;
-      environment.PULSE_REFLEX_ACT_CONFIG = pkgs.writeText "pulse-reflex-act.json" (builtins.toJSON actConfig);
+      environment.PULSE_REFLEX_ACT_CONFIG = pkgs.writeText "pulse-reflex-act.json" (
+        builtins.toJSON actConfig
+      );
       path = [ pkgs.coreutils ];
       serviceConfig = {
         Type = "oneshot";
